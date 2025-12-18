@@ -1,0 +1,32 @@
+# espanso match file liked by /Users/lucaminudel/Library/Application Support/espanso
+
+# For a complete introduction, visit the official docs at: https://espanso.org/docs/
+
+# You can use this file to define the base matches (aka snippets)
+# that will be available in every application when using espanso.
+
+# Matches are substitution rules: when you type the "trigger" string
+# it gets replaced by the "replace" string.
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/espanso/espanso/dev/schemas/match.schema.json
+
+matches:
+# 
+# Project specific prompts
+# 
+  - trigger: "/ttarch"
+    replace: |
+      Read the TTLeaguePlayersApp architecture and tech stack info from this file:
+      /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/ArchitectureAndTechStack.md
+# 
+# Workflow specific prompts
+# 
+  - trigger: "/tthandoff"
+    replace: |
+      You're now handing this task off to another engineer. Write a summary of 
+      A - what's still to be done, and 
+      B - the things among those just completed and others already available that A will need to build upon. 
+      This engineer has zero context about the task, so include whatever will help them, directly or pointing at relevanto sources with a link
+# 
+# Coding Tasks specific prompts
+# 

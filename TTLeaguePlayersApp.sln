@@ -1,0 +1,53 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TTLeaguePlayersApp.BackEnd", "TTLeaguePlayersApp.BackEnd\TTLeaguePlayersApp.BackEnd.csproj", "{D8985AF4-3308-4E76-8616-75A3C8F142B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TTLeaguePlayersApp.BackEnd.Tests", "TTLeaguePlayersApp.BackEnd.Tests\TTLeaguePlayersApp.BackEnd.Tests.csproj", "{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}"
+EndProject
+# Add solution folders
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Frontend", "Frontend", "{12345678-1234-1234-1234-123456789012}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TTLeaguePlayersApp.FrontEnd", "TTLeaguePlayersApp.FrontEnd", "{87654321-4321-4321-4321-210987654321}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Debug|x64.Build.0 = Debug|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Debug|x86.Build.0 = Debug|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Release|x64.ActiveCfg = Release|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Release|x64.Build.0 = Release|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Release|x86.ActiveCfg = Release|Any CPU
+		{D8985AF4-3308-4E76-8616-75A3C8F142B0}.Release|x86.Build.0 = Release|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Debug|x64.Build.0 = Debug|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Debug|x86.Build.0 = Debug|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Release|x64.ActiveCfg = Release|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Release|x64.Build.0 = Release|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Release|x86.ActiveCfg = Release|Any CPU
+		{3B4AFF50-5AC7-4571-8C4A-22EB0E8D68F1}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
