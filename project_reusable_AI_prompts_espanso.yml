@@ -17,7 +17,7 @@ matches:
   - trigger: "/ttarch"
     replace: |
       Read the TTLeaguePlayersApp architecture and tech stack info from this file:
-      /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/ArchitectureAndTechStack.md
+      /Users/lucaminudel/Code/TTLeaguePlayers/ArchitectureAndTechStack.md
 # 
 # Workflow specific prompts
 # 
