@@ -9,7 +9,7 @@ export const Home: React.FC = () => {
             <PageContainer
                 title="Welcome"
                 footer={
-                    <Button fullWidth onClick={() => console.log('Enter clicked')}>
+                    <Button fullWidth onClick={() => { console.log('Enter clicked'); }}>
                         Enter
                     </Button>
                 }

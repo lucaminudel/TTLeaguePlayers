@@ -11,7 +11,7 @@ export const MainMenu: React.FC = () => {
         'Clubs'
     ];
 
-    const toggleMenu = () => setIsOpen(!isOpen);
+    const toggleMenu = () => { setIsOpen(!isOpen); };
 
     return (
         <>
