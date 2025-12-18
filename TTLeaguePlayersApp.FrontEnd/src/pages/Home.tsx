@@ -16,7 +16,7 @@ export const Home: React.FC = () => {
             >
                 <p>
                     Community of local leagues Table Tennis players.<br />
-                    Starting with CLTTL!
+                    Starting from the CLTTL!
                 </p>
             </PageContainer>
         </MobileLayout>

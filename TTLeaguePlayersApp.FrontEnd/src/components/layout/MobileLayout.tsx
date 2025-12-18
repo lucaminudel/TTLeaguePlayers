@@ -7,14 +7,14 @@ interface MobileLayoutProps {
 
 export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
     return (
-        <div className="min-h-screen flex flex-col items-center p-4 max-w-md mx-auto relative bg-primary-base text-main-text">
+        <div className="min-h-screen flex flex-col w-full max-w-md mx-auto relative bg-primary-base text-main-text">
             {/* App Name Header */}
             {/* App Name Header */}
-            <header className="w-full py-6 flex items-center justify-center relative px-4">
+            <header className="w-full py-6 flex items-center justify-center relative px-4 sticky top-0 bg-primary-base z-40">
                 <h1 className="text-xl font-bold tracking-wider uppercase text-main-text opacity-90 mx-auto">
                     TT League Players
                 </h1>
-                <div className="absolute right-4 flex items-center">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
                     <MainMenu />
                 </div>
             </header>
