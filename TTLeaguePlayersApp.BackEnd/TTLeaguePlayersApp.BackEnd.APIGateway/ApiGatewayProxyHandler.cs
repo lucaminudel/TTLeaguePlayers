@@ -6,6 +6,8 @@ using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
 
+[assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+
 namespace TTLeaguePlayersApp.BackEnd.APIGateway;
 
 public class ApiGatewayProxyHandler
@@ -103,7 +105,7 @@ public class ApiGatewayProxyHandler
     private async Task<APIGatewayProxyResponse> HandleGetInviteById(APIGatewayProxyRequest request, ILambdaContext context)
     {
         string? nanoId;
-        TryToExtractSegment1PathParameter(request, "nano_id", out nanoId);
+        TryToExtractSegment1PathParameter(request, out nanoId);
         if (string.IsNullOrEmpty(nanoId))
         {
             return CreateResponse(HttpStatusCode.BadRequest, new { message = "Invalid path format. Missing nano_id." });
@@ -175,25 +177,6 @@ public class ApiGatewayProxyHandler
         };
     }
 
-    private Dictionary<string, string> BuildBaseCorsHeaders(APIGatewayProxyRequest? request = null)
-    {
-        var originFromRequest = request?.Headers != null && request.Headers.TryGetValue("Origin", out var originVal)
-            ? originVal
-            : null;
-
-        var allowOrigin = ResolveAllowedOrigin(originFromRequest);
-
-        return new Dictionary<string, string>
-        {
-            { "Access-Control-Allow-Origin", allowOrigin },
-            { "Access-Control-Allow-Headers", "Content-Type,Authorization" },
-            { "Access-Control-Allow-Credentials", "true" },
-            { "Content-Type", "application/json; charset=utf-8" },
-            { "Vary", "Origin" }
-        };
-    }
-
-
     private APIGatewayProxyResponse CreatePreflightResponse(string allowedMethods, APIGatewayProxyRequest request)
     {
         var headers = BuildBaseCorsHeaders(request);
@@ -213,6 +196,24 @@ public class ApiGatewayProxyHandler
             StatusCode = (int)HttpStatusCode.NoContent,
             Headers = headers,
             Body = string.Empty
+        };
+    }
+
+    private Dictionary<string, string> BuildBaseCorsHeaders(APIGatewayProxyRequest? request = null)
+    {
+        var originFromRequest = request?.Headers != null && request.Headers.TryGetValue("Origin", out var originVal)
+            ? originVal
+            : null;
+
+        var allowOrigin = ResolveAllowedOrigin(originFromRequest);
+
+        return new Dictionary<string, string>
+        {
+            { "Access-Control-Allow-Origin", allowOrigin },
+            { "Access-Control-Allow-Headers", "Content-Type,Authorization" },
+            { "Access-Control-Allow-Credentials", "true" },
+            { "Content-Type", "application/json; charset=utf-8" },
+            { "Vary", "Origin" }
         };
     }
 
@@ -256,22 +257,14 @@ public class ApiGatewayProxyHandler
         PropertyNameCaseInsensitive = true
     };
 
-    private static void TryToExtractSegment1PathParameter(APIGatewayProxyRequest request, string paramaterName, out string? id)
+    private static void TryToExtractSegment1PathParameter(APIGatewayProxyRequest request, out string? id)
     {
         id = null;
 
-        // Extract id either from path parameters if API Gateway mapping is configured, or parse the path
-        if (request.PathParameters != null && request.PathParameters.ContainsKey(paramaterName))
+        var segments = request.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 2)
         {
-            id = SafeUrlDecode(request.PathParameters[paramaterName]);
-        }
-        else
-        {
-            var segments = request.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (segments.Length == 2)
-            {
-                id = SafeUrlDecode(segments[1]);
-            }
+            id = SafeUrlDecode(segments[1]);
         }
     }
 
