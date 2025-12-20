@@ -2,19 +2,18 @@ using Xunit;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.TestUtilities;
 
-namespace TTLeaguePlayersApp.BackEnd.Tests;
+namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites.Tests;
 
 public class FunctionTest
 {
     [Fact]
-    public void TestToUpperFunction()
+    public async Task TestGetInvite_ReturnsPassedNanoId()
     {
-
-        // Invoke the lambda function and confirm the string was upper cased.
-        var function = new Function();
+        // Invoke the lambda function and confirm the NanoID is echoed back
+        var function = new GetInviteLambda();
         var context = new TestLambdaContext();
-        var upperCase = function.FunctionHandler("hello world", context);
+        var invite = await function.HandleAsync("hello world", context);
 
-        Assert.Equal("HELLO WORLD", upperCase);
+        Assert.Equal("hello world", invite.NanoID);
     }
 }

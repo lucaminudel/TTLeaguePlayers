@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.Core" Version="2.7.0" />
@@ -13,6 +14,6 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TTLeaguePlayersApp.BackEnd\TTLeaguePlayersApp.BackEnd.csproj" />
+    <ProjectReference Include="../TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj" />
   </ItemGroup>
 </Project>
