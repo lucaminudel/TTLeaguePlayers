@@ -24,6 +24,10 @@ The Client-Side Rendered (CSR) Single Page App (SPA)  web application to be host
 - E2e test framework: Playwright
 
 This FrontEnd project is: TTLeaguePlayersApp.FrontEnd
+These config files contains additional info on the implememntation details of the FrontEnd:
+- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
+- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/vite.config.ts
+- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/tailwind.config.js
 
 ### BackEnd
 The cloud native serverless microservices using AWS Lambda, AWS API Gateway, AWS Cognito, AWS DynamoDB, and AWS SES is developed using:
@@ -36,8 +40,10 @@ The cloud native serverless microservices using AWS Lambda, AWS API Gateway, AWS
  - a data store access layer: to access the DynamoDB and the configuration info.
 
 This single-project backend can be built with SAM without incurring in multi-projects .NET solutions not fully supported by the SAM build.
-  
 This BackEnd project is: TTLeaguePlayersApp.BackEnd
+These config files contains additional info on the implememntation details of the BackEnd:
+- /Users/lucaminudel/Code/TTLeaguePlayers/template.yaml
+- /Users/lucaminudel/Code/TTLeaguePlayers/samconfig.toml
 
 ### Environments
 There are four different environments for this application.
