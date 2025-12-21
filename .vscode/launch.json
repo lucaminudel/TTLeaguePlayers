@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "SAM CLI - Dev",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "pipeTransport": {
+        "pipeProgram": "sam",
+        "pipeArgs": ["local", "start-api", "--config-env", "dev", "--debug-port", "5858"],
+        "debuggerPath": "/tmp/lambci/debuggers/vsdbg"
+      }
+    },
+    {
+      "name": "SAM CLI - Test",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "pipeTransport": {
+        "pipeProgram": "sam",
+        "pipeArgs": ["local", "start-api", "--config-env", "test", "--debug-port", "5859"],
+        "debuggerPath": "/tmp/lambci/debuggers/vsdbg"
+      }
+    }
+  ]
+}

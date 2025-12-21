@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, test, staging, prod]
+  
+  DomainName:
+    Type: String
+    Default: ""
+
+Globals:
+  Function:
+    Runtime: dotnet8
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Sub "{{resolve:ssm:/ttleague/${Environment}/certificate-arn}}"
+        Condition: HasDomain
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  ApiGatewayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: TTLeaguePlayersApp.BackEnd/
+      Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.APIGateway.ApiGatewayProxyHandler::Dispatch
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /{proxy+}
+            Method: ANY
+
+  InvitesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "ttleague-invites-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: NanoID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: NanoID
+          KeyType: HASH
+
+Conditions:
+  HasDomain: !Not [!Equals [!Ref DomainName, ""]]
+
+Outputs:
+  ApiUrl:
+    Value: !If 
+      - HasDomain
+      - !Sub "https://${DomainName}"
+      - !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
