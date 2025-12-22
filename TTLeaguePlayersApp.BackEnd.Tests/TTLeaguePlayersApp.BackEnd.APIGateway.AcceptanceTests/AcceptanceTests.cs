@@ -13,11 +13,11 @@ public class AcceptanceTests : IAsyncLifetime
 
     public AcceptanceTests()
     {
-        var baseUrl = "http://localhost:3000"; 
+        var baseUrl = new DataStore.Configuration.Loader().GetEnvironmentVariables().BackEndApiGateWay.ApiBaseUrl;
         
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri(baseUrl),
+            BaseAddress = baseUrl,
             Timeout = TimeSpan.FromSeconds(30)
         };
     }
