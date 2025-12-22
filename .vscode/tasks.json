@@ -2,9 +2,15 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "sam-build",
+      "label": "sam-build dev",
       "type": "shell",
-      "command": "sam build",
+      "command": "sam build --config-env dev",
+      "group": "build"
+    },
+    {
+      "label": "sam-build dev (extra debug logs)",
+      "type": "shell",
+      "command": "sam build --config-env dev --debug",
       "group": "build"
     },
     {
@@ -14,10 +20,24 @@
       "group": "test"
     },
     {
+      "label": "sam-local-dev (ready to attach the debugger)",
+      "type": "shell",
+      "command": "export SAM_CLI_CONTAINER_CONNECTION_TIMEOUT=120; sam local start-api --config-env dev --port 3000 --debug-port 5858 --debugger-path ~/.vsdbg_linux_arm64 --warm-containers LAZY --debug",
+      "group": "test",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "sam-local-test",
       "type": "shell",
-      "command": "sam local start-api --config-env test --port 3001",
+      "command": "sam local start-api --config-env test --port 3003",
       "group": "test"
+    },
+    {
+      "label": "sam-build test",
+      "type": "shell",
+      "command": "sam build --config-env test",
+      "group": "build"
     },
     {
       "label": "sam-deploy-staging",

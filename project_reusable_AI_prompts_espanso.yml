@@ -16,8 +16,12 @@ matches:
 # 
   - trigger: "/ttarch"
     replace: |
-      Read the TTLeaguePlayersApp architecture and tech stack info from this file:
+      Read from this file the TTLeaguePlayersApp architecture and tech stack info:
       /Users/lucaminudel/Code/TTLeaguePlayers/ArchitectureAndTechStack.md
+  - trigger: "/ttdebug"
+    replace: |
+      Read from this file the debug instructions to debug the Lamdas and Api GatewayC# running on SAM locally  :
+      /Users/lucaminudel/Code/TTLeaguePlayers/LocalSAMBackEndDebugInstructions.md      
 # 
 # Workflow specific prompts
 # 

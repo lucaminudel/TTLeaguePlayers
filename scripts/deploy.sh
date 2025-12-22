@@ -31,7 +31,7 @@ sam build
 if [ "$ENVIRONMENT" = "dev" ] || [ "$ENVIRONMENT" = "test" ]; then
     PORT=3000
     if [ "$ENVIRONMENT" = "test" ]; then
-        PORT=3001
+        PORT=3003
     fi
     
     echo "Starting local SAM for $ENVIRONMENT on port $PORT..."

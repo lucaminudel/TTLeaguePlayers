@@ -13,19 +13,19 @@ confirm_changeset = false
 fail_on_empty_changeset = false
 
 [dev.deploy.parameters]
-parameter_overrides = "Environment=dev DomainName="
+parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfiguration=Debug DomainName= "
 stack_name = "ttleague-players-dev"
 
 [test.deploy.parameters]
-parameter_overrides = "Environment=test DomainName="
+parameter_overrides = "Environment=test LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName= "
 stack_name = "ttleague-players-test"
 
 [staging.deploy.parameters]
-parameter_overrides = "Environment=staging DomainName=staging.yourdomain.com"
+parameter_overrides = "Environment=staging LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName=staging.yourdomain.com"
 stack_name = "ttleague-players-staging"
 region = "us-east-1"
 
 [prod.deploy.parameters]
-parameter_overrides = "Environment=prod DomainName=yourdomain.com"
+parameter_overrides = "Environment=prod LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName=yourdomain.com"
 stack_name = "ttleague-players-prod"
 region = "us-east-1"

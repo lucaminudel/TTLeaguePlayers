@@ -7,13 +7,18 @@
     <AWSProjectType>Lambda</AWSProjectType>
     <!-- This property makes the build directory similar to a publish directory and helps the AWS .NET Lambda Mock Test Tool find project dependencies. -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <!-- Generate ready to run images during publishing to improve cold start time. -->
-    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Generate ready-to-run images during publishing to improve cold start time.
+         Disable for Debug so breakpoints/symbols behave predictably when debugging locally. -->
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Release'">false</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.3" />
     <PackageReference Include="Amazon.Lambda.Core" Version="2.7.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
     <PackageReference Include="Nanoid" Version="3.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TTLeaguePlayersApp.BackEnd.DataStore.Configuration/" />
   </ItemGroup>
 </Project>

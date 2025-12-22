@@ -6,6 +6,19 @@ Parameters:
     Type: String
     Default: dev
     AllowedValues: [dev, test, staging, prod]
+
+  # NOTE: These are primarily for local dev (SAM) vs cloud deploy differences.
+  # In AWS you can choose either architecture; locally on Apple Silicon prefer arm64.
+  LambdaArchitecture:
+    Type: String
+    Default: x86_64
+    AllowedValues: [arm64, x86_64]
+
+  # Build configuration for the .NET Lambda (SAM build time).
+  DotnetBuildConfiguration:
+    Type: String
+    Default: Release
+    AllowedValues: [Debug, Release]
   
   DomainName:
     Type: String
@@ -39,6 +52,8 @@ Resources:
     Properties:
       CodeUri: TTLeaguePlayersApp.BackEnd/
       Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.APIGateway.ApiGatewayProxyHandler::Dispatch
+      Architectures:
+        - !Ref LambdaArchitecture
       Events:
         ApiEvent:
           Type: Api
@@ -46,6 +61,9 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /{proxy+}
             Method: ANY
+    Metadata:
+      BuildProperties:
+        Configuration: !Ref DotnetBuildConfiguration
 
   InvitesTable:
     Type: AWS::DynamoDB::Table

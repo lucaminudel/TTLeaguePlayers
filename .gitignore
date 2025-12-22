@@ -65,3 +65,4 @@ nunit-*.xml
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/tasks.json
+.aws-sam
