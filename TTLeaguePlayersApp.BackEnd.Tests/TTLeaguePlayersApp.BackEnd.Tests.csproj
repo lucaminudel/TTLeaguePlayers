@@ -9,11 +9,18 @@
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.Core" Version="2.7.0" />
     <PackageReference Include="Amazon.Lambda.TestUtilities" Version="3.0.0" />
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests/" />
   </ItemGroup>
 </Project>
