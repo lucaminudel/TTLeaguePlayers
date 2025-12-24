@@ -14,13 +14,13 @@
       "group": "build"
     },
     {
-      "label": "sam-local-dev",
+      "label": "sam-start dev",
       "type": "shell",
-      "command": "sam local start-api --config-env dev --port 3000",
+      "command": "sam local start-api --config-env dev --port 3000 --warm-containers EAGER",
       "group": "test"
     },
     {
-      "label": "sam-local-dev (ready to attach the debugger)",
+      "label": "sam-start dev (ready to attach the debugger)",
       "type": "shell",
       "command": "export SAM_CLI_CONTAINER_CONNECTION_TIMEOUT=120; sam local start-api --config-env dev --port 3000 --debug-port 5858 --debugger-path ~/.vsdbg_linux_arm64 --warm-containers LAZY --debug",
       "group": "test",
@@ -28,7 +28,7 @@
       "problemMatcher": []
     },
     {
-      "label": "sam-local-test",
+      "label": "sam-start test",
       "type": "shell",
       "command": "sam local start-api --config-env test --port 3003",
       "group": "test"
@@ -40,16 +40,26 @@
       "group": "build"
     },
     {
-      "label": "sam-deploy-staging",
+      "label": "sam-deploy staging",
       "type": "shell",
       "command": "sam deploy --config-env staging",
       "group": "build"
     },
     {
-      "label": "sam-deploy-prod",
+      "label": "sam-deploy prod",
       "type": "shell",
       "command": "sam deploy --config-env prod",
       "group": "build"
+    },
+    {
+      "label": "run-backend-acceptance-tests test",
+      "type": "shell",
+      "command": "./scripts/run_backend_acceptance_tests.sh 3003 test",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
     }
   ]
 }
