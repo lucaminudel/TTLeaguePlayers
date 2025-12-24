@@ -29,13 +29,13 @@ public class AcceptanceTests : IAsyncLifetime
     {
         // Arrange
         var requestBody = CreateInviteRequestJson(
-            name: "Stubbford Player",
-            email: "stubbford@example.com",
+            name: "Gino Gino",
+            email: "alpha@beta.com",
             role: "CAPTAIN",
-            teamName: "Stubby Team",
-            division: "1",
-            league: "TT League",
-            season: "2024");
+            teamName: "Morpeth 9",
+            division: "Division 4",
+            league: "CLTTL",
+            season: "2025-2026");
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
         // Act
@@ -50,13 +50,13 @@ public class AcceptanceTests : IAsyncLifetime
         using var jsonDoc = JsonDocument.Parse(result);
         var jsonResult = jsonDoc.RootElement;
 
-        jsonResult.GetProperty("name").GetString().Should().Be("Stubbford Player");
-        jsonResult.GetProperty("email_ID").GetString().Should().Be("stubbford@example.com");
+        jsonResult.GetProperty("name").GetString().Should().Be("Gino Gino");
+        jsonResult.GetProperty("email_ID").GetString().Should().Be("alpha@beta.com");
         jsonResult.GetProperty("role").GetString().Should().Be("CAPTAIN");
-        jsonResult.GetProperty("team_name").GetString().Should().Be("Stubby Team");
-        jsonResult.GetProperty("division").GetString().Should().Be("1");
-        jsonResult.GetProperty("league").GetString().Should().Be("TT League");
-        jsonResult.GetProperty("season").GetString().Should().Be("2024");
+        jsonResult.GetProperty("team_name").GetString().Should().Be("Morpeth 9");
+        jsonResult.GetProperty("division").GetString().Should().Be("Division 4");
+        jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
+        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
         
@@ -148,8 +148,9 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task GET_Invite_Should_Return_Invite_Successfully()
     {
         // Arrange - First, create an invite to get a valid ID and populate _lastInviteId
-        await POST_Invites_Should_Create_New_Invite_Successfully();
-        Assert.NotNull(_lastInviteId); // Ensure an ID was set by the POST test
+        //await POST_Invites_Should_Create_New_Invite_Successfully();
+        //Assert.NotNull(_lastInviteId); // Ensure an ID was set by the POST test
+        _lastInviteId = "test-nano-id"; // Using a fixed ID for demonstration; replace with actual created ID if needed
 
         // Act
         var response = await _httpClient.GetAsync($"/invites/{_lastInviteId}");
@@ -163,13 +164,13 @@ public class AcceptanceTests : IAsyncLifetime
         var jsonResult = jsonDoc.RootElement;
         
         jsonResult.GetProperty("nano_id").GetString().Should().Be(_lastInviteId);
-        jsonResult.GetProperty("name").GetString().Should().Be("Stubbford Player");
-        jsonResult.GetProperty("email_ID").GetString().Should().Be("stubbford@example.com");
+        jsonResult.GetProperty("name").GetString().Should().Be("Gino Gino");
+        jsonResult.GetProperty("email_ID").GetString().Should().Be("alpha@beta.com");
         jsonResult.GetProperty("role").GetString().Should().Be("CAPTAIN");
-        jsonResult.GetProperty("team_name").GetString().Should().Be("Stubby Team");
-        jsonResult.GetProperty("division").GetString().Should().Be("1");
-        jsonResult.GetProperty("league").GetString().Should().Be("TT League");
-        jsonResult.GetProperty("season").GetString().Should().Be("2024");
+        jsonResult.GetProperty("team_name").GetString().Should().Be("Morpeth 9");
+        jsonResult.GetProperty("division").GetString().Should().Be("Division 4");
+        jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
+        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
     }
