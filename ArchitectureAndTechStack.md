@@ -44,6 +44,8 @@ This BackEnd project is: TTLeaguePlayersApp.BackEnd
 These config files contains additional info on the implememntation details of the BackEnd:
 - /Users/lucaminudel/Code/TTLeaguePlayers/template.yaml
 - /Users/lucaminudel/Code/TTLeaguePlayers/samconfig.toml
+- /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/*
+- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj
 
 ### Environments
 There are four different environments for this application.

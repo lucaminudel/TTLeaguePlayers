@@ -7,6 +7,18 @@ stack_name = "ttleague-players"
 cached = true
 parallel = true
 
+[dev.build.parameters]
+parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfiguration=Debug DomainName= "
+
+[dev.local_start_api.parameters]
+parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfiguration=Debug DomainName= "
+
+[test.build.parameters]
+parameter_overrides = "Environment=test LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName= "
+
+[test.local_start_api.parameters]
+parameter_overrides = "Environment=test LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName= "
+
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false

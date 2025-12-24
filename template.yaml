@@ -4,7 +4,7 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
-    Default: dev
+#    Default: dev   # this force all the commands to specify the environments and avoids confusions caused by mixing the architectures
     AllowedValues: [dev, test, staging, prod]
 
   # NOTE: These are primarily for local dev (SAM) vs cloud deploy differences.

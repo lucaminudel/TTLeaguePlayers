@@ -2,13 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "sam-build dev",
+      "label": "sam-refresh-build dev",
       "type": "shell",
       "command": "sam build --config-env dev",
       "group": "build"
     },
     {
-      "label": "sam-build dev (extra debug logs)",
+      "label": "sam-refresh-build dev (extra debug logs)",
       "type": "shell",
       "command": "sam build --config-env dev --debug",
       "group": "build"
@@ -34,7 +34,7 @@
       "group": "test"
     },
     {
-      "label": "sam-build test",
+      "label": "sam-refresh-build test",
       "type": "shell",
       "command": "sam build --config-env test",
       "group": "build"
