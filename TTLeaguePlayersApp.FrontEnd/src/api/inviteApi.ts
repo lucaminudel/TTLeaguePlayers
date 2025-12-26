@@ -10,9 +10,9 @@ export const inviteApi = {
      * Fetch an invite by its nano_id
      * GET /invites/{nano_id}
      */
-    async getInvite(nanoId: string): Promise<Invite> {
+    async getInvite(nanoId: string, timeoutMs?: number, maxRetries?: number): Promise<Invite> {
         const encodedId = encodeURIComponent(nanoId);
-        return apiFetch<Invite>(API_BASE_URL, `/invites/${encodedId}`);
+        return apiFetch<Invite>(API_BASE_URL, `/invites/${encodedId}`, {}, timeoutMs, maxRetries);
     },
 
     /**
