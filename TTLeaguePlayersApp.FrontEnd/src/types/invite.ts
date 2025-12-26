@@ -36,6 +36,6 @@ export interface Invite {
     division: string;
     league: string;
     season: string;
-    created_at: number; // Unix timestamp in milliseconds
-    accepted_at: number | null; // Unix timestamp in milliseconds or null if not yet accepted
+    created_at: number; // Unix timestamp in seconds
+    accepted_at: number | null; // Unix timestamp in seconds or null if not yet accepted
 }
