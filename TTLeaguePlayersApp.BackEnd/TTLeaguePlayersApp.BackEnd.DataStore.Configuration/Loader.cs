@@ -76,8 +76,11 @@ public class Loader
     {
         public FrontEndConfigDeserialisation FrontEnd { get; set; } = new();
 
-        [JsonPropertyName("BackEnd.ApiGateWay")]
-        public BackEndApiGateWayConfigDeserialisation BackEndApiGateWay { get; set; } = new();
+        public ApiGateWayConfigDeserialisation ApiGateWay { get; set; } = new();
+
+        public DynamoDBConfigDeserialisation DynamoDB { get; set; } = new();
+
+        public CognitoConfigDeserialisation Cognito { get; set; } = new();
     }
 
     internal class FrontEndConfigDeserialisation
@@ -85,22 +88,58 @@ public class Loader
         public string WebsiteBaseUrl { get; set; } = string.Empty;
     }
 
-    internal class BackEndApiGateWayConfigDeserialisation
+    internal class ApiGateWayConfigDeserialisation
     {
         public string ApiBaseUrl { get; set; } = string.Empty;
     }
 
+    internal class DynamoDBConfigDeserialisation
+    {
+        public string? ServiceLocalUrl { get; set; }
+
+        [JsonPropertyName("AWS.Profile")]
+        public string? AWSProfile { get; set; }
+
+        [JsonPropertyName("AWS.Region")]
+        public string? AWSRegion { get; set; }
+    }
+
+    internal class CognitoConfigDeserialisation
+    {
+        public string? UserPoolId { get; set; }
+        public string? ClientId { get; set; }
+        public string? Domain { get; set; }
+    }
+
+
     public class EnvironmentConfig
     {
         public FrontEndConfig FrontEnd { get; internal set; } = new();
-        public BackEndApiGateWayConfig BackEndApiGateWay { get; internal set; } = new();
+        public ApiGateWayConfig ApiGateWay { get; internal set; } = new();
+        public DynamoDBConfig DynamoDB { get; internal set; } = new();
+        public CognitoConfig Cognito { get; internal set; } = new();
 
         internal EnvironmentConfig(EnvironmentConfigDeserialisation cfg)
         {
             ValidateConfigFileInfo(cfg);
 
             FrontEnd.WebsiteBaseUrl = new Uri(cfg.FrontEnd.WebsiteBaseUrl);
-            BackEndApiGateWay.ApiBaseUrl = new Uri(cfg.BackEndApiGateWay.ApiBaseUrl);
+            ApiGateWay.ApiBaseUrl = new Uri(cfg.ApiGateWay.ApiBaseUrl);
+            
+            if (!string.IsNullOrEmpty(cfg.DynamoDB.ServiceLocalUrl))
+            {
+                // Remove potential trailing ' ?' from draft json editing if present, though ideally JSON should be clean.
+                // Assuming standard valid URL for now based on strict type requirements.
+                var url = cfg.DynamoDB.ServiceLocalUrl.Trim().Split(' ')[0]; 
+                if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                    DynamoDB.ServiceLocalUrl = uri;
+            }
+            DynamoDB.AWSProfile = cfg.DynamoDB.AWSProfile;
+            DynamoDB.AWSRegion = cfg.DynamoDB.AWSRegion;
+
+            Cognito.UserPoolId = cfg.Cognito.UserPoolId?.TrimEnd(' ', '?');
+            Cognito.ClientId = cfg.Cognito.ClientId?.TrimEnd(' ', '?');
+            Cognito.Domain = cfg.Cognito.Domain?.TrimEnd(' ', '?');
         }
 
         private static void ValidateConfigFileInfo(EnvironmentConfigDeserialisation cfg)
@@ -111,11 +150,11 @@ public class Loader
             if (!Uri.IsWellFormedUriString(cfg.FrontEnd.WebsiteBaseUrl, UriKind.Absolute))
                 throw new ArgumentException($"{nameof(cfg.FrontEnd)}.{nameof(cfg.FrontEnd.WebsiteBaseUrl)} configuration value needs to be a well formed Url ('{cfg.FrontEnd.WebsiteBaseUrl}').");
 
-            if (string.IsNullOrEmpty(cfg.BackEndApiGateWay.ApiBaseUrl))
-                throw new ArgumentNullException($"{nameof(cfg.BackEndApiGateWay)}.{nameof(cfg.BackEndApiGateWay.ApiBaseUrl)} configuration value cannot be null or empty.");
+            if (string.IsNullOrEmpty(cfg.ApiGateWay.ApiBaseUrl))
+                throw new ArgumentNullException($"{nameof(cfg.ApiGateWay)}.{nameof(cfg.ApiGateWay.ApiBaseUrl)} configuration value cannot be null or empty.");
 
-            if (!Uri.IsWellFormedUriString(cfg.BackEndApiGateWay.ApiBaseUrl, UriKind.Absolute))
-                throw new ArgumentException($"{nameof(cfg.BackEndApiGateWay)}.{nameof(cfg.BackEndApiGateWay.ApiBaseUrl)} configuration value needs to be a well formed Url ('{cfg.BackEndApiGateWay.ApiBaseUrl}').");
+            if (!Uri.IsWellFormedUriString(cfg.ApiGateWay.ApiBaseUrl, UriKind.Absolute))
+                throw new ArgumentException($"{nameof(cfg.ApiGateWay)}.{nameof(cfg.ApiGateWay.ApiBaseUrl)} configuration value needs to be a well formed Url ('{cfg.ApiGateWay.ApiBaseUrl}').");
         }
     }
 
@@ -124,8 +163,22 @@ public class Loader
         public Uri WebsiteBaseUrl { get; internal set; } = null!;
     }
 
-    public class BackEndApiGateWayConfig
+    public class ApiGateWayConfig
     {
         public Uri ApiBaseUrl { get; internal set; } = null!;
+    }
+
+    public class DynamoDBConfig
+    {
+        public Uri? ServiceLocalUrl { get; internal set; }
+        public string? AWSProfile { get; internal set; }
+        public string? AWSRegion { get; internal set; }
+    }
+
+    public class CognitoConfig
+    {
+        public string? UserPoolId { get; internal set; }
+        public string? ClientId { get; internal set; }
+        public string? Domain { get; internal set; }
     }
 }

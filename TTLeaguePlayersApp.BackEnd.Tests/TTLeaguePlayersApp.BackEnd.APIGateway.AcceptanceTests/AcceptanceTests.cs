@@ -13,7 +13,7 @@ public class AcceptanceTests : IAsyncLifetime
 
     public AcceptanceTests()
     {
-        var baseUrl = new DataStore.Configuration.Loader().GetEnvironmentVariables().BackEndApiGateWay.ApiBaseUrl;
+        var baseUrl = new DataStore.Configuration.Loader().GetEnvironmentVariables().ApiGateWay.ApiBaseUrl;
         
         _httpClient = new HttpClient
         {
