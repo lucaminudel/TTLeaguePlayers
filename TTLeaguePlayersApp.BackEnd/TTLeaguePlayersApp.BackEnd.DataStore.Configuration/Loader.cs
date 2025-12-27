@@ -34,7 +34,7 @@ public class Loader
         var deserialisedConfigFile = JsonSerializer.Deserialize<EnvironmentConfigDeserialisation>(jsonContent)
             ?? throw new InvalidOperationException($"Failed to deserialize configuration from {configPath}");
 
-        return _cachedConfig = new EnvironmentConfig(deserialisedConfigFile);
+        return _cachedConfig = new EnvironmentConfig(deserialisedConfigFile, runtimeEnvironment);
 
     }
 
@@ -119,7 +119,7 @@ public class Loader
         public DynamoDBConfig DynamoDB { get; internal set; } = new();
         public CognitoConfig Cognito { get; internal set; } = new();
 
-        internal EnvironmentConfig(EnvironmentConfigDeserialisation cfg)
+        internal EnvironmentConfig(EnvironmentConfigDeserialisation cfg, string environment)
         {
             ValidateConfigFileInfo(cfg);
 
@@ -155,6 +155,19 @@ public class Loader
 
             if (!Uri.IsWellFormedUriString(cfg.ApiGateWay.ApiBaseUrl, UriKind.Absolute))
                 throw new ArgumentException($"{nameof(cfg.ApiGateWay)}.{nameof(cfg.ApiGateWay.ApiBaseUrl)} configuration value needs to be a well formed Url ('{cfg.ApiGateWay.ApiBaseUrl}').");
+
+            if (string.IsNullOrEmpty(cfg.DynamoDB.AWSProfile))
+                throw new ArgumentNullException($"{nameof(cfg.DynamoDB)}.{nameof(cfg.DynamoDB.AWSProfile)} configuration value cannot be null or empty.");
+
+
+            if (string.IsNullOrEmpty(cfg.Cognito.UserPoolId))
+                throw new ArgumentNullException($"{nameof(cfg.Cognito)}.{nameof(cfg.Cognito.UserPoolId)} configuration value cannot be null or empty.");
+
+            if (string.IsNullOrEmpty(cfg.Cognito.ClientId))
+                throw new ArgumentNullException($"{nameof(cfg.Cognito)}.{nameof(cfg.Cognito.ClientId)} configuration value cannot be null or empty.");
+
+            if (string.IsNullOrEmpty(cfg.Cognito.Domain))
+                throw new ArgumentNullException($"{nameof(cfg.Cognito)}.{nameof(cfg.Cognito.Domain)} configuration value cannot be null or empty.");
         }
     }
 
