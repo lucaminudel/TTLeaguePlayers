@@ -13,6 +13,8 @@
     "build:test": "cross-env ENVIRONMENT=test npm run build:steps",
     "build:staging": "cross-env ENVIRONMENT=staging npm run build:steps",
     "build:prod": "cross-env ENVIRONMENT=prod npm run build:steps",
+    "unit-tests:run": "vitest run",
+    "unit-tests:browser": "vitest --ui --open",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -23,10 +25,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "babel-plugin-react-compiler": "^1.0.0",
     "cross-env": "^10.1.0",
@@ -36,10 +41,12 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "eslint-plugin-react-x": "^2.3.13",
     "globals": "^16.5.0",
+    "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.0.16"
   }
 }

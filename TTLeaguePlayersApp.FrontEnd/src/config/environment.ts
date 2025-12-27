@@ -24,8 +24,8 @@ export async function loadConfig(): Promise<EnvironmentConfig> {
 
     // vite.config.ts sets process.env.ENVIRONMENT at build time
     // import.meta.env assess its value at runtime
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const environment = (import.meta as any).env.ENVIRONMENT as string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const environment = import.meta.env.ENVIRONMENT as string;
 
     if (!environment) {
         throw new Error(
@@ -55,4 +55,11 @@ export async function loadConfig(): Promise<EnvironmentConfig> {
             `Unknown error loading configuration file '${environment}.env.json'`
         );
     }
+}
+
+/**
+ * Resets the cached configuration. Only for testing.
+ */
+export function resetCache(): void {
+    cachedConfig = null;
 }
