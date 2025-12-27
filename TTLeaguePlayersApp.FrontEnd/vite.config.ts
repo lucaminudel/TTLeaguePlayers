@@ -8,4 +8,10 @@ export default defineConfig({
       plugins: [["babel-plugin-react-compiler", { target: "18" }]],
     },
   })],
+  define: {
+    // Expose ENVIRONMENT to the browser
+    'import.meta.env.ENVIRONMENT': JSON.stringify(process.env.ENVIRONMENT ?? 'dev'),
+    // Fix for amazon-cognito-identity-js global object requirement
+    global: 'globalThis'
+  },
 })

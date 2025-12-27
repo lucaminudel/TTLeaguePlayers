@@ -1,6 +1,6 @@
 import type { CreateInviteRequest, Invite } from '../types/invite';
 import { apiFetch } from './api';
-import { API_BASE_URL } from '../config/environment';
+import { loadConfig } from '../config/environment';
 
 /**
  * Pure API functions for invite endpoints
@@ -11,8 +11,10 @@ export const inviteApi = {
      * GET /invites/{nano_id}
      */
     async getInvite(nanoId: string, timeoutMs?: number, maxRetries?: number): Promise<Invite> {
+        const config = await loadConfig();
+        const baseUrl = config.ApiGateWay.ApiBaseUrl;
         const encodedId = encodeURIComponent(nanoId);
-        return apiFetch<Invite>(API_BASE_URL, `/invites/${encodedId}`, {}, timeoutMs, maxRetries);
+        return apiFetch<Invite>(baseUrl, `/invites/${encodedId}`, {}, timeoutMs, maxRetries);
     },
 
     /**
@@ -20,7 +22,9 @@ export const inviteApi = {
      * POST /invites
      */
     async createInvite(request: CreateInviteRequest): Promise<Invite> {
-        return apiFetch<Invite>(API_BASE_URL, '/invites', {
+        const config = await loadConfig();
+        const baseUrl = config.ApiGateWay.ApiBaseUrl;
+        return apiFetch<Invite>(baseUrl, '/invites', {
             method: 'POST',
             body: JSON.stringify(request),
         });

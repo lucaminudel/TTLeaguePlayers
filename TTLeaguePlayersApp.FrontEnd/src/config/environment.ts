@@ -1,7 +1,58 @@
-/**
- * Environment configuration for the application
- */
+export interface EnvironmentConfig {
+    FrontEnd: {
+        WebsiteBaseUrl: string;
+    };
+    ApiGateWay: {
+        ApiBaseUrl: string;
+    };
+    DynamoDB: {
+        ServiceLocalUrl: string;
+        "AWS.Profile": string;
+        "AWS.Region": string | null;
+    };
+    Cognito: {
+        UserPoolId: string;
+        ClientId: string;
+        Domain: string;
+    };
+}
 
-// For now, using a hardcoded URL as requested
-// The actual API endpoint will be injected/loaded later
-export const API_BASE_URL = 'http://localhost:3000'; // Example: SAM local endpoint
+let cachedConfig: EnvironmentConfig | null = null;
+
+export async function loadConfig(): Promise<EnvironmentConfig> {
+    if (cachedConfig) return cachedConfig;
+
+    // vite.config.ts sets process.env.ENVIRONMENT at build time
+    // import.meta.env assess its value at runtime
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const environment = (import.meta as any).env.ENVIRONMENT as string;
+
+    if (!environment) {
+        throw new Error(
+            "ENVIRONMENT variable is not set. Please ensure it is set in vite.config.ts"
+        );
+    }
+
+    try {
+        // User requested to assume config files are available under /assets/
+        const response = await fetch(`/assets/${environment}.env.json`);
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to load configuration file. HTTP status: ${String(response.status)}. Path: /assets/${environment}.env.json`
+            );
+        }
+
+        cachedConfig = (await response.json()) as EnvironmentConfig;
+        return cachedConfig;
+    } catch (error) {
+        if (error instanceof Error) {
+            throw new Error(
+                `Configuration loading failed': ${error.message}`
+            );
+        }
+        throw new Error(
+            `Unknown error loading configuration file '${environment}.env.json'`
+        );
+    }
+}
