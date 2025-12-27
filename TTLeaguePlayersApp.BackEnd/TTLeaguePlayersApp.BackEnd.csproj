@@ -21,4 +21,12 @@
   <ItemGroup>
     <Folder Include="TTLeaguePlayersApp.BackEnd.DataStore.Configuration/" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\config\*.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup> 
+  
 </Project>
