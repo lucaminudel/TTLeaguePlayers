@@ -17,7 +17,7 @@
       "label": "sam-start dev",
       "type": "shell",
       "dependsOn": "sam-refresh-build dev",
-      "command": "sam local start-api --config-env dev --port 3000 --warm-containers EAGER",
+      "command": "sam local start-api --config-env dev --port 3000",
       "group": "test"
     },
     {
@@ -55,9 +55,19 @@
       "group": "build"
     },
     {
-      "label": "run-backend-acceptance-tests test",
+      "label": "api-tests test-env",
       "type": "shell",
       "command": "./scripts/run_backend_acceptance_tests.sh 3003 test",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "api-tests dev-env",
+      "type": "shell",
+      "command": "./scripts/run_backend_acceptance_tests.sh 3000 dev",
       "group": "test",
       "presentation": {
         "reveal": "always",

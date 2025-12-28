@@ -18,6 +18,7 @@ cd "$SCRIPT_DIR/.."
 cleanup() {
     echo ""
     echo "🧹 Cleaning up..."
+    # Only kill SAM if we started it (SAM_PID is set) and we intended to start it (not already running)
     if [ ! -z "$SAM_PID" ]; then
         echo "Stopping SAM Local (PID: $SAM_PID)..."
         kill "$SAM_PID" 2>/dev/null
@@ -27,11 +28,26 @@ cleanup() {
 # Trap signals for cleanup
 trap cleanup EXIT
 
-# Start SAM Local API in the background, redirecting logs to a file to keep the terminal clean
-SAM_LOG_FILE="scripts/sam_local_test.log"
-echo "📝 Redirecting SAM logs to $SAM_LOG_FILE (check this file if tests fail to connect)"
-sam local start-api --config-env "$CONFIG_ENV" --port "$PORT" > "$SAM_LOG_FILE" 2>&1 &
-SAM_PID=$!
+# Build the project to ensure we are testing the latest code
+echo "🏗️ Building SAM project..."
+sam build --config-env "$CONFIG_ENV" --cached
+if [ $? -ne 0 ]; then
+    echo "❌ SAM build failed."
+    exit 1
+fi
+
+# Check if SAM is already running
+SAM_ALREADY_RUNNING=false
+if lsof -i ":$PORT" >/dev/null; then
+    echo "⚠️  Port $PORT is already in use. Assuming SAM is running externally."
+    SAM_ALREADY_RUNNING=true
+else
+    # Start SAM Local API in the background, redirecting logs to a file to keep the terminal clean
+    SAM_LOG_FILE="scripts/sam_local_test.log"
+    echo "📝 Redirecting SAM logs to $SAM_LOG_FILE (check this file if tests fail to connect)"
+    sam local start-api --config-env "$CONFIG_ENV" --port "$PORT" > "$SAM_LOG_FILE" 2>&1 &
+    SAM_PID=$!
+fi
 
 # Wait for SAM to be ready
 echo "⏳ Waiting for SAM Local to be ready on port $PORT..."
