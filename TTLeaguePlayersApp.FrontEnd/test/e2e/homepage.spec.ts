@@ -20,7 +20,7 @@ test.describe('Homepage', () => {
         await expect(enterButton).toBeVisible();
     });
 
-    test('hamburger menu interactions', async ({ page }) => {
+    test('when clicking the hamburger menu should show all the menu items', async ({ page }) => {
         // checks that the is the menu hamburger
         const menuButton = page.getByRole('button', { name: 'Toggle Menu' });
         await expect(menuButton).toBeVisible();
@@ -41,5 +41,28 @@ test.describe('Homepage', () => {
             const link = page.getByRole('link', { name: item, exact: true });
             await expect(link).toBeVisible();
         }
+
+        // Verify menu is visualized over the current page
+        const navigation = page.locator('nav').filter({ hasText: 'Log in' });
+        const overlay = navigation.locator('xpath=..');
+
+        // Check strict geometry: overlay must cover the entire viewport
+        const viewportSize = page.viewportSize();
+        expect(viewportSize).not.toBeNull();
+
+        const overlayBox = await overlay.boundingBox();
+        expect(overlayBox).not.toBeNull();
+
+        // Allow for small rounding differences if necessary, but fixed inset-0 should be exact
+        expect(overlayBox!.x).toBe(0);
+        expect(overlayBox!.y).toBe(0);
+        expect(overlayBox!.width).toBe(viewportSize!.width);
+        expect(overlayBox!.height).toBe(viewportSize!.height);
+
+        // Verify menu items are all centred
+        await expect(overlay).toHaveCSS('display', 'flex');
+        await expect(overlay).toHaveCSS('flex-direction', 'column');
+        await expect(overlay).toHaveCSS('justify-content', 'center');
+        await expect(overlay).toHaveCSS('align-items', 'center');
     });
 });

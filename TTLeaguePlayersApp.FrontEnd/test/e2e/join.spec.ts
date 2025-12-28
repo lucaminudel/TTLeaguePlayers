@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Join Page', () => {
     const testInviteId = '6ipEOiGEL6';
 
-    test('should show loading state and then error handled (no backend)', async ({ page }) => {
+    test('should show loading state', async ({ page }) => {
         // Navigate to a valid-looking invite URL
         await page.goto(`/#/join/${testInviteId}`);
 
@@ -14,8 +14,6 @@ test.describe('Join Page', () => {
         await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
 
         // Wait for the fetch to either succeed or fail.
-        // Since there is no backend by default in this environment, it will likely show an error.
-        // For now, we just verify it gets out of loading state.
         await expect(page.locator('text=Waiting for a response...')).not.toBeVisible({ timeout: 10000 });
     });
 
