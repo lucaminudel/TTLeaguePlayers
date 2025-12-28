@@ -14,7 +14,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
                 <h1 className="text-xl font-bold tracking-wider uppercase text-main-text opacity-90 mx-auto">
                     TT League Players
                 </h1>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                < div className="absolute right-4 flex items-center">
                     <MainMenu />
                 </div>
             </header>
