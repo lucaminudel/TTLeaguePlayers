@@ -49,15 +49,16 @@ test.describe('Homepage', () => {
         // Check strict geometry: overlay must cover the entire viewport
         const viewportSize = page.viewportSize();
         expect(viewportSize).not.toBeNull();
-
         const overlayBox = await overlay.boundingBox();
         expect(overlayBox).not.toBeNull();
 
-        // Allow for small rounding differences if necessary, but fixed inset-0 should be exact
-        expect(overlayBox!.x).toBe(0);
-        expect(overlayBox!.y).toBe(0);
-        expect(overlayBox!.width).toBe(viewportSize!.width);
-        expect(overlayBox!.height).toBe(viewportSize!.height);
+        if (viewportSize && overlayBox) {
+            // Allow for small rounding differences if necessary, but fixed inset-0 should be exact
+            expect(overlayBox.x).toBe(0);
+            expect(overlayBox.y).toBe(0);
+            expect(overlayBox.width).toBe(viewportSize.width);
+            expect(overlayBox.height).toBe(viewportSize.height);
+        }
 
         // Verify menu items are all centred
         await expect(overlay).toHaveCSS('display', 'flex');
