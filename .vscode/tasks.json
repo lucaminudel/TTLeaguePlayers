@@ -73,6 +73,16 @@
         "reveal": "always",
         "panel": "new"
       }
+    },
+    {
+      "label": "full-stack-builds-tests-pipeline test-env",
+      "type": "shell",
+      "command": "./scripts/run_full_stack_builds_tests_pipeline.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
     }
   ]
 }
