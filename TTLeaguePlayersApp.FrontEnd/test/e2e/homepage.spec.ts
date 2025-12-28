@@ -65,4 +65,33 @@ test.describe('Homepage', () => {
         await expect(overlay).toHaveCSS('justify-content', 'center');
         await expect(overlay).toHaveCSS('align-items', 'center');
     });
+
+    test('when clicking the X after opening the menu, it should close the menu', async ({ page }) => {
+        const menuButton = page.getByRole('button', { name: 'Toggle Menu' });
+        await expect(menuButton).toBeVisible();
+
+        // Open the menu
+        await menuButton.click();
+
+        // Wait for potential animation to stabilize
+        await page.waitForTimeout(500);
+
+        // Close the menu by clicking the toggle button again (which transforms to X)
+        await menuButton.click();
+
+        // Define overlay for this test's scope
+        const navigation = page.locator('nav').filter({ hasText: 'Log in' });
+        const overlay = navigation.locator('xpath=..');
+
+        // Strict Check 1: The overlay container itself must be hidden (opacity-0/pointer-events-none)
+        await expect(overlay).toHaveCSS('opacity', '0');
+        await expect(overlay).toHaveCSS('pointer-events', 'none');
+
+        // Strict Check 2: Page content must be visible AND actionable (not covered)
+        // We check the 'Enter' button which is main page content
+        const enterButton = page.getByRole('button', { name: 'Enter', exact: true });
+        await expect(enterButton).toBeVisible();
+        // Trial click ensures the element is not obscured by the overlay
+        await enterButton.click({ trial: true });
+    });
 });
