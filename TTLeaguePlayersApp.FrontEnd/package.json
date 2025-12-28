@@ -7,7 +7,7 @@
     "copy-config": "node scripts/copy-config.js",
     "lint": "eslint .",
     "build:steps": "npm run copy-config && npm run lint && tsc -b && vite build",
-    "run-web:dev-env": "npm run copy-config && vite",
+    "run-web:dev-env": "npm run copy-config && vite --port 5173",
     "run-web:test-env": "npm run copy-config && cross-env ENVIRONMENT=test vite --port 4173",
     "build-web": "npm run build:dev",
     "build-web:dev-env": "cross-env ENVIRONMENT=dev npm run build:steps",
@@ -16,9 +16,11 @@
     "build-web:prod-env": "cross-env ENVIRONMENT=prod npm run build:steps",
     "unit-tests-web:run": "vitest run",
     "unit-tests-web:browser-run": "vitest --ui --open",
-    "e2e-tests-web:run": "playwright test",
+    "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright test",
+    "e2e-tests-web:run test-env": "cross-env PORT=4173 playwright test",
     "e2e-tests-web:report": "playwright show-report",
-    "e2e-tests-web:browser-run": "playwright test --ui"
+    "e2e-tests-web:run-browser dev-env": "cross-env PORT=5173 playwright test --ui",
+    "e2e-tests-web:run-browser test-env": "cross-env PORT=4173 playwright test --ui"
   },
   "dependencies": {
     "react": "^19.2.0",
