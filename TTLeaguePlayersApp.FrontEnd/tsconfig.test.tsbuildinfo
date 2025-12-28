@@ -1,0 +1,1 @@
+{"root":["./test/setup.ts","./test/e2e/homepage.spec.ts","./test/e2e/join.spec.ts","./test/unit/api/inviteapi.test.ts","./test/unit/config/environment.test.ts"],"version":"5.9.3"}

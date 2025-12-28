@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.app.json",
+    "compilerOptions": {
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+        "types": [
+            "node",
+            "vite/client",
+            "vitest/globals",
+            "@playwright/test"
+        ]
+    },
+    "include": [
+        "test"
+    ]
+}

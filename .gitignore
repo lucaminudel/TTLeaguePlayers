@@ -67,3 +67,5 @@ nunit-*.xml
 !.vscode/tasks.json
 .aws-sam
 TTLeaguePlayersApp.FrontEnd/public/assets
+TTLeaguePlayersApp.FrontEnd/playwright-report
+TTLeaguePlayersApp.FrontEnd/test-results

@@ -24,8 +24,7 @@ export async function loadConfig(): Promise<EnvironmentConfig> {
 
     // vite.config.ts sets process.env.ENVIRONMENT at build time
     // import.meta.env assess its value at runtime
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const environment = import.meta.env.ENVIRONMENT as string;
+    const environment = import.meta.env.ENVIRONMENT;
 
     if (!environment) {
         throw new Error(

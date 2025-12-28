@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { inviteApi } from '../../../src/api/inviteApi';
 import { apiFetch } from '../../../src/api/api';
-import { loadConfig } from '../../../src/config/environment';
+import { loadConfig, type EnvironmentConfig } from '../../../src/config/environment';
+import { type CreateInviteRequest, Role } from '../../../src/types/invite';
 
 // Mock dependencies
 vi.mock('../../../src/api/api', () => ({
@@ -17,11 +18,11 @@ describe('inviteApi', () => {
         ApiGateWay: {
             ApiBaseUrl: 'https://api.example.com',
         },
-    };
+    } as unknown as EnvironmentConfig;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(loadConfig).mockResolvedValue(mockConfig as any);
+        vi.mocked(loadConfig).mockResolvedValue(mockConfig);
     });
 
     describe('getInvite', () => {
@@ -62,11 +63,19 @@ describe('inviteApi', () => {
 
     describe('createInvite', () => {
         it('should post data to /invites', async () => {
-            const request = { email: 'test@example.com' };
+            const request: CreateInviteRequest = {
+                name: 'Test User',
+                email_ID: 'test@example.com',
+                role: Role.PLAYER,
+                team_name: 'Test Team',
+                division: 'Division 1',
+                league: 'League A',
+                season: '2024',
+            };
             const mockResponse = { id: 'new-id' };
             vi.mocked(apiFetch).mockResolvedValue(mockResponse);
 
-            await inviteApi.createInvite(request as any);
+            await inviteApi.createInvite(request);
 
             expect(apiFetch).toHaveBeenCalledWith(
                 'https://api.example.com',
