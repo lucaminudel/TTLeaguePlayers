@@ -5,13 +5,13 @@ namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
 public class Invite
 {
     [JsonPropertyName("nano_id")]
-    public required string NanoID { get; set; }
+    public required string NanoId { get; set; }
 
     [JsonPropertyName("name")]
     public required string Name { get; set; }
 
     [JsonPropertyName("email_ID")]
-    public required string EmailID { get; set; }
+    public required string EmailId { get; set; }
 
     [JsonPropertyName("role")]
     public required Role Role { get; set; }

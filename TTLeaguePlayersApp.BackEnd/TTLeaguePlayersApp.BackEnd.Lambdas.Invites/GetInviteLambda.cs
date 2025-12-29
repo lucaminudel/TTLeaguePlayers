@@ -4,16 +4,24 @@ namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
 
 public class GetInviteLambda
 {
-    public Task<Invite> HandleAsync(string nano_id, ILambdaContext context)
+    private readonly ILoggerObserver _observer;
+
+    public GetInviteLambda(ILoggerObserver observer)
     {
-        ValidateRequest(nano_id);
+        _observer = observer;
+    }
+
+    public Task<Invite> HandleAsync(string nanoId, ILambdaContext context)
+    {
+
+        ValidateRequest(nanoId);
         
         // Stub: return constant value
         var invite = new Invite
         {
-            NanoID = nano_id,
+            NanoId = nanoId,
             Name = "Gino Gino",
-            EmailID = "alpha@beta.com",
+            EmailId = "alpha@beta.com",
             Role = Role.CAPTAIN,
             TeamName = "Morpeth 9",
             Division = "Division 4",
@@ -22,7 +30,12 @@ public class GetInviteLambda
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             AcceptedAt = null
         };
-        return Task.FromResult(invite);
+
+        _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
+            source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
+            context, parameters: new () { ["NanoId"] = nanoId });
+
+        return Task.FromResult(invite);        
     }
 
     private void ValidateRequest(string nano_id)
@@ -31,12 +44,18 @@ public class GetInviteLambda
         {
             throw new ValidationException(new List<string> { "nano_id is required" });
         }
-        
+
         // In real implementation, check if invite exists in database
         // For now, stub logic - throw NotFoundException for specific test case
         if (nano_id == "nonexistent")
         {
             throw new NotFoundException("Invite not found");
         }
+
+        if (nano_id.Length != 8)
+        {
+            throw new ValidationException(new List<string> { "nano_id malformed." });
+        }
+
     }
 }

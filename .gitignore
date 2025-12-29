@@ -71,3 +71,4 @@ TTLeaguePlayersApp.FrontEnd/playwright-report
 TTLeaguePlayersApp.FrontEnd/test-results
 sam_local_fullstack.log
 .aws-sam-test
+build.toml

@@ -16,12 +16,18 @@ public class ApiGatewayProxyHandler
     private readonly CreateInviteLambda _createInviteLambda;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
+    private readonly ILoggerObserver _observer;
+
+    private APIGatewayProxyRequest? _currentRequest;
+    private Dictionary<string, string> _requestParameters = new ();
     
 
     public ApiGatewayProxyHandler()
     {
-        _getInviteLambda = new GetInviteLambda();
-        _createInviteLambda = new CreateInviteLambda();
+        _observer = new LoggerObserver();
+
+        _getInviteLambda = new GetInviteLambda(_observer);
+        _createInviteLambda = new CreateInviteLambda(_observer);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace Environment.GetEnvironmentVariable with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
@@ -32,19 +38,21 @@ public class ApiGatewayProxyHandler
         _createInviteLambda = createInviteLambda;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        _observer = new LoggerObserver();
     }
 
     public async Task<APIGatewayProxyResponse> Dispatch(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        context.Logger.LogInformation($"Processing {request.HttpMethod} request for path {request.Path}");
 
+        _currentRequest = request;
+        _requestParameters = new() { ["RequestHttpMethod"] = request.HttpMethod, ["RequestPath"] = request.Path };
 
         try
         {
             var path = NormalizePath(request.Path);
             var method = (request.HttpMethod ?? string.Empty).ToUpperInvariant();
 
-            return (method, path) switch
+            var response = (method, path) switch
             {
                 // Preflight for /invites
                 ("OPTIONS", "/invites") => CreatePreflightResponse("OPTIONS,POST", request),
@@ -67,38 +75,59 @@ public class ApiGatewayProxyHandler
                 // Fallback: 404 for unknown paths
                 _ => CreateResponse(HttpStatusCode.NotFound, new { message = "Not Found" })
             };
+
+            _observer.OnRuntimeRegularEvent("API DISPATCH COMPLETED",
+                source: new() { ["Class"] =  nameof(ApiGatewayProxyHandler), ["Method"] =  nameof(Dispatch) }, 
+                context, _requestParameters.With("ResponseStatusCode", response.StatusCode.ToString()) ,
+                userClaims: GetAuthenticatedUserFromCognitoAuthorizerClaims());
+            return response;
         }
         catch (ArgumentException ex)
         {
-            context.Logger.LogError($"Bad request: {ex.Message}");
-            return CreateResponse(HttpStatusCode.BadRequest, new { message = $"Invalid request: {ex.Message}" });
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = $"Invalid request: {ex.Message}" });
         }
         catch (InvalidOperationException ex)
         {
             // Default to 400 here; individual handlers can override to 404 where appropriate
-            context.Logger.LogError($"Invalid operation: {ex.Message}");
-            return CreateResponse(HttpStatusCode.BadRequest, new { message = $"Invalid operation: {ex.Message}" });
+            var responseStatusCode = HttpStatusCode.BadRequest;
+
+            _observer.OnRuntimeError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = $"Invalid operation: {ex.Message}" });
         }
         catch (OperationCanceledException ex)
         {
-            context.Logger.LogError($"Request cancelled: {ex.Message}");
-            return CreateResponse(HttpStatusCode.RequestTimeout, new { message = $"Request cancelled: {ex.Message}" });
+            var responseStatusCode = HttpStatusCode.RequestTimeout;
+
+            _observer.OnRuntimeError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = $"Request cancelled: {ex.Message}" });
         }
         catch (SecurityException ex)
         {
-            context.Logger.LogError($"Forbidden: {ex.Message}");
-            return CreateResponse(HttpStatusCode.Forbidden, new { message = ex.Message });
+            var responseStatusCode = HttpStatusCode.Forbidden;
+
+            _observer.OnSecurityError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
         catch (Exception ex) when (ex.GetType().FullName?.StartsWith("Amazon.") == true)
         {
-            context.Logger.LogError($"Amazon service error: {ex.Message}");
-            return CreateResponse(HttpStatusCode.ServiceUnavailable, new { message = $"Amazon service error: {ex.Message}" });
+            var responseStatusCode = HttpStatusCode.ServiceUnavailable;
+
+            _observer.OnRuntimeCriticalError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = $"Amazon service error: {ex.Message}" });
         }
         catch (Exception ex)
         {
-            context.Logger.LogError($"Error processing request: {ex.Message}");
-            context.Logger.LogError(ex.StackTrace);
-            return CreateResponse(HttpStatusCode.InternalServerError, new { message = $"Internal Server Error: {{Additional info: Error type:{ex.GetType()}; Error message:{ex.Message}}}" });
+            var responseStatusCode = HttpStatusCode.InternalServerError;
+
+            _observer.OnRuntimeCriticalError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = $"Internal Server Error: {{Additional info: Error type:{ex.GetType()}; Error message:{ex.Message}}}" });
+        }
+        finally
+        {
+            _currentRequest = null;
+            _requestParameters = new();
         }
     }
 
@@ -106,54 +135,103 @@ public class ApiGatewayProxyHandler
     {
         string? nanoId;
         TryToExtractSegment1PathParameter(request, out nanoId);
+
+        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleGetInviteById) };
+        Dictionary<string, string> logParameters = new () { ["NanoId"] = nanoId ?? string.Empty };
+        _observer.OnBusinessEvent("ACCESS INVITE", context, logParameters);
+
         if (string.IsNullOrEmpty(nanoId))
         {
-            return CreateResponse(HttpStatusCode.BadRequest, new { message = "Invalid path format. Missing nano_id." });
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Invalid path format. Missing nano_id.";
+
+            _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT", 
+                source: logSource, context,
+                _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString())
+                                  .With("Message", errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage });
         }
+
 
         try
         {
             var invite = await _getInviteLambda.HandleAsync(nanoId, context);
+
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
+                source: logSource, context, logParameters);
+
             return CreateResponse(HttpStatusCode.OK, invite);
         }
         catch (ValidationException ex)
         {
-            return CreateResponse(HttpStatusCode.BadRequest, new { message = "Validation failed", errors = ex.Errors });
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
         catch (NotFoundException ex)
         {
-            return CreateResponse(HttpStatusCode.NotFound, new { message = ex.Message });
+            var responseStatusCode = HttpStatusCode.NotFound;
+
+            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
     }
 
     private async Task<APIGatewayProxyResponse> HandleCreateInvite(APIGatewayProxyRequest request, ILambdaContext context)
     {
+        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleCreateInvite) };
+        Dictionary<string, string> logParameters = new () { ["RequestBody"] = request.Body ?? string.Empty };
+        _observer.OnBusinessEvent("CREATE INVITE", context, logParameters);
+
+
         // Validate Content-Type header is JSON
         if (!IsJsonContentType(request.Headers, out var contentTypeError))
         {
-            return CreateResponse(HttpStatusCode.UnsupportedMediaType, new { message = contentTypeError });
+            var responseStatusCode = HttpStatusCode.UnsupportedMediaType;
+            var headers = JsonSerializer.Serialize(request.Headers);
+
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT TYPE", 
+                source: logSource, context,
+                logParameters.With("ResponseStatusCode", responseStatusCode.ToString())
+                             .With("Message", contentTypeError)
+                             .With("Headers", headers));
+
+            return CreateResponse(responseStatusCode, new { message = contentTypeError });
         }
 
-        TryDeserialize<CreateInviteRequest>(request.Body ?? string.Empty, out var createRequest, out var errorStatusCode, out var errorMessage);
+        TryDeserialize<CreateInviteRequest>(request.Body ?? string.Empty, out var createRequest, out var bodyErrorStatusCode, out var bodyErrorMessage);
 
         if (createRequest is null)
         {
-            return CreateResponse(errorStatusCode, new { message = errorMessage });
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", 
+                source: logSource, context,
+                logParameters.With("ResponseStatusCode", bodyErrorStatusCode.ToString())
+                             .With("Message", bodyErrorMessage));
+
+            return CreateResponse(bodyErrorStatusCode, new { message = bodyErrorMessage });
         }
 
         try
         {
             var createdInvite = await _createInviteLambda.HandleAsync(createRequest, context);
-            var additionalHeaders = new Dictionary<string, string> { { "Location", $"/invites/{createdInvite.NanoID}" } };
+
+            _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
+                source: logSource, context, 
+                logParameters.With("NanoID", createdInvite.NanoId));
+
+            var additionalHeaders = new Dictionary<string, string> { { "Location", $"/invites/{createdInvite.NanoId}" } };
             return CreateResponse(HttpStatusCode.Created, createdInvite, additionalHeaders);
         }
         catch (ValidationException ex)
         {
-            return CreateResponse(HttpStatusCode.BadRequest, new { message = "Validation failed", errors = ex.Errors });
-        }
-        catch (NotFoundException ex)
-        {
-            return CreateResponse(HttpStatusCode.NotFound, new { message = ex.Message });
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
     }
 
@@ -332,4 +410,30 @@ public class ApiGatewayProxyHandler
         var p = path.StartsWith('/') ? path : "/" + path;
         return p.Length > 1 && p.EndsWith('/') ? p.TrimEnd('/') : p;
     }
+
+    private  (string userName, string userEmail) GetAuthenticatedUserFromCognitoAuthorizerClaims()
+    {
+        var userName = string.Empty;
+        var userEmail = string.Empty;
+        if (_currentRequest?.RequestContext?.Authorizer?.Claims is System.Collections.Generic.IDictionary<string, string> claims)
+        {
+
+            if (claims.TryGetValue("email", out var email) && !string.IsNullOrWhiteSpace(email))
+            {
+                userEmail = email;
+            }
+
+            if (claims.TryGetValue("preferred_username", out var preferred) && !string.IsNullOrWhiteSpace(preferred))
+                userName = preferred;
+            else if (!string.IsNullOrWhiteSpace(email))
+                userName = email;
+            else if (claims.TryGetValue("cognito:username", out var cognitoUser) && !string.IsNullOrWhiteSpace(cognitoUser))
+                userName = cognitoUser;
+            else if (claims.TryGetValue("name", out var name) && !string.IsNullOrWhiteSpace(name))
+                userName = name;
+        }
+
+        return (userName, userEmail);
+    }
+
 }

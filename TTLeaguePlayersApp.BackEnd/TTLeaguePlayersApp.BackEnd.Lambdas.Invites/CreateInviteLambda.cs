@@ -6,16 +6,24 @@ namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
 
 public class CreateInviteLambda
 {
+    private readonly ILoggerObserver _observer;
+
+    public CreateInviteLambda(ILoggerObserver observer)
+    {
+        _observer = observer;
+    }
+
     public Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
     {
+
         ValidateRequest(request);
         
         // Stub: return invite based on request
         var invite = new Invite
         {
-            NanoID = Nanoid.Generate(size: 8),
+            NanoId = Nanoid.Generate(size: 8),
             Name = request.Name,
-            EmailID = request.EmailID,
+            EmailId = request.EmailID!, // validated as not null
             Role = request.Role,
             TeamName = request.TeamName,
             Division = request.Division,
@@ -24,6 +32,15 @@ public class CreateInviteLambda
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             AcceptedAt = null
         };
+
+        _observer.OnBusinessEvent($"CreateInvite Lambda started", context, new Dictionary<string, string> { ["EmailID"] = request.EmailID ?? "unknown" });
+
+        _observer.OnBusinessEvent($"CreateInvite Lambda completed", context, new Dictionary<string, string> { ["NanoID"] = invite.NanoId, ["EmailID"] = invite.EmailId });
+
+        _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
+            source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
+            context, parameters: new () { ["EmailID"] = invite.EmailId, ["NanoId"] = invite.NanoId } );
+
         return Task.FromResult(invite);
     }
 
