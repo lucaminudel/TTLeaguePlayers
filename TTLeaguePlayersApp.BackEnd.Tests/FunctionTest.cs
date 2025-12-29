@@ -14,8 +14,9 @@ public class FunctionTest
         var mockObserver = new LoggerObserver();
         var function = new GetInviteLambda(mockObserver);
         var context = new TestLambdaContext();
-        var invite = await function.HandleAsync("hello world", context);
+        var validNanoId = "12345678";
+        var invite = await function.HandleAsync(validNanoId, context);
 
-        Assert.Equal("hello world", invite.NanoId);
+        Assert.Equal(validNanoId, invite.NanoId);
     }
 }

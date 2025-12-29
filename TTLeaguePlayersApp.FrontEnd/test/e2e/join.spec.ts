@@ -45,4 +45,40 @@ test.describe('Join Page', () => {
         const registerButton = page.getByRole('button', { name: 'Register', exact: true });
         await expect(registerButton).toBeVisible();
     });
+
+    test('should show invalid link error for malformed nano_id', async ({ page }) => {
+        // Mock 400 response for malformed nano_id
+        await page.route('**/invites/short', async (route) => {
+            await route.fulfill({
+                status: 400,
+                body: 'nano_id malformed.'
+            });
+        });
+
+        await page.goto('/#/join/short');
+
+        // Wait for error message to appear
+        await expect(page.locator('text=Please check this invitation link; it appears to be incorrect, missing characters, or containing extra ones.')).toBeVisible();
+        
+        // Verify no retry button is shown
+        await expect(page.getByRole('button', { name: 'Retry' })).not.toBeVisible();
+    });
+
+    test('should show invitation not found error for nonexistent nano_id', async ({ page }) => {
+        // Mock 404 response for nonexistent nano_id
+        await page.route('**/invites/nonexistent', async (route) => {
+            await route.fulfill({
+                status: 404,
+                body: 'Invite not found'
+            });
+        });
+
+        await page.goto('/#/join/nonexistent');
+
+        // Wait for error message to appear
+        await expect(page.locator('text=This invitation cannot be found. It may have expired, been canceled, or is no longer valid. If you believe this is an error, please contact us.')).toBeVisible();
+        
+        // Verify no retry button is shown
+        await expect(page.getByRole('button', { name: 'Retry' })).not.toBeVisible();
+    });
 });

@@ -150,7 +150,7 @@ public class AcceptanceTests : IAsyncLifetime
         // Arrange - First, create an invite to get a valid ID and populate _lastInviteId
         //await POST_Invites_Should_Create_New_Invite_Successfully();
         //Assert.NotNull(_lastInviteId); // Ensure an ID was set by the POST test
-        _lastInviteId = "test-nano-id"; // Using a fixed ID for demonstration; replace with actual created ID if needed
+        _lastInviteId = "87sff32o"; // Using a fixed ID for demonstration; replace with actual created ID if needed
 
         // Act
         var response = await _httpClient.GetAsync($"/invites/{_lastInviteId}");
@@ -175,17 +175,34 @@ public class AcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
-    [Fact(Skip = "Temporarily suspended until GET /invites/{nano_id} has a real implementation for 404 cases.")]
+    [Fact]
     public async Task GET_Invite_Should_Return_404_For_NonExistent_Id()
     {
         // Arrange
-        var nonExistentId = "this-id-does-not-exist";
+        var nonExistentId = "nonexistent";
 
         // Act
         var response = await _httpClient.GetAsync($"/invites/{nonExistentId}");
+        var errorMessage = await response.Content.ReadAsStringAsync();
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        errorMessage.Should().Contain("Invite not found");
+    }
+
+    [Fact]
+    public async Task GET_Invite_Should_Return_400_For_Malformed_NanoId()
+    {
+        // Arrange
+        var malformedId = "short"; // Length != 8
+
+        // Act
+        var response = await _httpClient.GetAsync($"/invites/{malformedId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+        errorMessage.Should().Contain("nano_id malformed.");
     }
 
     [Fact]

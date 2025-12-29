@@ -31,19 +31,23 @@ export const Join: React.FC = () => {
                 let showRetry = true;
 
                 // Type-safe error property check
-                const isApiError = (e: unknown): e is { status?: number; message?: string } => {
+                const isApiError = (e: unknown): e is { status?: number; message?: string; response?: string } => {
                     return typeof e === 'object' && e !== null && ('status' in e || 'message' in e);
                 };
 
                 if (isApiError(err)) {
                     const status = err.status;
                     const errMessage = err.message ?? '';
+                    const errResponse = err.response ?? '';
 
-                    if (status === 404) {
-                        message = 'invite not found';
+                    if (status === 400 && errResponse.includes('nano_id malformed')) {
+                        message = 'Please check this invitation link; it appears to be incorrect, missing characters, or containing extra ones.';
+                        showRetry = false;
+                    } else if (status === 404) {
+                        message = 'This invitation cannot be found. It may have expired, been canceled, or is no longer valid. If you believe this is an error, please contact us.';
                         showRetry = false;
                     } else if (status === 409) {
-                        message = 'invite already used. Have you already registered? Try to login';
+                        message = 'Invite already used. Have you already registered? Try to login';
                         showRetry = false;
                     } else if (status !== undefined && status >= 500) {
                         message = 'The server is not available, retry later';
