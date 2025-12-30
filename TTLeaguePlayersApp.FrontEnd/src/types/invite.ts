@@ -15,13 +15,14 @@ export type Role = (typeof Role)[keyof typeof Role];
  * Request payload for creating a new invite
  */
 export interface CreateInviteRequest {
-    name: string;
-    email_ID: string;
-    role: Role;
-    team_name: string;
-    division: string;
+    invitee_name: string;
+    invitee_email_id: string;
+    invitee_role: Role;
+    invitee_team: string;
+    team_division: string;
     league: string;
     season: string;
+    invited_by: string;
 }
 
 /**
@@ -29,13 +30,14 @@ export interface CreateInviteRequest {
  */
 export interface Invite {
     nano_id: string;
-    name: string;
-    email_ID: string;
-    role: Role;
-    team_name: string;
-    division: string;
+    invitee_name: string;
+    invitee_email_id: string;
+    invitee_role: Role;
+    invitee_team: string;
+    team_division: string;
     league: string;
     season: string;
+    invited_by: string;
     created_at: number; // Unix timestamp in seconds
     accepted_at: number | null; // Unix timestamp in seconds or null if not yet accepted
 }

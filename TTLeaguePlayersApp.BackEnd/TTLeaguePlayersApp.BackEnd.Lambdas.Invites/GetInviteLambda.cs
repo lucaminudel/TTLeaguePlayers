@@ -20,13 +20,14 @@ public class GetInviteLambda
         var invite = new Invite
         {
             NanoId = nanoId,
-            Name = "Gino Gino",
-            EmailId = "alpha@beta.com",
-            Role = Role.CAPTAIN,
-            TeamName = "Morpeth 9",
-            Division = "Division 4",
+            InviteeName = "Gino Gino",
+            InviteeEmailId = "alpha@beta.com",
+            InviteeRole = Role.CAPTAIN,
+            InviteeTeam = "Morpeth 9",
+            TeamDivision = "Division 4",
             League = "CLTTL",
             Season = "2025-2026",
+            InvitedBy = "Luca",
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             AcceptedAt = null
         };

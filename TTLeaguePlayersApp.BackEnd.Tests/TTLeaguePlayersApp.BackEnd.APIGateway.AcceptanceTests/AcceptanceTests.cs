@@ -35,7 +35,8 @@ public class AcceptanceTests : IAsyncLifetime
             teamName: "Morpeth 9",
             division: "Division 4",
             league: "CLTTL",
-            season: "2025-2026");
+            season: "2025-2026",
+            invitedBy: "Luca");
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
         // Act
@@ -50,13 +51,14 @@ public class AcceptanceTests : IAsyncLifetime
         using var jsonDoc = JsonDocument.Parse(result);
         var jsonResult = jsonDoc.RootElement;
 
-        jsonResult.GetProperty("name").GetString().Should().Be("Gino Gino");
-        jsonResult.GetProperty("email_ID").GetString().Should().Be("alpha@beta.com");
-        jsonResult.GetProperty("role").GetString().Should().Be("CAPTAIN");
-        jsonResult.GetProperty("team_name").GetString().Should().Be("Morpeth 9");
-        jsonResult.GetProperty("division").GetString().Should().Be("Division 4");
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("Gino Gino");
+        jsonResult.GetProperty("invitee_email_id").GetString().Should().Be("alpha@beta.com");
+        jsonResult.GetProperty("invitee_role").GetString().Should().Be("CAPTAIN");
+        jsonResult.GetProperty("invitee_team").GetString().Should().Be("Morpeth 9");
+        jsonResult.GetProperty("team_division").GetString().Should().Be("Division 4");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
         jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
         
@@ -164,13 +166,14 @@ public class AcceptanceTests : IAsyncLifetime
         var jsonResult = jsonDoc.RootElement;
         
         jsonResult.GetProperty("nano_id").GetString().Should().Be(_lastInviteId);
-        jsonResult.GetProperty("name").GetString().Should().Be("Gino Gino");
-        jsonResult.GetProperty("email_ID").GetString().Should().Be("alpha@beta.com");
-        jsonResult.GetProperty("role").GetString().Should().Be("CAPTAIN");
-        jsonResult.GetProperty("team_name").GetString().Should().Be("Morpeth 9");
-        jsonResult.GetProperty("division").GetString().Should().Be("Division 4");
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("Gino Gino");
+        jsonResult.GetProperty("invitee_email_id").GetString().Should().Be("alpha@beta.com");
+        jsonResult.GetProperty("invitee_role").GetString().Should().Be("CAPTAIN");
+        jsonResult.GetProperty("invitee_team").GetString().Should().Be("Morpeth 9");
+        jsonResult.GetProperty("team_division").GetString().Should().Be("Division 4");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
         jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
     }
@@ -303,17 +306,19 @@ public class AcceptanceTests : IAsyncLifetime
         string? teamName = "Table Tennis Stars", 
         string? division = "Division 1", 
         string? league = "City League", 
-        string? season = "Winter 2025")
+        string? season = "Winter 2025",
+        string? invitedBy = "Luca")
     {
         var invite = new Dictionary<string, string?>
         {
-            { "name", name },
-            { "email_ID", email },
-            { "role", role },
-            { "team_name", teamName },
-            { "division", division },
+            { "invitee_name", name },
+            { "invitee_email_id", email },
+            { "invitee_role", role },
+            { "invitee_team", teamName },
+            { "team_division", division },
             { "league", league },
-            { "season", season }
+            { "season", season },
+            { "invited_by", invitedBy }
         };
         
         // Remove null fields for testing missing field scenario

@@ -158,7 +158,7 @@ public class ApiGatewayProxyHandler
         {
             var invite = await _getInviteLambda.HandleAsync(nanoId, context);
 
-            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
+            _observer.OnRuntimeRegularEvent("GET INVITE BY COMPLETED",
                 source: logSource, context, logParameters);
 
             return CreateResponse(HttpStatusCode.OK, invite);
@@ -220,7 +220,7 @@ public class ApiGatewayProxyHandler
 
             _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
                 source: logSource, context, 
-                logParameters.With("NanoID", createdInvite.NanoId));
+                logParameters.With("NanoId", createdInvite.NanoId));
 
             var additionalHeaders = new Dictionary<string, string> { { "Location", $"/invites/{createdInvite.NanoId}" } };
             return CreateResponse(HttpStatusCode.Created, createdInvite, additionalHeaders);

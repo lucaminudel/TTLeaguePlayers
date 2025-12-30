@@ -84,10 +84,10 @@ Resources:
       TableName: !Sub "ttleague-invites-${Environment}"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: NanoID
+        - AttributeName: NanoId
           AttributeType: S
       KeySchema:
-        - AttributeName: NanoID
+        - AttributeName: NanoId
           KeyType: HASH
 
 Conditions:

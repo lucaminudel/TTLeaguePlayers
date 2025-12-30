@@ -64,13 +64,14 @@ describe('inviteApi', () => {
     describe('createInvite', () => {
         it('should post data to /invites', async () => {
             const request: CreateInviteRequest = {
-                name: 'Test User',
-                email_ID: 'test@example.com',
-                role: Role.PLAYER,
-                team_name: 'Test Team',
-                division: 'Division 1',
+                invitee_name: 'Test User',
+                invitee_email_id: 'test@example.com',
+                invitee_role: Role.PLAYER,
+                invitee_team: 'Test Team',
+                team_division: 'Division 1',
                 league: 'League A',
                 season: '2024',
+                invited_by: 'Luca'
             };
             const mockResponse = { id: 'new-id' };
             vi.mocked(apiFetch).mockResolvedValue(mockResponse);

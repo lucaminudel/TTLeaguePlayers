@@ -22,24 +22,25 @@ public class CreateInviteLambda
         var invite = new Invite
         {
             NanoId = Nanoid.Generate(size: 8),
-            Name = request.Name,
-            EmailId = request.EmailID!, // validated as not null
-            Role = request.Role,
-            TeamName = request.TeamName,
-            Division = request.Division,
+            InviteeName = request.InviteeName,
+            InviteeEmailId = request.InviteeEmailId!, // validated as not null
+            InviteeRole = request.InviteeRole,
+            InviteeTeam = request.InviteeTeam,
+            TeamDivision = request.TeamDivision,
             League = request.League,
             Season = request.Season,
+            InvitedBy = request.InvitedBy,
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             AcceptedAt = null
         };
 
-        _observer.OnBusinessEvent($"CreateInvite Lambda started", context, new Dictionary<string, string> { ["EmailID"] = request.EmailID ?? "unknown" });
+        _observer.OnBusinessEvent($"CreateInvite Lambda started", context, new Dictionary<string, string> { ["EmailId"] = request.InviteeEmailId ?? "unknown" });
 
-        _observer.OnBusinessEvent($"CreateInvite Lambda completed", context, new Dictionary<string, string> { ["NanoID"] = invite.NanoId, ["EmailID"] = invite.EmailId });
+        _observer.OnBusinessEvent($"CreateInvite Lambda completed", context, new Dictionary<string, string> { ["NanoId"] = invite.NanoId, ["EmailId"] = invite.InviteeEmailId });
 
         _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
             source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
-            context, parameters: new () { ["EmailID"] = invite.EmailId, ["NanoId"] = invite.NanoId } );
+            context, parameters: new () { ["EmailId"] = invite.InviteeEmailId, ["NanoId"] = invite.NanoId } );
 
         return Task.FromResult(invite);
     }
@@ -48,20 +49,21 @@ public class CreateInviteLambda
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(request.Name)) errors.Add("name is required");
-        if (string.IsNullOrWhiteSpace(request.EmailID)) 
+        if (string.IsNullOrWhiteSpace(request.InviteeName)) errors.Add("invitee_name is required");
+        if (string.IsNullOrWhiteSpace(request.InviteeEmailId)) 
         {
-            errors.Add("email_ID is required");
+            errors.Add("invitee_email_id is required");
         }
-        else if (!IsValidEmail(request.EmailID))
+        else if (!IsValidEmail(request.InviteeEmailId))
         {
-            errors.Add("email_ID must be a valid email address");
+            errors.Add("invitee_email_id must be a valid email address");
         }
-        if (!Enum.IsDefined(typeof(Role), request.Role)) errors.Add($"role must be either {nameof(Role.PLAYER)} or {nameof(Role.CAPTAIN)}");
-        if (string.IsNullOrWhiteSpace(request.TeamName)) errors.Add("team_name is required");
-        if (string.IsNullOrWhiteSpace(request.Division)) errors.Add("division is required");
+        if (!Enum.IsDefined(typeof(Role), request.InviteeRole)) errors.Add($"invitee_role must be either {nameof(Role.PLAYER)} or {nameof(Role.CAPTAIN)}");
+        if (string.IsNullOrWhiteSpace(request.InviteeTeam)) errors.Add("invitee_team is required");
+        if (string.IsNullOrWhiteSpace(request.TeamDivision)) errors.Add("team_division is required");
         if (string.IsNullOrWhiteSpace(request.League)) errors.Add("league is required");
         if (string.IsNullOrWhiteSpace(request.Season)) errors.Add("season is required");
+        if (string.IsNullOrWhiteSpace(request.InvitedBy)) errors.Add("invited_by is required");
 
         if (errors.Count > 0)
         {

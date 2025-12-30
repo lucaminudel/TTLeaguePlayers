@@ -136,19 +136,24 @@ export const Join: React.FC = () => {
                 <div className="flex flex-col space-y-4 text-left px-2 max-w-sm mx-auto">
                     <br />
                     <br />
+                    <div className="border-b border-gray-600 pb-2 mb-2">
+                        <p className="text-secondary-text text-sm uppercase tracking-wide">Invite from</p>
+                        <p className="text-xl">{invite.invited_by}</p>
+                    </div>
+                
                     <div>
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">To {displayRole(invite.role)}</p>
-                        <p className="text-xl font-bold">{invite.name}</p>
+                        <p className="text-secondary-text text-sm uppercase tracking-wide">To {displayRole(invite.invitee_role)}</p>
+                        <p className="text-xl font-bold">{invite.invitee_name}</p>
                     </div>
 
                     <div className="border-b border-gray-600 pb-2 mb-2">
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">Email ID</p>
-                        <p className="text-lg">{invite.email_ID}</p>
+                        <p className="text-secondary-text text-sm uppercase tracking-wide">Email Id</p>
+                        <p className="text-lg">{invite.invitee_email_id}</p>
                     </div>
 
                     <div>
                         <p className="text-secondary-text text-sm uppercase tracking-wide">Team</p>
-                        <p className="text-lg">{invite.team_name}, {invite.division}</p>
+                        <p className="text-lg">{invite.invitee_team}, {invite.team_division}</p>
                     </div>
 
                     <div className="pt-4 mt-2 border-t border-gray-600">

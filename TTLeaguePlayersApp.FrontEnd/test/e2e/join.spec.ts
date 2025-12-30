@@ -22,13 +22,14 @@ test.describe('Join Page', () => {
         await page.route('**/invites/*', async (route) => {
             const json = {
                 nano_id: testInviteId,
-                name: 'John Doe',
-                email_ID: 'john@example.com',
-                role: 'CAPTAIN',
-                team_name: 'The Smashers',
-                division: 'Premier',
+                invitee_name: 'John Doe',
+                invitee_email_id: 'john@example.com',
+                invitee_role: 'CAPTAIN',
+                invitee_team: 'The Smashers',
+                team_division: 'Premier',
                 league: 'Local League',
-                season: 'Winter 2024'
+                season: 'Winter 2024',
+                invited_by: 'Luca'
             };
             await route.fulfill({ json });
         });
@@ -36,6 +37,7 @@ test.describe('Join Page', () => {
         await page.goto(`/#/join/${testInviteId}`);
 
         // Verify details
+        await expect(page.locator('text=Luca')).toBeVisible();
         await expect(page.locator('text=Team Captain')).toBeVisible();
         await expect(page.locator('text=John Doe')).toBeVisible();
         await expect(page.locator('text=john@example.com')).toBeVisible();
@@ -59,7 +61,7 @@ test.describe('Join Page', () => {
 
         // Wait for error message to appear
         await expect(page.locator('text=Please check this invitation link; it appears to be incorrect, missing characters, or containing extra ones.')).toBeVisible();
-        
+
         // Verify no retry button is shown
         await expect(page.getByRole('button', { name: 'Retry' })).not.toBeVisible();
     });
@@ -77,7 +79,7 @@ test.describe('Join Page', () => {
 
         // Wait for error message to appear
         await expect(page.locator('text=This invitation cannot be found. It may have expired, been canceled, or is no longer valid. If you believe this is an error, please contact us.')).toBeVisible();
-        
+
         // Verify no retry button is shown
         await expect(page.getByRole('button', { name: 'Retry' })).not.toBeVisible();
     });

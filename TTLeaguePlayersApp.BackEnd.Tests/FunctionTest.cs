@@ -10,7 +10,7 @@ public class FunctionTest
     [Fact]
     public async Task TestGetInvite_ReturnsPassedNanoId()
     {
-        // Invoke the lambda function and confirm the NanoID is echoed back
+        // Invoke the lambda function and confirm the NanoId is echoed back
         var mockObserver = new LoggerObserver();
         var function = new GetInviteLambda(mockObserver);
         var context = new TestLambdaContext();

@@ -5,24 +5,27 @@ namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
 public class CreateInviteRequest
 {
 
-    [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    [JsonPropertyName("invitee_name")]
+    public required string InviteeName { get; set; }
 
-    [JsonPropertyName("email_ID")]
-    public required string EmailID { get; set; }
+    [JsonPropertyName("invitee_email_id")]
+    public required string InviteeEmailId { get; set; }
     
-    [JsonPropertyName("role")]
-    public required Role Role { get; set; }
+    [JsonPropertyName("invitee_role")]
+    public required Role InviteeRole { get; set; }
     
-    [JsonPropertyName("team_name")]
-    public required string TeamName { get; set; }
+    [JsonPropertyName("invitee_team")]
+    public required string InviteeTeam { get; set; }
     
-    [JsonPropertyName("division")]
-    public required string Division { get; set; }
+    [JsonPropertyName("team_division")]
+    public required string TeamDivision { get; set; }
     
     [JsonPropertyName("league")]
     public required string League { get; set; }
     
     [JsonPropertyName("season")]
     public required string Season { get; set; }
+
+    [JsonPropertyName("invited_by")]
+    public required string InvitedBy { get; set; }
 }
