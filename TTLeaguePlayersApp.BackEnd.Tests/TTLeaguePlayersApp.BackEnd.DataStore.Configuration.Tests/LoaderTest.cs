@@ -5,7 +5,7 @@ using System.IO;
 // Disable parallelization to prevent environment variable conflicts
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
-namespace TTLeaguePlayersApp.BackEnd.DataStore.Configuration;
+namespace TTLeaguePlayersApp.BackEnd.DataStore.Configuration.Tests;
 
 public class LoaderTest : IDisposable
 {
