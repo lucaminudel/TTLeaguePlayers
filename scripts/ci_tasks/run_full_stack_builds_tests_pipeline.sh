@@ -8,7 +8,7 @@ ENVIRONMENT="test"
 API_PORT="3003"
 WEB_PORT="4173"
 
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
 BACKEND_TEST_PROJECT="TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj"
 FRONTEND_DIR="$PROJECT_ROOT/TTLeaguePlayersApp.FrontEnd"
 BUILD_DIR=".aws-sam-test"
@@ -93,7 +93,7 @@ if lsof -i ":$API_PORT" >/dev/null; then
     echo "   ⚠️  Port $API_PORT is in use. Assuming external SAM instance."
     # We do NOT start SAM, and we do NOT set SAM_PID (so cleanup won't kill it)
 else
-    LOG_FILE="scripts/sam_local_fullstack.log"
+    LOG_FILE="scripts/ci_tasks/sam_local_fullstack.log"
     echo "   📝 Logs: $LOG_FILE"
     # Use absolute path for template to help Docker find the mount source
     ABS_TEMPLATE="$(pwd)/$BUILD_DIR/template.yaml"

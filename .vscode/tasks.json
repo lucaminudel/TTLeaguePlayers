@@ -32,6 +32,7 @@
     {
       "label": "sam-start test",
       "type": "shell",
+      "hide": true,       
       "dependsOn": "sam-refresh-build test",
       "command": "sam local start-api --config-env test --port 3003",
       "group": "test"
@@ -39,6 +40,7 @@
     {
       "label": "sam-refresh-build test",
       "type": "shell",
+      "hide": true, 
       "command": "sam build --config-env test",
       "group": "build"
     },
@@ -57,7 +59,8 @@
     {
       "label": "api-tests test-env",
       "type": "shell",
-      "command": "./scripts/run_backend_acceptance_tests.sh 3003 test",
+      "hide": true, 
+      "command": "./scripts/ci_tasks/run_backend_acceptance_tests.sh 3003 test",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -67,7 +70,7 @@
     {
       "label": "api-tests dev-env",
       "type": "shell",
-      "command": "./scripts/run_backend_acceptance_tests.sh 3000 dev",
+      "command": "./scripts/ci_tasks/run_backend_acceptance_tests.sh 3000 dev",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -77,7 +80,7 @@
     {
       "label": "full-stack-builds-tests-pipeline test-env",
       "type": "shell",
-      "command": "./scripts/run_full_stack_builds_tests_pipeline.sh",
+      "command": "./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh",
       "group": "test",
       "presentation": {
         "reveal": "always",

@@ -34,8 +34,8 @@ Status: in samconfig.toml (committed change).
     • /tmp/lambci_debug_files/vsdbg
     • /bin/sh -lc so docker doesn’t treat "vsdbg --interpreter=vscode" as one filename
  • Scripts:
-    • scripts/local_sam_debug/docker_exec_pipe.sh (pipe wrapper: actually runs vsdbg in the container)
-    • scripts/local_sam_debug/docker_container_dotnet_pids.sh (helper: prints dotnet PID + cmdline, marks “likely
+    • scripts/local_sam_debugger_tasks/docker_exec_pipe.sh (pipe wrapper: actually runs vsdbg in the container)
+    • scripts/local_sam_debugger_tasks/docker_container_dotnet_pids.sh (helper: prints dotnet PID + cmdline, marks “likely
       handler”)
 
 Status: in repo (automated by scripts + launch config).
@@ -109,7 +109,7 @@ Status: manual.
 
 Manual, but scripted helper:
 
- ./scripts/local_sam_debug/docker_container_dotnet_pids.sh
+ ./scripts/local_sam_debugger_tasks/docker_container_dotnet_pids.sh
 
 Pick the PID that is marked “likely handler” and whose cmdline includes: Amazon.Lambda.RuntimeSupport.dll ...
 TTLeaguePlayersApp.BackEnd::...::Dispatch

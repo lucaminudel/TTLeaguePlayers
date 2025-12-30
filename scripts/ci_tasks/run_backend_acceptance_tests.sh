@@ -13,7 +13,7 @@ BUILD_DIR=".aws-sam-test"
 
 # Ensure we are in the project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR/.."
+cd "$SCRIPT_DIR/../.."
 
 # Cleanup function to kill SAM on exit
 cleanup() {
@@ -72,7 +72,7 @@ if lsof -i ":$PORT" >/dev/null; then
     SAM_ALREADY_RUNNING=true
 else
     # Start SAM Local API in the background, redirecting logs to a file to keep the terminal clean
-    SAM_LOG_FILE="scripts/sam_local_test.log"
+    SAM_LOG_FILE="scripts/ci_tasks/sam_local_test.log"
     echo "📝 Redirecting SAM logs to $SAM_LOG_FILE (check this file if tests fail to connect)"
     ABS_TEMPLATE="$(pwd)/$BUILD_DIR/template.yaml"
     sam local start-api --config-env "$CONFIG_ENV" --port "$PORT" -t "$ABS_TEMPLATE" > "$SAM_LOG_FILE" 2>&1 &

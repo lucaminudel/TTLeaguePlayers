@@ -9,7 +9,7 @@
       "justMyCode": false,
       "requireExactSource": false,
       "pipeTransport": {
-        "pipeProgram": "${workspaceFolder}/scripts/local_sam_debug/docker_exec_pipe.sh",
+        "pipeProgram": "${workspaceFolder}/scripts/local_sam_debugger_tasks/docker_exec_pipe.sh",
         "pipeArgs": [],
         "debuggerPath": "/tmp/lambci_debug_files/vsdbg"
       }
@@ -19,7 +19,7 @@
     {
       "id": "containerDotnetPid",
       "type": "promptString",
-      "description": "1) Trigger the Lambda once with curl ... so the container starts waiting for the debugger to attach. 2) run /scripts/local_sam_debug/docker_exec_pipe.sh to get the PID. 3) Enter the PID and press ENTER.",
+      "description": "1) Trigger the Lambda once with curl ... so the container starts waiting for the debugger to attach. 2) run /scripts/local_sam_debugger_tasks/docker_exec_pipe.sh to get the PID. 3) Enter the PID and press ENTER.",
       "default": "18"
     }
   ]
