@@ -84,11 +84,32 @@ Resources:
       TableName: !Sub "ttleague-invites-${Environment}"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: NanoId
+        - AttributeName: nano_id
           AttributeType: S
+        - AttributeName: invitee_email_id
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: N
       KeySchema:
-        - AttributeName: NanoId
+        - AttributeName: nano_id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: InviteeEmailIndex
+          KeySchema:
+            - AttributeName: invitee_email_id
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - nano_id
+              - league
+              - season
+              - invitee_team
+              - invitee_name
+              - invited_by
+              - accepted_at
 
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, ""]]

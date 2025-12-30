@@ -73,3 +73,4 @@ sam_local_fullstack.log
 sam_local_test.log
 .aws-sam-test
 build.toml
+DynamoDbData

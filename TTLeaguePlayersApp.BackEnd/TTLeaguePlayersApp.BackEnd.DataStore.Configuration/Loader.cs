@@ -156,8 +156,8 @@ public class Loader
             if (!Uri.IsWellFormedUriString(cfg.ApiGateWay.ApiBaseUrl, UriKind.Absolute))
                 throw new ArgumentException($"{nameof(cfg.ApiGateWay)}.{nameof(cfg.ApiGateWay.ApiBaseUrl)} configuration value needs to be a well formed Url ('{cfg.ApiGateWay.ApiBaseUrl}').");
 
-            if (string.IsNullOrEmpty(cfg.DynamoDB.AWSProfile))
-                throw new ArgumentNullException($"{nameof(cfg.DynamoDB)}.{nameof(cfg.DynamoDB.AWSProfile)} configuration value cannot be null or empty.");
+            if (cfg.DynamoDB.AWSProfile == null)
+                throw new ArgumentNullException($"{nameof(cfg.DynamoDB)}.{nameof(cfg.DynamoDB.AWSProfile)} configuration value cannot be null.");
 
 
             if (string.IsNullOrEmpty(cfg.Cognito.UserPoolId))

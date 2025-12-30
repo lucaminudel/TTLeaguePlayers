@@ -1,0 +1,20 @@
+services:
+  dynamodb-dev:
+    image: amazon/dynamodb-local
+    container_name: ttlp-dynamodb-dev
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    volumes:
+      - /Users/lucaminudel/Code/TTLeaguePlayers/DynamoDbData/DevEnvVolume:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+
+  dynamodb-test:
+    image: amazon/dynamodb-local
+    container_name: ttlp-dynamodb-test
+    ports:
+      - "8001:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    volumes:
+      - /Users/lucaminudel/Code/TTLeaguePlayers/DynamoDbData/TestEnvVolume:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
