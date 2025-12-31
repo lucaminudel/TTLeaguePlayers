@@ -34,13 +34,13 @@ public class CreateInviteLambda
             AcceptedAt = null
         };
 
-        _observer.OnBusinessEvent($"CreateInvite Lambda started", context, new Dictionary<string, string> { ["EmailId"] = request.InviteeEmailId ?? "unknown" });
+        _observer.OnBusinessEvent($"CreateInvite Lambda started", context, new Dictionary<string, string> { [nameof(request.InviteeEmailId)] = request.InviteeEmailId ?? "unknown" });
 
-        _observer.OnBusinessEvent($"CreateInvite Lambda completed", context, new Dictionary<string, string> { ["NanoId"] = invite.NanoId, ["EmailId"] = invite.InviteeEmailId });
+        _observer.OnBusinessEvent($"CreateInvite Lambda completed", context, new Dictionary<string, string> { [nameof(invite.NanoId)] = invite.NanoId, [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId });
 
         _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
             source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
-            context, parameters: new () { ["EmailId"] = invite.InviteeEmailId, ["NanoId"] = invite.NanoId } );
+            context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId, [nameof(invite.NanoId)] = invite.NanoId } );
 
         return Task.FromResult(invite);
     }
@@ -49,21 +49,21 @@ public class CreateInviteLambda
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(request.InviteeName)) errors.Add("invitee_name is required");
+        if (string.IsNullOrWhiteSpace(request.InviteeName)) errors.Add($"{nameof(request.InviteeName)} is required");
         if (string.IsNullOrWhiteSpace(request.InviteeEmailId)) 
         {
-            errors.Add("invitee_email_id is required");
+            errors.Add($"{nameof(request.InviteeEmailId)} is required");
         }
         else if (!IsValidEmail(request.InviteeEmailId))
         {
-            errors.Add("invitee_email_id must be a valid email address");
+            errors.Add($"{nameof(request.InviteeEmailId)} must be a valid email address");
         }
-        if (!Enum.IsDefined(typeof(Role), request.InviteeRole)) errors.Add($"invitee_role must be either {nameof(Role.PLAYER)} or {nameof(Role.CAPTAIN)}");
-        if (string.IsNullOrWhiteSpace(request.InviteeTeam)) errors.Add("invitee_team is required");
-        if (string.IsNullOrWhiteSpace(request.TeamDivision)) errors.Add("team_division is required");
-        if (string.IsNullOrWhiteSpace(request.League)) errors.Add("league is required");
-        if (string.IsNullOrWhiteSpace(request.Season)) errors.Add("season is required");
-        if (string.IsNullOrWhiteSpace(request.InvitedBy)) errors.Add("invited_by is required");
+        if (!Enum.IsDefined(typeof(Role), request.InviteeRole)) errors.Add($"{nameof(request.InviteeRole)} must be either {nameof(Role.PLAYER)} or {nameof(Role.CAPTAIN)}");
+        if (string.IsNullOrWhiteSpace(request.InviteeTeam)) errors.Add($"{nameof(request.InviteeTeam)} is required");
+        if (string.IsNullOrWhiteSpace(request.TeamDivision)) errors.Add($"{nameof(request.TeamDivision)} is required");
+        if (string.IsNullOrWhiteSpace(request.League)) errors.Add($"{nameof(request.League)} is required");
+        if (string.IsNullOrWhiteSpace(request.Season)) errors.Add($"{nameof(request.Season)} is required");
+        if (string.IsNullOrWhiteSpace(request.InvitedBy)) errors.Add($"{nameof(request.InvitedBy)} is required");
 
         if (errors.Count > 0)
         {

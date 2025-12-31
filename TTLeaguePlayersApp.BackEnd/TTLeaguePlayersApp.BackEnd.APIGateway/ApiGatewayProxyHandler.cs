@@ -5,6 +5,7 @@ using System.Security;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+using System.Text.Json.Serialization;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -137,13 +138,13 @@ public class ApiGatewayProxyHandler
         TryToExtractSegment1PathParameter(request, out nanoId);
 
         Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleGetInviteById) };
-        Dictionary<string, string> logParameters = new () { ["NanoId"] = nanoId ?? string.Empty };
+        Dictionary<string, string> logParameters = new () { [nameof(nanoId)] = nanoId ?? string.Empty };
         _observer.OnBusinessEvent("ACCESS INVITE", context, logParameters);
 
         if (string.IsNullOrEmpty(nanoId))
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = "Invalid path format. Missing nano_id.";
+            var errorMessage = $"Invalid path format. Missing {GetJsonyName<Invite>(nameof(Invite.NanoId))}.";
 
             _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT", 
                 source: logSource, context,
@@ -220,7 +221,7 @@ public class ApiGatewayProxyHandler
 
             _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
                 source: logSource, context, 
-                logParameters.With("NanoId", createdInvite.NanoId));
+                logParameters.With(nameof(createdInvite.NanoId), createdInvite.NanoId));
 
             var additionalHeaders = new Dictionary<string, string> { { "Location", $"/invites/{createdInvite.NanoId}" } };
             return CreateResponse(HttpStatusCode.Created, createdInvite, additionalHeaders);
@@ -436,4 +437,11 @@ public class ApiGatewayProxyHandler
         return (userName, userEmail);
     }
 
+    private static string GetJsonyName<T>(string propertyName)
+    {
+        var prop = typeof(T).GetProperty(propertyName);
+        var attribute = prop?.GetCustomAttributes(typeof(JsonPropertyNameAttribute), true)
+                            .FirstOrDefault() as JsonPropertyNameAttribute;
+        return attribute?.Name ?? propertyName;
+}
 }
