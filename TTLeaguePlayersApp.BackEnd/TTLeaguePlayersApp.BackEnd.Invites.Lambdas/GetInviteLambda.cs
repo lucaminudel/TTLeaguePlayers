@@ -1,42 +1,42 @@
 using Amazon.Lambda.Core;
+using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 public class GetInviteLambda
 {
     private readonly ILoggerObserver _observer;
+    private readonly InvitesDataTable _invitesDataTable;
 
-    public GetInviteLambda(ILoggerObserver observer)
+    public GetInviteLambda(ILoggerObserver observer, InvitesDataTable invitesDataTable)
     {
         _observer = observer;
+        _invitesDataTable = invitesDataTable;
     }
 
-    public Task<Invite> HandleAsync(string nanoId, ILambdaContext context)
+    public async Task<Invite> HandleAsync(string nanoId, ILambdaContext context)
     {
 
         ValidateRequest(nanoId);
-        
-        // Stub: return constant value
-        var invite = new Invite
+
+        try
         {
-            NanoId = nanoId,
-            InviteeName = "Gino Gino",
-            InviteeEmailId = "alpha@beta.com",
-            InviteeRole = Role.CAPTAIN,
-            InviteeTeam = "Morpeth 9",
-            TeamDivision = "Division 4",
-            League = "CLTTL",
-            Season = "2025-2026",
-            InvitedBy = "Luca",
-            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            AcceptedAt = null
-        };
+            var invite = await _invitesDataTable.RetrieveInvite(nanoId);
+            
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
+                source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] = nameof(HandleAsync) }, 
+                context, parameters: new () { ["NanoId"] = nanoId, ["Found"] = true.ToString() } );
 
-        _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
-            source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
-            context, parameters: new () { ["NanoId"] = nanoId });
+            return invite;
+        }
+        catch (KeyNotFoundException)
+        {
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
+                source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] = nameof(HandleAsync) }, 
+                context, parameters: new () { ["NanoId"] = nanoId, ["Found"] = false.ToString() } );
 
-        return Task.FromResult(invite);        
+            throw new NotFoundException("Invite not found");
+        }
     }
 
     private void ValidateRequest(string nano_id)

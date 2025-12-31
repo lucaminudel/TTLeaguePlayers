@@ -1,29 +1,32 @@
 using System.Net.Mail;
 using Amazon.Lambda.Core;
 using NanoidDotNet;
+using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 public class CreateInviteLambda
 {
     private readonly ILoggerObserver _observer;
+    private readonly InvitesDataTable _invitesDataTable;
 
-    public CreateInviteLambda(ILoggerObserver observer)
+    public CreateInviteLambda(ILoggerObserver observer, InvitesDataTable invitesDataTable)
     {
         _observer = observer;
+        _invitesDataTable = invitesDataTable;
     }
 
-    public Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
+    public async Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
     {
 
         ValidateRequest(request);
         
-        // Stub: return invite based on request
+        // Create invite based on request
         var invite = new Invite
         {
             NanoId = Nanoid.Generate(size: 8),
             InviteeName = request.InviteeName,
-            InviteeEmailId = request.InviteeEmailId!, // validated as not null
+            InviteeEmailId = request.InviteeEmailId!, 
             InviteeRole = request.InviteeRole,
             InviteeTeam = request.InviteeTeam,
             TeamDivision = request.TeamDivision,
@@ -34,15 +37,13 @@ public class CreateInviteLambda
             AcceptedAt = null
         };
 
-        _observer.OnBusinessEvent($"CreateInvite Lambda started", context, new Dictionary<string, string> { [nameof(request.InviteeEmailId)] = request.InviteeEmailId ?? "unknown" });
-
-        _observer.OnBusinessEvent($"CreateInvite Lambda completed", context, new Dictionary<string, string> { [nameof(invite.NanoId)] = invite.NanoId, [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId });
+        await _invitesDataTable.CreateNewInvite(invite);
 
         _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
             source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
             context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId, [nameof(invite.NanoId)] = invite.NanoId } );
 
-        return Task.FromResult(invite);
+        return invite;
     }
 
     private void ValidateRequest(CreateInviteRequest request)

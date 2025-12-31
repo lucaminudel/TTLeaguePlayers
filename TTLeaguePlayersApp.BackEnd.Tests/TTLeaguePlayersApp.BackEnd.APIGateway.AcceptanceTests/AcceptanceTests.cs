@@ -149,13 +149,28 @@ public class AcceptanceTests : IAsyncLifetime
     [Fact]
     public async Task GET_Invite_Should_Return_Invite_Successfully()
     {
-        // Arrange - First, create an invite to get a valid ID and populate _lastInviteId
-        //await POST_Invites_Should_Create_New_Invite_Successfully();
-        //Assert.NotNull(_lastInviteId); // Ensure an ID was set by the POST test
-        _lastInviteId = "87sff32o"; // Using a fixed ID for demonstration; replace with actual created ID if needed
+        // Arrange - Create an invite first
+        var requestBody = CreateInviteRequestJson(
+            name: "Gino Gino",
+            email: "alpha@beta.com",
+            role: "CAPTAIN",
+            teamName: "Morpeth 9",
+            division: "Division 4",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Luca");
+        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        
+        var postResponse = await _httpClient.PostAsync("/invites", postContent);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var postResult = await postResponse.Content.ReadAsStringAsync();
+        using var postJsonDoc = JsonDocument.Parse(postResult);
+        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdInviteId.Should().NotBeNullOrEmpty();
 
-        // Act
-        var response = await _httpClient.GetAsync($"/invites/{_lastInviteId}");
+        // Act - Now retrieve the created invite
+        var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -165,7 +180,7 @@ public class AcceptanceTests : IAsyncLifetime
         using var jsonDoc = JsonDocument.Parse(result);
         var jsonResult = jsonDoc.RootElement;
         
-        jsonResult.GetProperty("nano_id").GetString().Should().Be(_lastInviteId);
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
         jsonResult.GetProperty("invitee_name").GetString().Should().Be("Gino Gino");
         jsonResult.GetProperty("invitee_email_id").GetString().Should().Be("alpha@beta.com");
         jsonResult.GetProperty("invitee_role").GetString().Should().Be("CAPTAIN");

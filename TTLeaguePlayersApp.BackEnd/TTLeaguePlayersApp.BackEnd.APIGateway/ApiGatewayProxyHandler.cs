@@ -1,11 +1,14 @@
 using System.Net;
 using System.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Security;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
-using System.Text.Json.Serialization;
+using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
+using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
+using Amazon;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -15,6 +18,7 @@ public class ApiGatewayProxyHandler
 {
     private readonly GetInviteLambda _getInviteLambda;
     private readonly CreateInviteLambda _createInviteLambda;
+    private readonly InvitesDataTable _invitesDataTable;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
@@ -27,16 +31,28 @@ public class ApiGatewayProxyHandler
     {
         _observer = new LoggerObserver();
 
-        _getInviteLambda = new GetInviteLambda(_observer);
-        _createInviteLambda = new CreateInviteLambda(_observer);
+        var loader = new Loader();
+        var config = loader.GetEnvironmentVariables();
+
+        Amazon.RegionEndpoint? region = null;
+        if (!string.IsNullOrEmpty(config.DynamoDB.AWSRegion))
+        {
+            region = RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
+        }
+
+        _invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+
+        _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable);
+        _createInviteLambda = new CreateInviteLambda(_observer, _invitesDataTable);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
+        _invitesDataTable = invitesDataTable;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         _observer = new LoggerObserver();
@@ -160,9 +176,18 @@ public class ApiGatewayProxyHandler
             var invite = await _getInviteLambda.HandleAsync(nanoId, context);
 
             _observer.OnRuntimeRegularEvent("GET INVITE BY COMPLETED",
-                source: logSource, context, logParameters);
+                source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.OK.ToString()) );
 
             return CreateResponse(HttpStatusCode.OK, invite);
+        }
+        catch (NotFoundException ex)
+        {
+            var responseStatusCode = HttpStatusCode.NotFound;
+
+            _observer.OnRuntimeRegularEvent("GET INVITE BY COMPLETED",
+                source: logSource, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()) );
+
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
         catch (ValidationException ex)
         {
@@ -171,13 +196,6 @@ public class ApiGatewayProxyHandler
 
             _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
-        }
-        catch (NotFoundException ex)
-        {
-            var responseStatusCode = HttpStatusCode.NotFound;
-
-            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
-            return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
     }
 
