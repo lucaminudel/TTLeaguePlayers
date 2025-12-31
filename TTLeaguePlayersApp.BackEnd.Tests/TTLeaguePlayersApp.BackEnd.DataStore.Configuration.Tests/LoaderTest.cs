@@ -1,11 +1,9 @@
 using Xunit;
-using TTLeaguePlayersApp.BackEnd.DataStore.Configuration;
-using System.IO;
 
 // Disable parallelization to prevent environment variable conflicts
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
-namespace TTLeaguePlayersApp.BackEnd.DataStore.Configuration.Tests;
+namespace TTLeaguePlayersApp.BackEnd.Configuration.DataStore.Tests;
 
 public class LoaderTest : IDisposable
 {
@@ -55,6 +53,7 @@ public class LoaderTest : IDisposable
 
         // DynamoDB
         Assert.NotNull(config.DynamoDB);
+        Assert.NotNull(config.DynamoDB.TablesNameSuffix);
         if (environment == "dev" || environment == "test")
             Assert.NotNull(config.DynamoDB.ServiceLocalUrl);
         Assert.NotNull(config.DynamoDB.AWSProfile);

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TTLeaguePlayersApp.BackEnd.DataStore.Configuration;
+namespace TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 
 public class Loader
 {
@@ -136,6 +136,7 @@ public class Loader
             }
             DynamoDB.AWSProfile = cfg.DynamoDB.AWSProfile;
             DynamoDB.AWSRegion = cfg.DynamoDB.AWSRegion;
+            DynamoDB.TablesNameSuffix = environment;
 
             Cognito.UserPoolId = cfg.Cognito.UserPoolId?.TrimEnd(' ', '?');
             Cognito.ClientId = cfg.Cognito.ClientId?.TrimEnd(' ', '?');
@@ -186,6 +187,7 @@ public class Loader
         public Uri? ServiceLocalUrl { get; internal set; }
         public string? AWSProfile { get; internal set; }
         public string? AWSRegion { get; internal set; }
+        public string TablesNameSuffix { get; internal set; } = string.Empty;
     }
 
     public class CognitoConfig

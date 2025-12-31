@@ -1,4 +1,4 @@
-namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 public class NotFoundException : Exception
 {

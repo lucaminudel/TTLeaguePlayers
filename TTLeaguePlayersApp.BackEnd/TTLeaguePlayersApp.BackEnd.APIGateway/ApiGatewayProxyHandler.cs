@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Security;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
-using TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using System.Text.Json.Serialization;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -29,7 +29,7 @@ public class ApiGatewayProxyHandler
 
         _getInviteLambda = new GetInviteLambda(_observer);
         _createInviteLambda = new CreateInviteLambda(_observer);
-        _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace Environment.GetEnvironmentVariable with DataStore.Configuration
+        _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 

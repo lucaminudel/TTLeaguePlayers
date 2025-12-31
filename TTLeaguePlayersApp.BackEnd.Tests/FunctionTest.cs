@@ -3,7 +3,7 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.TestUtilities;
 using TTLeaguePlayersApp.BackEnd;
 
-namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites.Tests;
+namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests;
 
 public class FunctionTest
 {

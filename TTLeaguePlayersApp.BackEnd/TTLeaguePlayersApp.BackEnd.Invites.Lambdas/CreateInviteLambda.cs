@@ -2,7 +2,7 @@ using System.Net.Mail;
 using Amazon.Lambda.Core;
 using NanoidDotNet;
 
-namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 public class CreateInviteLambda
 {

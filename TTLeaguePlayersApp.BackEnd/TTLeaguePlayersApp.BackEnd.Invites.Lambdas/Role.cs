@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum Role

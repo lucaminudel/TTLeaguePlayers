@@ -1,10 +1,9 @@
 using FluentAssertions;
 using Xunit;
 using System.Collections.Concurrent;
-using TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
-using TTLeaguePlayersApp.BackEnd.DataStore.Invites;
+using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
-namespace TTLeaguePlayersApp.BackEnd.DataStore.Invites.Tests;
+namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore.Tests;
 
 public class InvitesDataTableTest : IAsyncLifetime
 {
@@ -13,8 +12,7 @@ public class InvitesDataTableTest : IAsyncLifetime
 
     public InvitesDataTableTest()
     {
-        var config = new Configuration.Loader().GetEnvironmentVariables();
-        var environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "test";
+        var config = new Configuration.DataStore.Loader().GetEnvironmentVariables();
         
         Amazon.RegionEndpoint? region = null;
         if (!string.IsNullOrEmpty(config.DynamoDB.AWSRegion))
@@ -22,7 +20,7 @@ public class InvitesDataTableTest : IAsyncLifetime
             region = Amazon.RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
         }
         
-        _db = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, environment);
+        _db = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix!);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

@@ -20,7 +20,7 @@
     <PackageReference Include="Nanoid" Version="3.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="TTLeaguePlayersApp.BackEnd.DataStore.Configuration/" />
+    <Folder Include="TTLeaguePlayersApp.BackEnd.Configuration.DataStore/" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,6 @@
 using Amazon.Lambda.Core;
 
-namespace TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 public class GetInviteLambda
 {

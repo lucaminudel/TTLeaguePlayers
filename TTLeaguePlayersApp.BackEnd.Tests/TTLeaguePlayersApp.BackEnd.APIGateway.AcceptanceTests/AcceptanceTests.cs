@@ -4,7 +4,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Xunit;
 
-namespace TTLeaguePlayersApp.BackEnd.Tests.TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
+namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 
 public class AcceptanceTests : IAsyncLifetime
 {
@@ -13,7 +13,7 @@ public class AcceptanceTests : IAsyncLifetime
 
     public AcceptanceTests()
     {
-        var baseUrl = new DataStore.Configuration.Loader().GetEnvironmentVariables().ApiGateWay.ApiBaseUrl;
+        var baseUrl = new Configuration.DataStore.Loader().GetEnvironmentVariables().ApiGateWay.ApiBaseUrl;
         
         _httpClient = new HttpClient
         {

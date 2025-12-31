@@ -3,18 +3,18 @@ using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using System.Net.Mail;
 using System.Text.Json;
-using TTLeaguePlayersApp.BackEnd.Lambdas.Invites;
+using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
-namespace TTLeaguePlayersApp.BackEnd.DataStore.Invites;
+namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
 public class InvitesDataTable : IDisposable
 {
     private readonly AmazonDynamoDBClient _client;
     private readonly ITable _table;
 
-    public InvitesDataTable(Uri? localDynamoDbServiceUrl, Amazon.RegionEndpoint? remoteDynamoDbRegion, string environment)
+    public InvitesDataTable(Uri? localDynamoDbServiceUrl, Amazon.RegionEndpoint? remoteDynamoDbRegion, string tablesNameSuffix)
     {
-        var _tableName = $"ttleague-invites-{environment}";
+        var _tableName = $"ttleague-invites-{tablesNameSuffix}";
         
         AmazonDynamoDBConfig clientConfig;
         if (localDynamoDbServiceUrl != null)
