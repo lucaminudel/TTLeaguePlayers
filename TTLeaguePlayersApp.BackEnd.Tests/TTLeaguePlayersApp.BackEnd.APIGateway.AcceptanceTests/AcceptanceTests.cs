@@ -275,6 +275,174 @@ public class AcceptanceTests : IAsyncLifetime
 
     #endregion
 
+    #region PATCH /invites/{nano_id} Tests (Mark Accepted)
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Mark_Invite_Accepted_Successfully()
+    {
+        // Arrange - Create an invite first
+        var requestBody = CreateInviteRequestJson(
+            name: "John Smith",
+            email: "john.smith@example.com",
+            role: "PLAYER",
+            teamName: "City Strikers",
+            division: "Division 2",
+            league: "Regional League",
+            season: "2025-2026",
+            invitedBy: "Emma");
+        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var postResponse = await _httpClient.PostAsync("/invites", postContent);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var postResult = await postResponse.Content.ReadAsStringAsync();
+        using var postJsonDoc = JsonDocument.Parse(postResult);
+        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdInviteId.Should().NotBeNullOrEmpty();
+
+        // Verify invite was created without accepted_at
+        var getBeforeResponse = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+        var getBeforeResult = await getBeforeResponse.Content.ReadAsStringAsync();
+        using var getBeforeJsonDoc = JsonDocument.Parse(getBeforeResult);
+        getBeforeJsonDoc.RootElement.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // Act - Now mark the invite as accepted
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        result.Should().NotBeEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("John Smith");
+        jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Number);
+        jsonResult.GetProperty("accepted_at").GetInt64().Should().Be(acceptedAt);
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Return_404_For_NonExistent_Id()
+    {
+        // Arrange
+        var nonExistentId = "02040608";
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", DateTimeOffset.UtcNow.ToUnixTimeSeconds() } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{nonExistentId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        errorMessage.Should().Contain("Invite not found");
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Return_400_For_Malformed_NanoId()
+    {
+        // Arrange
+        var malformedId = "short";
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", DateTimeOffset.UtcNow.ToUnixTimeSeconds() } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{malformedId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+        errorMessage.Should().Contain("nano_id malformed");
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Be_Idempotent_When_Called_Twice()
+    {
+        // Arrange - Create an invite first
+        var requestBody = CreateInviteRequestJson(
+            name: "Idem Potent",
+            email: "idempotent@example.com",
+            role: "PLAYER",
+            teamName: "Retry Club",
+            division: "Division 3",
+            league: "Regional League",
+            season: "2025-2026",
+            invitedBy: "Client");
+        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var postResponse = await _httpClient.PostAsync("/invites", postContent);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var postResult = await postResponse.Content.ReadAsStringAsync();
+        using var postJsonDoc = JsonDocument.Parse(postResult);
+        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdInviteId.Should().NotBeNullOrEmpty();
+
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+
+        // Act - Patch once
+        var firstPatch = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+        var firstAcceptResponse = await _httpClient.SendAsync(firstPatch);
+
+        // Assert - First patch
+        firstAcceptResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstAcceptBody = await firstAcceptResponse.Content.ReadAsStringAsync();
+        using var firstAcceptJsonDoc = JsonDocument.Parse(firstAcceptBody);
+        var firstAcceptedAt = firstAcceptJsonDoc.RootElement.GetProperty("accepted_at").GetInt64();
+        firstAcceptedAt.Should().Be(acceptedAt);
+
+        // Act - Patch again with the same accepted_at (client retry)
+        var secondPatch = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+        var secondAcceptResponse = await _httpClient.SendAsync(secondPatch);
+
+        // Assert - Second patch is still OK and accepted_at is unchanged
+        secondAcceptResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondAcceptBody = await secondAcceptResponse.Content.ReadAsStringAsync();
+        using var secondAcceptJsonDoc = JsonDocument.Parse(secondAcceptBody);
+        var secondAcceptedAt = secondAcceptJsonDoc.RootElement.GetProperty("accepted_at").GetInt64();
+        secondAcceptedAt.Should().Be(firstAcceptedAt);
+    }
+
+    [Fact]
+    public async Task PATCH_InviteById_Should_Return_400_For_Missing_Id()
+    {
+        // Act
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", DateTimeOffset.UtcNow.ToUnixTimeSeconds() } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/invites/")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        // When patching /invites/ (trailing slash), NormalizePath converts it to /invites,
+        // which is the collection endpoint (create only), therefore PATCH is not allowed.
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+    }
+
+    #endregion
+
     #region Error Path Tests
 
     [Fact]

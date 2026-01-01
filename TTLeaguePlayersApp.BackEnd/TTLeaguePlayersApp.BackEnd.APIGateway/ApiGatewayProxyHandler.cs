@@ -18,6 +18,7 @@ public class ApiGatewayProxyHandler
 {
     private readonly GetInviteLambda _getInviteLambda;
     private readonly CreateInviteLambda _createInviteLambda;
+    private readonly MarkInviteAcceptedLambda _markInviteAcceptedLambda;
     private readonly InvitesDataTable _invitesDataTable;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
@@ -44,14 +45,16 @@ public class ApiGatewayProxyHandler
 
         _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable);
         _createInviteLambda = new CreateInviteLambda(_observer, _invitesDataTable);
+        _markInviteAcceptedLambda = new MarkInviteAcceptedLambda(_observer, _invitesDataTable);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, MarkInviteAcceptedLambda markInviteAcceptedLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
+        _markInviteAcceptedLambda = markInviteAcceptedLambda;
         _invitesDataTable = invitesDataTable;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
@@ -81,13 +84,16 @@ public class ApiGatewayProxyHandler
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Preflight for /invites/{nano_id}
-                ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET", request),
+                ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH", request),
+
+                // Update invite: PATCH /invites/{nano_id}
+                ("PATCH", var p) when p.StartsWith("/invites/") => await HandlePatchInviteById(request, context),
 
                 // Get an invite by nano_id: GET /invites/{nano_id}
                 ("GET", var p) when p.StartsWith("/invites/") => await HandleGetInviteById(request, context),
 
                 // Method not allowed for /invites/{id}
-                (var m, var p) when p.StartsWith("/invites/") && m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+                (var m, var p) when p.StartsWith("/invites/") && m != "GET" && m != "PATCH" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Fallback: 404 for unknown paths
                 _ => CreateResponse(HttpStatusCode.NotFound, new { message = "Not Found" })
@@ -175,7 +181,7 @@ public class ApiGatewayProxyHandler
         {
             var invite = await _getInviteLambda.HandleAsync(nanoId, context);
 
-            _observer.OnRuntimeRegularEvent("GET INVITE BY COMPLETED",
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
                 source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.OK.ToString()) );
 
             return CreateResponse(HttpStatusCode.OK, invite);
@@ -254,6 +260,101 @@ public class ApiGatewayProxyHandler
         }
     }
 
+    private sealed class PatchInviteRequest
+    {
+        [JsonPropertyName("accepted_at")]
+        public long? AcceptedAt { get; set; }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandlePatchInviteById(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        string? nanoId;
+        TryToExtractSegment1PathParameter(request, out nanoId);
+
+        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandlePatchInviteById) };
+        Dictionary<string, string> logParameters = new() { [nameof(nanoId)] = nanoId ?? string.Empty, ["RequestBody"] = request.Body ?? string.Empty };
+        _observer.OnBusinessEvent("MARK INVITE ACCEPTED", context, logParameters);
+
+        if (string.IsNullOrEmpty(nanoId))
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = $"Invalid path format. Missing {GetJsonyName<Invite>(nameof(Invite.NanoId))}.";
+
+            _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT",
+                source: logSource, context,
+                _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString())
+                                  .With("Message", errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage });
+        }
+
+        // Validate Content-Type header is JSON
+        if (!IsJsonContentType(request.Headers, out var contentTypeError))
+        {
+            var responseStatusCode = HttpStatusCode.UnsupportedMediaType;
+            var headers = JsonSerializer.Serialize(request.Headers);
+
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT TYPE",
+                source: logSource, context,
+                logParameters.With("ResponseStatusCode", responseStatusCode.ToString())
+                             .With("Message", contentTypeError)
+                             .With("Headers", headers));
+
+            return CreateResponse(responseStatusCode, new { message = contentTypeError });
+        }
+
+        TryDeserialize<PatchInviteRequest>(request.Body ?? string.Empty, out var patchRequest, out var bodyErrorStatusCode, out var bodyErrorMessage);
+        if (patchRequest is null)
+        {
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY",
+                source: logSource, context,
+                logParameters.With("ResponseStatusCode", bodyErrorStatusCode.ToString())
+                             .With("Message", bodyErrorMessage));
+
+            return CreateResponse(bodyErrorStatusCode, new { message = bodyErrorMessage });
+        }
+
+        if (patchRequest.AcceptedAt is null)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = $"Missing {GetJsonyName<Invite>(nameof(Invite.AcceptedAt))}.";
+
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY",
+                source: logSource, context,
+                logParameters.With("ResponseStatusCode", responseStatusCode.ToString())
+                             .With("Message", errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage });
+        }
+
+        try
+        {
+            var updatedInvite = await _markInviteAcceptedLambda.HandleAsync(nanoId, patchRequest.AcceptedAt.Value, context);
+
+            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED",
+                source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.OK.ToString()));
+
+            return CreateResponse(HttpStatusCode.OK, updatedInvite);
+        }
+        catch (NotFoundException ex)
+        {
+            var responseStatusCode = HttpStatusCode.NotFound;
+
+            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED",
+                source: logSource, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()) );
+
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+        }
+    }
+
 
     private APIGatewayProxyResponse CreateResponse(HttpStatusCode statusCode, object body)
         => CreateResponse(statusCode, body, new Dictionary<string, string>());
@@ -290,7 +391,7 @@ public class ApiGatewayProxyHandler
 
         return new APIGatewayProxyResponse
         {
-            StatusCode = (int)HttpStatusCode.NoContent,
+            StatusCode = (int)HttpStatusCode.OK,
             Headers = headers,
             Body = string.Empty
         };
