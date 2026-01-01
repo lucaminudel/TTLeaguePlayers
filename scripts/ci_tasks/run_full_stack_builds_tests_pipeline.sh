@@ -95,9 +95,7 @@ if lsof -i ":$API_PORT" >/dev/null; then
 else
     LOG_FILE="scripts/ci_tasks/sam_local_fullstack.log"
     echo "   📝 Logs: $LOG_FILE"
-    # Use absolute path for template to help Docker find the mount source
-    ABS_TEMPLATE="$(pwd)/$BUILD_DIR/template.yaml"
-    sam local start-api --config-env "$ENVIRONMENT" --port "$API_PORT" -t "$ABS_TEMPLATE" > "$LOG_FILE" 2>&1 &
+    sam local start-api --config-env "$ENVIRONMENT" --port "$API_PORT" > "$LOG_FILE" 2>&1 &
     SAM_PID=$!
     
     # Wait for SAM
