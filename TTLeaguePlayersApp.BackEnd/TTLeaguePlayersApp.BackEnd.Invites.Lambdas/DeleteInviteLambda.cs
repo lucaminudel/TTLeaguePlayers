@@ -20,18 +20,17 @@ public class DeleteInviteLambda
         ValidateRequest(nanoId);
 
         Dictionary<string, string> logSource = new() { ["Class"] = nameof(DeleteInviteLambda), ["Method"] = nameof(HandleAsync) };
-        Dictionary<string, string> logParameters = new() { ["NanoId"] = nanoId };
 
         await _invitesDataTable.DeleteInvite(nanoId);
 
         _observer.OnRuntimeRegularEvent("DELETE INVITE COMPLETED",
             source: logSource, context,
-            logParameters.With("Deleted", true.ToString()));
+            new Dictionary<string, string>() { [nameof(nanoId)] = nanoId, ["Deleted"] = true.ToString() });
     }
 
     private static void ValidateRequest(string nanoId)
     {
-        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(Invite.NanoId));
+        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
 
         if (string.IsNullOrWhiteSpace(nanoId))
         {

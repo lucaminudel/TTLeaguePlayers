@@ -1,7 +1,6 @@
 using System.Net;
 using System.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Security;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
@@ -9,14 +8,12 @@ using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using Amazon;
-using TTLeaguePlayersApp.BackEnd;
-using Microsoft.VisualBasic;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace TTLeaguePlayersApp.BackEnd.APIGateway;
 
-public class ApiGatewayProxyHandler
+public partial class ApiGatewayProxyHandler
 {
     private readonly GetInviteLambda _getInviteLambda;
     private readonly CreateInviteLambda _createInviteLambda;
@@ -26,11 +23,7 @@ public class ApiGatewayProxyHandler
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
-
-    private APIGatewayProxyRequest? _currentRequest;
-    private Dictionary<string, string> _requestParameters = new ();
-    
-
+        
     public ApiGatewayProxyHandler()
     {
         _observer = new LoggerObserver();
@@ -68,9 +61,8 @@ public class ApiGatewayProxyHandler
 
     public async Task<APIGatewayProxyResponse> Dispatch(APIGatewayProxyRequest request, ILambdaContext context)
     {
-
-        _currentRequest = request;
-        _requestParameters = new() { ["RequestHttpMethod"] = request.HttpMethod, ["RequestPath"] = request.Path };
+        
+        Dictionary<string, string> requestParameters = new() { ["RequestHttpMethod"] = request.HttpMethod, ["RequestPath"] = request.Path };
 
         try
         {
@@ -109,14 +101,14 @@ public class ApiGatewayProxyHandler
 
             _observer.OnRuntimeRegularEvent("API DISPATCH COMPLETED",
                 source: new() { ["Class"] =  nameof(ApiGatewayProxyHandler), ["Method"] =  nameof(Dispatch) }, 
-                context, _requestParameters.With("ResponseStatusCode", response.StatusCode.ToString()) ,
-                userClaims: GetAuthenticatedUserFromCognitoAuthorizerClaims());
+                context, requestParameters.With((HttpStatusCode)response.StatusCode),
+                userClaims: GetAuthenticatedUserFromCognitoAuthorizerClaims(request));
             return response;
         }
         catch (ArgumentException ex)
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
-            _observer.OnRuntimeError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            _observer.OnRuntimeError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Invalid request: {ex.Message}" });
         }
         catch (InvalidOperationException ex)
@@ -124,72 +116,56 @@ public class ApiGatewayProxyHandler
             // Default to 400 here; individual handlers can override to 404 where appropriate
             var responseStatusCode = HttpStatusCode.BadRequest;
 
-            _observer.OnRuntimeError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            _observer.OnRuntimeError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Invalid operation: {ex.Message}" });
         }
         catch (OperationCanceledException ex)
         {
             var responseStatusCode = HttpStatusCode.RequestTimeout;
 
-            _observer.OnRuntimeError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            _observer.OnRuntimeError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Request cancelled: {ex.Message}" });
         }
         catch (SecurityException ex)
         {
             var responseStatusCode = HttpStatusCode.Forbidden;
 
-            _observer.OnSecurityError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            _observer.OnSecurityError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
         catch (Exception ex) when (ex.GetType().FullName?.StartsWith("Amazon.") == true)
         {
             var responseStatusCode = HttpStatusCode.ServiceUnavailable;
 
-            _observer.OnRuntimeCriticalError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            _observer.OnRuntimeCriticalError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Amazon service error: {ex.Message}" });
         }
         catch (Exception ex)
         {
             var responseStatusCode = HttpStatusCode.InternalServerError;
 
-            _observer.OnRuntimeCriticalError(ex, context, _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString()));
+            _observer.OnRuntimeCriticalError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Internal Server Error: {{Additional info: Error type:{ex.GetType()}; Error message:{ex.Message}}}" });
-        }
-        finally
-        {
-            _currentRequest = null;
-            _requestParameters = new();
         }
     }
 
     private async Task<APIGatewayProxyResponse> HandleDeleteInviteById(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        string? nanoId;
-        TryToExtractSegment1PathParameter(request, out nanoId);
 
-        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleDeleteInviteById) };
-        Dictionary<string, string> logParameters = new() { [nameof(nanoId)] = nanoId ?? string.Empty };
-        _observer.OnBusinessEvent("DELETE INVITE", context, logParameters);
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleDeleteInviteById));
+        var inParameters = GetInputParameters(request);
 
-        if (string.IsNullOrEmpty(nanoId))
-        {
-            var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(Invite.NanoId))}.";
+        _observer.OnBusinessEvent("DELETE INVITE", context, inParameters);
 
-            _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT",
-                source: logSource, context,
-                _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString())
-                                  .With("Message", errorMessage));
-
-            return CreateResponse(responseStatusCode, new { message = errorMessage });
-        }
+        ExtractNanoIdOrCreateResponseAndNotifyObserver(context, request.Path, inParameters, fromHere, out string? nanoId, out APIGatewayProxyResponse? createdResponse);
+        if (nanoId is null)
+            return createdResponse!;
 
         try
         {
             await _deleteInviteLambda.HandleAsync(nanoId, context);
 
-            _observer.OnRuntimeRegularEvent("DELETE INVITE COMPLETED",
-                source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.NoContent.ToString()));
+            _observer.OnRuntimeRegularEvent("DELETE INVITE COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
 
             return CreateResponse(HttpStatusCode.NoContent);
         }
@@ -198,40 +174,29 @@ public class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
+
     }
 
     private async Task<APIGatewayProxyResponse> HandleGetInviteById(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        string? nanoId;
-        TryToExtractSegment1PathParameter(request, out nanoId);
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetInviteById));
+        var inParameters = GetInputParameters(request);
 
-        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleGetInviteById) };
-        Dictionary<string, string> logParameters = new () { [nameof(nanoId)] = nanoId ?? string.Empty };
-        _observer.OnBusinessEvent("ACCESS INVITE", context, logParameters);
+        _observer.OnBusinessEvent("ACCESS INVITE", context, inParameters);
 
-        if (string.IsNullOrEmpty(nanoId))
-        {
-            var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(nanoId))}.";
-
-            _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT", 
-                source: logSource, context,
-                _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString())
-                                  .With("Message", errorMessage));
-
-            return CreateResponse(responseStatusCode, new { message = errorMessage });
-        }
-
+        ExtractNanoIdOrCreateResponseAndNotifyObserver(context, request.Path, inParameters, fromHere, out string? nanoId, out APIGatewayProxyResponse? createdResponse);
+        if (nanoId is null)
+            return createdResponse!;
 
         try
         {
             var invite = await _getInviteLambda.HandleAsync(nanoId, context);
 
-            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
-                source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.OK.ToString()) );
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK) );
 
             return CreateResponse(HttpStatusCode.OK, invite);
         }
@@ -239,8 +204,7 @@ public class ApiGatewayProxyHandler
         {
             var responseStatusCode = HttpStatusCode.NotFound;
 
-            _observer.OnRuntimeRegularEvent("GET INVITE BY COMPLETED",
-                source: logSource, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()) );
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",fromHere, context, inParameters.With(responseStatusCode) );
 
             return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
@@ -249,52 +213,30 @@ public class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
     }
 
     private async Task<APIGatewayProxyResponse> HandleCreateInvite(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleCreateInvite) };
-        Dictionary<string, string> logParameters = new () { ["RequestBody"] = request.Body ?? string.Empty };
-        _observer.OnBusinessEvent("CREATE INVITE", context, logParameters);
 
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleCreateInvite));
+        var inParameters = GetInputParameters(request);
 
-        // Validate Content-Type header is JSON
-        if (!IsJsonContentType(request.Headers, out var contentTypeError))
-        {
-            var responseStatusCode = HttpStatusCode.UnsupportedMediaType;
-            var headers = JsonSerializer.Serialize(request.Headers);
+        _observer.OnBusinessEvent("CREATE INVITE", context, inParameters);
 
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT TYPE", 
-                source: logSource, context,
-                logParameters.With("ResponseStatusCode", responseStatusCode.ToString())
-                             .With("Message", contentTypeError)
-                             .With("Headers", headers));
-
-            return CreateResponse(responseStatusCode, new { message = contentTypeError });
-        }
-
-        TryDeserialize<CreateInviteRequest>(request.Body ?? string.Empty, out var createRequest, out var bodyErrorStatusCode, out var bodyErrorMessage);
-
+        ExtractBodyOrCreateResponseAndNotifyObserver(context, request.Headers, request.Body, fromHere, inParameters, 
+                                                     out CreateInviteRequest? createRequest, out APIGatewayProxyResponse? createdResponse);
         if (createRequest is null)
-        {
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", 
-                source: logSource, context,
-                logParameters.With("ResponseStatusCode", bodyErrorStatusCode.ToString())
-                             .With("Message", bodyErrorMessage));
-
-            return CreateResponse(bodyErrorStatusCode, new { message = bodyErrorMessage });
-        }
+            return createdResponse!;
 
         try
         {
             var createdInvite = await _createInviteLambda.HandleAsync(createRequest, context);
 
-            _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
-                source: logSource, context, 
-                logParameters.With(nameof(createdInvite.NanoId), createdInvite.NanoId));
+            _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.Created));
 
             var additionalHeaders = new Dictionary<string, string> { { "Location", $"/invites/{createdInvite.NanoId}" } };
             return CreateResponse(HttpStatusCode.Created, createdInvite, additionalHeaders);
@@ -304,74 +246,34 @@ public class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
     }
 
-    private sealed class PatchInviteRequest
-    {
-        [JsonPropertyName("accepted_at")]
-        public long? AcceptedAt { get; set; }
-    }
-
     private async Task<APIGatewayProxyResponse> HandlePatchInviteById(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        string? nanoId;
-        TryToExtractSegment1PathParameter(request, out nanoId);
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandlePatchInviteById));
+        var inParameters = GetInputParameters(request);
 
-        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandlePatchInviteById) };
-        Dictionary<string, string> logParameters = new() { [nameof(nanoId)] = nanoId ?? string.Empty, ["RequestBody"] = request.Body ?? string.Empty };
-        _observer.OnBusinessEvent("MARK INVITE ACCEPTED", context, logParameters);
+        _observer.OnBusinessEvent("MARK INVITE ACCEPTED", context, inParameters);
 
-        if (string.IsNullOrEmpty(nanoId))
-        {
-            var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(nanoId))}.";
+        ExtractNanoIdOrCreateResponseAndNotifyObserver(context, request.Path, inParameters, fromHere, out string? nanoId, out APIGatewayProxyResponse? createdNanoIdResponse);
+        if (nanoId is null)
+            return createdNanoIdResponse!;
 
-            _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT",
-                source: logSource, context,
-                _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString())
-                                  .With("Message", errorMessage));
-
-            return CreateResponse(responseStatusCode, new { message = errorMessage });
-        }
-
-        // Validate Content-Type header is JSON
-        if (!IsJsonContentType(request.Headers, out var contentTypeError))
-        {
-            var responseStatusCode = HttpStatusCode.UnsupportedMediaType;
-            var headers = JsonSerializer.Serialize(request.Headers);
-
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT TYPE",
-                source: logSource, context,
-                logParameters.With("ResponseStatusCode", responseStatusCode.ToString())
-                             .With("Message", contentTypeError)
-                             .With("Headers", headers));
-
-            return CreateResponse(responseStatusCode, new { message = contentTypeError });
-        }
-
-        TryDeserialize<PatchInviteRequest>(request.Body ?? string.Empty, out var patchRequest, out var bodyErrorStatusCode, out var bodyErrorMessage);
+        ExtractBodyOrCreateResponseAndNotifyObserver(context, request.Headers, request.Body, fromHere, inParameters, 
+                                                     out PatchInviteRequest? patchRequest, out APIGatewayProxyResponse? createdResponse);
         if (patchRequest is null)
-        {
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY",
-                source: logSource, context,
-                logParameters.With("ResponseStatusCode", bodyErrorStatusCode.ToString())
-                             .With("Message", bodyErrorMessage));
-
-            return CreateResponse(bodyErrorStatusCode, new { message = bodyErrorMessage });
-        }
+            return createdResponse!;
 
         if (patchRequest.AcceptedAt is null)
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = $"Missing {JsonFieldName.For<Invite>(nameof(patchRequest.AcceptedAt))}.";
 
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY",
-                source: logSource, context,
-                logParameters.With("ResponseStatusCode", responseStatusCode.ToString())
-                             .With("Message", errorMessage));
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage });
         }
@@ -381,7 +283,7 @@ public class ApiGatewayProxyHandler
             var updatedInvite = await _markInviteAcceptedLambda.HandleAsync(nanoId, patchRequest.AcceptedAt.Value, context);
 
             _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED",
-                source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.OK.ToString()));
+                source: fromHere, context, inParameters.With(HttpStatusCode.OK));
 
             return CreateResponse(HttpStatusCode.OK, updatedInvite);
         }
@@ -389,8 +291,7 @@ public class ApiGatewayProxyHandler
         {
             var responseStatusCode = HttpStatusCode.NotFound;
 
-            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED",
-                source: logSource, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()) );
+            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode) );
 
             return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
@@ -399,11 +300,55 @@ public class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
     }
 
+    private void ExtractNanoIdOrCreateResponseAndNotifyObserver(ILambdaContext context, string path, Dictionary<string, string> inParameters,  Dictionary<string, string> here, 
+                                                out string? nanoId, out APIGatewayProxyResponse? createdResponse)
+    {
+        TryToExtract(path, out nanoId);
+        if (!string.IsNullOrEmpty(nanoId)) {
+            createdResponse = null;
+            return;
+        }
+        
+        var responseStatusCode = HttpStatusCode.BadRequest;
+        var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(nanoId))}.";
+
+        _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT", here, context, inParameters.With(responseStatusCode, errorMessage));
+
+        createdResponse = CreateResponse(responseStatusCode, new { message = errorMessage });            
+    }
+
+    private void ExtractBodyOrCreateResponseAndNotifyObserver<T>(ILambdaContext context, IDictionary<string, string> headers, string body, Dictionary<string, string> fromHere, Dictionary<string, string> inParameters, out T? createRequest, out  APIGatewayProxyResponse?  createdResponse)
+        where T : class
+    {
+        if (!IsJsonContentType(headers, out var contentTypeErrorMessage))
+        {
+            var responseStatusCode = HttpStatusCode.UnsupportedMediaType;;
+
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT TYPE", fromHere, context, inParameters.With(responseStatusCode, contentTypeErrorMessage).With("Headers", JsonSerializer.Serialize(headers)));
+
+            createRequest = null;
+            createdResponse = CreateResponse(responseStatusCode, new { message = contentTypeErrorMessage });
+            return ;
+        }
+
+        TryDeserialize<T>(body ?? string.Empty, out createRequest, out var bodyErrorStatusCode, out var bodyErrorMessage);
+
+        if (createRequest is null)
+        {
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", fromHere, context, inParameters.With(bodyErrorStatusCode, bodyErrorMessage));
+
+            createdResponse = CreateResponse(bodyErrorStatusCode, new { message = bodyErrorMessage });
+            return ;
+        }
+
+        createdResponse = null;
+    }
 
     private APIGatewayProxyResponse CreateResponse(HttpStatusCode statusCode)
     {
@@ -512,11 +457,11 @@ public class ApiGatewayProxyHandler
         PropertyNameCaseInsensitive = true
     };
 
-    private static void TryToExtractSegment1PathParameter(APIGatewayProxyRequest request, out string? id)
+    private static void TryToExtract(string path, out string? id)
     {
         id = null;
 
-        var segments = request.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length == 2)
         {
             id = SafeUrlDecode(segments[1]);
@@ -587,8 +532,16 @@ public class ApiGatewayProxyHandler
         var p = path.StartsWith('/') ? path : "/" + path;
         return p.Length > 1 && p.EndsWith('/') ? p.TrimEnd('/') : p;
     }
+    private Dictionary<string, string>  GetSource(string className, string methodName)
+    {
+        return new Dictionary<string, string> { ["Class"] = className, ["Method"] = methodName };
+    }
 
-    private  (string userName, string userEmail) GetAuthenticatedUserFromCognitoAuthorizerClaims()
+    private Dictionary<string, string>  GetInputParameters(APIGatewayProxyRequest request) {
+         return new() { ["RequestPath"] = request.Path ?? string.Empty, ["RequestBody"] = request.Body ?? string.Empty };
+    }
+
+    private  (string userName, string userEmail) GetAuthenticatedUserFromCognitoAuthorizerClaims(APIGatewayProxyRequest? _currentRequest)
     {
         var userName = string.Empty;
         var userEmail = string.Empty;

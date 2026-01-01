@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace TTLeaguePlayersApp.BackEnd;
 
 public static class DictionaryExtensions
@@ -9,12 +11,16 @@ public static class DictionaryExtensions
         return result;
     }
 
-    public static Dictionary<TKey, TValue> Merge<TKey, TValue>(this Dictionary<TKey, TValue> dict1, Dictionary<TKey, TValue> dict2)
-        where TKey : notnull
+    public static Dictionary<string, string> With(this Dictionary<string, string> dict, System.Net.HttpStatusCode value)
     {
-        var result = new Dictionary<TKey, TValue>(dict1);
-        foreach (var kvp in dict2)
-            result[kvp.Key] = kvp.Value;
+        var result = new Dictionary<string, string>(dict) { ["ResponseStatusCode"] = value.ToString() };
         return result;
     }
+
+    public static Dictionary<string, string> With(this Dictionary<string, string> dict, System.Net.HttpStatusCode value, string errorMessage)
+    {
+        var result = new Dictionary<string, string>(dict) { ["ResponseStatusCode"] = value.ToString(), ["Message"] = errorMessage };
+        return result;
+    }
+
 }

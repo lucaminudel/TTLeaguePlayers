@@ -26,7 +26,7 @@ public class GetInviteLambda
             
             _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
                 source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] = nameof(HandleAsync) }, 
-                context, parameters: new () { ["NanoId"] = nanoId, ["Found"] = true.ToString() } );
+                context, parameters: new () { [nameof(nanoId)] = nanoId, ["Found"] = true.ToString() } );
 
             return invite;
         }
@@ -34,7 +34,7 @@ public class GetInviteLambda
         {
             _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
                 source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] = nameof(HandleAsync) }, 
-                context, parameters: new () { ["NanoId"] = nanoId, ["Found"] = false.ToString() } );
+                context, parameters: new () { [nameof(nanoId)] = nanoId, ["Found"] = false.ToString() } );
 
             throw new NotFoundException("Invite not found");
         }
