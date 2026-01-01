@@ -197,7 +197,7 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task GET_Invite_Should_Return_404_For_NonExistent_Id()
     {
         // Arrange
-        var nonExistentId = "nonexistent";
+        var nonExistentId = "_2_4_6_8";
 
         // Act
         var response = await _httpClient.GetAsync($"/invites/{nonExistentId}");

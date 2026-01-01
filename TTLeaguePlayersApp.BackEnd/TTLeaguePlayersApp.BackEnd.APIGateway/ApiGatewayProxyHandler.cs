@@ -9,6 +9,7 @@ using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using Amazon;
+using TTLeaguePlayersApp.BackEnd;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -166,7 +167,7 @@ public class ApiGatewayProxyHandler
         if (string.IsNullOrEmpty(nanoId))
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Invalid path format. Missing {GetJsonyName<Invite>(nameof(Invite.NanoId))}.";
+            var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(nanoId))}.";
 
             _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT", 
                 source: logSource, context,
@@ -278,7 +279,7 @@ public class ApiGatewayProxyHandler
         if (string.IsNullOrEmpty(nanoId))
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Invalid path format. Missing {GetJsonyName<Invite>(nameof(Invite.NanoId))}.";
+            var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(nanoId))}.";
 
             _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT",
                 source: logSource, context,
@@ -317,7 +318,7 @@ public class ApiGatewayProxyHandler
         if (patchRequest.AcceptedAt is null)
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Missing {GetJsonyName<Invite>(nameof(Invite.AcceptedAt))}.";
+            var errorMessage = $"Missing {JsonFieldName.For<Invite>(nameof(patchRequest.AcceptedAt))}.";
 
             _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY",
                 source: logSource, context,
@@ -556,11 +557,4 @@ public class ApiGatewayProxyHandler
         return (userName, userEmail);
     }
 
-    private static string GetJsonyName<T>(string propertyName)
-    {
-        var prop = typeof(T).GetProperty(propertyName);
-        var attribute = prop?.GetCustomAttributes(typeof(JsonPropertyNameAttribute), true)
-                            .FirstOrDefault() as JsonPropertyNameAttribute;
-        return attribute?.Name ?? propertyName;
-}
 }

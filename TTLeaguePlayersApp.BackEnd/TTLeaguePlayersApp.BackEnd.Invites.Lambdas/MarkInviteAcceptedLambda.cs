@@ -1,5 +1,6 @@
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
+using TTLeaguePlayersApp.BackEnd;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
@@ -41,21 +42,24 @@ public class MarkInviteAcceptedLambda
         }
     }
 
-    private void ValidateRequest(string nano_id, long acceptedAt)
+    private void ValidateRequest(string nanoId, long acceptedAt)
     {
-        if (string.IsNullOrWhiteSpace(nano_id))
+        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
+        var acceptedAtJsonName = JsonFieldName.For<Invite>(nameof(acceptedAt));
+
+        if (string.IsNullOrWhiteSpace(nanoId))
         {
-            throw new ValidationException(new List<string> { "nano_id is required" });
+            throw new ValidationException(new List<string> { $"{nanoIdJsonName} is required" });
         }
 
-        if (nano_id.Length != 8)
+        if (nanoId.Length != 8)
         {
-            throw new ValidationException(new List<string> { "nano_id malformed." });
+            throw new ValidationException(new List<string> { $"{nanoIdJsonName} malformed." });
         }
 
         if (acceptedAt <= 0)
         {
-            throw new ValidationException(new List<string> { "accepted_at must be a positive unix timestamp." });
+            throw new ValidationException(new List<string> { $"{acceptedAtJsonName} must be a positive unix timestamp." });
         }
     }
 }

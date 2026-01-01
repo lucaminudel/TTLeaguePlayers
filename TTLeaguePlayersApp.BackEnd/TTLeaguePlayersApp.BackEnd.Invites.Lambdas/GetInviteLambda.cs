@@ -1,5 +1,6 @@
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
+using TTLeaguePlayersApp.BackEnd;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
@@ -39,24 +40,18 @@ public class GetInviteLambda
         }
     }
 
-    private void ValidateRequest(string nano_id)
+    private void ValidateRequest(string nanoId)
     {
-        if (string.IsNullOrWhiteSpace(nano_id))
+        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
+
+        if (string.IsNullOrWhiteSpace(nanoId))
         {
-            throw new ValidationException(new List<string> { "nano_id is required" });
+            throw new ValidationException(new List<string> { $"{nanoIdJsonName} is required" });
         }
 
-        // In real implementation, check if invite exists in database
-        // For now, stub logic - throw NotFoundException for specific test case
-        if (nano_id == "nonexistent")
+        if (nanoId.Length != 8)
         {
-            throw new NotFoundException("Invite not found");
+            throw new ValidationException(new List<string> { $"{nanoIdJsonName} malformed." });
         }
-
-        if (nano_id.Length != 8)
-        {
-            throw new ValidationException(new List<string> { "nano_id malformed." });
-        }
-
     }
 }
