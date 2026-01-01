@@ -152,7 +152,7 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task GET_Invite_Should_Return_Invite_Successfully()
     {
         // Arrange - Create an invite first
-        var requestBody = CreateInviteRequestJson(
+        var createdInviteId = await CreateInviteAsync(
             name: "Gino Gino",
             email: "alpha@beta.com",
             role: "CAPTAIN",
@@ -161,16 +161,6 @@ public class AcceptanceTests : IAsyncLifetime
             league: "CLTTL",
             season: "2025-2026",
             invitedBy: "Luca");
-        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-        
-        var postResponse = await _httpClient.PostAsync("/invites", postContent);
-        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var postResult = await postResponse.Content.ReadAsStringAsync();
-        using var postJsonDoc = JsonDocument.Parse(postResult);
-        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
-        createdInviteId.Should().NotBeNullOrEmpty();
-        _createdInviteIds.Add(createdInviteId!);
 
         // Act - Now retrieve the created invite
         var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
@@ -284,7 +274,7 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task PATCH_Invite_Should_Mark_Invite_Accepted_Successfully()
     {
         // Arrange - Create an invite first
-        var requestBody = CreateInviteRequestJson(
+        var createdInviteId = await CreateInviteAsync(
             name: "John Smith",
             email: "john.smith@example.com",
             role: "PLAYER",
@@ -293,16 +283,6 @@ public class AcceptanceTests : IAsyncLifetime
             league: "Regional League",
             season: "2025-2026",
             invitedBy: "Emma");
-        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        var postResponse = await _httpClient.PostAsync("/invites", postContent);
-        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var postResult = await postResponse.Content.ReadAsStringAsync();
-        using var postJsonDoc = JsonDocument.Parse(postResult);
-        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
-        createdInviteId.Should().NotBeNullOrEmpty();
-        _createdInviteIds.Add(createdInviteId!);
 
         // Verify invite was created without accepted_at
         var getBeforeResponse = await _httpClient.GetAsync($"/invites/{createdInviteId}");
@@ -377,7 +357,7 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task PATCH_Invite_Should_Be_Idempotent_When_Called_Twice()
     {
         // Arrange - Create an invite first
-        var requestBody = CreateInviteRequestJson(
+        var createdInviteId = await CreateInviteAsync(
             name: "Idem Potent",
             email: "idempotent@example.com",
             role: "PLAYER",
@@ -386,16 +366,6 @@ public class AcceptanceTests : IAsyncLifetime
             league: "Regional League",
             season: "2025-2026",
             invitedBy: "Client");
-        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        var postResponse = await _httpClient.PostAsync("/invites", postContent);
-        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var postResult = await postResponse.Content.ReadAsStringAsync();
-        using var postJsonDoc = JsonDocument.Parse(postResult);
-        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
-        createdInviteId.Should().NotBeNullOrEmpty();
-        _createdInviteIds.Add(createdInviteId!);
 
         var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
@@ -424,8 +394,8 @@ public class AcceptanceTests : IAsyncLifetime
         // Assert - Second patch is still OK and accepted_at is unchanged
         secondAcceptResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var secondAcceptBody = await secondAcceptResponse.Content.ReadAsStringAsync();
-        using var secondAcceptJsonDoc = JsonDocument.Parse(secondAcceptBody);
-        var secondAcceptedAt = secondAcceptJsonDoc.RootElement.GetProperty("accepted_at").GetInt64();
+        using var secondAcceptDoc = JsonDocument.Parse(secondAcceptBody);
+        var secondAcceptedAt = secondAcceptDoc.RootElement.GetProperty("accepted_at").GetInt64();
         secondAcceptedAt.Should().Be(firstAcceptedAt);
     }
 
@@ -467,7 +437,7 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task DELETE_Invite_Should_Delete_Invite_Successfully()
     {
         // Arrange - Create an invite first
-        var requestBody = CreateInviteRequestJson(
+        var createdInviteId = await CreateInviteAsync(
             name: "To Delete",
             email: "delete.me@example.com",
             role: "PLAYER",
@@ -476,16 +446,6 @@ public class AcceptanceTests : IAsyncLifetime
             league: "City League",
             season: "2025-2026",
             invitedBy: "Tester");
-        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        var postResponse = await _httpClient.PostAsync("/invites", postContent);
-        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var postResult = await postResponse.Content.ReadAsStringAsync();
-        using var postJsonDoc = JsonDocument.Parse(postResult);
-        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
-        createdInviteId.Should().NotBeNullOrEmpty();
-        _createdInviteIds.Add(createdInviteId!);
 
         // Act
         var response = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
@@ -502,7 +462,7 @@ public class AcceptanceTests : IAsyncLifetime
     public async Task DELETE_Invite_Should_Be_Idempotent_When_Called_Twice()
     {
         // Arrange - Create an invite first
-        var requestBody = CreateInviteRequestJson(
+        var createdInviteId = await CreateInviteAsync(
             name: "Delete Twice",
             email: "delete.twice@example.com",
             role: "PLAYER",
@@ -511,16 +471,6 @@ public class AcceptanceTests : IAsyncLifetime
             league: "City League",
             season: "2025-2026",
             invitedBy: "Tester");
-        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        var postResponse = await _httpClient.PostAsync("/invites", postContent);
-        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var postResult = await postResponse.Content.ReadAsStringAsync();
-        using var postJsonDoc = JsonDocument.Parse(postResult);
-        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
-        createdInviteId.Should().NotBeNullOrEmpty();
-        _createdInviteIds.Add(createdInviteId!);
 
         // Act - delete once
         var firstDelete = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
@@ -563,6 +513,31 @@ public class AcceptanceTests : IAsyncLifetime
     #endregion
 
     #region Helpers
+
+    private async Task<string> CreateInviteAsync(
+        string name = "Test User",
+        string email = "test@example.com",
+        string role = "PLAYER",
+        string teamName = "Test Team",
+        string division = "Division 1",
+        string league = "Test League",
+        string season = "2025-2026",
+        string invitedBy = "Tester")
+    {
+        var requestBody = CreateInviteRequestJson(name, email, role, teamName, division, league, season, invitedBy);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync("/invites", content);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        var createdInviteId = jsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdInviteId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdInviteId!);
+        
+        return createdInviteId!;
+    }
 
     private static string CreateInviteRequestJson(
         string? name, 
