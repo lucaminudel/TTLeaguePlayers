@@ -14,10 +14,10 @@ parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfi
 parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfiguration=Debug DomainName= "
 
 [test.build.parameters]
-parameter_overrides = "Environment=test LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName= "
+parameter_overrides = "Environment=test LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName= "
 
 [test.local_start_api.parameters]
-parameter_overrides = "Environment=test LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName= "
+parameter_overrides = "Environment=test LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName= "
 
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
@@ -29,7 +29,7 @@ parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfi
 stack_name = "ttleague-players-dev"
 
 [test.deploy.parameters]
-parameter_overrides = "Environment=test LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName= "
+parameter_overrides = "Environment=test LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName= "
 stack_name = "ttleague-players-test"
 
 [staging.deploy.parameters]

@@ -2,56 +2,56 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "sam-refresh-build dev",
+      "label": "sam-refresh-build dev-env",
       "type": "shell",
       "command": "sam build --config-env dev",
       "group": "build"
     },
     {
-      "label": "sam-refresh-build dev (extra debug logs)",
+      "label": "sam-refresh-build dev-env (extra debug logs)",
       "type": "shell",
       "command": "sam build --config-env dev --debug",
       "group": "build"
     },
     {
-      "label": "sam-start dev",
+      "label": "sam-start dev-env",
       "type": "shell",
-      "dependsOn": "sam-refresh-build dev",
+      "dependsOn": "sam-refresh-build dev-env",
       "command": "sam local start-api --config-env dev --port 3000",
       "group": "test"
     },
     {
-      "label": "sam-start dev (ready to attach the debugger)",
+      "label": "sam-start dev-env (ready to attach the debugger)",
       "type": "shell",
-      "dependsOn": "sam-refresh-build dev (extra debug logs)",
+      "dependsOn": "sam-refresh-build dev-env (extra debug logs)",
       "command": "export SAM_CLI_CONTAINER_CONNECTION_TIMEOUT=120; sam local start-api --config-env dev --port 3000 --debug-port 5858 --debugger-path ~/.vsdbg_linux_arm64 --warm-containers LAZY --debug",
       "group": "test",
       "isBackground": true,
       "problemMatcher": []
     },
     {
-      "label": "sam-start test",
+      "label": "sam-start test-env",
       "type": "shell",
       "hide": true,       
-      "dependsOn": "sam-refresh-build test",
+      "dependsOn": "sam-refresh-build test-env",
       "command": "sam local start-api --config-env test --port 3003",
       "group": "test"
     },
     {
-      "label": "sam-refresh-build test",
+      "label": "sam-refresh-build test-env",
       "type": "shell",
       "hide": true, 
       "command": "sam build --config-env test",
       "group": "build"
     },
     {
-      "label": "sam-deploy staging",
+      "label": "sam-deploy staging-env",
       "type": "shell",
       "command": "sam deploy --config-env staging",
       "group": "build"
     },
     {
-      "label": "sam-deploy prod",
+      "label": "sam-deploy prod-env",
       "type": "shell",
       "command": "sam deploy --config-env prod",
       "group": "build"
