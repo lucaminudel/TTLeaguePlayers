@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using FluentAssertions;
 using Xunit;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.TestUtilities;
@@ -9,25 +11,55 @@ using Amazon;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests;
 
-public class FunctionTest
+public class FunctionTest : IAsyncLifetime
 {
-    [Fact]
-    public async Task TestGetInvite_ReturnsPassedNanoId()
+    private readonly ConcurrentBag<string> _createdNanoIds = new();
+    private readonly TestLambdaContext _context = new();
+    private InvitesDataTable? _invitesDataTable;
+    private DeleteInviteLambda? _deleteInviteLambda;
+
+    public Task InitializeAsync()
     {
-        // Load config and create data table
         var loader = new Loader();
         var config = loader.GetEnvironmentVariables();
+
         Amazon.RegionEndpoint? region = null;
         if (!string.IsNullOrEmpty(config.DynamoDB.AWSRegion))
         {
             region = RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
         }
-        using var invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+
+        _invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+        var observer = new LoggerObserver();
+        _deleteInviteLambda = new DeleteInviteLambda(observer, _invitesDataTable);
+
+        return Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_deleteInviteLambda != null)
+        {
+            foreach (var nanoId in _createdNanoIds)
+            {
+                try { await _deleteInviteLambda.HandleAsync(nanoId, _context); } catch { /* ignore */ }
+            }
+        }
+
+        _invitesDataTable?.Dispose();
+    }
+
+    [Fact]
+    public async Task TestGetInvite_ReturnsPassedNanoId()
+    {
+        _invitesDataTable.Should().NotBeNull();
+        var invitesDataTable = _invitesDataTable!;
 
         // Create an invite to retrieve
+        var nanoId = Random.Shared.Next(10_000_000, 99_999_999).ToString(); // 8 digits
         var testInvite = new Invite
         {
-            NanoId = "12345678",
+            NanoId = nanoId,
             InviteeName = "Test User",
             InviteeEmailId = "test@example.com",
             InviteeRole = Role.PLAYER,
@@ -40,14 +72,13 @@ public class FunctionTest
             AcceptedAt = null
         };
         await invitesDataTable.CreateNewInvite(testInvite);
+        _createdNanoIds.Add(nanoId);
 
         // Invoke the lambda function and confirm the NanoId is echoed back
         var mockObserver = new LoggerObserver();
         var function = new GetInviteLambda(mockObserver, invitesDataTable);
-        var context = new TestLambdaContext();
-        var validNanoId = "12345678";
-        var invite = await function.HandleAsync(validNanoId, context);
+        var invite = await function.HandleAsync(nanoId, _context);
 
-        Assert.Equal(validNanoId, invite.NanoId);
+        Assert.Equal(nanoId, invite.NanoId);
     }
 }

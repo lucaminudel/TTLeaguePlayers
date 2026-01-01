@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +10,7 @@ namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 public class AcceptanceTests : IAsyncLifetime
 {
     private readonly HttpClient _httpClient;
-    private string? _lastInviteId;
+    private readonly ConcurrentBag<string> _createdInviteIds = new();
 
     public AcceptanceTests()
     {
@@ -62,12 +63,13 @@ public class AcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
         
-        // Store the ID for the GET test
-        _lastInviteId = jsonResult.GetProperty("nano_id").GetString();
-        _lastInviteId.Should().NotBeNullOrEmpty();
+        // Track created IDs for cleanup
+        var createdId = jsonResult.GetProperty("nano_id").GetString();
+        createdId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdId!);
 
         response.Headers.Location.Should().NotBeNull();
-        response.Headers.Location!.ToString().Should().Be($"/invites/{_lastInviteId}");
+        response.Headers.Location!.ToString().Should().Be($"/invites/{createdId}");
     }
 
     [Fact]
@@ -168,6 +170,7 @@ public class AcceptanceTests : IAsyncLifetime
         using var postJsonDoc = JsonDocument.Parse(postResult);
         var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
         createdInviteId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdInviteId!);
 
         // Act - Now retrieve the created invite
         var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
@@ -299,6 +302,7 @@ public class AcceptanceTests : IAsyncLifetime
         using var postJsonDoc = JsonDocument.Parse(postResult);
         var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
         createdInviteId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdInviteId!);
 
         // Verify invite was created without accepted_at
         var getBeforeResponse = await _httpClient.GetAsync($"/invites/{createdInviteId}");
@@ -391,6 +395,7 @@ public class AcceptanceTests : IAsyncLifetime
         using var postJsonDoc = JsonDocument.Parse(postResult);
         var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
         createdInviteId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdInviteId!);
 
         var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
@@ -480,6 +485,7 @@ public class AcceptanceTests : IAsyncLifetime
         using var postJsonDoc = JsonDocument.Parse(postResult);
         var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
         createdInviteId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdInviteId!);
 
         // Act
         var response = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
@@ -514,6 +520,7 @@ public class AcceptanceTests : IAsyncLifetime
         using var postJsonDoc = JsonDocument.Parse(postResult);
         var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
         createdInviteId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdInviteId!);
 
         // Act - delete once
         var firstDelete = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
@@ -590,15 +597,13 @@ public class AcceptanceTests : IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
-        // If a DELETE endpoint were available, we would clean up created resources here.
-        // For example:
-        // if (_lastInviteId != null)
-        // {
-        //     await _httpClient.DeleteAsync($"/invites/{_lastInviteId}");
-        // }
+        foreach (var nanoId in _createdInviteIds)
+        {
+            try { await _httpClient.DeleteAsync($"/invites/{nanoId}"); } catch { /* ignore */ }
+        }
+
         _httpClient?.Dispose();
-        return Task.CompletedTask;
     }
 }
