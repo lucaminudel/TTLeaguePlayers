@@ -10,6 +10,7 @@ using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using Amazon;
 using TTLeaguePlayersApp.BackEnd;
+using Microsoft.VisualBasic;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -20,6 +21,7 @@ public class ApiGatewayProxyHandler
     private readonly GetInviteLambda _getInviteLambda;
     private readonly CreateInviteLambda _createInviteLambda;
     private readonly MarkInviteAcceptedLambda _markInviteAcceptedLambda;
+    private readonly DeleteInviteLambda _deleteInviteLambda;
     private readonly InvitesDataTable _invitesDataTable;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
@@ -47,15 +49,17 @@ public class ApiGatewayProxyHandler
         _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable);
         _createInviteLambda = new CreateInviteLambda(_observer, _invitesDataTable);
         _markInviteAcceptedLambda = new MarkInviteAcceptedLambda(_observer, _invitesDataTable);
+        _deleteInviteLambda = new DeleteInviteLambda(_observer, _invitesDataTable);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, MarkInviteAcceptedLambda markInviteAcceptedLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, MarkInviteAcceptedLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
         _markInviteAcceptedLambda = markInviteAcceptedLambda;
+        _deleteInviteLambda = deleteInviteLambda;
         _invitesDataTable = invitesDataTable;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
@@ -85,16 +89,19 @@ public class ApiGatewayProxyHandler
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Preflight for /invites/{nano_id}
-                ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH", request),
+                ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH,DELETE", request),
 
                 // Update invite: PATCH /invites/{nano_id}
                 ("PATCH", var p) when p.StartsWith("/invites/") => await HandlePatchInviteById(request, context),
+
+                // Delete an invite by nano_id: DELETE /invites/{nano_id}
+                ("DELETE", var p) when p.StartsWith("/invites/") => await HandleDeleteInviteById(request, context),
 
                 // Get an invite by nano_id: GET /invites/{nano_id}
                 ("GET", var p) when p.StartsWith("/invites/") => await HandleGetInviteById(request, context),
 
                 // Method not allowed for /invites/{id}
-                (var m, var p) when p.StartsWith("/invites/") && m != "GET" && m != "PATCH" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+                (var m, var p) when p.StartsWith("/invites/") && m != "GET" && m != "PATCH" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Fallback: 404 for unknown paths
                 _ => CreateResponse(HttpStatusCode.NotFound, new { message = "Not Found" })
@@ -152,6 +159,47 @@ public class ApiGatewayProxyHandler
         {
             _currentRequest = null;
             _requestParameters = new();
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleDeleteInviteById(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        string? nanoId;
+        TryToExtractSegment1PathParameter(request, out nanoId);
+
+        Dictionary<string, string> logSource = new() { ["Class"] = nameof(ApiGatewayProxyHandler), ["Method"] = nameof(HandleDeleteInviteById) };
+        Dictionary<string, string> logParameters = new() { [nameof(nanoId)] = nanoId ?? string.Empty };
+        _observer.OnBusinessEvent("DELETE INVITE", context, logParameters);
+
+        if (string.IsNullOrEmpty(nanoId))
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(Invite.NanoId))}.";
+
+            _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT",
+                source: logSource, context,
+                _requestParameters.With("ResponseStatusCode", responseStatusCode.ToString())
+                                  .With("Message", errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage });
+        }
+
+        try
+        {
+            await _deleteInviteLambda.HandleAsync(nanoId, context);
+
+            _observer.OnRuntimeRegularEvent("DELETE INVITE COMPLETED",
+                source: logSource, context, logParameters.With("ResponseStatusCode", HttpStatusCode.NoContent.ToString()));
+
+            return CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeError(ex, context, logParameters.With("ResponseStatusCode", responseStatusCode.ToString()).With("Message", errorMessage));
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
     }
 
@@ -357,6 +405,14 @@ public class ApiGatewayProxyHandler
     }
 
 
+    private APIGatewayProxyResponse CreateResponse(HttpStatusCode statusCode)
+    {
+        var response = CreateResponse(statusCode, new {}, new Dictionary<string, string>());
+        response.Body = string.Empty;
+
+        return response;
+    }
+
     private APIGatewayProxyResponse CreateResponse(HttpStatusCode statusCode, object body)
         => CreateResponse(statusCode, body, new Dictionary<string, string>());
 
@@ -371,7 +427,7 @@ public class ApiGatewayProxyHandler
         return new APIGatewayProxyResponse
         {
             StatusCode = (int)statusCode,
-            Body = JsonSerializer.Serialize(body),
+            Body =  body is null ? string.Empty : JsonSerializer.Serialize(body),
             Headers = headers
         };
     }

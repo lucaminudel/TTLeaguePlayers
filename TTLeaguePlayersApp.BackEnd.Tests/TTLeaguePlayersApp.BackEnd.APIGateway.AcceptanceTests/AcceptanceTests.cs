@@ -459,13 +459,88 @@ public class AcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task DELETE_InviteById_Should_Return_405_MethodNotAllowed()
+    public async Task DELETE_Invite_Should_Delete_Invite_Successfully()
     {
+        // Arrange - Create an invite first
+        var requestBody = CreateInviteRequestJson(
+            name: "To Delete",
+            email: "delete.me@example.com",
+            role: "PLAYER",
+            teamName: "Disposable",
+            division: "Division 1",
+            league: "City League",
+            season: "2025-2026",
+            invitedBy: "Tester");
+        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var postResponse = await _httpClient.PostAsync("/invites", postContent);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var postResult = await postResponse.Content.ReadAsStringAsync();
+        using var postJsonDoc = JsonDocument.Parse(postResult);
+        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdInviteId.Should().NotBeNullOrEmpty();
+
         // Act
-        var response = await _httpClient.DeleteAsync("/invites/some_id");
+        var response = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // And the resource is gone
+        var getAfter = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+        getAfter.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task DELETE_Invite_Should_Be_Idempotent_When_Called_Twice()
+    {
+        // Arrange - Create an invite first
+        var requestBody = CreateInviteRequestJson(
+            name: "Delete Twice",
+            email: "delete.twice@example.com",
+            role: "PLAYER",
+            teamName: "Disposable",
+            division: "Division 2",
+            league: "City League",
+            season: "2025-2026",
+            invitedBy: "Tester");
+        var postContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var postResponse = await _httpClient.PostAsync("/invites", postContent);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var postResult = await postResponse.Content.ReadAsStringAsync();
+        using var postJsonDoc = JsonDocument.Parse(postResult);
+        var createdInviteId = postJsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdInviteId.Should().NotBeNullOrEmpty();
+
+        // Act - delete once
+        var firstDelete = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
+
+        // Assert
+        firstDelete.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Act - delete again (retry)
+        var secondDelete = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
+
+        // Assert - still NoContent
+        secondDelete.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task DELETE_Invite_Should_Return_400_For_Malformed_NanoId()
+    {
+        // Arrange
+        var malformedId = "short";
+
+        // Act
+        var response = await _httpClient.DeleteAsync($"/invites/{malformedId}");
+        var errorMessage = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        errorMessage.Should().Contain("nano_id malformed");
     }
 
     [Fact]

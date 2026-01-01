@@ -43,7 +43,7 @@ Resources:
         CertificateArn: !Sub "{{resolve:ssm:/ttleague/${Environment}/certificate-arn}}"
         Condition: HasDomain
       Cors:
-        AllowMethods: "'GET,POST,PATCH,OPTIONS'"
+        AllowMethods: "'GET,POST,PATCH,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
         AllowOrigin: "'*'"
       GatewayResponses:
@@ -52,13 +52,13 @@ Resources:
             Headers:
               Access-Control-Allow-Origin: "'*'"
               Access-Control-Allow-Headers: "'*'"
-              Access-Control-Allow-Methods: "'GET,POST,PATCH,OPTIONS'"
+              Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
         DEFAULT_5XX:
           ResponseParameters:
             Headers:
               Access-Control-Allow-Origin: "'*'"
               Access-Control-Allow-Headers: "'*'"
-              Access-Control-Allow-Methods: "'GET,POST,PATCH,OPTIONS'"
+              Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
 
   ApiGatewayFunction:
     Type: AWS::Serverless::Function
