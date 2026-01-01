@@ -8,7 +8,7 @@ import type { Invite } from '../types/invite';
 
 export const Join: React.FC = () => {
     const { inviteId } = useParams<{ inviteId: string }>();
-    const effectiveInviteId = inviteId ?? '6ipEOiGEL6';
+    const effectiveInviteId = inviteId ?? '';
 
     const [invite, setInvite] = useState<Invite | null>(null);
     const [loading, setLoading] = useState(true);
