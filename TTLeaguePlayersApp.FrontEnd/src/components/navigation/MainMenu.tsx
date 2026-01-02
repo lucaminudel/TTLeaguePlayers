@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const MainMenu: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const { isAuthenticated, username, signOut } = useAuth();
 
     const menuItems = [
-        'Log in',
         'Kudos standings',
         'Forum',
         'Tournaments',
@@ -12,6 +14,11 @@ export const MainMenu: React.FC = () => {
     ];
 
     const toggleMenu = () => { setIsOpen(!isOpen); };
+
+    const handleLogout = () => {
+        signOut();
+        setIsOpen(false);
+    };
 
     return (
         <>
@@ -35,12 +42,35 @@ export const MainMenu: React.FC = () => {
             `}>
                 <nav className="w-full">
                     <ul className="flex flex-col space-y-6 text-center">
+                        {!isAuthenticated ? (
+                            <li>
+                                <Link
+                                    to="/login"
+                                    className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2"
+                                    onClick={toggleMenu}
+                                >
+                                    Log in
+                                </Link>
+                            </li>
+                        ) : (
+                            <li className="text-center">
+                                <div className="text-2xl text-red-600 mb-8">
+                                    Welcome, {username}
+                                </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2 mx-auto"
+                                >
+                                    Log out
+                                </button>
+                            </li>
+                        )}
                         {menuItems.map((item) => (
                             <li key={item}>
                                 <a
                                     href="#"
                                     className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2"
-                                    onClick={toggleMenu} // Close menu on click
+                                    onClick={toggleMenu}
                                 >
                                     {item}
                                 </a>
