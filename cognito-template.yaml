@@ -40,7 +40,7 @@ Resources:
           - Name: verified_email
             Priority: 1
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: !If [IsProdOrStaging, true, false]
+        AllowAdminCreateUserOnly: false
 
   TTLeagueCognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
