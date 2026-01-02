@@ -23,6 +23,26 @@ Parameters:
   DomainName:
     Type: String
     Default: ""
+  
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: Frontend URL for CORS
+  
+  CognitoUserPoolId:
+    Type: String
+    Default: ""
+    Description: Cognito User Pool ID (from cognito stack or local config)
+  
+  CognitoClientId:
+    Type: String
+    Default: ""
+    Description: Cognito Client ID (from cognito stack or local config)
+  
+  CognitoDomain:
+    Type: String
+    Default: ""
+    Description: Cognito Domain (from cognito stack or local config)
 
 Globals:
   Function:
@@ -36,6 +56,7 @@ Globals:
 Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
+    Condition: IsProdOrStaging
     Properties:
       StageName: !Ref Environment
       Domain:
@@ -45,23 +66,24 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PATCH,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"
+        AllowOrigin: !Sub "'${AllowedOrigin}'"
       GatewayResponses:
         DEFAULT_4XX:
           ResponseParameters:
             Headers:
-              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
               Access-Control-Allow-Headers: "'*'"
               Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
         DEFAULT_5XX:
           ResponseParameters:
             Headers:
-              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
               Access-Control-Allow-Headers: "'*'"
               Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
 
   ApiGatewayFunction:
     Type: AWS::Serverless::Function
+    Condition: IsProdOrStaging
     Properties:
       CodeUri: TTLeaguePlayersApp.BackEnd/
       Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.APIGateway.ApiGatewayProxyHandler::Dispatch
@@ -80,6 +102,7 @@ Resources:
 
   InvitesTable:
     Type: AWS::DynamoDB::Table
+    Condition: IsProdOrStaging
     Properties:
       TableName: !Sub "ttleague-invites-${Environment}"
       BillingMode: PAY_PER_REQUEST
@@ -113,10 +136,34 @@ Resources:
 
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, ""]]
+  IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
+  HasCognitoParams: !And [!Not [!Equals [!Ref CognitoUserPoolId, ""]], !Not [!Equals [!Ref CognitoClientId, ""]], !Not [!Equals [!Ref CognitoDomain, ""]]]
 
 Outputs:
   ApiUrl:
+    Condition: IsProdOrStaging
     Value: !If 
       - HasDomain
       - !Sub "https://${DomainName}"
       - !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+  
+  CognitoUserPoolId:
+    Value: !If
+      - HasCognitoParams
+      - !Ref CognitoUserPoolId
+      - !ImportValue
+        Fn::Sub: "ttleague-cognito-${Environment}-UserPoolId"
+  
+  CognitoClientId:
+    Value: !If
+      - HasCognitoParams
+      - !Ref CognitoClientId
+      - !ImportValue
+        Fn::Sub: "ttleague-cognito-${Environment}-ClientId"
+  
+  CognitoDomain:
+    Value: !If
+      - HasCognitoParams
+      - !Ref CognitoDomain
+      - !ImportValue
+        Fn::Sub: "ttleague-cognito-${Environment}-Domain"

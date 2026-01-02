@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, test, staging, prod]
+
+Conditions:
+  IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
+
+Resources:
+  TTLeagueCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "ttleague-users-${Environment}"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireUppercase: !If [IsProdOrStaging, true, false]
+          RequireLowercase: !If [IsProdOrStaging, true, false]
+          RequireNumbers: !If [IsProdOrStaging, true, false]
+          RequireSymbols: !If [IsProdOrStaging, true, false]
+          TemporaryPasswordValidityDays: !If [IsProdOrStaging, 1, 7]
+      AutoVerifiedAttributes: !If
+        - IsProdOrStaging
+        - [email]
+        - !Ref "AWS::NoValue"
+      Schema:
+        - Name: active_seasons
+          AttributeDataType: String
+          Mutable: true
+          StringAttributeConstraints:
+            MaxLength: 2048
+      UsernameAttributes:
+        - email
+      UserPoolAddOns:
+        AdvancedSecurityMode: !If [IsProdOrStaging, ENFORCED, "OFF"]
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: !If [IsProdOrStaging, true, false]
+
+  TTLeagueCognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "ttleague-client-${Environment}"
+      UserPoolId: !Ref TTLeagueCognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      RefreshTokenValidity: !If [IsProdOrStaging, 1, 30]
+      AccessTokenValidity: !If [IsProdOrStaging, 60, 1440]
+      IdTokenValidity: !If [IsProdOrStaging, 60, 1440]
+      TokenValidityUnits:
+        RefreshToken: days
+        AccessToken: minutes
+        IdToken: minutes
+      ReadAttributes:
+        - email
+        - email_verified
+        - name
+        - custom:active_seasons
+      WriteAttributes:
+        - email
+        - name
+        - custom:active_seasons
+
+  TTLeagueCognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub "ttleague-${Environment}-${AWS::AccountId}-${AWS::Region}"
+      UserPoolId: !Ref TTLeagueCognitoUserPool
+
+Outputs:
+  CognitoUserPoolId:
+    Value: !Ref TTLeagueCognitoUserPool
+    Export:
+      Name: !Sub "ttleague-cognito-${Environment}-UserPoolId"
+  
+  CognitoClientId:
+    Value: !Ref TTLeagueCognitoUserPoolClient
+    Export:
+      Name: !Sub "ttleague-cognito-${Environment}-ClientId"
+  
+  CognitoDomain:
+    Value: !Sub "https://${TTLeagueCognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
+    Export:
+      Name: !Sub "ttleague-cognito-${Environment}-Domain"
