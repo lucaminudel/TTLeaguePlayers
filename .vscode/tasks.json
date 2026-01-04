@@ -32,7 +32,6 @@
     {
       "label": "sam-start test-env",
       "type": "shell",
-      "hide": true,       
       "dependsOn": "sam-refresh-build test-env",
       "command": "sam local start-api --config-env test --port 3003",
       "group": "test"

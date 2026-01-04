@@ -95,7 +95,7 @@ if lsof -i ":$API_PORT" >/dev/null; then
 else
     LOG_FILE="scripts/ci_tasks/sam_local_fullstack.log"
     echo "   📝 Logs: $LOG_FILE"
-    sam local start-api --config-env "$ENVIRONMENT" --port "$API_PORT" > "$LOG_FILE" 2>&1 &
+    sam local start-api --config-env "$ENVIRONMENT" --port "$API_PORT" --warm-containers EAGER > "$LOG_FILE" 2>&1 &
     SAM_PID=$!
     
     # Wait for SAM
@@ -132,7 +132,7 @@ echo -e "${CYAN}# --------------------------------------------------------------
 cd "$FRONTEND_DIR"
 # build-web:test-env includes copy-config
 npm run build-web:test-env
-npm run lint
+#npm run lint # the prevous step already include the run lint
 
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [5/7] Frontend: Unit Tests..."
@@ -170,8 +170,15 @@ echo "   ✅ Web server is ready."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [7/7] Frontend: Running E2E Tests (Playwright)..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+
+# Cognito test users setup
+$PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-user.sh $ENVIRONMENT
+
 # The package.json script "e2e-tests-web:run test-env" sets PORT=4173
 npm run "e2e-tests-web:run test-env"
+
+# Cognito test users cleanup
+$PROJECT_ROOT/scripts/cognito/tests_helpers/delete-test-users.sh $ENVIRONMENT
 
 echo ""
 echo "# ============================================================================================================"

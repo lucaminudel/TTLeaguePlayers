@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
@@ -8,6 +8,7 @@ import type { Invite } from '../types/invite';
 
 export const Join: React.FC = () => {
     const { inviteId } = useParams<{ inviteId: string }>();
+    const navigate = useNavigate();
     const effectiveInviteId = inviteId ?? '';
 
     const [invite, setInvite] = useState<Invite | null>(null);
@@ -128,7 +129,7 @@ export const Join: React.FC = () => {
             <PageContainer
                 title={title}
                 footer={
-                    <Button fullWidth onClick={() => { console.log(`Joining with invite ${invite.nano_id}`); }}>
+                    <Button fullWidth onClick={() => { void navigate('/register'); }}>
                         Register
                     </Button>
                 }

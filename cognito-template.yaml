@@ -7,6 +7,7 @@ Parameters:
 
 Conditions:
   IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
+  IsProdOrStagingOrDev: !Or [!Equals [!Ref Environment, dev], !Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
 
 Resources:
   TTLeagueCognitoUserPool:
@@ -16,13 +17,13 @@ Resources:
       Policies:
         PasswordPolicy:
           MinimumLength: 12
-          RequireUppercase: !If [IsProdOrStaging, true, false]
-          RequireLowercase: !If [IsProdOrStaging, true, false]
-          RequireNumbers: !If [IsProdOrStaging, true, false]
-          RequireSymbols: !If [IsProdOrStaging, true, false]
-          TemporaryPasswordValidityDays: !If [IsProdOrStaging, 1, 7]
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: !If [IsProdOrStaging, 2, 7]
       AutoVerifiedAttributes: !If
-        - IsProdOrStaging
+        - IsProdOrStagingOrDev
         - [email]
         - !Ref "AWS::NoValue"
       Schema:
