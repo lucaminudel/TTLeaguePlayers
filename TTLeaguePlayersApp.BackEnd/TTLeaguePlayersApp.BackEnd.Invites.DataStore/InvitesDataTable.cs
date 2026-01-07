@@ -7,7 +7,7 @@ using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
-public class InvitesDataTable : IDisposable
+public class InvitesDataTable : IDisposable, IInvitesDataTable
 {
     private readonly AmazonDynamoDBClient _client;
     private readonly ITable _table;
@@ -15,7 +15,7 @@ public class InvitesDataTable : IDisposable
     public InvitesDataTable(Uri? localDynamoDbServiceUrl, Amazon.RegionEndpoint? remoteDynamoDbRegion, string tablesNameSuffix)
     {
         var _tableName = $"ttleague-invites-{tablesNameSuffix}";
-        
+
         AmazonDynamoDBConfig clientConfig;
         if (localDynamoDbServiceUrl != null)
         {
@@ -35,7 +35,7 @@ public class InvitesDataTable : IDisposable
     public async Task CreateNewInvite(Invite invite)
     {
         ValidateInvite(invite);
-        
+
         var json = JsonSerializer.Serialize(invite);
         var document = Document.FromJson(json);
         await _table.PutItemAsync(document);
@@ -95,14 +95,14 @@ public class InvitesDataTable : IDisposable
     private void ValidateInvite(Invite invite)
     {
         if (invite == null) throw new ArgumentNullException(nameof(invite));
-        
+
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(invite.NanoId)) errors.Add($"{nameof(invite.NanoId)} is required");
         if (invite.CreatedAt <= 0) errors.Add($"{nameof(invite.CreatedAt)} must be valid");
         if (string.IsNullOrWhiteSpace(invite.InviteeName)) errors.Add($"{nameof(invite.InviteeName)} is required");
-        
-        if (string.IsNullOrWhiteSpace(invite.InviteeEmailId)) 
+
+        if (string.IsNullOrWhiteSpace(invite.InviteeEmailId))
         {
             errors.Add($"{nameof(invite.InviteeEmailId)} is required");
         }

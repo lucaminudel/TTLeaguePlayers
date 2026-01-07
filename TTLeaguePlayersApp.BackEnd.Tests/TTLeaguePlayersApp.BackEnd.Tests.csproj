@@ -22,5 +22,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests/" />
+    <Folder Include="TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests/" />
   </ItemGroup>
 </Project>

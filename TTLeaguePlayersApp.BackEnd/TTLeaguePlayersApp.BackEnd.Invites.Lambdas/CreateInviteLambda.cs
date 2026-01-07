@@ -8,9 +8,9 @@ namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 public class CreateInviteLambda
 {
     private readonly ILoggerObserver _observer;
-    private readonly InvitesDataTable _invitesDataTable;
+    private readonly IInvitesDataTable _invitesDataTable;
 
-    public CreateInviteLambda(ILoggerObserver observer, InvitesDataTable invitesDataTable)
+    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;

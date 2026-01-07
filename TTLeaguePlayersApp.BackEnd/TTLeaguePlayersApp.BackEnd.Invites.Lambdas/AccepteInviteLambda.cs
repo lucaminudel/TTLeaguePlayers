@@ -10,14 +10,14 @@ namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 public partial class AccepteInviteLambda
 {
     private readonly ILoggerObserver _observer;
-    private readonly InvitesDataTable _invitesDataTable;
+    private readonly IInvitesDataTable _invitesDataTable;
     private readonly string _cognitoUserPoolId;
     private readonly IAmazonCognitoIdentityProvider _cognitoClient;
 
     private static readonly Dictionary<string, string> _fromHere = 
         new() { ["Class"] = nameof(AccepteInviteLambda), ["Method"] = nameof(HandleAsync) };    
 
-    public AccepteInviteLambda(ILoggerObserver observer, InvitesDataTable invitesDataTable, IAmazonCognitoIdentityProvider cognitoClient, string cognitoUserPoolId)
+    public AccepteInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, IAmazonCognitoIdentityProvider cognitoClient, string cognitoUserPoolId)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
@@ -70,7 +70,7 @@ public partial class AccepteInviteLambda
             }
         }
 
-        activeSeasons.Add(new ActiveSeason
+        var newActiveSeason = new ActiveSeason
         {
             League = invite.League,
             Season = invite.Season,
@@ -78,7 +78,20 @@ public partial class AccepteInviteLambda
             TeamDivision = invite.TeamDivision,
             PersonName = invite.InviteeName,
             Role = invite.InviteeRole.ToString()
-        });
+        };
+
+        var alreadyPresent = activeSeasons.Any(x =>
+            x.League == newActiveSeason.League &&
+            x.Season == newActiveSeason.Season &&
+            x.TeamName == newActiveSeason.TeamName &&
+            x.TeamDivision == newActiveSeason.TeamDivision &&
+            x.PersonName == newActiveSeason.PersonName &&
+            x.Role == newActiveSeason.Role);
+
+        if (!alreadyPresent)
+        {
+            activeSeasons.Add(newActiveSeason);
+        }
 
         var updateAttributesRequest = new AdminUpdateUserAttributesRequest
         {
