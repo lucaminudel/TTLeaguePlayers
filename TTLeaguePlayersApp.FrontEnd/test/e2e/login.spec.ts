@@ -21,8 +21,17 @@ test.describe('Login Flow', () => {
         const menuButton = page.getByRole('button', { name: 'Toggle Menu' });
         await menuButton.click();
 
-        // Verify welcome message with email is displayed
-        await expect(page.locator('text=Welcome, test_already_registered@user.test')).toBeVisible();
+        // Verify welcome message with person name is displayed
+        await expect(page.locator('text=Welcome, Luca Minudel')).toBeVisible();
+        
+        // Verify first season is displayed without person name (since it's the same as welcome name)
+        await expect(page.locator('text=CLTTL 2025-2026 - Morpeth 10, Division 4')).toBeVisible();
+        
+        // Verify second season is displayed without person name (same as welcome name)
+        await expect(page.locator('text=BCS 2025-2026 - Morpeth B, Division 2')).toBeVisible();
+        
+        // Verify third season is displayed with person name (different from welcome name)
+        await expect(page.locator('text=FLICK 2025-Nov - Indiidual, Division 1 (Luca Sr Minudel)')).toBeVisible();
 
         // Click logout
         await page.getByRole('button', { name: 'Log out' }).click();
@@ -34,7 +43,7 @@ test.describe('Login Flow', () => {
         await menuButton.click();
 
         // Verify welcome message is no longer present and login link is back
-        await expect(page.locator('text=Welcome, test_already_registered@user.test')).not.toBeVisible();
+        await expect(page.locator('text=Welcome, Luca Minudel')).not.toBeVisible();
         await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
     });
 

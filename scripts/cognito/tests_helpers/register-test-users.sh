@@ -37,13 +37,42 @@ fi
 #echo "User Pool ID: $USER_POOL_ID"
 #echo "Registering user: $EMAIL"
 
+# Create the active_seasons JSON using jq for proper escaping
+ACTIVE_SEASONS_JSON=$(jq -n -c '[
+  {
+    "league": "CLTTL",
+    "season": "2025-2026",
+    "team_name": "Morpeth 10",
+    "team_division": "Division 4",
+    "person_name": "Luca Minudel",
+    "role": "PLAYER"
+  },
+  {
+    "league": "BCS",
+    "season": "2025-2026",
+    "team_name": "Morpeth B",
+    "team_division": "Division 2",
+    "person_name": "Luca Minudel",
+    "role": "PLAYER"
+  },
+  {
+    "league": "FLICK",
+    "season": "2025-Nov",
+    "team_name": "Indiidual",
+    "team_division": "Division 1",
+    "person_name": "Luca Sr Minudel",
+    "role": "PLAYER"
+  }
+]')
+
 # Create user
 aws cognito-idp admin-create-user \
     --user-pool-id $USER_POOL_ID \
     --username $EMAIL \
-    --user-attributes Name=email,Value=$EMAIL Name=email_verified,Value=true \
+    --user-attributes Name=email,Value=$EMAIL Name=email_verified,Value=true Name=custom:active_seasons,Value="'$ACTIVE_SEASONS_JSON'" \
     --temporary-password $PASSWORD \
     --message-action SUPPRESS > /dev/null
+
 
 # Set permanent password and confirm user
 aws cognito-idp admin-set-user-password \

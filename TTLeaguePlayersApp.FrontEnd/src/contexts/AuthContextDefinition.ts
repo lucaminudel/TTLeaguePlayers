@@ -1,9 +1,19 @@
 import { createContext } from 'react';
 
+export interface ActiveSeason {
+  league: string;
+  season: string;
+  team_name: string;
+  team_division: string;
+  person_name: string;
+  role: string;
+}
+
 export interface AuthContextType {
   isAuthenticated: boolean;
   username: string | null;
   email: string | null;
+  activeSeasons: ActiveSeason[];
 
   /**
    * Set when AuthProvider initialisation fails (e.g. loadConfig failure or missing Cognito config).
