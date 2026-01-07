@@ -22,6 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
             className={`
         bg-action-accent hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors duration-200
         ${fullWidth ? 'w-full' : ''}
+        ${props.disabled ? 'button-disabled' : ''}
         ${className}
       `}
             {...props}

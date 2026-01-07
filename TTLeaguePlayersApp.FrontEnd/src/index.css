@@ -18,6 +18,11 @@
   .error-message {
     @apply text-action-accent text-xl font-semibold text-center;
   }
+
+  .button-disabled {
+    opacity: .5;
+    cursor: not-allowed !important;
+  }
 }
 
 /* Spinner Animation */

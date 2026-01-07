@@ -124,12 +124,23 @@ export const Join: React.FC = () => {
         );
     }
 
+    const isInviteRedeemed = 'accepted_at' in invite && invite.accepted_at !== null;
+
     return (
         <MobileLayout>
             <PageContainer
                 title={title}
                 footer={
-                    <Button fullWidth onClick={() => { void navigate('/register', { state: { invite } }); }}>
+                    <Button
+                        fullWidth
+                        disabled={isInviteRedeemed}
+                        onClick={() => {
+                            if (isInviteRedeemed) {
+                                return;
+                            }
+                            void navigate('/register', { state: { invite } });
+                        }}
+                    >
                         Register
                     </Button>
                 }
@@ -147,10 +158,12 @@ export const Join: React.FC = () => {
                         <p className="text-xl font-bold">{invite.invitee_name}</p>
                     </div>
 
-                    <div className="border-b border-gray-600 pb-2 mb-2">
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">Email Id</p>
-                        <p className="text-lg">{invite.invitee_email_id}</p>
-                    </div>
+                    {!isInviteRedeemed && (
+                        <div className="border-b border-gray-600 pb-2 mb-2">
+                            <p className="text-secondary-text text-sm uppercase tracking-wide">Email Id</p>
+                            <p className="text-lg">{invite.invitee_email_id}</p>
+                        </div>
+                    )}
 
                     <div>
                         <p className="text-secondary-text text-sm uppercase tracking-wide">Team</p>
@@ -161,6 +174,12 @@ export const Join: React.FC = () => {
                         <p className="text-secondary-text text-sm uppercase tracking-wide">League/Season</p>
                         <p className="text-lg">{invite.league} {invite.season}</p>
                     </div>
+
+                    {isInviteRedeemed && (
+                        <div className="pt-4">
+                            <div className="error-message">Invite already redeemed</div>
+                        </div>
+                    )}
 
 
 

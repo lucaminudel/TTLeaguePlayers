@@ -29,7 +29,8 @@ test.describe('Join Page', () => {
                 team_division: 'Premier',
                 league: 'Local League',
                 season: 'Winter 2024',
-                invited_by: 'Luca'
+                invited_by: 'Luca',
+                accepted_at: null
             };
             await route.fulfill({ json });
         });
@@ -46,6 +47,37 @@ test.describe('Join Page', () => {
 
         const registerButton = page.getByRole('button', { name: 'Register', exact: true });
         await expect(registerButton).toBeVisible();
+    });
+
+    test('should disable register and hide email when invite already accepted (mocked)', async ({ page }) => {
+        const acceptedInviteId = 'accepted-invite';
+        const inviteeEmail = 'john@example.com';
+
+        await page.route(`**/invites/${acceptedInviteId}`, async (route) => {
+            const json = {
+                nano_id: acceptedInviteId,
+                invitee_name: 'John Doe',
+                invitee_email_id: inviteeEmail,
+                invitee_role: 'CAPTAIN',
+                invitee_team: 'The Smashers',
+                team_division: 'Premier',
+                league: 'Local League',
+                season: 'Winter 2024',
+                invited_by: 'Luca',
+                accepted_at: 1735776000
+            };
+            await route.fulfill({ json });
+        });
+
+        await page.goto(`/#/join/${acceptedInviteId}`);
+
+        await expect(page.locator(`text=${inviteeEmail}`)).not.toBeVisible();
+
+        const registerButton = page.getByRole('button', { name: 'Register', exact: true });
+        await expect(registerButton).toBeVisible();
+        await expect(registerButton).toBeDisabled();
+
+        await expect(page.locator('text=Invite already redeemed')).toBeVisible();
     });
 
     test('should show invalid link error for malformed nano_id', async ({ page }) => {
