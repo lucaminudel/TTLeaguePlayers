@@ -7,10 +7,15 @@ import {
   CognitoUserAttribute
 } from 'amazon-cognito-identity-js';
 import { getConfig } from '../config/environment';
-import { AuthContext } from './AuthContextDefinition';
+import { AuthContext, type ActiveSeason } from './AuthContextDefinition';
 
 interface AuthProviderProps {
   children: ReactNode;
+}
+
+interface InitialAuthState {
+  userPool: CognitoUserPool | null;
+  authInitialisationError: string | null;
 }
 
 function formatUnknownError(error: unknown): string {
@@ -18,11 +23,6 @@ function formatUnknownError(error: unknown): string {
     return `${error.name || 'Error'}: ${error.message || ''}`;
   }
   return 'Unknown error (unserialisable)';
-}
-
-interface InitialAuthState {
-  userPool: CognitoUserPool | null;
-  authInitialisationError: string | null;
 }
 
 function createInitialAuthState(): InitialAuthState {
@@ -54,6 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
 
   const [{ userPool, authInitialisationError }] = useState<InitialAuthState>(() => createInitialAuthState());
 
@@ -97,6 +98,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
     throw new Error(`AuthProvider.initAuth() has failed.${details}${extra}`);
   };
 
+  const parseActiveSeasonsJson = useCallback((value: string | null | undefined): ActiveSeason[] => {
+    if (!value || typeof value !== 'string') {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter((item: unknown): item is ActiveSeason => {
+        if (!item || typeof item !== 'object') return false;
+        const record = item as Record<string, unknown>;
+        return typeof record.league === 'string'
+          && typeof record.season === 'string'
+          && typeof record.team_name === 'string'
+          && typeof record.team_division === 'string'
+          && typeof record.person_name === 'string'
+          && typeof record.role === 'string';
+      });
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const fetchActiveSeasons = useCallback((cognitoUser: CognitoUser): Promise<ActiveSeason[]> => {
+    return new Promise((resolve) => {
+      cognitoUser.getUserAttributes((err, attributes) => {
+        if (err || !attributes) {
+          resolve([]);
+          return;
+        }
+
+        const activeSeasonsAttribute = attributes.find((attr) => {
+          const name = attr.getName();
+          return name === 'custom:active_seasons' || name === 'active_seasons';
+        });
+
+        resolve(parseActiveSeasonsJson(activeSeasonsAttribute?.getValue()));
+      });
+    });
+  }, [parseActiveSeasonsJson]);
+
   const assertAuthReady = (): CognitoUserPool => {
     if (authInitialisationError) {
       throwInitAuthFailed();
@@ -122,6 +167,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsAuthenticated(false);
     setUsername(null);
     setEmail(null);
+    setActiveSeasons([]);
     setAuthError(null);
   }, [userPool]);
 
@@ -144,13 +190,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsAuthenticated(true);
         setUsername(extractedUsername);
         setEmail(extractedEmail);
+
+        void fetchActiveSeasons(currentUser).then((seasons) => {
+          setActiveSeasons(seasons);
+        });
         return;
       }
 
       // If session discovery fails or the session is invalid, clear state.
       signOut();
     });
-  }, [userPool, authInitialisationError, signOut]);
+  }, [userPool, authInitialisationError, signOut, fetchActiveSeasons]);
 
   const signIn = async (emailInput: string, password: string): Promise<void> => {
     if (authInitialisationError) {
@@ -181,6 +231,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setIsAuthenticated(true);
           setUsername(extractedUsername);
           setEmail(extractedEmail);
+
+          void fetchActiveSeasons(cognitoUser).then((seasons) => {
+            setActiveSeasons(seasons);
+          });
           resolve();
         },
         onFailure: (err: Error) => {
@@ -294,6 +348,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAuthenticated,
         username,
         email,
+        activeSeasons,
         authInitialisationError,
         signIn,
         signUp,

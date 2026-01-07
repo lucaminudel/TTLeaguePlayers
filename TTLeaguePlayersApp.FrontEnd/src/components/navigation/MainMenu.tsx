@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export const MainMenu: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const { isAuthenticated, username, signOut } = useAuth();
+    const { isAuthenticated, username, activeSeasons, signOut } = useAuth();
 
     const menuItems = [
         'Kudos standings',
@@ -19,6 +19,10 @@ export const MainMenu: React.FC = () => {
         signOut();
         setIsOpen(false);
     };
+
+    const hasActiveSeasons = activeSeasons.length > 0;
+    const firstSeason = hasActiveSeasons ? activeSeasons[0] : null;
+    const welcomeName = firstSeason?.person_name ?? username;
 
     return (
         <>
@@ -55,7 +59,20 @@ export const MainMenu: React.FC = () => {
                         ) : (
                             <li className="text-center">
                                 <div className="text-2xl text-red-600 mb-8">
-                                    Welcome, {username}
+                                    <div>
+                                        Welcome, {welcomeName}
+                                    </div>
+                                    {firstSeason && (
+                                        <div className="text-xl mt-4">
+                                            {firstSeason.league} {firstSeason.season} - {firstSeason.team_name}, {firstSeason.team_division}
+                                        </div>
+                                    )}
+                                    {activeSeasons.slice(1).map((season, index) => (
+                                        <div key={`${season.league}-${season.season}-${season.team_name}-${season.person_name}-${String(index)}`} className="text-xl mt-2">
+                                            {season.league} {season.season} - {season.team_name}, {season.team_division}
+                                            {(firstSeason?.person_name && season.person_name !== firstSeason.person_name) ? ` (${season.person_name})` : ''}
+                                        </div>
+                                    ))}
                                 </div>
                                 <button
                                     onClick={handleLogout}
