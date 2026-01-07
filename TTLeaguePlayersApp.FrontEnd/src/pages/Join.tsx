@@ -129,7 +129,7 @@ export const Join: React.FC = () => {
             <PageContainer
                 title={title}
                 footer={
-                    <Button fullWidth onClick={() => { void navigate('/register'); }}>
+                    <Button fullWidth onClick={() => { void navigate('/register', { state: { invite } }); }}>
                         Register
                     </Button>
                 }
@@ -141,7 +141,7 @@ export const Join: React.FC = () => {
                         <p className="text-secondary-text text-sm uppercase tracking-wide">Invite from</p>
                         <p className="text-xl">{invite.invited_by}</p>
                     </div>
-                
+
                     <div>
                         <p className="text-secondary-text text-sm uppercase tracking-wide">To {displayRole(invite.invitee_role)}</p>
                         <p className="text-xl font-bold">{invite.invitee_name}</p>

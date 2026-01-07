@@ -28,9 +28,9 @@ public partial class Loader
             DynamoDB.AWSRegion = cfg.DynamoDB.AWSRegion;
             DynamoDB.TablesNameSuffix = environment;
 
-            Cognito.UserPoolId = cfg.Cognito.UserPoolId?.TrimEnd(' ', '?');
-            Cognito.ClientId = cfg.Cognito.ClientId?.TrimEnd(' ', '?');
-            Cognito.Domain = cfg.Cognito.Domain?.TrimEnd(' ', '?');
+            Cognito.UserPoolId = cfg.Cognito.UserPoolId.TrimEnd(' ', '?');
+            Cognito.ClientId = cfg.Cognito.ClientId.TrimEnd(' ', '?');
+            Cognito.Domain = cfg.Cognito.Domain.TrimEnd(' ', '?');
         }
 
         private static void ValidateConfigFileInfo(EnvironmentConfigDeserialisation cfg)

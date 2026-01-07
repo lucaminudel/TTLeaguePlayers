@@ -5,16 +5,26 @@ using System.Text.Json;
 using FluentAssertions;
 using Xunit;
 
+using Amazon.CognitoIdentityProvider;
+using Amazon.CognitoIdentityProvider.Model;
+using TTLeaguePlayersApp.BackEnd.Invites.Lambdas; // For parsing config if needed, or just standard SDK
+
 namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 
 public class AcceptanceTests : IAsyncLifetime
 {
     private readonly HttpClient _httpClient;
     private readonly ConcurrentBag<string> _createdInviteIds = new();
+    private readonly IAmazonCognitoIdentityProvider _cognitoClient;
+    private readonly string _userPoolId;
 
     public AcceptanceTests()
     {
-        var baseUrl = new Configuration.DataStore.Loader().GetEnvironmentVariables().ApiGateWay.ApiBaseUrl;
+        var config = new Configuration.DataStore.Loader().GetEnvironmentVariables();
+        var baseUrl = config.ApiGateWay.ApiBaseUrl;
+        _userPoolId = config.Cognito.UserPoolId; // Assuming config has this
+        
+        _cognitoClient = new AmazonCognitoIdentityProviderClient(); // Uses default credentials
         
         _httpClient = new HttpClient
         {
@@ -271,12 +281,12 @@ public class AcceptanceTests : IAsyncLifetime
     #region PATCH /invites/{nano_id} Tests (Mark Accepted)
 
     [Fact]
-    public async Task PATCH_Invite_Should_Mark_Invite_Accepted_Successfully()
+    public async Task PATCH_Invite_Should_Accept_Invite_Successfully()
     {
         // Arrange - Create an invite first
         var createdInviteId = await CreateInviteAsync(
             name: "John Smith",
-            email: "john.smith@example.com",
+            email: "test_ready_for_accept_invite_api_call@user.test", // setup scrip creates this user in Cognito   
             role: "PLAYER",
             teamName: "City Strikers",
             division: "Division 2",
@@ -359,7 +369,7 @@ public class AcceptanceTests : IAsyncLifetime
         // Arrange - Create an invite first
         var createdInviteId = await CreateInviteAsync(
             name: "Idem Potent",
-            email: "idempotent@example.com",
+            email: "test_ready_for_accept_invite_api_call@user.test", // setup scrip creates this user in Cognito   
             role: "PLAYER",
             teamName: "Retry Club",
             division: "Division 3",
@@ -400,7 +410,95 @@ public class AcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PATCH_InviteById_Should_Return_400_For_Missing_Id()
+    public async Task PATCH_Invite_Should_Return_422_For_Unregistered_User()
+    {
+        // Arrange
+        var createdInviteId = await CreateInviteAsync(
+            name: "Unregistered User",
+            email: "unregistered_user_for_test@example.com", // This email must NOT exist in Cognito
+            role: "PLAYER",
+            teamName: "Ghost Team",
+            division: "Division 1",
+            league: "Regional League",
+            season: "2025-2026",
+            invitedBy: "Tester");
+
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        errorMessage.Should().Contain("email is not a registered user");
+        
+        // Invite should NOT be accepted in DynamoDB (optional check, but good)
+        var getResponse = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+        var getResult = await getResponse.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(getResult);
+        jsonDoc.RootElement.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Update_Cognito_User_Attributes()
+    {
+        // Arrange
+        var email = "test_ready_for_accept_invite_api_call@user.test"; // setup scrip creates this user in Cognito   
+        var createdInviteId = await CreateInviteAsync(
+            name: "Some player",
+            email: email, 
+            role: "CAPTAIN",
+            teamName: "Some Team",
+            division: "Division 1",
+            league: "Super League",
+            season: "Summer 2026",
+            invitedBy: "Admin");
+
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify Cognito Update
+        var user = await GetCognitoUserByEmail(email);
+        user.Should().NotBeNull();
+        
+        var activeSeasonsAttr = user!.Attributes.FirstOrDefault(a => a.Name == "custom:active_seasons");
+        activeSeasonsAttr.Should().NotBeNull();
+        activeSeasonsAttr!.Value.Should().NotBeNullOrEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(activeSeasonsAttr.Value);
+        var seasons = jsonDoc.RootElement;
+        seasons.ValueKind.Should().Be(JsonValueKind.Array);
+        
+        // Or better search for match
+        var match = seasons.EnumerateArray().FirstOrDefault(x => 
+            x.GetProperty("league").GetString() == "Super League" &&
+            x.GetProperty("season").GetString() == "Summer 2026" 
+        );
+        
+        match.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        match.GetProperty("team_name").GetString().Should().Be("Some Team");
+        match.GetProperty("team_division").GetString().Should().Be("Division 1");
+        match.GetProperty("role").GetString().Should().Be("CAPTAIN");
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Return_400_For_Missing_InviteId()
     {
         // Act
         var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", DateTimeOffset.UtcNow.ToUnixTimeSeconds() } });
@@ -566,6 +664,19 @@ public class AcceptanceTests : IAsyncLifetime
                                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         return JsonSerializer.Serialize(cleanInvite);
+    }
+
+    private async Task<UserType?> GetCognitoUserByEmail(string email)
+    {
+        var request = new ListUsersRequest
+        {
+            UserPoolId = _userPoolId,
+            Filter = $"email = \"{email}\"",
+            Limit = 1
+        };
+
+        var response = await _cognitoClient.ListUsersAsync(request);
+        return response.Users.FirstOrDefault();
     }
 
     #endregion

@@ -129,9 +129,9 @@ export async function apiFetch<T>(
             const optionsHeaders = options.headers as Record<string, string> | undefined;
             const headers: Record<string, string> = { ...API_HEADERS, ...(optionsHeaders ?? {}) };
 
-            if (method !== 'GET' && !headers['Idempotency-Key']) {
-                headers['Idempotency-Key'] = crypto.randomUUID();
-            }
+            // if (method !== 'GET' && !headers['Idempotency-Key']) {
+            //     headers['Idempotency-Key'] = crypto.randomUUID();
+            // }
 
             if (getAuthToken) {
                 const token = await getAuthToken();

@@ -53,4 +53,4 @@ for user in $USERS; do
         --username $user
 done
 
-echo "All Congito users 'test_*' in $ENVIRONMENT deleted successfully. The userpool is clean."
+echo "   All Congito users 'test_*' in $ENVIRONMENT deleted successfully. The userpool is clean."

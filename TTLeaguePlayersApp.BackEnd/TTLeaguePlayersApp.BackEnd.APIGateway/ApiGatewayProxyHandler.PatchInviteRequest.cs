@@ -4,7 +4,7 @@ namespace TTLeaguePlayersApp.BackEnd.APIGateway;
 
 public partial class ApiGatewayProxyHandler
 {
-    private sealed class PatchInviteRequest
+    public sealed class PatchInviteRequest
     {
         [JsonPropertyName("accepted_at")]
         public long? AcceptedAt { get; set; }

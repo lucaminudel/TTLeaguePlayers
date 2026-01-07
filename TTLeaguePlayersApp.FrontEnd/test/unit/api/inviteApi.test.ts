@@ -88,4 +88,24 @@ describe('inviteApi', () => {
       );
     });
   });
+
+  describe('acceptInvite', () => {
+    it('should patch data to /invites/{nanoId}', async () => {
+      const nanoId = 'test-id';
+      const acceptedAt = 1234567890;
+      const mockResponse = { id: 'test-id', accepted_at: acceptedAt };
+      vi.mocked(apiFetch).mockResolvedValue(mockResponse);
+
+      await inviteApi.acceptInvite(nanoId, acceptedAt);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites/test-id',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ accepted_at: acceptedAt }),
+        })
+      );
+    });
+  });
 });

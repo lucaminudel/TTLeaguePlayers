@@ -3,9 +3,29 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * Registration acceptance tests.
  *
- * NOTE: The tests in this file intentionally do NOT mock Cognito.
- * They exercise real Cognito behaviour via amazon-cognito-identity-js.
+ * NOTE: Some tests in this file intentionally do NOT mock Cognito.
+ * Others mock Cognito to keep scenarios stable/deterministic.
  */
+
+let lastEpochMs = 0;
+const uniqueTestEmail = (): string => {
+  // Requested format: test_<epoch timestamps in milliseconds>@delete.me
+  // Ensure uniqueness even if multiple tests run within the same millisecond.
+  const now = Date.now();
+  lastEpochMs = now <= lastEpochMs ? lastEpochMs + 1 : now;
+  return `test_${String(lastEpochMs)}@delete.me`;
+};
+
+const fillRegisterForm = async (
+  page: Page,
+  params: { email: string; password: string; confirmPassword?: string }
+) => {
+  await page.fill('#email', params.email);
+  await page.fill('#password', params.password);
+  await page.fill('#confirmPassword', params.confirmPassword ?? params.password);
+};
+
+const validPassword = 'aA1!56789012';
 
 test.describe('Register Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -15,26 +35,6 @@ test.describe('Register Flow', () => {
 
   const expectedPolicyMessage =
     'Password must be at least 12 characters with uppercase, lowercase, number, and symbol.';
-
-  let lastEpochMs = 0;
-  const uniqueTestEmail = (): string => {
-    // Requested format: test_<epoch timestamps in milliseconds>@delete.me
-    // Ensure uniqueness even if multiple tests run within the same millisecond.
-    const now = Date.now();
-    lastEpochMs = now <= lastEpochMs ? lastEpochMs + 1 : now;
-    return `test_${String(lastEpochMs)}@delete.me`;
-  };
-
-  const fillRegisterForm = async (
-    page: Page,
-    params: { email: string; password: string; confirmPassword?: string }
-  ) => {
-    await page.fill('#email', params.email);
-    await page.fill('#password', params.password);
-    await page.fill('#confirmPassword', params.confirmPassword ?? params.password);
-  };
-
-  const validPassword = 'aA1!56789012';
 
   interface PasswordPolicyCase {
     name: string;
@@ -596,4 +596,685 @@ test.describe('Register Flow', () => {
     await expect(page).toHaveURL('/#/login');
     await expect(page.locator('h2')).toHaveText('Log In');
   });
+
+  
+
+
+
 });
+
+
+
+test.describe('Register with Invite Flow', () => {
+    test('register via invite - displays info and locks email', async ({ page }) => {
+      const invite = {
+        nano_id: 'test-invite-id',
+        invited_by: 'Captain America',
+        invitee_name: 'Bucky Barnes',
+        invitee_email_id: 'bucky@avengers.com',
+        invitee_role: 'PLAYER',
+        invitee_team: 'Avengers',
+        team_division: 'Div 1',
+        season: '2025',
+        league: 'Super League',
+        status: 'SENT',
+        created_at: '2025-01-01T00:00:00Z',
+        expires_at: '2025-02-01T00:00:00Z'
+      };
+
+      // 1. Mock the getInvite API call
+      await page.route('**/invites/test-invite-id', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(invite)
+        });
+      });
+
+      // 2. Navigate to Join page
+      await page.goto('/#/join/test-invite-id');
+      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
+
+      // 3. Click Register
+      await page.getByRole('button', { name: 'Register' }).click();
+
+      // 4. Verify Register page state
+      await expect(page.locator('h2')).toHaveText('Register');
+
+      // Check invite details display
+      await expect(page.locator(`text=${invite.season} ${invite.league}, ${invite.invitee_team} - ${invite.team_division}`)).toBeVisible();
+      await expect(page.locator(`text=${invite.invitee_name}, Player`)).toBeVisible();
+
+      // Check email is pre-filled and disabled
+      const emailInput = page.locator('#email');
+      await expect(emailInput).toHaveValue(invite.invitee_email_id);
+      await expect(emailInput).toBeDisabled();
+
+      // Check style (bg-gray-400 class added when invite is present)
+      await expect(emailInput).toHaveClass(/bg-gray-400/);
+      await expect(emailInput).toHaveClass(/cursor-not-allowed/);
+
+      // Check focus is on password field
+      await expect(page.locator('#password')).toBeFocused();
+    });
+
+    test('registration with invite success - happy path', async ({ page }) => {
+      const inviteId = 'abcd5678';
+      const email = uniqueTestEmail();
+
+      const invite = {
+        nano_id: inviteId,
+        invited_by: 'Luca',
+        invitee_name: 'John Doe',
+        invitee_email_id: email,
+        invitee_role: 'PLAYER',
+        invitee_team: 'The Smashers',
+        team_division: 'Premier',
+        season: 'Winter 2024',
+        league: 'Local League',
+        status: 'SENT',
+        created_at: '2025-01-01T00:00:00Z',
+        expires_at: '2025-02-01T00:00:00Z'
+      };
+
+      // --- Mock invite endpoints for this nano_id (GET + PATCH) ---
+      let getInviteCalled = 0;
+      let acceptInviteCalled = 0;
+      let acceptInviteBody: unknown = null;
+
+      await page.route(`**/invites/${inviteId}`, async (route) => {
+        const method = route.request().method();
+
+        if (method === 'GET') {
+          getInviteCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(invite)
+          });
+          return;
+        }
+
+        if (method === 'PATCH') {
+          acceptInviteCalled++;
+          acceptInviteBody = route.request().postDataJSON();
+
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ ...invite, status: 'ACCEPTED' })
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // --- Mock Cognito (SignUp + ConfirmSignUp) ---
+      let signUpCalled = 0;
+      let confirmSignUpCalled = 0;
+      let signUpRequestBody: unknown = null;
+
+      await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
+        const request = route.request();
+        const headers = request.headers();
+        const target = headers['x-amz-target'] as string | undefined;
+
+        if (target?.endsWith('.SignUp')) {
+          signUpCalled++;
+          signUpRequestBody = request.postDataJSON();
+
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/x-amz-json-1.1',
+            body: JSON.stringify({
+              UserSub: 'mock-sub',
+              CodeDeliveryDetails: {
+                Destination: email,
+                DeliveryMedium: 'EMAIL',
+                AttributeName: 'email'
+              }
+            })
+          });
+          return;
+        }
+
+        if (target?.endsWith('.ConfirmSignUp')) {
+          confirmSignUpCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/x-amz-json-1.1',
+            body: JSON.stringify({})
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // 1) Start from Join with invite
+      await page.goto(`/#/join/${inviteId}`);
+      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
+
+      // Ensure invite has been fetched
+      await expect(page.locator(`text=${email}`)).toBeVisible();
+
+      // 2) Navigate to Register
+      await page.getByRole('button', { name: 'Register' }).click();
+      await expect(page.locator('h2')).toHaveText('Register');
+
+      // 3) Fill password + confirm and register
+      await page.fill('#password', validPassword);
+      await page.fill('#confirmPassword', validPassword);
+      await page.getByRole('button', { name: 'Register', exact: true }).click();
+
+      // 4) Cognito + invite acceptance succeed => Verify Email view
+      await expect(page.locator('h2')).toHaveText('Verify Email');
+      await expect(page.locator(`text=We've sent a verification code to ${email}`)).toBeVisible();
+
+      // Assert requests were called
+      expect(getInviteCalled).toBeGreaterThan(0);
+      expect(signUpCalled).toBe(1);
+      expect(acceptInviteCalled).toBe(1);
+
+      const signUpBody = signUpRequestBody as { Username?: string } | null;
+      expect(signUpBody?.Username).toBe(email);
+
+      const patchBody = acceptInviteBody as { accepted_at?: number } | null;
+      expect(typeof patchBody?.accepted_at).toBe('number');
+
+      // 5) Verify email then redirect to login
+      await page.fill('#verificationCode', '123456');
+      await page.getByRole('button', { name: 'Verify', exact: true }).click();
+
+      await expect(page).toHaveURL('/#/login');
+      await expect(page.locator('h2')).toHaveText('Log In');
+      expect(confirmSignUpCalled).toBe(1);
+    });
+
+    test('registration with invite failure - user already registered', async ({ page }) => {
+      const inviteId = 'abcd5678';
+      const email = uniqueTestEmail();
+
+      const invite = {
+        nano_id: inviteId,
+        invited_by: 'Luca',
+        invitee_name: 'John Doe',
+        invitee_email_id: email,
+        invitee_role: 'PLAYER',
+        invitee_team: 'The Smashers',
+        team_division: 'Premier',
+        season: 'Winter 2024',
+        league: 'Local League',
+        status: 'SENT',
+        created_at: '2025-01-01T00:00:00Z',
+        expires_at: '2025-02-01T00:00:00Z'
+      };
+
+      // --- Mock invite endpoints for this nano_id (GET + PATCH) ---
+      let getInviteCalled = 0;
+      let acceptInviteCalled = 0;
+      let acceptInviteBody: unknown = null;
+
+      await page.route(`**/invites/${inviteId}`, async (route) => {
+        const method = route.request().method();
+
+        if (method === 'GET') {
+          getInviteCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(invite)
+          });
+          return;
+        }
+
+        if (method === 'PATCH') {
+          acceptInviteCalled++;
+          acceptInviteBody = route.request().postDataJSON();
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ ...invite, status: 'ACCEPTED' })
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // --- Mock Cognito SignUp to fail with UsernameExistsException ---
+      let signUpCalled = 0;
+      let signUpRequestBody: unknown = null;
+
+      const expectedUserAlreadyRegisteredMessage =
+        'An account with this email already exists. Try logging in instead.';
+
+      await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
+        const request = route.request();
+        const headers = request.headers();
+        const target = headers['x-amz-target'] as string | undefined;
+
+        if (target?.endsWith('.SignUp')) {
+          signUpCalled++;
+          signUpRequestBody = request.postDataJSON();
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/x-amz-json-1.1',
+            body: JSON.stringify({
+              __type: 'UsernameExistsException',
+              message: expectedUserAlreadyRegisteredMessage
+            })
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // 1) Start from Join with invite
+      await page.goto(`/#/join/${inviteId}`);
+      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
+      await expect(page.locator(`text=${email}`)).toBeVisible();
+
+      // 2) Navigate to Register
+      await page.getByRole('button', { name: 'Register' }).click();
+      await expect(page.locator('h2')).toHaveText('Register');
+
+      // 3) Fill password + confirm and register
+      await page.fill('#password', validPassword);
+      await page.fill('#confirmPassword', validPassword);
+      await page.getByRole('button', { name: 'Register', exact: true }).click();
+
+      // 4) Invite acceptance succeeds despite Cognito saying user exists => redirect to Login
+      await expect(page).toHaveURL('/#/login');
+      await expect(page.locator('h2')).toHaveText('Log In');
+
+      // AuthProvider.signUp sets authError from the Cognito error message; Login shows authError in .error-message.
+      const errorMessage = page.locator('.error-message');
+      await expect(errorMessage).toBeVisible();
+      await expect(errorMessage).toHaveText(expectedUserAlreadyRegisteredMessage);
+
+      // Assert requests were called
+      expect(getInviteCalled).toBeGreaterThan(0);
+      expect(signUpCalled).toBe(1);
+      expect(acceptInviteCalled).toBe(1);
+
+      const signUpBody = signUpRequestBody as { Username?: string } | null;
+      expect(signUpBody?.Username).toBe(email);
+
+      const patchBody = acceptInviteBody as { accepted_at?: number } | null;
+      expect(typeof patchBody?.accepted_at).toBe('number');
+    });
+
+    test('registration with invite failure - both user registeration and accept invite fail', async ({ page }) => {
+      const inviteId = 'abcd5678';
+      const email = uniqueTestEmail();
+
+      const invite = {
+        nano_id: inviteId,
+        invited_by: 'Luca',
+        invitee_name: 'John Doe',
+        invitee_email_id: email,
+        invitee_role: 'PLAYER',
+        invitee_team: 'The Smashers',
+        team_division: 'Premier',
+        season: 'Winter 2024',
+        league: 'Local League',
+        status: 'SENT',
+        created_at: '2025-01-01T00:00:00Z',
+        expires_at: '2025-02-01T00:00:00Z'
+      };
+
+      // --- Mock invite endpoints for this nano_id (GET succeeds; PATCH fails non-retryable 404) ---
+      let getInviteCalled = 0;
+      let acceptInviteCalled = 0;
+      let acceptInviteBody: unknown = null;
+
+      await page.route(`**/invites/${inviteId}`, async (route) => {
+        const method = route.request().method();
+
+        if (method === 'GET') {
+          getInviteCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(invite)
+          });
+          return;
+        }
+
+        if (method === 'PATCH') {
+          acceptInviteCalled++;
+          acceptInviteBody = route.request().postDataJSON();
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ message: 'Http Status Code NotFound' })
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // --- Mock Cognito SignUp to fail with UsernameExistsException ---
+      let signUpCalled = 0;
+      let signUpRequestBody: unknown = null;
+
+      const expectedUserAlreadyRegisteredMessage =
+        'An account with this email already exists. Try logging in instead.';
+
+      await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
+        const request = route.request();
+        const headers = request.headers();
+        const target = headers['x-amz-target'] as string | undefined;
+
+        if (target?.endsWith('.SignUp')) {
+          signUpCalled++;
+          signUpRequestBody = request.postDataJSON();
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/x-amz-json-1.1',
+            body: JSON.stringify({
+              __type: 'UsernameExistsException',
+              message: expectedUserAlreadyRegisteredMessage
+            })
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // 1) Start from Join with invite
+      await page.goto(`/#/join/${inviteId}`);
+      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
+      await expect(page.locator(`text=${email}`)).toBeVisible();
+
+      // 2) Navigate to Register
+      await page.getByRole('button', { name: 'Register' }).click();
+      await expect(page.locator('h2')).toHaveText('Register');
+
+      // 3) Fill password + confirm and register
+      await page.fill('#password', validPassword);
+      await page.fill('#confirmPassword', validPassword);
+      await page.getByRole('button', { name: 'Register', exact: true }).click();
+
+      // 4) Cognito says user exists, and invite acceptance fails => stay on Register with invite failure message
+      await expect(page).toHaveURL('/#/register');
+      await expect(page.locator('h2')).toHaveText('Register');
+
+      const errorMessage = page.locator('.error-message');
+      await expect(errorMessage).toBeVisible();
+      await expect(errorMessage).toHaveText(
+        'Invitation confirmation failed. Please contact support to restore access to your team’s features.'
+      );
+
+      // When inviteStatus === 'failed' and userAlreadyExists === true, Register.tsx renders no footer button.
+      await expect(page.getByRole('button', { name: 'Register', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Continue to Email Verification', exact: true })).toHaveCount(0);
+
+      // Assert requests were called
+      expect(getInviteCalled).toBeGreaterThan(0);
+      expect(signUpCalled).toBe(1);
+      expect(acceptInviteCalled).toBe(1);
+
+      const signUpBody = signUpRequestBody as { Username?: string } | null;
+      expect(signUpBody?.Username).toBe(email);
+
+      const patchBody = acceptInviteBody as { accepted_at?: number } | null;
+      expect(typeof patchBody?.accepted_at).toBe('number');
+    });
+
+    const registerWithInviteAndFailAcceptInvite = async (
+      page: Page,
+      params: {
+        inviteId: string;
+        acceptInviteStatus: number;
+        acceptInviteErrorMessage?: string;
+        expectedAcceptInviteCalls?: number;
+      }
+    ) => {
+      const email = uniqueTestEmail();
+
+      const invite = {
+        nano_id: params.inviteId,
+        invited_by: 'Luca',
+        invitee_name: 'John Doe',
+        invitee_email_id: email,
+        invitee_role: 'PLAYER',
+        invitee_team: 'The Smashers',
+        team_division: 'Premier',
+        season: 'Winter 2024',
+        league: 'Local League',
+        status: 'SENT',
+        created_at: '2025-01-01T00:00:00Z',
+        expires_at: '2025-02-01T00:00:00Z'
+      };
+
+      // --- Mock invite endpoints: GET succeeds, PATCH fails with provided status (non-retryable) ---
+      let getInviteCalled = 0;
+      let acceptInviteCalled = 0;
+
+      await page.route(`**/invites/${params.inviteId}`, async (route) => {
+        const method = route.request().method();
+
+        if (method === 'GET') {
+          getInviteCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(invite)
+          });
+          return;
+        }
+
+        if (method === 'PATCH') {
+          acceptInviteCalled++;
+          await route.fulfill({
+            status: params.acceptInviteStatus,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              message:
+                params.acceptInviteErrorMessage ??
+                `Http Status Code ${String(params.acceptInviteStatus)}`
+            })
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // --- Mock Cognito (SignUp succeeds; ConfirmSignUp succeeds) ---
+      let signUpCalled = 0;
+      let confirmSignUpCalled = 0;
+
+      await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
+        const request = route.request();
+        const headers = request.headers();
+        const target = headers['x-amz-target'] as string | undefined;
+
+        if (target?.endsWith('.SignUp')) {
+          signUpCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/x-amz-json-1.1',
+            body: JSON.stringify({
+              UserSub: 'mock-sub',
+              CodeDeliveryDetails: {
+                Destination: email,
+                DeliveryMedium: 'EMAIL',
+                AttributeName: 'email'
+              }
+            })
+          });
+          return;
+        }
+
+        if (target?.endsWith('.ConfirmSignUp')) {
+          confirmSignUpCalled++;
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/x-amz-json-1.1',
+            body: JSON.stringify({})
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      // 1) Start from Join with invite
+      await page.goto(`/#/join/${params.inviteId}`);
+      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
+      await expect(page.locator(`text=${email}`)).toBeVisible();
+
+      // 2) Navigate to Register
+      await page.getByRole('button', { name: 'Register' }).click();
+      await expect(page.locator('h2')).toHaveText('Register');
+
+      // 3) Fill password + confirm and register
+      await page.fill('#password', validPassword);
+      await page.fill('#confirmPassword', validPassword);
+
+      await page.getByRole('button', { name: 'Register', exact: true }).click();
+
+      // Wait until all expected PATCH attempts have happened (initial call + any retries)
+      const expectedCalls = params.expectedAcceptInviteCalls ?? 1;
+      await expect
+        .poll(() => acceptInviteCalled, { timeout: 15000 })
+        .toBe(expectedCalls);
+
+      // 4) Cognito succeeds but invite acceptance fails => error shown + continue button
+      expect(getInviteCalled).toBeGreaterThan(0);
+      expect(signUpCalled).toBe(1);
+
+      // Must match expected attempts (including retries)
+      expect(acceptInviteCalled).toBe(expectedCalls);
+
+      const errorMessage = page.locator('.error-message');
+      await expect(errorMessage).toBeVisible();
+      await expect(errorMessage).toHaveText(
+        'Invitation confirmation failed. Please contact support to restore access to your team’s features.'
+      );
+
+      const continueButton = page.getByRole('button', { name: 'Continue to Email Verification', exact: true });
+      await expect(continueButton).toBeVisible();
+
+      // 5) Continue to verification
+      await continueButton.click();
+
+      await expect(page.locator('h2')).toHaveText('Verify Email');
+      await expect(page.locator(`text=We've sent a verification code to ${email}`)).toBeVisible();
+      await expect(page.locator('.error-message')).toHaveCount(0);
+
+      // 6) Verify email then redirect to login
+      await page.fill('#verificationCode', '123456');
+      await page.getByRole('button', { name: 'Verify', exact: true }).click();
+
+      await expect(page).toHaveURL('/#/login');
+      await expect(page.locator('h2')).toHaveText('Log In');
+      expect(confirmSignUpCalled).toBe(1);
+    };
+
+    test('registration with invite failure - Accept Invite NotFound 404 error', async ({ page }) => {
+      await registerWithInviteAndFailAcceptInvite(page, {
+        inviteId: 'abcd5678',
+        acceptInviteStatus: 404,
+        acceptInviteErrorMessage: 'Http Status Code NotFound'
+      });
+    });
+
+    test('registration with invite failure - Accept Invite BadRequest 400 error', async ({ page }) => {
+      await registerWithInviteAndFailAcceptInvite(page, {
+        inviteId: 'abcd5678',
+        acceptInviteStatus: 400,
+        acceptInviteErrorMessage: 'Http Status Code BadRequest'
+      });
+    });
+
+    test('registration with invite failure - Accept Invite Forbidden 403 error', async ({ page }) => {
+      await registerWithInviteAndFailAcceptInvite(page, {
+        inviteId: 'abcd5678',
+        acceptInviteStatus: 403,
+        acceptInviteErrorMessage: 'Http Status Code Forbidden'
+      });
+    });
+
+    const speedUpTimers = async (page: Page, clampAboveMs: number, clampBelowOrEqualMs?: number) => {
+      // Speed up retry backoff (without changing app code) by clamping browser timers above a threshold.
+      // Important: addInitScript must happen before navigation for it to affect the app.
+      await page.addInitScript(({
+        clampAboveMs: clampAboveMsFromNode,
+        clampBelowOrEqualMs: clampBelowOrEqualMsFromNode
+      }) => {
+        const originalSetTimeout = window.setTimeout;
+        const originalSetInterval = window.setInterval;
+
+        const clampMs = (ms?: number) => {
+          if (typeof ms !== 'number') {
+            return ms;
+          }
+
+          const isAbove = ms > clampAboveMsFromNode;
+          const isBelowOrEqual =
+            typeof clampBelowOrEqualMsFromNode === 'number' ? ms <= clampBelowOrEqualMsFromNode : true;
+
+          return isAbove && isBelowOrEqual ? Math.min(ms, 10) : ms;
+        };
+
+        window.setTimeout = ((handler: TimerHandler, timeout?: number) => {
+          // Note: we intentionally do not forward extra args; we only need to speed up delays.
+          return originalSetTimeout(handler, clampMs(timeout));
+        }) as typeof window.setTimeout;
+
+        window.setInterval = ((handler: TimerHandler, timeout?: number) => {
+          // Note: we intentionally do not forward extra args; we only need to speed up delays.
+          return originalSetInterval(handler, clampMs(timeout));
+        }) as typeof window.setInterval;
+      }, { clampAboveMs, clampBelowOrEqualMs });
+    };
+
+    test('registration with invite failure with retries - Accept Invite UnprocessableEntity 422', async ({ page }) => {
+      // Clamp only the 10s retry delay used by Register.tsx (acceptInviteWithRetry) to keep test fast,
+      // without affecting shorter timeouts (e.g. apiFetch request timeouts) which could create extra retries.
+      await speedUpTimers(page, 9000, 11000);
+
+      await registerWithInviteAndFailAcceptInvite(page, {
+        inviteId: 'abcd5678',
+        acceptInviteStatus: 422,
+        acceptInviteErrorMessage: 'Http Status Code UnprocessableEntity',
+        expectedAcceptInviteCalls: 3 // 3 total tries (1 initial + 2 retries)
+      });
+    });
+
+    test('registration with invite failure (with internal API retries) - Accept Invite ServiceUnavailable 503', async ({ page }) => {
+      // apiFetch uses jittered delays in the 0..4000ms range for 503 retries; clamp those too.
+      // IMPORTANT: do not clamp the 5000ms request timeout used by apiFetch, otherwise Join's GET /invites
+      // may abort and never render the invite email. We only clamp retry backoff delays.
+      await speedUpTimers(page, 50, 4000);
+
+      await registerWithInviteAndFailAcceptInvite(page, {
+        inviteId: 'abcd5678',
+        acceptInviteStatus: 503,
+        acceptInviteErrorMessage: 'Http Status Code ServiceUnavailable',
+        // apiFetch retries 503 up to 3 times (4 total attempts) and Register.tsx retries the whole acceptInvite up to 3 times
+        // => 3 * 4 = 12 total PATCH attempts
+        expectedAcceptInviteCalls: 4
+      });
+    });
+
+    test('registration with invite failure with retries - Accept Invite InternalServerError 500', async ({ page }) => {
+      // Clamp only the 10s retry delay used by Register.tsx (acceptInviteWithRetry).
+      await speedUpTimers(page, 9000, 11000);
+
+      await registerWithInviteAndFailAcceptInvite(page, {
+        inviteId: 'abcd5678',
+        acceptInviteStatus: 500,
+        acceptInviteErrorMessage: 'Http Status Code InternalServerError',
+        expectedAcceptInviteCalls: 3 // 3 total tries (1 initial + 2 retries)
+      });
+    });
+  });

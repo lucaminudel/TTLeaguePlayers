@@ -26,5 +26,18 @@ export const inviteApi = {
             method: 'POST',
             body: JSON.stringify(request),
         });
+    },
+
+    /**
+     * Accept an invite
+     * PATCH /invites/{nano_id}
+     */
+    async acceptInvite(nanoId: string, acceptedAt: number): Promise<Invite> {
+        const baseUrl = getConfig().ApiGateWay.ApiBaseUrl;
+        const encodedId = encodeURIComponent(nanoId);
+        return apiFetch<Invite>(baseUrl, `/invites/${encodedId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ accepted_at: acceptedAt }),
+        });
     }
 };

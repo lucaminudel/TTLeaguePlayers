@@ -2,12 +2,13 @@ using System.Net;
 using System.Web;
 using System.Text.Json;
 using System.Security;
-using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.APIGatewayEvents;
+using Amazon.CognitoIdentityProvider;
+using Amazon.CognitoIdentityProvider.Model;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
-using Amazon;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -17,7 +18,7 @@ public partial class ApiGatewayProxyHandler
 {
     private readonly GetInviteLambda _getInviteLambda;
     private readonly CreateInviteLambda _createInviteLambda;
-    private readonly MarkInviteAcceptedLambda _markInviteAcceptedLambda;
+    private readonly AccepteInviteLambda _acceptInviteLambda;
     private readonly DeleteInviteLambda _deleteInviteLambda;
     private readonly InvitesDataTable _invitesDataTable;
     private readonly string _allowedOrigin; 
@@ -34,24 +35,24 @@ public partial class ApiGatewayProxyHandler
         Amazon.RegionEndpoint? region = null;
         if (!string.IsNullOrEmpty(config.DynamoDB.AWSRegion))
         {
-            region = RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
+            region = Amazon.RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
         }
 
         _invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
 
-        _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable);
         _createInviteLambda = new CreateInviteLambda(_observer, _invitesDataTable);
-        _markInviteAcceptedLambda = new MarkInviteAcceptedLambda(_observer, _invitesDataTable);
+        _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable); 
+        _acceptInviteLambda = new AccepteInviteLambda(_observer, _invitesDataTable, new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, _invitesDataTable);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, MarkInviteAcceptedLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
-        _markInviteAcceptedLambda = markInviteAcceptedLambda;
+        _acceptInviteLambda = markInviteAcceptedLambda;
         _deleteInviteLambda = deleteInviteLambda;
         _invitesDataTable = invitesDataTable;
         _allowedOrigin = allowedOrigin; 
@@ -119,19 +120,19 @@ public partial class ApiGatewayProxyHandler
             _observer.OnRuntimeError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Invalid operation: {ex.Message}" });
         }
-        catch (OperationCanceledException ex)
-        {
-            var responseStatusCode = HttpStatusCode.RequestTimeout;
-
-            _observer.OnRuntimeError(ex, context, requestParameters.With(responseStatusCode));
-            return CreateResponse(responseStatusCode, new { message = $"Request cancelled: {ex.Message}" });
-        }
         catch (SecurityException ex)
         {
             var responseStatusCode = HttpStatusCode.Forbidden;
 
             _observer.OnSecurityError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = ex.Message });
+        }
+        catch (OperationCanceledException ex)
+        {
+            var responseStatusCode = HttpStatusCode.ServiceUnavailable;
+
+            _observer.OnRuntimeError(ex, context, requestParameters.With(responseStatusCode));
+            return CreateResponse(responseStatusCode, new { message = $"Request cancelled: {ex.Message}" });
         }
         catch (Exception ex) when (ex.GetType().FullName?.StartsWith("Amazon.") == true)
         {
@@ -174,7 +175,7 @@ public partial class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+            _observer.OnRuntimeRegularEvent("DELETE INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
@@ -213,7 +214,7 @@ public partial class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+            _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
@@ -246,7 +247,7 @@ public partial class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+            _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
@@ -257,7 +258,7 @@ public partial class ApiGatewayProxyHandler
         var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandlePatchInviteById));
         var inParameters = GetInputParameters(request);
 
-        _observer.OnBusinessEvent("MARK INVITE ACCEPTED", context, inParameters);
+        _observer.OnBusinessEvent("ACCEPT INVITE", context, inParameters);
 
         ExtractNanoIdOrCreateResponseAndNotifyObserver(context, request.Path, inParameters, fromHere, out string? nanoId, out APIGatewayProxyResponse? createdNanoIdResponse);
         if (nanoId is null)
@@ -273,17 +274,16 @@ public partial class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = $"Missing {JsonFieldName.For<Invite>(nameof(patchRequest.AcceptedAt))}.";
 
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+            _observer.OnRuntimeIrregularEvent("PATCH INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage });
         }
 
         try
         {
-            var updatedInvite = await _markInviteAcceptedLambda.HandleAsync(nanoId, patchRequest.AcceptedAt.Value, context);
+            var updatedInvite = await _acceptInviteLambda.HandleAsync(nanoId, patchRequest.AcceptedAt.Value, context);
 
-            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED",
-                source: fromHere, context, inParameters.With(HttpStatusCode.OK));
+            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
 
             return CreateResponse(HttpStatusCode.OK, updatedInvite);
         }
@@ -300,9 +300,26 @@ public partial class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             var errorMessage = "Validation failed";
 
-            _observer.OnRuntimeError(ex, context, inParameters.With(responseStatusCode, errorMessage));
+            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+        }
+        catch(UserNotFoundException ex)
+        {
+            var responseStatusCode = HttpStatusCode.UnprocessableEntity;
+
+            _observer.OnRuntimeRegularEvent("PATCH INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode, ex.Message) );
+
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
+        }   
+        catch (Exception ex) when (ex is TooManyRequestsException || ex is InternalErrorException)
+        {
+            var responseStatusCode = HttpStatusCode.ServiceUnavailable;
+            
+            _observer.OnRuntimeCriticalError(ex, context, inParameters.With(responseStatusCode));
+
+            var additionalHeaders = new Dictionary<string, string> { { "Retry-After", "900" } };
+            return CreateResponse(responseStatusCode, new { message = "Service overloaded or temporarely down, retry." }, additionalHeaders);
         }
     }
 

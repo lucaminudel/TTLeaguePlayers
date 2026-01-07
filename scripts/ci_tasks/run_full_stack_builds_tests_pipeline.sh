@@ -29,6 +29,9 @@ cleanup() {
     echo ""
     echo "🧹 Cleaning up..."
     
+    # Cognito test users cleanup
+    $PROJECT_ROOT/scripts/cognito/tests_helpers/delete-test-users.sh $ENVIRONMENT
+
     if [ ! -z "$SAM_PID" ]; then
         echo "   Stopping SAM Local (PID: $SAM_PID)..."
         kill "$SAM_PID" 2>/dev/null || true
@@ -118,6 +121,10 @@ fi
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [3/7] Running Backend Build + Acceptance Tests..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+
+# Cognito test users setup, for C# Acceptance Teste and  Playwright E2E Tests
+$PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-users.sh $ENVIRONMENT
+
 # Export environment for the C# tests to read (Process.GetEnvironmentVariable)
 export ENVIRONMENT="$ENVIRONMENT"
 dotnet test "$BACKEND_TEST_PROJECT" --configuration Debug --logger "console;verbosity=minimal"
@@ -171,14 +178,8 @@ echo -e "${CYAN}# --------------------------------------------------------------
 echo "🔹 [7/7] Frontend: Running E2E Tests (Playwright)..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 
-# Cognito test users setup
-$PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-user.sh $ENVIRONMENT
-
 # The package.json script "e2e-tests-web:run test-env" sets PORT=4173
 npm run "e2e-tests-web:run test-env"
-
-# Cognito test users cleanup
-$PROJECT_ROOT/scripts/cognito/tests_helpers/delete-test-users.sh $ENVIRONMENT
 
 echo ""
 echo "# ============================================================================================================"
