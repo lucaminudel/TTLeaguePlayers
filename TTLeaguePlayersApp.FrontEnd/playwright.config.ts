@@ -14,8 +14,13 @@ export default defineConfig({
 
     projects: [
         {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
+            name: 'chromium (iPhone SE emulation)',
+            use: {
+                ...devices['iPhone SE'],
+                // Use Chromium engine but emulate iPhone SE viewport/UA/touch.
+                // The built-in 'iPhone SE' device preset defaults to WebKit.
+                browserName: 'chromium',
+            },
         },
     ],
 

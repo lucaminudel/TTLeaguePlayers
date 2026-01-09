@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
+import { ErrorMessage } from '../components/common/ErrorMessage';
 import { inviteApi } from '../api/inviteApi';
 import type { Invite } from '../types/invite';
 
@@ -84,9 +85,9 @@ export const Join: React.FC = () => {
         return (
             <MobileLayout>
                 <PageContainer title={title}>
-                    <div className="flex flex-col justify-center items-center h-64 space-y-4">
+                    <div className="flex flex-col justify-center items-center min-h-48 sm:min-h-64 space-y-4">
                         <div className="spinner"></div>
-                        <p className="text-secondary-text animate-pulse">Waiting for a response...</p>
+                        <p className="text-secondary-text text-sm sm:text-base leading-tight animate-pulse" data-testid="join-loading-message">Waiting for a response...</p>
                     </div>
                 </PageContainer>
             </MobileLayout>
@@ -99,13 +100,13 @@ export const Join: React.FC = () => {
                 <PageContainer
                     title={title}
                     footer={error.showRetry ? (
-                        <Button fullWidth onClick={() => { window.location.reload(); }}>
+                        <Button fullWidth data-testid="join-retry-button" onClick={() => { window.location.reload(); }}>
                             Retry
                         </Button>
                     ) : undefined}
                 >
-                    <div className="flex flex-col items-center justify-center h-64 space-y-4 px-4 text-center">
-                        <p className="text-red-400">{error.message}</p>
+                    <div className="flex flex-col items-center justify-center min-h-48 sm:min-h-64 space-y-4 px-4 text-center">
+                        <ErrorMessage testId="join-error-message">{error.message}</ErrorMessage>
                     </div>
                 </PageContainer>
             </MobileLayout>
@@ -116,8 +117,8 @@ export const Join: React.FC = () => {
         return (
             <MobileLayout>
                 <PageContainer title={title}>
-                    <div className="flex flex-col items-center justify-center h-64 space-y-4 px-4 text-center">
-                        <p className="text-red-400">Invite data is missing</p>
+                    <div className="flex flex-col items-center justify-center min-h-48 sm:min-h-64 space-y-4 px-4 text-center">
+                        <ErrorMessage testId="join-missing-invite-error">Invite data is missing</ErrorMessage>
                     </div>
                 </PageContainer>
             </MobileLayout>
@@ -133,6 +134,7 @@ export const Join: React.FC = () => {
                 footer={
                     <Button
                         fullWidth
+                        data-testid="join-register-button"
                         disabled={isInviteRedeemed}
                         onClick={() => {
                             if (isInviteRedeemed) {
@@ -145,39 +147,38 @@ export const Join: React.FC = () => {
                     </Button>
                 }
             >
-                <div className="flex flex-col space-y-4 text-left px-2 max-w-sm mx-auto">
-                    <br />
-                    <br />
-                    <div className="border-b border-gray-600 pb-2 mb-2">
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">Invite from</p>
-                        <p className="text-xl">{invite.invited_by}</p>
+                <div className="flex flex-col space-y-3 sm:space-y-4 text-left px-2 max-w-sm mx-auto" data-testid="join-invite-details">
+                    <div className="mt-2 sm:mt-3"></div>
+                    <div className="border-b border-gray-600 pb-2 mb-2" data-testid="join-invite-from">
+                        <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Invite from</p>
+                        <p className="text-xl sm:text-2xl">{invite.invited_by}</p>
                     </div>
 
-                    <div>
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">To {displayRole(invite.invitee_role)}</p>
-                        <p className="text-xl font-bold">{invite.invitee_name}</p>
+                    <div data-testid="join-invite-to">
+                        <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">To {displayRole(invite.invitee_role)}</p>
+                        <p className="text-xl sm:text-2xl font-bold">{invite.invitee_name}</p>
                     </div>
 
                     {!isInviteRedeemed && (
-                        <div className="border-b border-gray-600 pb-2 mb-2">
-                            <p className="text-secondary-text text-sm uppercase tracking-wide">Email Id</p>
-                            <p className="text-lg">{invite.invitee_email_id}</p>
+                        <div className="border-b border-gray-600 pb-2 mb-2" data-testid="join-invite-email">
+                            <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Email Id</p>
+                            <p className="text-base sm:text-lg">{invite.invitee_email_id}</p>
                         </div>
                     )}
 
-                    <div>
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">Team</p>
-                        <p className="text-lg">{invite.invitee_team}, {invite.team_division}</p>
+                    <div data-testid="join-invite-team">
+                        <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Team</p>
+                        <p className="text-base sm:text-lg">{invite.invitee_team}, {invite.team_division}</p>
                     </div>
 
-                    <div className="pt-4 mt-2 border-t border-gray-600">
-                        <p className="text-secondary-text text-sm uppercase tracking-wide">League/Season</p>
-                        <p className="text-lg">{invite.league} {invite.season}</p>
+                    <div className="pt-4 mt-2 border-t border-gray-600" data-testid="join-invite-league-season">
+                        <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">League/Season</p>
+                        <p className="text-base sm:text-lg">{invite.league} {invite.season}</p>
                     </div>
 
                     {isInviteRedeemed && (
                         <div className="pt-4">
-                            <div className="error-message">Invite already redeemed</div>
+                            <ErrorMessage testId="join-invite-redeemed-error">Invite already redeemed</ErrorMessage>
                         </div>
                     )}
 

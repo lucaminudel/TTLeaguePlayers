@@ -16,7 +16,13 @@
 
 @layer components {
   .error-message {
-    @apply text-action-accent text-xl font-semibold text-center;
+    /* Mobile-friendly: smaller on phones, slightly larger on bigger screens */
+    @apply text-action-accent text-base sm:text-lg font-semibold text-center leading-tight break-words;
+  }
+
+  /* Inline validation / field-level errors */
+  .field-error {
+    @apply text-action-accent text-sm mt-1 leading-snug;
   }
 
   .button-disabled {

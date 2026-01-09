@@ -4,6 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
+import { Input } from '../components/common/Input';
+import { FormField } from '../components/common/FormField';
+import { ErrorMessage } from '../components/common/ErrorMessage';
+import { FieldError } from '../components/common/FieldError';
 import { inviteApi } from '../api/inviteApi';
 import type { Invite } from '../types/invite';
 
@@ -249,42 +253,39 @@ export const Register: React.FC = () => {
             }
           }}
           footer={
-            <Button fullWidth type="submit" disabled={isLoading}>
+            <Button fullWidth type="submit" disabled={isLoading} data-testid="register-verify-button">
               {isLoading ? 'Verifying...' : 'Verify'}
             </Button>
           }
         >
-          <div className="space-y-6 px-4">
-            <p className="text-secondary-text">
+          <div className="space-y-3 sm:space-y-4 px-4">
+            <p className="text-secondary-text text-sm sm:text-base leading-tight" data-testid="register-verify-success-message">
               We've sent a verification code to {email}. Please enter it below.
             </p>
 
-            <div>
-              <label htmlFor="verificationCode" className="block text-sm font-medium mb-2">
-                Verification Code
-              </label>
-              <input
+            <FormField htmlFor="verificationCode" label="Verification Code">
+              <Input
                 id="verificationCode"
                 type="text"
                 value={verificationCode}
                 onChange={(e) => { setVerificationCode(e.target.value); }}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                 placeholder="Enter verification code"
               />
-            </div>
+            </FormField>
 
             {localError && (
-              <div className="error-message">
+              <ErrorMessage testId="register-verify-error-message">
                 {localError}
-              </div>
+              </ErrorMessage>
             )}
 
             <button
               type="button"
+              data-testid="register-resend-code-button"
               onClick={() => { void handleResendCode(); }}
               disabled={isLoading}
-              className="text-action-accent hover:underline disabled:opacity-50"
+              className="text-action-accent hover:underline disabled:opacity-50 text-sm sm:text-base"
             >
               &lt; Resend Code &gt;
             </button>
@@ -313,7 +314,12 @@ export const Register: React.FC = () => {
         }}
         footer={
           (inviteStatus === 'failed' && userAlreadyExists) ? undefined : (
-            <Button fullWidth type="submit" disabled={isLoading || (password !== confirmPassword && inviteStatus !== 'failed')}>
+            <Button
+              fullWidth
+              type="submit"
+              disabled={isLoading || (password !== confirmPassword && inviteStatus !== 'failed')}
+              data-testid="register-submit-button"
+            >
               {isLoading
                 ? 'Creating account...'
                 : inviteStatus === 'failed'
@@ -323,21 +329,18 @@ export const Register: React.FC = () => {
           )
         }
       >
-        <div className="space-y-6 px-4">
+        <div className="space-y-3 sm:space-y-4 px-4">
           {invite && (
-            <div className="mb-4">
-              <p className="text-lg">{invite.season} {invite.league}, {invite.invitee_team} - {invite.team_division}</p>
-              <p className="text-lg">{invite.invitee_name}, {displayRole(invite.invitee_role)}</p>
+            <div className="mb-3 sm:mb-4" data-testid="register-invite-details">
+              <p className="text-base">{invite.invitee_name}, {displayRole(invite.invitee_role)}</p>
+              <p className="text-base">{invite.league} {invite.season}, {invite.invitee_team} - {invite.team_division}</p>
             </div>
           )}
 
 
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
-            </label>
-            <input
+          <FormField htmlFor="email" label="Email">
+            <Input
               id="email"
               name="email"
               autoComplete="email"
@@ -346,20 +349,19 @@ export const Register: React.FC = () => {
               onChange={(e) => { setEmail(e.target.value); }}
               required
               disabled={!!invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry' ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100' : 'bg-white text-gray-900'}`}
+              className={invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'
+                ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100'
+                : ''}
               style={invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry' ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
               placeholder="Enter your email"
             />
             {email && !isValidEmail(email) && (
-              <p className="text-action-accent text-sm mt-1">Please enter a valid email address</p>
+              <FieldError testId="register-email-field-error">Please enter a valid email address</FieldError>
             )}
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password
-            </label>
-            <input
+          <FormField htmlFor="password" label="Password">
+            <Input
               id="password"
               name="password"
               autoComplete="new-password"
@@ -369,16 +371,12 @@ export const Register: React.FC = () => {
               required
               ref={passwordInputRef}
               disabled={inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               placeholder="Enter your password"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-              Confirm Password
-            </label>
-            <input
+          <FormField htmlFor="confirmPassword" label="Confirm Password">
+            <Input
               id="confirmPassword"
               name="confirmPassword"
               autoComplete="new-password"
@@ -387,27 +385,26 @@ export const Register: React.FC = () => {
               onChange={(e) => { setConfirmPassword(e.target.value); }}
               required
               disabled={inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               placeholder="Confirm your password"
             />
             {password && (password !== confirmPassword) && (
-              <p className="text-action-accent text-sm mt-1">Passwords do not match</p>
+              <FieldError testId="register-confirm-password-field-error">Passwords do not match</FieldError>
             )}
-          </div>
+          </FormField>
 
           {(inviteStatus === 'waiting_to_retry' || inviteStatus === 'accepting') && (
-            <div className="flex flex-col justify-center items-center space-y-4 py-4">
+            <div className="flex flex-col justify-center items-center space-y-4 py-2 sm:py-4">
               <div className="spinner"></div>
-              <p className="text-secondary-text animate-pulse">Waiting to confirm the invite ...</p>
+              <p className="text-secondary-text text-sm sm:text-base leading-tight animate-pulse">Waiting to confirm the invite ...</p>
             </div>
           )}
 
 
 
           {localError && (
-            <div className="error-message">
+            <ErrorMessage testId="register-error-message">
               {localError}
-            </div>
+            </ErrorMessage>
           )}
         </div>
       </PageContainer>

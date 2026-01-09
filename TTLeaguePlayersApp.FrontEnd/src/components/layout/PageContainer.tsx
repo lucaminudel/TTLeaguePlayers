@@ -17,7 +17,7 @@ interface PageContainerProps {
     formProps?: FormContainerProps;
 }
 
-const baseContainerClassName = 'flex-1 flex flex-col w-full text-center mt-12';
+const baseContainerClassName = 'flex-1 flex flex-col w-full text-center mt-2 sm:mt-3';
 
 export const PageContainer: React.FC<PageContainerProps> = ({
     title,
@@ -36,15 +36,15 @@ export const PageContainer: React.FC<PageContainerProps> = ({
         <>
             {/* Top Section: Title & Content */}
             <div>
-                <h2 className="text-4xl font-bold mb-4">{title}</h2>
-                <div className="text-xl text-secondary-text leading-relaxed px-4">
+                <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{title}</h2>
+                <div className="text-lg sm:text-xl text-secondary-text leading-relaxed px-4">
                     {children}
                 </div>
             </div>
 
             {/* Bottom Section: Footer/Action */}
             {footer && (
-                <div className="w-full px-8 mt-auto pb-8">
+                <div className="w-full px-6 sm:px-8 mt-auto pb-4 sm:pb-8">
                     {footer}
                 </div>
             )}

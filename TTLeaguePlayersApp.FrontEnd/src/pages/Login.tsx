@@ -4,6 +4,9 @@ import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
+import { Input } from '../components/common/Input';
+import { FormField } from '../components/common/FormField';
+import { ErrorMessage } from '../components/common/ErrorMessage';
 
 const AUTH_INIT_FAILED_PREFIX = 'AuthProvider.initAuth() has failed.';
 
@@ -52,46 +55,38 @@ export const Login: React.FC = () => {
         title="Log In"
         formProps={{ onSubmit: (e) => { void handleSubmit(e); } }}
         footer={
-          <Button fullWidth type="submit" disabled={isLoading}>
+          <Button fullWidth type="submit" disabled={isLoading} data-testid="login-submit-button">
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         }
       >
-        <div className="space-y-6 px-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
-            </label>
-            <input
+        <div className="space-y-4 sm:space-y-6 px-4">
+          <FormField htmlFor="email" label="Email">
+            <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => { setEmail(e.target.value); }}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               placeholder="Enter your email"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password
-            </label>
-            <input
+          <FormField htmlFor="password" label="Password">
+            <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => { setPassword(e.target.value); }}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               placeholder="Enter your password"
             />
-          </div>
+          </FormField>
 
           {(localError ?? authError) && (
-            <div className="error-message">
+            <ErrorMessage testId="login-error-message">
               {localError ?? authError}
-            </div>
+            </ErrorMessage>
           )}
         </div>
       </PageContainer>

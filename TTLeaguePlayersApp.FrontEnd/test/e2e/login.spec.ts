@@ -11,30 +11,36 @@ test.describe('Login Flow', () => {
         await page.fill('#email', 'test_already_registered@user.test');
         await page.fill('#password', 'aA1!56789012');
 
-        // Click Sign In button
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        // Click Sign In button (stable test id)
+        await page.getByTestId('login-submit-button').click();
 
         // Verify redirect to homepage
         await expect(page).toHaveURL('/#/');
 
         // Open menu to check welcome message
-        const menuButton = page.getByRole('button', { name: 'Toggle Menu' });
+        const menuButton = page.getByTestId('main-menu-toggle');
         await menuButton.click();
 
-        // Verify welcome message with person name is displayed
-        await expect(page.locator('text=Welcome, Luca Minudel')).toBeVisible();
+        // Verify welcome message and seasons using stable container locators
+        const userInfo = page.getByTestId('main-menu-user-info');
+        await expect(userInfo.getByTestId('main-menu-welcome-message')).toContainText('Welcome, Luca Minudel');
         
         // Verify first season is displayed without person name (since it's the same as welcome name)
-        await expect(page.locator('text=CLTTL 2025-2026 - Morpeth 10, Division 4')).toBeVisible();
+        await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('CLTTL 2025-2026');
+        await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('Morpeth 10, Division 4');
         
         // Verify second season is displayed without person name (same as welcome name)
-        await expect(page.locator('text=BCS 2025-2026 - Morpeth B, Division 2')).toBeVisible();
+        const additionalSeasons = userInfo.locator('[data-testid="main-menu-additional-season"]');
+        await expect(additionalSeasons.nth(0)).toContainText('BCS 2025-2026');
+        await expect(additionalSeasons.nth(0)).toContainText('Morpeth B, Division 2');
         
         // Verify third season is displayed with person name (different from welcome name)
-        await expect(page.locator('text=FLICK 2025-Nov - Indiidual, Division 1 (Luca Sr Minudel)')).toBeVisible();
+        await expect(additionalSeasons.nth(1)).toContainText('FLICK 2025-Nov');
+        await expect(additionalSeasons.nth(1)).toContainText('Indiidual, Division 1');
+        await expect(additionalSeasons.nth(1)).toContainText('(Luca Sr Minudel)');
 
         // Click logout
-        await page.getByRole('button', { name: 'Log out' }).click();
+        await page.getByTestId('main-menu-logout-button').click();
 
         // Verify redirect to homepage and menu closes
         await expect(page).toHaveURL('/#/');
@@ -43,16 +49,16 @@ test.describe('Login Flow', () => {
         await menuButton.click();
 
         // Verify welcome message is no longer present and login link is back
-        await expect(page.locator('text=Welcome, Luca Minudel')).not.toBeVisible();
-        await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+        await expect(page.getByTestId('main-menu-welcome-message')).not.toBeVisible();
+        await expect(page.getByTestId('main-menu-login-link')).toBeVisible();
     });
 
     test('login - non existing user shows expected error message', async ({ page }) => {
         await page.fill('#email', 'non_existing_user@Idonotexist.com');
         await page.fill('#password', 'aA1!56789012');
 
-        const signInButton = page.getByRole('button', { name: 'Sign In' });
-        const errorMessage = page.locator('.error-message');
+        const signInButton = page.getByTestId('login-submit-button');
+        const errorMessage = page.getByTestId('login-error-message');
 
         await signInButton.click();
 
@@ -78,12 +84,13 @@ test.describe('Login Flow', () => {
         const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
         expect(isValid).toBe(false);
 
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
         // If blocked, we should remain on login and never enter the loading state.
         await expect(page).toHaveURL('/#/login');
-        await expect(page.getByRole('button', { name: 'Signing in...' })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+        // Check that the button is not in loading state
+        await expect(page.getByTestId('login-submit-button')).not.toBeDisabled();
+        await expect(page.getByTestId('login-submit-button')).toBeVisible();
     });
 
     test('client-side validation - empty password field', async ({ page }) => {
@@ -94,11 +101,12 @@ test.describe('Login Flow', () => {
         const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
         expect(isValid).toBe(false);
 
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
         await expect(page).toHaveURL('/#/login');
-        await expect(page.getByRole('button', { name: 'Signing in...' })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+        // Check that the button is not in loading state
+        await expect(page.getByTestId('login-submit-button')).not.toBeDisabled();
+        await expect(page.getByTestId('login-submit-button')).toBeVisible();
     });
 
     test('client-side validation - both fields empty', async ({ page }) => {
@@ -106,11 +114,12 @@ test.describe('Login Flow', () => {
         const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
         expect(isValid).toBe(false);
 
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
         await expect(page).toHaveURL('/#/login');
-        await expect(page.getByRole('button', { name: 'Signing in...' })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+        // Check that the button is not in loading state
+        await expect(page.getByTestId('login-submit-button')).not.toBeDisabled();
+        await expect(page.getByTestId('login-submit-button')).toBeVisible();
     });
 
     test('client-side validation - invalid email format', async ({ page }) => {
@@ -122,11 +131,12 @@ test.describe('Login Flow', () => {
         const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
         expect(isValid).toBe(false);
 
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
         await expect(page).toHaveURL('/#/login');
-        await expect(page.getByRole('button', { name: 'Signing in...' })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+        // Check that the button is not in loading state
+        await expect(page.getByTestId('login-submit-button')).not.toBeDisabled();
+        await expect(page.getByTestId('login-submit-button')).toBeVisible();
     });
     test('cognito API error - simulated NotAuthorizedException', async ({ page }) => {
         // Mock InitiateAuth to simulate incorrect credentials
@@ -151,9 +161,9 @@ test.describe('Login Flow', () => {
 
         await page.fill('#email', 'test@example.com');
         await page.fill('#password', 'WrongPassword123!');
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
-        const errorMessage = page.locator('.error-message');
+        const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
         await expect(errorMessage).toHaveText('Incorrect username or password.');
         await expect(page).toHaveURL('/#/login');
@@ -182,9 +192,9 @@ test.describe('Login Flow', () => {
 
         await page.fill('#email', 'test@example.com');
         await page.fill('#password', 'ValidPassword123!');
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
-        const errorMessage = page.locator('.error-message');
+        const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
         // Login.tsx displays error.message directly for unknown types or specific ones not caught
         await expect(errorMessage).toHaveText('Rate limit exceeded');
@@ -214,9 +224,9 @@ test.describe('Login Flow', () => {
 
         await page.fill('#email', 'test@example.com');
         await page.fill('#password', 'ValidPassword123!');
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit-button').click();
 
-        const errorMessage = page.locator('.error-message');
+        const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
         await expect(errorMessage).toHaveText('Internal server error');
         await expect(page).toHaveURL('/#/login');

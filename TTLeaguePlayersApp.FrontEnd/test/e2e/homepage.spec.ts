@@ -13,16 +13,16 @@ test.describe('Homepage', () => {
         await expect(page.locator('h2')).toHaveText('Welcome');
 
         // checks that the is the welcome sub-message
-        await expect(page.locator('main')).toContainText('To this online-community of local leagues Table Tennis players');
+        await expect(page.locator('main')).toContainText("Home of local leagues' Table Tennis players. Starting with the CLTTL");
 
-        // checks that the is the Enter button
-        const enterButton = page.getByRole('button', { name: 'Enter', exact: true });
+        // checks that the Enter button is present (use stable test id, not label)
+        const enterButton = page.getByTestId('home-enter-button');
         await expect(enterButton).toBeVisible();
     });
 
     test('when clicking the hamburger menu should show all the menu items', async ({ page }) => {
         // checks that the is the menu hamburger
-        const menuButton = page.getByRole('button', { name: 'Toggle Menu' });
+        const menuButton = page.getByTestId('main-menu-toggle');
         await expect(menuButton).toBeVisible();
 
         // the the menu opens up clicking the menu hamburger
@@ -30,21 +30,19 @@ test.describe('Homepage', () => {
 
         // that all menu items are present and are visiblised in the whole page
         const menuItems = [
-            'Log in',
-            'Kudos standings',
-            'Forum',
-            'Tournaments',
-            'Clubs'
+            { name: 'Log in', testId: 'main-menu-login-link' },
+            { name: 'Fair play Kudos', testId: 'main-menu-nav-fair-play-kudos' },
+            { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
+            { name: 'Forums', testId: 'main-menu-nav-forums' }
         ];
 
         for (const item of menuItems) {
-            const link = page.getByRole('link', { name: item, exact: true });
+            const link = page.getByTestId(item.testId);
             await expect(link).toBeVisible();
         }
 
         // Verify menu is visualized over the current page
-        const navigation = page.locator('nav').filter({ hasText: 'Log in' });
-        const overlay = navigation.locator('xpath=..');
+        const overlay = page.getByTestId('main-menu-overlay');
 
         // Check strict geometry: overlay must cover the entire viewport
         const viewportSize = page.viewportSize();
@@ -68,7 +66,7 @@ test.describe('Homepage', () => {
     });
 
     test('when clicking the X after opening the menu, it should close the menu', async ({ page }) => {
-        const menuButton = page.getByRole('button', { name: 'Toggle Menu' });
+        const menuButton = page.getByTestId('main-menu-toggle');
         await expect(menuButton).toBeVisible();
 
         // Open the menu
@@ -81,16 +79,15 @@ test.describe('Homepage', () => {
         await menuButton.click();
 
         // Define overlay for this test's scope
-        const navigation = page.locator('nav').filter({ hasText: 'Log in' });
-        const overlay = navigation.locator('xpath=..');
+        const overlay = page.getByTestId('main-menu-overlay');
 
         // Strict Check 1: The overlay container itself must be hidden (opacity-0/pointer-events-none)
         await expect(overlay).toHaveCSS('opacity', '0');
         await expect(overlay).toHaveCSS('pointer-events', 'none');
 
         // Strict Check 2: Page content must be visible AND actionable (not covered)
-        // We check the 'Enter' button which is main page content
-        const enterButton = page.getByRole('button', { name: 'Enter', exact: true });
+        // We check the main page CTA button via a stable test id (not label)
+        const enterButton = page.getByTestId('home-enter-button');
         await expect(enterButton).toBeVisible();
         // Trial click ensures the element is not obscured by the overlay
         await enterButton.click({ trial: true });

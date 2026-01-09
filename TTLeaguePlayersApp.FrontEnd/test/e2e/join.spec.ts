@@ -14,7 +14,7 @@ test.describe('Join Page', () => {
         await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
 
         // Wait for the fetch to either succeed or fail.
-        await expect(page.locator('text=Waiting for a response...')).not.toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('join-loading-message')).not.toBeVisible({ timeout: 10000 });
     });
 
     test('should display invite details when successful (mocked)', async ({ page }) => {
@@ -37,15 +37,18 @@ test.describe('Join Page', () => {
 
         await page.goto(`/#/join/${testInviteId}`);
 
-        // Verify details
-        await expect(page.locator('text=Luca')).toBeVisible();
-        await expect(page.locator('text=Team Captain')).toBeVisible();
-        await expect(page.locator('text=John Doe')).toBeVisible();
-        await expect(page.locator('text=john@example.com')).toBeVisible();
-        await expect(page.locator('text=The Smashers, Premier')).toBeVisible();
-        await expect(page.locator('text=Local League Winter 2024')).toBeVisible();
+        // Verify invite details using stable container locators
+        const inviteDetails = page.getByTestId('join-invite-details');
+        await expect(inviteDetails.getByTestId('join-invite-from')).toContainText('Luca');
+        await expect(inviteDetails.getByTestId('join-invite-to')).toContainText('Team Captain');
+        await expect(inviteDetails.getByTestId('join-invite-to')).toContainText('John Doe');
+        await expect(inviteDetails.getByTestId('join-invite-email')).toContainText('john@example.com');
+        await expect(inviteDetails.getByTestId('join-invite-team')).toContainText('The Smashers');
+        await expect(inviteDetails.getByTestId('join-invite-team')).toContainText('Premier');
+        await expect(inviteDetails.getByTestId('join-invite-league-season')).toContainText('Local League');
+        await expect(inviteDetails.getByTestId('join-invite-league-season')).toContainText('Winter 2024');
 
-        const registerButton = page.getByRole('button', { name: 'Register', exact: true });
+        const registerButton = page.getByTestId('join-register-button');
         await expect(registerButton).toBeVisible();
     });
 
@@ -71,13 +74,13 @@ test.describe('Join Page', () => {
 
         await page.goto(`/#/join/${acceptedInviteId}`);
 
-        await expect(page.locator(`text=${inviteeEmail}`)).not.toBeVisible();
+        await expect(page.getByTestId('join-invite-email')).not.toBeVisible();
 
-        const registerButton = page.getByRole('button', { name: 'Register', exact: true });
+        const registerButton = page.getByTestId('join-register-button');
         await expect(registerButton).toBeVisible();
         await expect(registerButton).toBeDisabled();
 
-        await expect(page.locator('text=Invite already redeemed')).toBeVisible();
+        await expect(page.getByTestId('join-invite-redeemed-error')).toBeVisible();
     });
 
     test('should show invalid link error for malformed nano_id', async ({ page }) => {
@@ -91,11 +94,12 @@ test.describe('Join Page', () => {
 
         await page.goto('/#/join/short');
 
-        // Wait for error message to appear
-        await expect(page.locator('text=Please check this invitation link; it appears to be incorrect, missing characters, or containing extra ones.')).toBeVisible();
+        // Wait for error message to appear using stable test-id
+        await expect(page.getByTestId('join-error-message')).toContainText('Please check this invitation link');
+        await expect(page.getByTestId('join-error-message')).toContainText('it appears to be incorrect');
 
         // Verify no retry button is shown
-        await expect(page.getByRole('button', { name: 'Retry' })).not.toBeVisible();
+        await expect(page.getByTestId('join-retry-button')).not.toBeVisible();
     });
 
     test('should show invitation not found error for nonexistent nano_id', async ({ page }) => {
@@ -109,10 +113,11 @@ test.describe('Join Page', () => {
 
         await page.goto('/#/join/nonexistent');
 
-        // Wait for error message to appear
-        await expect(page.locator('text=This invitation cannot be found. It may have expired, been canceled, or is no longer valid. If you believe this is an error, please contact us.')).toBeVisible();
+        // Wait for error message to appear using stable test-id
+        await expect(page.getByTestId('join-error-message')).toContainText('This invitation cannot be found');
+        await expect(page.getByTestId('join-error-message')).toContainText('may have expired');
 
         // Verify no retry button is shown
-        await expect(page.getByRole('button', { name: 'Retry' })).not.toBeVisible();
+        await expect(page.getByTestId('join-retry-button')).not.toBeVisible();
     });
 });

@@ -10,8 +10,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
         <div className="min-h-screen flex flex-col w-full max-w-md mx-auto relative bg-primary-base text-main-text">
             {/* App Name Header */}
             {/* App Name Header */}
-            <header className="w-full py-6 flex items-center justify-center relative px-4 sticky top-0 bg-primary-base z-40">
-                <h1 className="text-xl font-bold tracking-wider uppercase text-main-text opacity-90 mx-auto">
+            <header className="w-full py-3 sm:py-4 flex items-center justify-center relative px-4 sticky top-0 bg-primary-base z-40">
+                <h1 className="text-lg sm:text-xl font-bold tracking-wider uppercase text-main-text opacity-90 mx-auto">
                     TT League Players
                 </h1>
                 < div className="absolute right-4 flex items-center">

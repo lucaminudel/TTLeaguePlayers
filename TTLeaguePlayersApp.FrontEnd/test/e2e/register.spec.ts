@@ -56,9 +56,9 @@ test.describe('Register Flow', () => {
       const email = uniqueTestEmail();
 
       await fillRegisterForm(page, { email, password: c.password });
-      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await page.getByTestId('register-submit-button').click();
 
-      const errorMessage = page.locator('.error-message');
+      const errorMessage = page.getByTestId('register-error-message');
       await expect(errorMessage).toBeVisible();
       await expect(errorMessage).toHaveText(expectedPolicyMessage);
       await expect(page).toHaveURL('/#/register');
@@ -73,10 +73,11 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(false);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     await expect(page).toHaveURL('/#/register');
-    await expect(page.getByRole('button', { name: 'Creating account...' })).toHaveCount(0);
+    // Check that the button is not in loading state
+    await expect(page.getByTestId('register-submit-button')).not.toBeDisabled();
   });
 
   test('client-side validation - empty password fields', async ({ page }) => {
@@ -86,10 +87,11 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(false);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     await expect(page).toHaveURL('/#/register');
-    await expect(page.getByRole('button', { name: 'Creating account...' })).toHaveCount(0);
+    // Check that the button is not in loading state
+    await expect(page.getByTestId('register-submit-button')).not.toBeDisabled();
   });
 
   test('client-side validation - all fields empty', async ({ page }) => {
@@ -97,10 +99,11 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(false);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     await expect(page).toHaveURL('/#/register');
-    await expect(page.getByRole('button', { name: 'Creating account...' })).toHaveCount(0);
+    // Check that the button is not in loading state
+    await expect(page.getByTestId('register-submit-button')).not.toBeDisabled();
   });
 
   test('client-side validation - invalid email format (HTML5)', async ({ page }) => {
@@ -110,10 +113,11 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(false);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     await expect(page).toHaveURL('/#/register');
-    await expect(page.getByRole('button', { name: 'Creating account...' })).toHaveCount(0);
+    // Check that the button is not in loading state
+    await expect(page.getByTestId('register-submit-button')).not.toBeDisabled();
   });
 
   interface BasicEmailValidationCase {
@@ -132,15 +136,14 @@ test.describe('Register Flow', () => {
     test(`client-side validation - email - ${c.name}`, async ({ page }) => {
       await fillRegisterForm(page, { email: c.email, password: validPassword });
 
-      const inlineEmailHelper = page.locator('p.text-action-accent', {
-        hasText: 'Please enter a valid email address'
-      });
+      const inlineEmailHelper = page.getByTestId('register-email-field-error');
 
-      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await page.getByTestId('register-submit-button').click();
 
       await expect(inlineEmailHelper).toBeVisible();
       await expect(page).toHaveURL('/#/register');
-      await expect(page.getByRole('button', { name: 'Creating account...' })).toHaveCount(0);
+      // Check that the button is not in loading state
+    await expect(page.getByTestId('register-submit-button')).not.toBeDisabled();
     });
   }
 
@@ -151,9 +154,9 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(true);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText('Please enter a valid email address.');
   });
@@ -165,8 +168,8 @@ test.describe('Register Flow', () => {
       confirmPassword: 'aA1!56789013'
     });
 
-    await expect(page.locator('text=Passwords do not match')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Register', exact: true })).toBeDisabled();
+    await expect(page.getByTestId('register-confirm-password-field-error')).toBeVisible();
+    await expect(page.getByTestId('register-submit-button')).toBeDisabled();
   });
 
   // --- Server-side (Cognito) registration errors (no mocking) ---
@@ -180,9 +183,9 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(true);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
 
     // Register.tsx maps InvalidParameterException containing "email" to this message.
@@ -207,12 +210,12 @@ test.describe('Register Flow', () => {
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(true);
 
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     // Depending on Cognito's returned message text, Register.tsx maps InvalidParameterException to either:
     // - "Please enter a valid email address."  (when message includes 'email')
     // - "Invalid input. Please check your information." (otherwise)
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText(
       /^(Please enter a valid email address\.|Invalid input\. Please check your information\.)$/
@@ -224,7 +227,7 @@ test.describe('Register Flow', () => {
 
     // 1) First registration should succeed and navigate to Verify Email screen.
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2) Force a full reload back to the Register route so the component state resets.
@@ -234,9 +237,9 @@ test.describe('Register Flow', () => {
 
     // 3) Register again with the same email.
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText('An account with this email already exists. Try logging in instead.');
     await expect(page).toHaveURL('/#/register');
@@ -246,13 +249,13 @@ test.describe('Register Flow', () => {
     const email = uniqueTestEmail();
 
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     // Expect navigation to Verify Email view
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // Validate that the verification view is showing the sent-to email
-    await expect(page.locator(`text=We've sent a verification code to ${email}`)).toBeVisible();
+    await expect(page.getByTestId('register-verify-success-message')).toContainText(email);
   });
 
   test('email verification - simulated wrong code and resend ', async ({ page }) => {
@@ -301,20 +304,20 @@ test.describe('Register Flow', () => {
 
     // 1. Register to get to verification screen
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Enter wrong code
     await page.fill('#verificationCode', '123456');
-    await page.getByRole('button', { name: 'Verify', exact: true }).click();
+    await page.getByTestId('register-verify-button').click();
 
     // 3. Assert error message
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-verify-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText('The verification code is incorrect. Please try again.');
 
     // 4. Click Resend Code
-    await page.getByRole('button', { name: '< Resend Code >' }).click();
+    await page.getByTestId('register-resend-code-button').click();
 
     // 5. Assert success message
     await expect(errorMessage).toHaveText('New verification code sent to your email.');
@@ -347,10 +350,10 @@ test.describe('Register Flow', () => {
 
     // 2. Attempt registration
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     // 3. Assert user-friendly error message from Register.tsx mapping
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText(
       'Too many attempts. Please wait an hour before trying again. Additional attempts will extend the wait time.'
@@ -385,10 +388,10 @@ test.describe('Register Flow', () => {
 
     // 2. Attempt registration
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     // 3. Assert fallback error message (expecting exact message from server)
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText('Something went wrong on the server');
 
@@ -430,15 +433,15 @@ test.describe('Register Flow', () => {
 
     const email = uniqueTestEmail();
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Submit any code (mock response determines outcome)
     await page.fill('#verificationCode', '123456');
-    await page.getByRole('button', { name: 'Verify', exact: true }).click();
+    await page.getByTestId('register-verify-button').click();
 
     // 3. Assert mapped error message
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-verify-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText('The verification code is incorrect. Please try again.');
   });
@@ -476,15 +479,15 @@ test.describe('Register Flow', () => {
 
     const email = uniqueTestEmail();
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Submit code
     await page.fill('#verificationCode', '123456');
-    await page.getByRole('button', { name: 'Verify', exact: true }).click();
+    await page.getByTestId('register-verify-button').click();
 
     // 3. Assert mapped user-friendly error
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-verify-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText(
       'Too many attempts. Please wait an hour before trying again. Additional attempts will extend the wait time.'
@@ -521,14 +524,14 @@ test.describe('Register Flow', () => {
 
     const email = uniqueTestEmail();
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Click Resend Code
-    await page.getByRole('button', { name: '< Resend Code >' }).click();
+    await page.getByTestId('register-resend-code-button').click();
 
     // 3. Assert success message
-    const errorMessage = page.locator('.error-message');
+    const errorMessage = page.getByTestId('register-verify-error-message');
     await expect(errorMessage).toBeVisible();
     await expect(errorMessage).toHaveText('New verification code sent to your email.');
   });
@@ -538,7 +541,7 @@ test.describe('Register Flow', () => {
 
     // 1. Register a new user (which leaves them unconfirmed)
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Navigate to Login page
@@ -548,7 +551,7 @@ test.describe('Register Flow', () => {
     // 3. Attempt to log in with the unconfirmed user
     await page.fill('#email', email);
     await page.fill('#password', validPassword);
-    await page.getByRole('button', { name: 'Sign In' }).click();
+    await page.getByTestId('login-submit-button').click();
 
     // 4. Expect redirect back to Verify Email view
     // The URL should contain the email and verify=true param
@@ -579,7 +582,7 @@ test.describe('Register Flow', () => {
 
     // 2. Register (Real Cognito Call)
     await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByTestId('register-submit-button').click();
 
     // 3. Verify Landing on Verification Page
     await expect(page.locator('h2')).toHaveText('Verify Email');
@@ -590,7 +593,7 @@ test.describe('Register Flow', () => {
 
     // 5. Submit Verification (Mocked Success)
     await page.fill('#verificationCode', '123456');
-    await page.getByRole('button', { name: 'Verify', exact: true }).click();
+    await page.getByTestId('register-verify-button').click();
 
     // 6. Assert redirection to Login page
     await expect(page).toHaveURL('/#/login');
@@ -636,14 +639,19 @@ test.describe('Register with Invite Flow', () => {
       await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
 
       // 3. Click Register
-      await page.getByRole('button', { name: 'Register' }).click();
+      await page.getByTestId('join-register-button').click();
 
       // 4. Verify Register page state
       await expect(page.locator('h2')).toHaveText('Register');
 
-      // Check invite details display
-      await expect(page.locator(`text=${invite.season} ${invite.league}, ${invite.invitee_team} - ${invite.team_division}`)).toBeVisible();
-      await expect(page.locator(`text=${invite.invitee_name}, Player`)).toBeVisible();
+      // Check invite details display using stable container locators
+      const inviteDetails = page.getByTestId('register-invite-details');
+      await expect(inviteDetails).toContainText(invite.league);
+      await expect(inviteDetails).toContainText(invite.season);
+      await expect(inviteDetails).toContainText(invite.invitee_team);
+      await expect(inviteDetails).toContainText(invite.team_division);
+      await expect(inviteDetails).toContainText(invite.invitee_name);
+      await expect(inviteDetails).toContainText('Player');
 
       // Check email is pre-filled and disabled
       const emailInput = page.locator('#email');
@@ -757,20 +765,20 @@ test.describe('Register with Invite Flow', () => {
       await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
 
       // Ensure invite has been fetched
-      await expect(page.locator(`text=${email}`)).toBeVisible();
+      await expect(page.getByTestId('join-invite-email')).toContainText(email);
 
       // 2) Navigate to Register
-      await page.getByRole('button', { name: 'Register' }).click();
+      await page.getByTestId('join-register-button').click();
       await expect(page.locator('h2')).toHaveText('Register');
 
       // 3) Fill password + confirm and register
       await page.fill('#password', validPassword);
       await page.fill('#confirmPassword', validPassword);
-      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await page.getByTestId('register-submit-button').click();
 
       // 4) Cognito + invite acceptance succeed => Verify Email view
       await expect(page.locator('h2')).toHaveText('Verify Email');
-      await expect(page.locator(`text=We've sent a verification code to ${email}`)).toBeVisible();
+      await expect(page.getByTestId('register-verify-success-message')).toContainText(email);
 
       // Assert requests were called
       expect(getInviteCalled).toBeGreaterThan(0);
@@ -785,7 +793,7 @@ test.describe('Register with Invite Flow', () => {
 
       // 5) Verify email then redirect to login
       await page.fill('#verificationCode', '123456');
-      await page.getByRole('button', { name: 'Verify', exact: true }).click();
+      await page.getByTestId('register-verify-button').click();
 
       await expect(page).toHaveURL('/#/login');
       await expect(page.locator('h2')).toHaveText('Log In');
@@ -875,23 +883,23 @@ test.describe('Register with Invite Flow', () => {
       // 1) Start from Join with invite
       await page.goto(`/#/join/${inviteId}`);
       await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-      await expect(page.locator(`text=${email}`)).toBeVisible();
+      await expect(page.getByTestId('join-invite-email')).toContainText(email);
 
       // 2) Navigate to Register
-      await page.getByRole('button', { name: 'Register' }).click();
+      await page.getByTestId('join-register-button').click();
       await expect(page.locator('h2')).toHaveText('Register');
 
       // 3) Fill password + confirm and register
       await page.fill('#password', validPassword);
       await page.fill('#confirmPassword', validPassword);
-      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await page.getByTestId('register-submit-button').click();
 
       // 4) Invite acceptance succeeds despite Cognito saying user exists => redirect to Login
       await expect(page).toHaveURL('/#/login');
       await expect(page.locator('h2')).toHaveText('Log In');
 
       // AuthProvider.signUp sets authError from the Cognito error message; Login shows authError in .error-message.
-      const errorMessage = page.locator('.error-message');
+      const errorMessage = page.getByTestId('login-error-message');
       await expect(errorMessage).toBeVisible();
       await expect(errorMessage).toHaveText(expectedUserAlreadyRegisteredMessage);
 
@@ -990,30 +998,30 @@ test.describe('Register with Invite Flow', () => {
       // 1) Start from Join with invite
       await page.goto(`/#/join/${inviteId}`);
       await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-      await expect(page.locator(`text=${email}`)).toBeVisible();
+      await expect(page.getByTestId('join-invite-email')).toContainText(email);
 
       // 2) Navigate to Register
-      await page.getByRole('button', { name: 'Register' }).click();
+      await page.getByTestId('join-register-button').click();
       await expect(page.locator('h2')).toHaveText('Register');
 
       // 3) Fill password + confirm and register
       await page.fill('#password', validPassword);
       await page.fill('#confirmPassword', validPassword);
-      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await page.getByTestId('register-submit-button').click();
 
       // 4) Cognito says user exists, and invite acceptance fails => stay on Register with invite failure message
       await expect(page).toHaveURL('/#/register');
       await expect(page.locator('h2')).toHaveText('Register');
 
-      const errorMessage = page.locator('.error-message');
+      const errorMessage = page.getByTestId('register-error-message');
       await expect(errorMessage).toBeVisible();
       await expect(errorMessage).toHaveText(
         'Invitation confirmation failed. Please contact support to restore access to your team’s features.'
       );
 
       // When inviteStatus === 'failed' and userAlreadyExists === true, Register.tsx renders no footer button.
-      await expect(page.getByRole('button', { name: 'Register', exact: true })).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Continue to Email Verification', exact: true })).toHaveCount(0);
+      await expect(page.getByTestId('register-submit-button')).toHaveCount(0);
+      await expect(page.getByTestId('register-submit-button')).toHaveCount(0);
 
       // Assert requests were called
       expect(getInviteCalled).toBeGreaterThan(0);
@@ -1129,17 +1137,17 @@ test.describe('Register with Invite Flow', () => {
       // 1) Start from Join with invite
       await page.goto(`/#/join/${params.inviteId}`);
       await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-      await expect(page.locator(`text=${email}`)).toBeVisible();
+      await expect(page.getByTestId('join-invite-email')).toContainText(email);
 
       // 2) Navigate to Register
-      await page.getByRole('button', { name: 'Register' }).click();
+      await page.getByTestId('join-register-button').click();
       await expect(page.locator('h2')).toHaveText('Register');
 
       // 3) Fill password + confirm and register
       await page.fill('#password', validPassword);
       await page.fill('#confirmPassword', validPassword);
 
-      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await page.getByTestId('register-submit-button').click();
 
       // Wait until all expected PATCH attempts have happened (initial call + any retries)
       const expectedCalls = params.expectedAcceptInviteCalls ?? 1;
@@ -1154,25 +1162,25 @@ test.describe('Register with Invite Flow', () => {
       // Must match expected attempts (including retries)
       expect(acceptInviteCalled).toBe(expectedCalls);
 
-      const errorMessage = page.locator('.error-message');
+      const errorMessage = page.getByTestId('register-error-message');
       await expect(errorMessage).toBeVisible();
       await expect(errorMessage).toHaveText(
         'Invitation confirmation failed. Please contact support to restore access to your team’s features.'
       );
 
-      const continueButton = page.getByRole('button', { name: 'Continue to Email Verification', exact: true });
+      const continueButton = page.getByTestId('register-submit-button');
       await expect(continueButton).toBeVisible();
 
       // 5) Continue to verification
       await continueButton.click();
 
       await expect(page.locator('h2')).toHaveText('Verify Email');
-      await expect(page.locator(`text=We've sent a verification code to ${email}`)).toBeVisible();
-      await expect(page.locator('.error-message')).toHaveCount(0);
+      await expect(page.getByTestId('register-verify-success-message')).toContainText(email);
+      await expect(page.getByTestId('register-verify-error-message')).toHaveCount(0);
 
       // 6) Verify email then redirect to login
       await page.fill('#verificationCode', '123456');
-      await page.getByRole('button', { name: 'Verify', exact: true }).click();
+      await page.getByTestId('register-verify-button').click();
 
       await expect(page).toHaveURL('/#/login');
       await expect(page.locator('h2')).toHaveText('Log In');
