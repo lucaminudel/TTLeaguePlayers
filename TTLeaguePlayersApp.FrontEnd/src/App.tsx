@@ -11,6 +11,7 @@ function App() {
       <HashRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/:inviteId" element={<Home />} />
           <Route path="/join/:inviteId" element={<Join />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

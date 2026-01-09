@@ -1,10 +1,23 @@
 import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
 import logo from "../assets/logo.png";   
 
 export const Home: React.FC = () => {
+    const { inviteId } = useParams<{ inviteId?: string }>();
+    const navigate = useNavigate();
+    const hasInviteId = !!inviteId;
+
+    const handleEnterClick = () => {
+        if (hasInviteId) {
+            void navigate(`/join/${inviteId}`);
+        } else {
+            console.log('Enter clicked');
+        }
+    };
+
     return (
         <MobileLayout>
             <PageContainer
@@ -13,9 +26,9 @@ export const Home: React.FC = () => {
                     <Button
                         fullWidth
                         data-testid="home-enter-button"
-                        onClick={() => { console.log('Enter clicked'); }}
+                        onClick={handleEnterClick}
                     >
-                        Ready to play?
+                        {hasInviteId ? 'Redeem your invite' : 'Ready to play?'}
                     </Button>
                 }
             >
