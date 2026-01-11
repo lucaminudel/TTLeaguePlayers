@@ -11,6 +11,12 @@ export interface ActiveSeason {
 
 export interface AuthContextType {
   isAuthenticated: boolean;
+  /**
+   * True while the AuthProvider is performing the initial authentication state check.
+   * This includes checking for existing Cognito sessions and fetching user attributes.
+   * Use this to avoid showing login redirects or loading spinners until the check completes.
+   */
+  isLoading: boolean;
   username: string | null;
   email: string | null;
   activeSeasons: ActiveSeason[];

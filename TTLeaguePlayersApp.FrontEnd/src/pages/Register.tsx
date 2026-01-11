@@ -211,7 +211,9 @@ export const Register: React.FC = () => {
 
     try {
       await confirmSignUp(email, verificationCode);
-      void navigate('/login');
+      const returnUrl = searchParams.get('returnUrl');
+      const returnUrlParam = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : '';
+      void navigate(`/login${returnUrlParam}`);
     } catch (error: unknown) {
       if (isAuthInitFailure(error)) {
         setLocalError(USER_INIT_ERROR_MESSAGE);

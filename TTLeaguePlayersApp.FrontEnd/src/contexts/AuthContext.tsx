@@ -52,6 +52,7 @@ function createInitialAuthState(): InitialAuthState {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
@@ -169,38 +170,75 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setEmail(null);
     setActiveSeasons([]);
     setAuthError(null);
+    setIsLoading(false);
   }, [userPool]);
 
   useEffect(() => {
     // Session discovery is still async (callback-based) but userPool construction is synchronous.
+    // This effect only runs once on mount to check for existing sessions.
+    // We use empty dependency array to ensure this only runs on component mount.
     if (!userPool || authInitialisationError) {
+      // If we can't initialize, mark loading as complete
+      setIsLoading(false);
       return;
     }
 
     const currentUser = userPool.getCurrentUser();
     if (!currentUser) {
+      // No existing session, mark loading as complete
+      setIsLoading(false);
       return;
     }
 
+    let isMounted = true;
+
     currentUser.getSession((err: unknown, session: CognitoUserSession) => {
+      if (!isMounted) {
+        return;
+      }
+
       if (!err && session.isValid()) {
         const idToken = session.getIdToken().getJwtToken();
         const extractedUsername = extractUsernameFromToken(idToken);
         const extractedEmail = extractEmailFromToken(idToken);
-        setIsAuthenticated(true);
-        setUsername(extractedUsername);
-        setEmail(extractedEmail);
 
-        void fetchActiveSeasons(currentUser).then((seasons) => {
+        // Fetch active seasons synchronously to get the seasons data
+        currentUser.getUserAttributes((userErr, attributes) => {
+          if (!isMounted) return;
+
+          let seasons: ActiveSeason[] = [];
+          if (!userErr && attributes) {
+            const activeSeasonsAttribute = attributes.find((attr) => {
+              const name = attr.getName();
+              return name === 'custom:active_seasons' || name === 'active_seasons';
+            });
+            seasons = parseActiveSeasonsJson(activeSeasonsAttribute?.getValue());
+          }
+
+          // Set all state together to avoid re-renders with incomplete data
+          setIsAuthenticated(true);
+          setUsername(extractedUsername);
+          setEmail(extractedEmail);
           setActiveSeasons(seasons);
+          setIsLoading(false);
         });
         return;
       }
 
       // If session discovery fails or the session is invalid, clear state.
-      signOut();
+      setIsAuthenticated(false);
+      setUsername(null);
+      setEmail(null);
+      setActiveSeasons([]);
+      setAuthError(null);
+      setIsLoading(false);
     });
-  }, [userPool, authInitialisationError, signOut, fetchActiveSeasons]);
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signIn = async (emailInput: string, password: string): Promise<void> => {
     if (authInitialisationError) {
@@ -228,14 +266,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const extractedUsername = extractUsernameFromToken(idToken);
           const extractedEmail = extractEmailFromToken(idToken);
 
-          setIsAuthenticated(true);
-          setUsername(extractedUsername);
-          setEmail(extractedEmail);
-
           void fetchActiveSeasons(cognitoUser).then((seasons) => {
+            setIsAuthenticated(true);
+            setUsername(extractedUsername);
+            setEmail(extractedEmail);
             setActiveSeasons(seasons);
+            resolve();
           });
-          resolve();
         },
         onFailure: (err: Error) => {
           setAuthError(err.message || 'Authentication failed');
@@ -346,6 +383,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext
       value={{
         isAuthenticated,
+        isLoading,
         username,
         email,
         activeSeasons,

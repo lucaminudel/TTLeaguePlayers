@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -17,6 +17,19 @@ export const Login: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
   const { signIn, authError, clearAuthError } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const getReturnUrl = (): string => {
+    const returnUrl = searchParams.get('returnUrl');
+    if (returnUrl) {
+      try {
+        return decodeURIComponent(returnUrl);
+      } catch {
+        return '/';
+      }
+    }
+    return '/';
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,7 +40,8 @@ export const Login: React.FC = () => {
 
     try {
       await signIn(email, password);
-      void navigate('/');
+      const returnUrl = getReturnUrl();
+      void navigate(returnUrl);
     } catch (error: unknown) {
       const message = (typeof error === 'object' && error !== null && 'message' in error)
         ? (error as { message?: unknown }).message
@@ -42,7 +56,9 @@ export const Login: React.FC = () => {
         ?? (error as Record<string, unknown>).name;
 
       if (errorType === 'UserNotConfirmedException') {
-        void navigate(`/register?email=${encodeURIComponent(email)}&verify=true`);
+        const returnUrl = getReturnUrl();
+        const returnUrlParam = returnUrl !== '/' ? `&returnUrl=${encodeURIComponent(returnUrl)}` : '';
+        void navigate(`/register?email=${encodeURIComponent(email)}&verify=true${returnUrlParam}`);
       }
     } finally {
       setIsLoading(false);
