@@ -73,7 +73,7 @@ test.describe('Homepage', () => {
 
         test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
             const user = new User(page);
-            const loginPage = await user.NavigateToLogin();
+            const loginPage = await user.navigateToLogin();
             await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
 
             // Verify redirect to homepage

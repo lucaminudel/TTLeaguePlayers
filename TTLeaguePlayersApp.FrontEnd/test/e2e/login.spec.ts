@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { User as UserFlow } from './page-objects/User';
+import { LoginPage, User as UserFlow } from './page-objects/User';
 
 test.describe('Login Flow', () => {
     test.beforeEach(async ({ page }) => {
         const user = new UserFlow(page);
-        await user.NavigateToLogin();
+        await user.navigateToLogin();
     });
 
     test('successful login flow - login, welcome message, and logout', async ({ page }) => {
         const user = new UserFlow(page);
-        const loginPage = await user.NavigateToLogin();
+        const loginPage = await user.navigateToLogin();
         
         // Login
         await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
@@ -53,7 +53,7 @@ test.describe('Login Flow', () => {
 
     test('login - non existing user shows expected error message', async ({ page }) => {
         const user = new UserFlow(page);
-        const loginPage = await user.NavigateToLogin();
+        const loginPage = await user.navigateToLogin();
         
         await loginPage.login('non_existing_user@Idonotexist.com', 'aA1!56789012');
 
@@ -69,7 +69,8 @@ test.describe('Login Flow', () => {
 
     test('client-side validation - empty email field', async ({ page }) => {
         // Leave email empty, fill password
-        await page.fill('#password', 'somepassword');
+        const loginPage = new LoginPage(page);        
+        await loginPage.login('', 'somepassword');
 
         // Native HTML5 validation expectation: the form is invalid and submission is blocked.
         const form = page.locator('form');
@@ -90,7 +91,8 @@ test.describe('Login Flow', () => {
 
     test('client-side validation - empty password field', async ({ page }) => {
         // Fill email, leave password empty
-        await page.fill('#email', 'test@example.com');
+        const loginPage = new LoginPage(page);        
+        await loginPage.login('test@example.com', '');        
 
         const form = page.locator('form');
         const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
@@ -119,8 +121,8 @@ test.describe('Login Flow', () => {
 
     test('client-side validation - invalid email format', async ({ page }) => {
         // Fill invalid email format
-        await page.fill('#email', 'invalid-email');
-        await page.fill('#password', 'somepassword');
+        const loginPage = new LoginPage(page);        
+        await loginPage.login('invalid-email', 'somepassword');
 
         const form = page.locator('form');
         const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
@@ -133,9 +135,10 @@ test.describe('Login Flow', () => {
         await expect(page.getByTestId('login-submit-button')).not.toBeDisabled();
         await expect(page.getByTestId('login-submit-button')).toBeVisible();
     });
+
     test('cognito API error - simulated NotAuthorizedException', async ({ page }) => {
         const user = new UserFlow(page);
-        const loginPage = await user.NavigateToLogin();
+        const loginPage = await user.navigateToLogin();
         
         // Mock InitiateAuth to simulate incorrect credentials
         await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
@@ -167,7 +170,7 @@ test.describe('Login Flow', () => {
 
     test('cognito API error - simulated TooManyRequestsException', async ({ page }) => {
         const user = new UserFlow(page);
-        const loginPage = await user.NavigateToLogin();
+        const loginPage = await user.navigateToLogin();
         
         // Mock InitiateAuth to simulate rate limit
         await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
@@ -200,7 +203,7 @@ test.describe('Login Flow', () => {
 
     test('cognito API error - simulated InternalErrorException', async ({ page }) => {
         const user = new UserFlow(page);
-        const loginPage = await user.NavigateToLogin();
+        const loginPage = await user.navigateToLogin();
         
         // Mock InitiateAuth to simulate server error
         await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {

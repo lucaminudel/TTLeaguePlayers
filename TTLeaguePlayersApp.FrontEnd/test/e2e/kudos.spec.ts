@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { User as UserFlow, LoginPage } from './page-objects/User';
+import { User as UserFlow, LoginPage, RegisterPage } from './page-objects/User';
 
 test.describe('Kudos', () => {
     test.describe('authenticated users only page, login - logout flows', () => {
@@ -67,10 +67,8 @@ test.describe('Kudos', () => {
             await expect(page.locator('h2')).toHaveText('Verify Email');
 
             // Enter verification code
-            await page.fill('#verificationCode', '123456');
-
-            // Click Verify button
-            await page.getByTestId('register-verify-button').click();
+            const registerPage = new RegisterPage(page);    
+            await registerPage.tentativelyVerifyUserEmail('123456');
 
             // Verify redirect back to login with returnUrl preserved
             await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
@@ -78,7 +76,7 @@ test.describe('Kudos', () => {
 
         test('when user logs out from an authenticated-users only page like kudos, user is redirected to home', async ({ page }) => {
             const user = new UserFlow(page);
-            const loginPage = await user.NavigateToLogin();
+            const loginPage = await user.navigateToLogin();
             
             // Login first 
             await loginPage.login('test_already_registered@user.test', 'aA1!56789012');

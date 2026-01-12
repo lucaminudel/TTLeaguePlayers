@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { RegisterPage, User } from './page-objects/User';
 
 /**
  * Registration acceptance tests.
@@ -16,21 +17,11 @@ const uniqueTestEmail = (): string => {
   return `test_${String(lastEpochMs)}@delete.me`;
 };
 
-const fillRegisterForm = async (
-  page: Page,
-  params: { email: string; password: string; confirmPassword?: string }
-) => {
-  await page.fill('#email', params.email);
-  await page.fill('#password', params.password);
-  await page.fill('#confirmPassword', params.confirmPassword ?? params.password);
-};
-
 const validPassword = 'aA1!56789012';
 
 test.describe('Register Flow', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/#/register');
-    await expect(page.locator('h2')).toHaveText('Register');
+    await new User(page).navigateToRegister();
   });
 
   const expectedPolicyMessage =
@@ -54,9 +45,9 @@ test.describe('Register Flow', () => {
   for (const c of passwordPolicyCases) {
     test(`password policy - ${c.name}`, async ({ page }) => {
       const email = uniqueTestEmail();
+      const registerPage = new RegisterPage(page);
 
-      await fillRegisterForm(page, { email, password: c.password });
-      await page.getByTestId('register-submit-button').click();
+      await registerPage.tentativelyRegisterNewUser(email, c.password, c.password);
 
       const errorMessage = page.getByTestId('register-error-message');
       await expect(errorMessage).toBeVisible();
@@ -66,8 +57,8 @@ test.describe('Register Flow', () => {
   }
 
   test('client-side validation - empty email field', async ({ page }) => {
-    await page.fill('#password', validPassword);
-    await page.fill('#confirmPassword', validPassword);
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUserNoClick('', validPassword, validPassword);
 
     const form = page.locator('form');
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
@@ -81,7 +72,8 @@ test.describe('Register Flow', () => {
   });
 
   test('client-side validation - empty password fields', async ({ page }) => {
-    await page.fill('#email', 'test@example.com');
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUserNoClick('test@example.com', '');
 
     const form = page.locator('form');
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
@@ -107,13 +99,12 @@ test.describe('Register Flow', () => {
   });
 
   test('client-side validation - invalid email format (HTML5)', async ({ page }) => {
-    await fillRegisterForm(page, { email: 'invalid-email', password: validPassword });
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUser('invalid-email', validPassword);
 
     const form = page.locator('form');
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(false);
-
-    await page.getByTestId('register-submit-button').click();
 
     await expect(page).toHaveURL('/#/register');
     // Check that the button is not in loading state
@@ -134,11 +125,10 @@ test.describe('Register Flow', () => {
 
   for (const c of basicInvalidEmailCases) {
     test(`client-side validation - email - ${c.name}`, async ({ page }) => {
-      await fillRegisterForm(page, { email: c.email, password: validPassword });
+      const registerPage = new RegisterPage(page);    
+      await registerPage.tentativelyRegisterNewUser(c.email, validPassword);
 
       const inlineEmailHelper = page.getByTestId('register-email-field-error');
-
-      await page.getByTestId('register-submit-button').click();
 
       await expect(inlineEmailHelper).toBeVisible();
       await expect(page).toHaveURL('/#/register');
@@ -148,13 +138,12 @@ test.describe('Register Flow', () => {
   }
 
   test('client-side validation - email - missing dot triggers submit-time error message', async ({ page }) => {
-    await fillRegisterForm(page, { email: 'a@b', password: validPassword });
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUser('a@b', validPassword);
 
     const form = page.locator('form');
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(true);
-
-    await page.getByTestId('register-submit-button').click();
 
     const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
@@ -162,11 +151,12 @@ test.describe('Register Flow', () => {
   });
 
   test('client-side validation - password and confirm password are different', async ({ page }) => {
-    await fillRegisterForm(page, {
-      email: 'test@example.com',
-      password: validPassword,
-      confirmPassword: 'aA1!56789013'
-    });
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUserNoClick(
+      'test@example.com',
+      validPassword,
+      'aA1!56789013'
+    );
 
     await expect(page.getByTestId('register-confirm-password-field-error')).toBeVisible();
     await expect(page.getByTestId('register-submit-button')).toBeDisabled();
@@ -177,13 +167,12 @@ test.describe('Register Flow', () => {
   test('server-side validation - invalid email format (.user@example.com)', async ({ page }) => {
     // This email passes the app regex (non-empty local part, @, dot, domain),
     // but Cognito may reject it as invalid format.
-    await fillRegisterForm(page, { email: '.user@example.com', password: validPassword });
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUser('.user@example.com', validPassword);
 
     const form = page.locator('form');
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(true);
-
-    await page.getByTestId('register-submit-button').click();
 
     const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
@@ -203,14 +192,13 @@ test.describe('Register Flow', () => {
     const veryLongLocalPart = 'a'.repeat(260);
     const email = `test_${veryLongLocalPart}@delete.me`;
 
-    await fillRegisterForm(page, { email, password: validPassword });
+    const registerPage = new RegisterPage(page);    
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
 
     // Ensure browser allows submission.
     const form = page.locator('form');
     const isValid = await form.evaluate((f) => (f as HTMLFormElement).checkValidity());
     expect(isValid).toBe(true);
-
-    await page.getByTestId('register-submit-button').click();
 
     // Depending on Cognito's returned message text, Register.tsx maps InvalidParameterException to either:
     // - "Please enter a valid email address."  (when message includes 'email')
@@ -224,10 +212,10 @@ test.describe('Register Flow', () => {
 
   test('account already exists error (UsernameExistsException)', async ({ page }) => {
     const email = uniqueTestEmail();
+    const registerPage = new RegisterPage(page);    
 
     // 1) First registration should succeed and navigate to Verify Email screen.
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2) Force a full reload back to the Register route so the component state resets.
@@ -236,8 +224,7 @@ test.describe('Register Flow', () => {
     await expect(page.locator('h2')).toHaveText('Register');
 
     // 3) Register again with the same email.
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
 
     const errorMessage = page.getByTestId('register-error-message');
     await expect(errorMessage).toBeVisible();
@@ -248,14 +235,8 @@ test.describe('Register Flow', () => {
   test('registration success - happy path', async ({ page }) => {
     const email = uniqueTestEmail();
 
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
-
-    // Expect navigation to Verify Email view
-    await expect(page.locator('h2')).toHaveText('Verify Email');
-
-    // Validate that the verification view is showing the sent-to email
-    await expect(page.getByTestId('register-verify-success-message')).toContainText(email);
+    const registerPage = new RegisterPage(page);    
+    await registerPage.registerNewUser(email, validPassword);
   });
 
   test('email verification - simulated wrong code and resend ', async ({ page }) => {
@@ -301,15 +282,14 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
+    const registerPage = new RegisterPage(page);    
 
     // 1. Register to get to verification screen
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Enter wrong code
-    await page.fill('#verificationCode', '123456');
-    await page.getByTestId('register-verify-button').click();
+    await registerPage.tentativelyVerifyUserEmail('123456');
 
     // 3. Assert error message
     const errorMessage = page.getByTestId('register-verify-error-message');
@@ -347,10 +327,10 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
+    const registerPage = new RegisterPage(page);    
 
     // 2. Attempt registration
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
 
     // 3. Assert user-friendly error message from Register.tsx mapping
     const errorMessage = page.getByTestId('register-error-message');
@@ -385,10 +365,10 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
+    const registerPage = new RegisterPage(page);    
 
     // 2. Attempt registration
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
 
     // 3. Assert fallback error message (expecting exact message from server)
     const errorMessage = page.getByTestId('register-error-message');
@@ -432,13 +412,13 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    const registerPage = new RegisterPage(page);    
+
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Submit any code (mock response determines outcome)
-    await page.fill('#verificationCode', '123456');
-    await page.getByTestId('register-verify-button').click();
+    await registerPage.tentativelyVerifyUserEmail('123456');    
 
     // 3. Assert mapped error message
     const errorMessage = page.getByTestId('register-verify-error-message');
@@ -478,13 +458,13 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    const registerPage = new RegisterPage(page);    
+
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Submit code
-    await page.fill('#verificationCode', '123456');
-    await page.getByTestId('register-verify-button').click();
+    await registerPage.tentativelyVerifyUserEmail( '123456');  
 
     // 3. Assert mapped user-friendly error
     const errorMessage = page.getByTestId('register-verify-error-message');
@@ -523,8 +503,9 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    const registerPage = new RegisterPage(page);    
+
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Click Resend Code
@@ -538,20 +519,18 @@ test.describe('Register Flow', () => {
 
   test('register and login - to unconfirmed user redirects to verification', async ({ page }) => {
     const email = uniqueTestEmail();
+    const user = new User(page);
+    const registerPage = new RegisterPage(page);    
 
     // 1. Register a new user (which leaves them unconfirmed)
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    await registerPage.tentativelyRegisterNewUser(email, validPassword);
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2. Navigate to Login page
-    await page.goto('/#/login');
-    await expect(page.locator('h2')).toHaveText('Log In');
+    const loginPage = await user.navigateToLogin();
 
     // 3. Attempt to log in with the unconfirmed user
-    await page.fill('#email', email);
-    await page.fill('#password', validPassword);
-    await page.getByTestId('login-submit-button').click();
+    await loginPage.login(email, validPassword);
 
     // 4. Expect redirect back to Verify Email view
     // The URL should contain the email and verify=true param
@@ -579,29 +558,15 @@ test.describe('Register Flow', () => {
     });
 
     const email = uniqueTestEmail();
+    const registerPage = new RegisterPage(page);    
 
-    // 2. Register (Real Cognito Call)
-    await fillRegisterForm(page, { email, password: validPassword });
-    await page.getByTestId('register-submit-button').click();
+    // 2. Register (Real Cognito Call) with assertions of success
+    await registerPage.registerNewUser(email, validPassword);
 
-    // 3. Verify Landing on Verification Page
-    await expect(page.locator('h2')).toHaveText('Verify Email');
+    // 5. Submit Verification (Mocked Success) with assertions of success
+    await registerPage.verifyUserEmail('123456');
 
-    // 4. Check for Resend Code button and Verify button existence
-    await expect(page.getByRole('button', { name: '< Resend Code >' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Verify', exact: true })).toBeVisible();
-
-    // 5. Submit Verification (Mocked Success)
-    await page.fill('#verificationCode', '123456');
-    await page.getByTestId('register-verify-button').click();
-
-    // 6. Assert redirection to Login page
-    await expect(page).toHaveURL('/#/login');
-    await expect(page.locator('h2')).toHaveText('Log In');
   });
-
-  
-
 
 
 });
@@ -635,14 +600,11 @@ test.describe('Register with Invite Flow', () => {
       });
 
       // 2. Navigate to Join page
-      await page.goto('/#/join/test-invite-id');
-      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
+      const user = new User(page);
+      const joinPage = await user.navigateToJoin('test-invite-id');
 
-      // 3. Click Register
-      await page.getByTestId('join-register-button').click();
-
-      // 4. Verify Register page state
-      await expect(page.locator('h2')).toHaveText('Register');
+      // 3. Click Register & Verify Register page state
+      await joinPage.redeemInvite();
 
       // Check invite details display using stable container locators
       const inviteDetails = page.getByTestId('register-invite-details');
@@ -760,25 +722,15 @@ test.describe('Register with Invite Flow', () => {
         await route.continue();
       });
 
-      // 1) Start from Join with invite
-      await page.goto(`/#/join/${inviteId}`);
-      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-
-      // Ensure invite has been fetched
-      await expect(page.getByTestId('join-invite-email')).toContainText(email);
+      // 1) Start from Join with invite & Ensure invite has been fetched
+      const user = new User(page);
+      const joinPage = await user.navigateToJoin(inviteId, email);
 
       // 2) Navigate to Register
-      await page.getByTestId('join-register-button').click();
-      await expect(page.locator('h2')).toHaveText('Register');
+      const registerPage = await joinPage.redeemInvite();
 
-      // 3) Fill password + confirm and register
-      await page.fill('#password', validPassword);
-      await page.fill('#confirmPassword', validPassword);
-      await page.getByTestId('register-submit-button').click();
-
-      // 4) Cognito + invite acceptance succeed => Verify Email view
-      await expect(page.locator('h2')).toHaveText('Verify Email');
-      await expect(page.getByTestId('register-verify-success-message')).toContainText(email);
+      // 3) Fill password + confirm and register = Cognito + invite acceptance succeed => Verify Email view
+      await registerPage.registerNewUserWithInvite(email, validPassword);
 
       // Assert requests were called
       expect(getInviteCalled).toBeGreaterThan(0);
@@ -792,8 +744,7 @@ test.describe('Register with Invite Flow', () => {
       expect(typeof patchBody?.accepted_at).toBe('number');
 
       // 5) Verify email then redirect to login
-      await page.fill('#verificationCode', '123456');
-      await page.getByTestId('register-verify-button').click();
+      await registerPage.tentativelyVerifyUserEmail('123456');
 
       await expect(page).toHaveURL('/#/login');
       await expect(page.locator('h2')).toHaveText('Log In');
@@ -881,18 +832,14 @@ test.describe('Register with Invite Flow', () => {
       });
 
       // 1) Start from Join with invite
-      await page.goto(`/#/join/${inviteId}`);
-      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-      await expect(page.getByTestId('join-invite-email')).toContainText(email);
+      const user = new User(page);
+      const joinPage = await user.navigateToJoin(inviteId, email);
 
       // 2) Navigate to Register
-      await page.getByTestId('join-register-button').click();
-      await expect(page.locator('h2')).toHaveText('Register');
+      const registerPage = await joinPage.redeemInvite();
 
       // 3) Fill password + confirm and register
-      await page.fill('#password', validPassword);
-      await page.fill('#confirmPassword', validPassword);
-      await page.getByTestId('register-submit-button').click();
+      await registerPage.tentativelyRegisterNewUserWithInvite(email, validPassword);
 
       // 4) Invite acceptance succeeds despite Cognito saying user exists => redirect to Login
       await expect(page).toHaveURL('/#/login');
@@ -996,18 +943,14 @@ test.describe('Register with Invite Flow', () => {
       });
 
       // 1) Start from Join with invite
-      await page.goto(`/#/join/${inviteId}`);
-      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-      await expect(page.getByTestId('join-invite-email')).toContainText(email);
+      const user = new User(page);
+      const joinPage = await user.navigateToJoin(inviteId, email);
 
       // 2) Navigate to Register
-      await page.getByTestId('join-register-button').click();
-      await expect(page.locator('h2')).toHaveText('Register');
+      const registerPage = await joinPage.redeemInvite();
 
       // 3) Fill password + confirm and register
-      await page.fill('#password', validPassword);
-      await page.fill('#confirmPassword', validPassword);
-      await page.getByTestId('register-submit-button').click();
+      await registerPage.tentativelyRegisterNewUserWithInvite(email, validPassword);
 
       // 4) Cognito says user exists, and invite acceptance fails => stay on Register with invite failure message
       await expect(page).toHaveURL('/#/register');
@@ -1135,19 +1078,14 @@ test.describe('Register with Invite Flow', () => {
       });
 
       // 1) Start from Join with invite
-      await page.goto(`/#/join/${params.inviteId}`);
-      await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-      await expect(page.getByTestId('join-invite-email')).toContainText(email);
+      const user = new User(page);
+      const joinPage = await user.navigateToJoin(params.inviteId, email);
 
       // 2) Navigate to Register
-      await page.getByTestId('join-register-button').click();
-      await expect(page.locator('h2')).toHaveText('Register');
+      const registerPage = await joinPage.redeemInvite();
 
       // 3) Fill password + confirm and register
-      await page.fill('#password', validPassword);
-      await page.fill('#confirmPassword', validPassword);
-
-      await page.getByTestId('register-submit-button').click();
+      await registerPage.tentativelyRegisterNewUserWithInvite(email, validPassword);
 
       // Wait until all expected PATCH attempts have happened (initial call + any retries)
       const expectedCalls = params.expectedAcceptInviteCalls ?? 1;
@@ -1179,8 +1117,7 @@ test.describe('Register with Invite Flow', () => {
       await expect(page.getByTestId('register-verify-error-message')).toHaveCount(0);
 
       // 6) Verify email then redirect to login
-      await page.fill('#verificationCode', '123456');
-      await page.getByTestId('register-verify-button').click();
+      await registerPage.tentativelyVerifyUserEmail('123456');
 
       await expect(page).toHaveURL('/#/login');
       await expect(page.locator('h2')).toHaveText('Log In');

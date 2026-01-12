@@ -1,41 +1,37 @@
 import { test, expect } from '@playwright/test';
+import { User } from './page-objects/User';
 
 test.describe('Join Page', () => {
     const testInviteId = '6ipEOiGEL6';
 
     test('should show loading state', async ({ page }) => {
+        const user = new User(page);
         // Navigate to a valid-looking invite URL
-        await page.goto(`/#/join/${testInviteId}`);
+        await user.navigateToJoin(testInviteId);
 
-        // Check title
-        await expect(page).toHaveTitle('Join - Personal Invite');
-
-        // Check for "Join - Personal Invite" header (h2)
-        await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-
-        // Wait for the fetch to either succeed or fail.
-        await expect(page.getByTestId('join-loading-message')).not.toBeVisible({ timeout: 10000 });
     });
 
     test('should display invite details when successful (mocked)', async ({ page }) => {
+        const user = new User(page);
+        const inviteData = {
+            nano_id: testInviteId,
+            invitee_name: 'John Doe',
+            invitee_email_id: 'john@example.com',
+            invitee_role: 'CAPTAIN',
+            invitee_team: 'The Smashers',
+            team_division: 'Premier',
+            league: 'Local League',
+            season: 'Winter 2024',
+            invited_by: 'Luca',
+            accepted_at: null
+        };
+
         // Mock the API response
         await page.route('**/invites/*', async (route) => {
-            const json = {
-                nano_id: testInviteId,
-                invitee_name: 'John Doe',
-                invitee_email_id: 'john@example.com',
-                invitee_role: 'CAPTAIN',
-                invitee_team: 'The Smashers',
-                team_division: 'Premier',
-                league: 'Local League',
-                season: 'Winter 2024',
-                invited_by: 'Luca',
-                accepted_at: null
-            };
-            await route.fulfill({ json });
+            await route.fulfill({ json: inviteData });
         });
 
-        await page.goto(`/#/join/${testInviteId}`);
+        await user.navigateToJoin(testInviteId);
 
         // Verify invite details using stable container locators
         const inviteDetails = page.getByTestId('join-invite-details');
@@ -53,6 +49,7 @@ test.describe('Join Page', () => {
     });
 
     test('should disable register and hide email when invite already accepted (mocked)', async ({ page }) => {
+        const user = new User(page);
         const acceptedInviteId = 'accepted-invite';
         const inviteeEmail = 'john@example.com';
 
@@ -72,7 +69,7 @@ test.describe('Join Page', () => {
             await route.fulfill({ json });
         });
 
-        await page.goto(`/#/join/${acceptedInviteId}`);
+        await user.navigateToJoin(acceptedInviteId);
 
         await expect(page.getByTestId('join-invite-email')).not.toBeVisible();
 
@@ -84,6 +81,7 @@ test.describe('Join Page', () => {
     });
 
     test('should show invalid link error for malformed nano_id', async ({ page }) => {
+        const user = new User(page);
         // Mock 400 response for malformed nano_id
         await page.route('**/invites/short', async (route) => {
             await route.fulfill({
@@ -92,7 +90,7 @@ test.describe('Join Page', () => {
             });
         });
 
-        await page.goto('/#/join/short');
+        await user.navigateToJoin('short');
 
         // Wait for error message to appear using stable test-id
         await expect(page.getByTestId('join-error-message')).toContainText('Please check this invitation link');
@@ -103,6 +101,7 @@ test.describe('Join Page', () => {
     });
 
     test('should show invitation not found error for nonexistent nano_id', async ({ page }) => {
+        const user = new User(page);
         // Mock 404 response for nonexistent nano_id
         await page.route('**/invites/nonexistent', async (route) => {
             await route.fulfill({
@@ -111,7 +110,7 @@ test.describe('Join Page', () => {
             });
         });
 
-        await page.goto('/#/join/nonexistent');
+        await user.navigateToJoin('nonexistent');
 
         // Wait for error message to appear using stable test-id
         await expect(page.getByTestId('join-error-message')).toContainText('This invitation cannot be found');
