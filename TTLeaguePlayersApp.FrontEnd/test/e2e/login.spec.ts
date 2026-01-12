@@ -1,27 +1,26 @@
 import { test, expect } from '@playwright/test';
+import { User as UserFlow } from './page-objects/User';
 
 test.describe('Login Flow', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/#/login');
-        await expect(page.locator('h2')).toHaveText('Log In');
+        const user = new UserFlow(page);
+        await user.NavigateToLogin();
     });
 
     test('successful login flow - login, welcome message, and logout', async ({ page }) => {
-        // Fill in login credentials
-        await page.fill('#email', 'test_already_registered@user.test');
-        await page.fill('#password', 'aA1!56789012');
-
-        // Click Sign In button (stable test id)
-        await page.getByTestId('login-submit-button').click();
+        const user = new UserFlow(page);
+        const loginPage = await user.NavigateToLogin();
+        
+        // Login
+        await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
 
         // Verify redirect to homepage
         await expect(page).toHaveURL('/#/');
 
         // Open menu to check welcome message
-        const menuButton = page.getByTestId('main-menu-toggle');
-        await menuButton.click();
+        await user.menu.open();
 
-        // Verify welcome message and seasons using stable container locators
+        // Verify welcome message and seasons
         const userInfo = page.getByTestId('main-menu-user-info');
         await expect(userInfo.getByTestId('main-menu-welcome-message')).toContainText('Welcome, Luca Minudel');
         
@@ -39,37 +38,33 @@ test.describe('Login Flow', () => {
         await expect(additionalSeasons.nth(1)).toContainText('Indiidual, Division 1');
         await expect(additionalSeasons.nth(1)).toContainText('(Luca Sr Minudel)');
 
-        // Click logout
-        await page.getByTestId('main-menu-logout-button').click();
+
+        // Logout
+        await user.menu.logout();
 
         // Verify redirect to homepage and menu closes
         await expect(page).toHaveURL('/#/');
 
         // Open menu again to verify welcome message is gone
-        await menuButton.click();
-
-        // Verify welcome message is no longer present and login link is back
+        await user.menu.open();
         await expect(page.getByTestId('main-menu-welcome-message')).not.toBeVisible();
         await expect(page.getByTestId('main-menu-login-link')).toBeVisible();
     });
 
     test('login - non existing user shows expected error message', async ({ page }) => {
-        await page.fill('#email', 'non_existing_user@Idonotexist.com');
-        await page.fill('#password', 'aA1!56789012');
-
-        const signInButton = page.getByTestId('login-submit-button');
-        const errorMessage = page.getByTestId('login-error-message');
-
-        await signInButton.click();
+        const user = new UserFlow(page);
+        const loginPage = await user.NavigateToLogin();
+        
+        await loginPage.login('non_existing_user@Idonotexist.com', 'aA1!56789012');
 
         // Cognito is configured to not reveal user existence (prevent user enumeration),
         // so a non-existing user returns the same message as a wrong password.
+        const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
         await expect(errorMessage).toHaveText('Incorrect username or password.');
-        // Expect to remain on login page and show Cognito error.
+
 
         await expect(page).toHaveURL('/#/login');
-
     });
 
     test('client-side validation - empty email field', async ({ page }) => {
@@ -139,6 +134,9 @@ test.describe('Login Flow', () => {
         await expect(page.getByTestId('login-submit-button')).toBeVisible();
     });
     test('cognito API error - simulated NotAuthorizedException', async ({ page }) => {
+        const user = new UserFlow(page);
+        const loginPage = await user.NavigateToLogin();
+        
         // Mock InitiateAuth to simulate incorrect credentials
         await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
             const request = route.request();
@@ -159,9 +157,7 @@ test.describe('Login Flow', () => {
             await route.continue();
         });
 
-        await page.fill('#email', 'test@example.com');
-        await page.fill('#password', 'WrongPassword123!');
-        await page.getByTestId('login-submit-button').click();
+        await loginPage.login('test@example.com', 'WrongPassword123!');
 
         const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
@@ -170,6 +166,9 @@ test.describe('Login Flow', () => {
     });
 
     test('cognito API error - simulated TooManyRequestsException', async ({ page }) => {
+        const user = new UserFlow(page);
+        const loginPage = await user.NavigateToLogin();
+        
         // Mock InitiateAuth to simulate rate limit
         await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
             const request = route.request();
@@ -190,9 +189,7 @@ test.describe('Login Flow', () => {
             await route.continue();
         });
 
-        await page.fill('#email', 'test@example.com');
-        await page.fill('#password', 'ValidPassword123!');
-        await page.getByTestId('login-submit-button').click();
+        await loginPage.login('test@example.com', 'ValidPassword123!');
 
         const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
@@ -202,6 +199,9 @@ test.describe('Login Flow', () => {
     });
 
     test('cognito API error - simulated InternalErrorException', async ({ page }) => {
+        const user = new UserFlow(page);
+        const loginPage = await user.NavigateToLogin();
+        
         // Mock InitiateAuth to simulate server error
         await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
             const request = route.request();
@@ -222,9 +222,7 @@ test.describe('Login Flow', () => {
             await route.continue();
         });
 
-        await page.fill('#email', 'test@example.com');
-        await page.fill('#password', 'ValidPassword123!');
-        await page.getByTestId('login-submit-button').click();
+        await loginPage.login('test@example.com', 'ValidPassword123!');
 
         const errorMessage = page.getByTestId('login-error-message');
         await expect(errorMessage).toBeVisible();
