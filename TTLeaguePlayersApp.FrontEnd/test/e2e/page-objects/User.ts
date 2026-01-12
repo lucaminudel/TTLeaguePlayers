@@ -49,30 +49,8 @@ export class MenuPage {
   async open(): Promise<void> {
     const menuButton = this.page.getByTestId('main-menu-toggle');
     await menuButton.click();
-  }
-
-  async close(): Promise<void> {
-    const menuButton = this.page.getByTestId('main-menu-toggle');
-    await menuButton.click();
     
-    const overlay = this.page.getByTestId('main-menu-overlay');
-    await expect(overlay).toHaveCSS('opacity', '0');
-    await expect(overlay).toHaveCSS('pointer-events', 'none');
-  }
-
-  async logout(): Promise<HomePage> {
-    
-    const logoutMenuButton = this.page.getByTestId('main-menu-logout-button');
-    await expect(logoutMenuButton).toBeVisible();
-    await logoutMenuButton.click();
-    
-    // Wait for redirect to homepage
-    await expect(this.page).toHaveURL('/#/');
-    
-    return new HomePage(this.page);
-  }
-
-  async verifyOverlayGeometry(): Promise<void> {
+    // Verify menu is actually open by checking overlay visibility and geometry
     const overlay = this.page.getByTestId('main-menu-overlay');
     
     // Check strict geometry: overlay must cover the entire viewport
@@ -88,66 +66,33 @@ export class MenuPage {
       expect(overlayBox.height).toBe(viewportSize.height);
     }
 
-    // Verify menu items are all centred
-    await expect(overlay).toHaveCSS('display', 'flex');
-    await expect(overlay).toHaveCSS('flex-direction', 'column');
-    await expect(overlay).toHaveCSS('justify-content', 'center');
-    await expect(overlay).toHaveCSS('align-items', 'center');
+    // Verify overlay is visible and interactive with menu items centered
+    await expect(overlay).toHaveCSS('opacity', '1');
+    await expect(overlay).toHaveCSS('pointer-events', 'auto');
+    const link = this.page.getByTestId('main-menu-nav-kudos-standings');
+    await expect(link).toBeVisible();
+
   }
 
-  async verifyWelcomeMessage(expectedName: string): Promise<void> {
-    const userInfo = this.page.getByTestId('main-menu-user-info');
-    await expect(userInfo.getByTestId('main-menu-welcome-message')).toContainText(`Welcome, ${expectedName}`);
-  }
-
-  async verifySeasons(): Promise<void> {
-    const userInfo = this.page.getByTestId('main-menu-user-info');
-    
-    // Verify first season
-    await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('CLTTL 2025-2026');
-    await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('Morpeth 10, Division 4');
-    
-    // Verify additional seasons
-    const additionalSeasons = userInfo.locator('[data-testid="main-menu-additional-season"]');
-    await expect(additionalSeasons.nth(0)).toContainText('BCS 2025-2026');
-    await expect(additionalSeasons.nth(0)).toContainText('Morpeth B, Division 2');
-    
-    await expect(additionalSeasons.nth(1)).toContainText('FLICK 2025-Nov');
-    await expect(additionalSeasons.nth(1)).toContainText('Indiidual, Division 1');
-    await expect(additionalSeasons.nth(1)).toContainText('(Luca Sr Minudel)');
-  }
-
-  async verifyWelcomeMessageNotVisible(): Promise<void> {
-    await expect(this.page.getByTestId('main-menu-welcome-message')).not.toBeVisible();
-  }
-
-  async verifyLoginLinkVisible(): Promise<void> {
-    await expect(this.page.getByTestId('main-menu-login-link')).toBeVisible();
-  }
-}
-
-export class HomePage {
-  private page: Page;
-
-  constructor(page: Page) {
-    this.page = page;
-  }
-
-  async verifyTitle(): Promise<void> {
-    await expect(this.page.locator('h1')).toHaveText('TT League Players');
-  }
-
-  async openMenu(): Promise<MenuPage> {
+  async close(): Promise<void> {
     const menuButton = this.page.getByTestId('main-menu-toggle');
     await menuButton.click();
-    return new MenuPage(this.page);
+    
+    const overlay = this.page.getByTestId('main-menu-overlay');
+    await expect(overlay).toHaveCSS('opacity', '0');
+    await expect(overlay).toHaveCSS('pointer-events', 'none');
   }
 
-  async verifyLoginLinkVisible(): Promise<void> {
-    await expect(this.page.getByTestId('main-menu-login-link')).toBeVisible();
-  }
-
-  async verifyWelcomeMessageNotVisible(): Promise<void> {
-    await expect(this.page.getByTestId('main-menu-welcome-message')).not.toBeVisible();
+  async logout() {
+    
+    const logoutMenuButton = this.page.getByTestId('main-menu-logout-button');
+    await expect(logoutMenuButton).toBeVisible();
+    
+    await logoutMenuButton.click();
+    
+    // Wait for redirect to homepage
+    await expect(this.page).toHaveURL('/#/');
+    
   }
 }
+

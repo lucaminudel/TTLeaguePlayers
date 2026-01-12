@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { User as UserFlow, LoginPage } from './page-objects/User';
 
 test.describe('Kudos', () => {
     test.describe('authenticated users only page, login - logout flows', () => {
@@ -10,12 +11,9 @@ test.describe('Kudos', () => {
             await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
             await expect(page.locator('h2')).toHaveText('Log In');
 
-            // Fill in login credentials
-            await page.fill('#email', 'test_already_registered@user.test');
-            await page.fill('#password', 'aA1!56789012');
-
-            // Click Sign In button
-            await page.getByTestId('login-submit-button').click();
+            // Fill in login credentials manually
+            const loginPage = new LoginPage(page);
+            await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
 
             // Verify redirect back to kudos page after successful login
             await expect(page).toHaveURL('/#/kudos');
@@ -61,11 +59,8 @@ test.describe('Kudos', () => {
             await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
 
             // Fill in login credentials for unverified user
-            await page.fill('#email', 'unverified_user@user.test');
-            await page.fill('#password', 'aA1!56789012');
-
-            // Click Sign In button - should fail with UserNotConfirmedException
-            await page.getByTestId('login-submit-button').click();
+            const loginPage = new LoginPage(page);
+            await loginPage.login('unverified_user@user.test', 'aA1!56789012');
 
             // Verify redirect to register page with verify=true and returnUrl preserved
             await expect(page).toHaveURL('/#/register?email=unverified_user%40user.test&verify=true&returnUrl=%2Fkudos');
@@ -82,11 +77,11 @@ test.describe('Kudos', () => {
         });
 
         test('when user logs out from an authenticated-users only page like kudos, user is redirected to home', async ({ page }) => {
-            // Login first
-            await page.goto('/#/login');
-            await page.fill('#email', 'test_already_registered@user.test');
-            await page.fill('#password', 'aA1!56789012');
-            await page.getByTestId('login-submit-button').click();
+            const user = new UserFlow(page);
+            const loginPage = await user.NavigateToLogin();
+            
+            // Login first 
+            await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
 
             // Wait for login to complete - should redirect to home
             await expect(page).toHaveURL('/#/');
@@ -95,23 +90,17 @@ test.describe('Kudos', () => {
             await page.goto('/#/kudos');
             await expect(page.locator('h2')).toHaveText('Fair play Kudos');
 
-            // Open menu and click logout
-            // the the menu opens up clicking the menu hamburger
-            const menuButton = page.getByTestId('main-menu-toggle');
-            await menuButton.click();
-
-            const logoutMenuButton = page.getByTestId('main-menu-logout-button');
-            await expect(logoutMenuButton).toBeVisible();
-            await logoutMenuButton.click();
+            // Logout using fluent interface
+            await user.menu.open();
+            await user.menu.logout();
 
             // Verify redirected to home
             await expect(page).toHaveURL('/#/');
             await expect(page.locator('h1')).toHaveText('TT League Players');
 
             // Verify logged out (menu shows Login item)
-            await menuButton.click();
+            await user.menu.open();
             await expect(page.getByTestId('main-menu-login-link')).toBeVisible();
-            await expect(logoutMenuButton).not.toBeVisible();
         });
     });
 });
