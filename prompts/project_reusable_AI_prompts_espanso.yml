@@ -12,31 +12,70 @@
 
 matches:
 # 
-# Project codebase info specific prompts
+# Codebase/Project prompts
 # 
-  - trigger: "/ttarch"
+  - trigger: "/ttarch" # TT Architecture
+    label: 1. PRJ - Read the Architecture & Tech-Stack summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp architecture and tech stack info:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
 # 
-# Workflow steps guidelines 
+# Workflow skills/guidelines
 # 
-  - trigger: "/ttwtests"
+  - trigger: "/ttws" # TT Worflow Staging
+    label: 2. WF - End of task Staging/Commit and CI pipeline execution
+    replace: |
+      This general rule about what to do afer you complete a task: After completing a taks for which you have made changes to files , ask me if I want you to 
+      1) verify the changes (run build/tests using 'full-stack-builds-tests-pipeline test-env' defined in tasks.json, and/or wait for a human review)
+      2) add the modified files to the stage area (assuming point 1 passes) in one command
+
+  - trigger: "/ttwfv" # TT Worflow Frontend Verification
+    label: 3a. WF - Frontend verification commands 
+    replace: |
+      This is a general rule about the changes you make to the project files: do not make functional or UI changes to the files that have not been explicitly requested.
+      This is another rule for when making changes to the frontend code and tests: use the following commands in this order, to verify the changes made:
+      1) use the following command to lint and build the frontend to check if it is ok or there are errors and warninggs that need fixing: 
+      mpm  build-web:dev-env
+      defined in tasks.json as cross-env ENVIRONMENT=dev npm run build:steps
+      2) use the following command to run basic frontend  tests 
+      nmp unit-tests-web:run
+      defined in tasks.json as  vitest run
+      3) run the e2e tests specific to the test and page files just changed
+      npm run "e2e-tests-web:run dev-env" -- test/e2e/<spec fiile .spec.ts>
+      4) ask me to run the full pipeline lint and build and test full-stack-builds-tests-pipeline test-env (before asking me about staging)
+
+  - trigger: "/ttwbv" # TT Worflow Backend Verification
+    label: 3b. WF - Backend verification commands 
+    replace: |
+      This is a general rule about the changes you make to the project files: do not make functional or UI changes to the files that have not been explicitly requested.
+      This is another rule for when making changes to the C# backend code and tests: use the following commands in this order, to verify the changes made:
+      1) use the following command to build the backend to check if it is ok or there are errors and warninggs that need fixing: 
+      sam-refresh-build dev-env
+      defined in tasks.json as sam build --config-env dev
+      2) use the following command to run backend  tests 
+      dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
+      3) ask me to run the backend pipeline build and test /Users/lucaminudel/Code/TTLeaguePlayers/scripts/ci_tasks/run_backend_acceptance_tests.sh test-env (before asking me about staging)
+
+  - trigger: "/ttwfwt" # TT Worflow, Write Tests 
+    label: 4a. WF - Test writing guidelines
     replace: |
       Read from this file, with the guidelines for writing tests:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
-  - trigger: "/ttftests"
+  - trigger: "/ttftests" # TT Worflow, Fix Tests 
+    label: 4b. WF - Broken Test fixing guidelines
     replace: |
       Read from this file, with the guidelines for fixing tests:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
 # 
 # Workflow tasks instructions 
 # 
-  - trigger: "/ttdebug"
+  - trigger: "/ttdebug" # TT Worflow Debug local SAM lambdas
+    label: 5 WF - Start Debugging local SAM lambdas
     replace: |
       Read from this file, the debug instructions to debug the Lamdas and Api GatewayC# running on SAM locally:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
-  - trigger: "/tthandoff"
+  - trigger: "/tthandoff" # TT Worflow Session Hand-off
+    label: 6 WF - Session Handoff
     replace: |
       You're now handing this task off to another engineer. Write a summary of 
       A - what's still to be done, and 
