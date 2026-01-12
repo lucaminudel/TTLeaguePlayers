@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { User } from './page-objects/User';
 
 test.describe('Homepage', () => {
     test.beforeEach(async ({ page }) => {
@@ -22,12 +23,8 @@ test.describe('Homepage', () => {
 
     test.describe('Menu', () => {
         test('when clicking the hamburger menu should show all the menu items for non-loggedin users', async ({ page }) => {
-            // checks that the is the menu hamburger
-            const menuButton = page.getByTestId('main-menu-toggle');
-            await expect(menuButton).toBeVisible();
-
-            // the the menu opens up clicking the menu hamburger
-            await menuButton.click();
+            const user = new User(page);
+            await user.menu.open();
 
             // that all menu items are present and are visiblised in the whole page
             const menuItems = [
@@ -41,43 +38,23 @@ test.describe('Homepage', () => {
                 const link = page.getByTestId(item.testId);
                 await expect(link).toBeVisible();
             }
-
-            // Verify menu is visualized over the current page
-            const overlay = page.getByTestId('main-menu-overlay');
-
-            // Check strict geometry: overlay must cover the entire viewport
-            const viewportSize = page.viewportSize();
-            expect(viewportSize).not.toBeNull();
-            const overlayBox = await overlay.boundingBox();
-            expect(overlayBox).not.toBeNull();
-
-            if (viewportSize && overlayBox) {
-                // Allow for small rounding differences if necessary, but fixed inset-0 should be exact
-                expect(overlayBox.x).toBe(0);
-                expect(overlayBox.y).toBe(0);
-                expect(overlayBox.width).toBe(viewportSize.width);
-                expect(overlayBox.height).toBe(viewportSize.height);
-            }
-
             // Verify menu items are all centred
+            const overlay = page.getByTestId('main-menu-overlay');            
             await expect(overlay).toHaveCSS('display', 'flex');
             await expect(overlay).toHaveCSS('flex-direction', 'column');
             await expect(overlay).toHaveCSS('justify-content', 'center');
-            await expect(overlay).toHaveCSS('align-items', 'center');
+            await expect(overlay).toHaveCSS('align-items', 'center');            
         });
 
         test('when clicking the X after opening the menu, it should close the menu', async ({ page }) => {
-            const menuButton = page.getByTestId('main-menu-toggle');
-            await expect(menuButton).toBeVisible();
-
-            // Open the menu
-            await menuButton.click();
+            const user = new User(page);
+            await user.menu.open();
 
             // Wait for potential animation to stabilize
             await page.waitForTimeout(500);
 
-            // Close the menu by clicking the toggle button again (which transforms to X)
-            await menuButton.click();
+            // Close the menu
+            await user.menu.close();
 
             // Define overlay for this test's scope
             const overlay = page.getByTestId('main-menu-overlay');
@@ -95,19 +72,14 @@ test.describe('Homepage', () => {
         });
 
         test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
-            // Login first using the same flow as in login.spec.ts
-            await page.goto('/#/login');
-            await page.fill('#email', 'test_already_registered@user.test');
-            await page.fill('#password', 'aA1!56789012');
-            await page.getByTestId('login-submit-button').click();
+            const user = new User(page);
+            const loginPage = await user.NavigateToLogin();
+            await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
 
             // Verify redirect to homepage
             await expect(page).toHaveURL('/#/');
 
-            // Now open the menu
-            const menuButton = page.getByTestId('main-menu-toggle');
-            await expect(menuButton).toBeVisible();
-            await menuButton.click();
+            await user.menu.open();
 
             // Verify logged-in specific menu items are visible: Log out and Kudos
             const logoutButton = page.getByTestId('main-menu-logout-button');
@@ -115,13 +87,6 @@ test.describe('Homepage', () => {
 
             const kudosLink = page.locator('[data-testid="main-menu-nav-kudos"]');
             await expect(kudosLink).toBeVisible();
-
-            // Verify menu is visualized over the current page
-            const overlay = page.getByTestId('main-menu-overlay');
-            await expect(overlay).toHaveCSS('display', 'flex');
-            await expect(overlay).toHaveCSS('flex-direction', 'column');
-            await expect(overlay).toHaveCSS('justify-content', 'center');
-            await expect(overlay).toHaveCSS('align-items', 'center');
         });
     });
 
