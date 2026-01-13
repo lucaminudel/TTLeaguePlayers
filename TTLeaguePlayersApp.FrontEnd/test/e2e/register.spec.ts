@@ -219,7 +219,8 @@ test.describe('Register Flow', () => {
     await expect(page.locator('h2')).toHaveText('Verify Email');
 
     // 2) Force a full reload back to the Register route so the component state resets.
-    await page.goto('/#/register');
+    const userPage = new User(page);
+    await userPage.navigateToRegister();
     await page.reload();
     await expect(page.locator('h2')).toHaveText('Register');
 

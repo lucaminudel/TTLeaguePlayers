@@ -3,7 +3,8 @@ import { User } from './page-objects/User';
 
 test.describe('Homepage', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/');
+        const userPage = new User(page);
+        await userPage.navigateToHome();
     });
 
     test('should display initial app state and messages', async ({ page }) => {
@@ -39,11 +40,11 @@ test.describe('Homepage', () => {
                 await expect(link).toBeVisible();
             }
             // Verify menu items are all centred
-            const overlay = page.getByTestId('main-menu-overlay');            
+            const overlay = page.getByTestId('main-menu-overlay');
             await expect(overlay).toHaveCSS('display', 'flex');
             await expect(overlay).toHaveCSS('flex-direction', 'column');
             await expect(overlay).toHaveCSS('justify-content', 'center');
-            await expect(overlay).toHaveCSS('align-items', 'center');            
+            await expect(overlay).toHaveCSS('align-items', 'center');
         });
 
         test('when clicking the X after opening the menu, it should close the menu', async ({ page }) => {
@@ -111,26 +112,11 @@ test.describe('Homepage', () => {
         });
 
         // Navigate to Home page with invite ID
-        await page.goto(`/#/${testInviteId}`);
+        const user = new User(page);
+        const homePage = await user.navigateToHome(testInviteId);
 
-        // Check that we're still on the Home page
-        await expect(page.locator('h2')).toHaveText('Welcome');
+        // Redeem the invite to go to Join page and verify it is is displayed correctly
+        await homePage.redeem();
 
-        // Check that the button shows "Redeem your invite" instead of "Ready to play?"
-        const enterButton = page.getByTestId('home-enter-button');
-        await expect(enterButton).toHaveText('Redeem your invite');
-        await expect(enterButton).toBeVisible();
-
-        // Click the button to navigate to Join page
-        await enterButton.click();
-
-        // Verify navigation to Join page with correct invite ID
-        await expect(page).toHaveURL(`/#/join/${testInviteId}`);
-        await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
-
-        // Verify the Register button is active (not disabled)
-        const registerButton = page.getByTestId('join-register-button');
-        await expect(registerButton).toBeVisible();
-        await expect(registerButton).toBeEnabled();
     });
 });

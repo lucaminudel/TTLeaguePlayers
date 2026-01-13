@@ -4,8 +4,10 @@ import { User as UserFlow, LoginPage, RegisterPage } from './page-objects/User';
 test.describe('Kudos', () => {
     test.describe('authenticated users only page, login - logout flows', () => {
         test('when a non logged-in user tries to navigate to kudos, it redirects to login and after successful login it redirects back to kudos', async ({ page }) => {
+            const userPage = new UserFlow(page);
+
             // Navigate to kudos page
-            await page.goto('/#/kudos');
+            await userPage.tentativelyNavigateToKudos();
 
             // Verify redirect to login page
             await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
@@ -53,7 +55,8 @@ test.describe('Kudos', () => {
             });
 
             // Navigate to kudos page
-            await page.goto('/#/kudos');
+            const userPage = new UserFlow(page);
+            await userPage.tentativelyNavigateToKudos();            
 
             // Verify redirect to login page with returnUrl
             await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
@@ -85,8 +88,7 @@ test.describe('Kudos', () => {
             await expect(page).toHaveURL('/#/');
 
             // Navigate to kudos page
-            await page.goto('/#/kudos');
-            await expect(page.locator('h2')).toHaveText('Fair play Kudos');
+            await user.navigateToKudos();
 
             // Logout using fluent interface
             await user.menu.open();

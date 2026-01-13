@@ -32,11 +32,46 @@ export class User {
     // Wait for the fetch to either succeed or fail.
     await expect(this.page.getByTestId('join-loading-message')).not.toBeVisible({ timeout: 10000 });
 
-    if (email) {  
+    if (email) {
       await expect(this.page.getByTestId('join-invite-email')).toContainText(email);
     }
 
     return joinPage;
+  }
+
+  async navigateToHome(inviteId?: string): Promise<HomePage> {
+    const homePage = new HomePage(this.page, inviteId ?? undefined);
+
+    const enterButton = this.page.getByTestId('home-enter-button');
+
+    if (inviteId) {
+      await this.page.goto(`/#/${inviteId}`);
+      await expect(enterButton).toHaveText('Redeem your invite');
+      await expect(enterButton).toBeVisible();
+
+    } else {
+      await this.page.goto('/');
+      await expect(enterButton).toHaveText('Ready to play?');
+      await expect(enterButton).toBeVisible();
+    }
+
+    await expect(this.page.locator('h1')).toHaveText('TT League Players');
+    await expect(this.page.locator('h2')).toHaveText('Welcome');
+    return homePage;
+  }
+
+  async navigateToKudos(): Promise<KudosPage> {
+    const kudosPage = new KudosPage(this.page);
+    await this.page.goto('/#/kudos');
+    await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
+    return kudosPage;
+  }
+
+  async tentativelyNavigateToKudos(): Promise<KudosPage> {
+    const kudosPage = new KudosPage(this.page);
+    await this.page.goto('/#/kudos');
+
+    return kudosPage;
   }
 
   get menu(): MenuPage {
@@ -200,6 +235,49 @@ export class RegisterPage {
   };
 
 };
+
+export class HomePage {
+  private page: Page;
+  private inviteId?: string;
+
+  constructor(page: Page, inviteId?: string) {
+    this.page = page;
+    if (inviteId)
+      this.inviteId = inviteId;
+  }
+
+  async redeem(): Promise<JoinPage> {
+    if (!this.inviteId) {
+      throw new Error('No invite ID provided for HomePage, cannot redeem().');
+    }
+    // Click the button to navigate to Join page
+    const enterButton = this.page.getByTestId('home-enter-button');
+    await enterButton.click();
+
+    // Verify navigation to Join page with correct invite ID
+    await expect(this.page).toHaveURL(`/#/join/${this.inviteId}`);
+    await expect(this.page.locator('h2')).toHaveText('Join - Personal Invite');
+
+    // Verify the Register button is active (not disabled) on Join Page
+    const registerButton = this.page.getByTestId('join-register-button');
+    await expect(registerButton).toBeVisible();
+    await expect(registerButton).toBeEnabled();
+
+    return new JoinPage(this.page);
+  }
+}
+
+export class KudosPage {
+  private page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  async expectIsVisible(): Promise<void> {
+    await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
+  }
+}
 
 export class JoinPage {
   private page: Page;
