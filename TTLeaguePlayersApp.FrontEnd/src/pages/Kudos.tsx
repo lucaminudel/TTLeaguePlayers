@@ -1,25 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { useAuth } from '../hooks/useAuth';
+import { ActiveSeasonCard } from '../components/ui/ActiveSeasonCard';
 
 export const Kudos: React.FC = () => {
   const { activeSeasons } = useAuth();
+  const [expandedIndex, setExpandedIndex] = useState<number>(-1);
+
   const hasActiveSeasons = activeSeasons.length > 0;
 
   return (
     <ProtectedRoute>
       <MobileLayout>
         <PageContainer title="Fair play Kudos">
-          <div className="space-y-4 sm:space-y-6 px-4">
+          <div className="space-y-4 sm:space-y-6">
             <p>
               Award kudos to recognize fair play and positive behaviour in table tennis.
             </p>
             {hasActiveSeasons ? (
-              <p>
-                Celebrate sportsmanship and build a community that values integrity and respect.
-              </p>
+              <div className="space-y-2">
+                <p>
+                  Celebrate sportsmanship and build a community that values integrity and respect.
+                </p>
+                {activeSeasons.map((season, index) => (
+                  <ActiveSeasonCard
+                    key={`${season.league}-${season.season}-${season.team_name}`}
+                    season={season}
+                    isExpanded={expandedIndex === index}
+                    onToggle={() => { setExpandedIndex(expandedIndex === index ? -1 : index); }}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="pt-6 sm:pt-8">
                 <p className="text-base sm:text-lg leading-relaxed">
