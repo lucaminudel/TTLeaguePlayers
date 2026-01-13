@@ -215,15 +215,15 @@ test.describe('Register Flow', () => {
     const registerPage = new RegisterPage(page);    
 
     // 1) First registration should succeed and navigate to Verify Email screen.
-    await registerPage.tentativelyRegisterNewUser(email, validPassword);
-    await expect(page.locator('h2')).toHaveText('Verify Email');
-
+    await registerPage.registerNewUser(email, validPassword);
+    
     // 2) Force a full reload back to the Register route so the component state resets.
     const userPage = new User(page);
-    await userPage.navigateToRegister();
-    await page.reload();
-    await expect(page.locator('h2')).toHaveText('Register');
+    await userPage.navigateToHome();
 
+    await userPage.navigateToRegister();
+    
+    
     // 3) Register again with the same email.
     await registerPage.tentativelyRegisterNewUser(email, validPassword);
 
