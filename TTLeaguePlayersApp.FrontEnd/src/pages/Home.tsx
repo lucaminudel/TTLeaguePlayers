@@ -50,7 +50,7 @@ export const Home: React.FC = () => {
                     <br />
                     <br />
                     <b>We stay connected</b><br />
-                    Never miss a tournament, stay informed on new venues and clubs, discuss gear and more (forums coming soon)<br />
+                    Never miss a tournament, stay informed on new venues and clubs, discuss gear and more (forums will be added), manage team members availability (feature will be added).<br />
                 </p>
 
             </PageContainer>

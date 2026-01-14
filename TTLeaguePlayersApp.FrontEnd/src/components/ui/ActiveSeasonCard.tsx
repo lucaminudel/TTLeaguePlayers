@@ -44,8 +44,8 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, isEx
                             Previous Match
                         </p>
                         <p className="text-base sm:text-lg" data-testid="active-season-prev-match">
-                            Away game at Venue Name, 01/12/2025 <br />
-                            Vs Team Some Name One
+                            Home game, Fri 12th Dec<br />
+                            Vs Irving 4
                         </p>
                         <div className="h-4"></div>
                         <div className="h-4"></div>
@@ -57,8 +57,8 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, isEx
                             Next Match
                         </p>
                         <p className="text-base sm:text-lg" data-testid="active-season-next-match">
-                            Home Game, 22/01/2026<br />
-                            Vs Team Some Name Three
+                            Away game, Doubtfire Hall, Tue 20th Jan<br />
+                            Vs Walworth Tigers
                         </p>
                     </div>
                 </div>
