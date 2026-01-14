@@ -10,7 +10,19 @@ describe('Environment Config (build-time)', () => {
       FrontEnd: { WebsiteBaseUrl: 'http://localhost:3000' },
       ApiGateWay: { ApiBaseUrl: 'http://api.localhost' },
       DynamoDB: { ServiceLocalUrl: 'http://dynamo', "AWS.Profile": "test", "AWS.Region": "us-east-1" },
-      Cognito: { UserPoolId: 'pool', ClientId: 'client', Domain: 'domain' }
+      Cognito: { UserPoolId: 'pool', ClientId: 'client', Domain: 'domain' },
+      active_seasons_data_source: [
+        {
+          league: "TestLeague",
+          season: "2025-2026",
+          custom_processor: "Processor",
+          registrations_start_date: 1234567890,
+          ratings_end_date: 1234567890,
+          division_tables: [{ "Div1": "url1" }],
+          division_fixtures: [{ "Div1": "url2" }],
+          all_players: [{ "Div1": "url3" }]
+        }
+      ]
     };
 
     vi.doMock('../../../src/config/environment', () => ({

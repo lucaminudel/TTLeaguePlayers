@@ -15,6 +15,18 @@ export interface EnvironmentConfig {
         ClientId: string;
         Domain: string;
     }
+    active_seasons_data_source: ActiveSeasonDataSource[];
+}
+
+export interface ActiveSeasonDataSource {
+    league: string;
+    season: string;
+    custom_processor: string;
+    registrations_start_date: number;
+    ratings_end_date: number;
+    division_tables: Record<string, string>[];
+    division_fixtures: Record<string, string>[];
+    division_players: Record<string, string>[];
 }
 
 /**
