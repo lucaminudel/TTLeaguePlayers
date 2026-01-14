@@ -129,6 +129,14 @@ $PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-users.sh $ENVIRONMENT
 export ENVIRONMENT="$ENVIRONMENT"
 dotnet test "$BACKEND_TEST_PROJECT" --configuration Debug --logger "console;verbosity=minimal"
 
+rc=$?
+echo "Debug: Exit code was $rc"
+
+if [ $? -ne 0 ]; then
+    echo "   ❌ Backend Build + Acceptance Tests failed."
+    exit 1
+fi
+
 # ==============================================================================
 # 2. FRONTEND PHASE
 # ==============================================================================
@@ -137,14 +145,29 @@ echo -e "${CYAN}# --------------------------------------------------------------
 echo "🔹 [4/7] Frontend: Build & Lint..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 cd "$FRONTEND_DIR"
-# build-web:test-env includes copy-config
+# build-web:test-env includes copy-config and lint
 npm run build-web:test-env
-#npm run lint # the prevous step already include the run lint
+
+rc=$?
+echo "Debug: Exit code was $rc"
+
+if [ $? -ne 0 ]; then
+    echo "   ❌ Frontend: Build & Lint failed."
+    exit 1
+fi
 
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [5/7] Frontend: Unit Tests..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 npm run unit-tests-web:run
+
+rc=$?
+echo "Debug: Exit code was $rc"
+
+if [ $? -ne 0 ]; then
+    echo "   ❌ Frontend: Unit Tests failed."
+    exit 1
+fi
 
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [6/7] Frontend: Starting Web Server..."
@@ -179,7 +202,16 @@ echo "🔹 [7/7] Frontend: Running E2E Tests (Playwright)..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 
 # The package.json script "e2e-tests-web:run test-env" sets PORT=4173
+export PW_TEST_HTML_REPORT_OPEN=never
 npm run "e2e-tests-web:run test-env"
+
+rc=$?
+echo "Debug: Exit code was $rc"
+
+if [ $? -ne 0 ]; then
+    echo "   ❌ Frontend: E2E Tests (Playwright) failed."
+    exit 1
+fi
 
 echo ""
 echo "# ============================================================================================================"
