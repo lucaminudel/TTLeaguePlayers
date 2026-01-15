@@ -38,18 +38,43 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
         expect(fetch).toHaveBeenCalledWith('http://tables/div1');
     });
 
-    it('should successfully get fixtures', async () => {
+    it('should successfully get fixtures, filtered by team and sorted by date', async () => {
         const mockHtml = `
             <div id="Fixtures">
+                <!-- Fixture 1: Later date, matches team -->
                 <div class="fixture complete">
                     <div class="date" itemprop="startDate">
-                        <time datetime="2025-09-29">Mon 29 Sep 19:30</time>
+                        <time datetime="2025-10-05">Sun 05 Oct 19:30</time>
                     </div>
                     <div class="homeTeam">
                         <div class="teamName">Fusion 5</div>
                     </div>
                     <div class="awayTeam">
                         <div class="teamName">Morpeth 10</div>
+                    </div>
+                </div>
+                <!-- Fixture 2: Earlier date, matches team -->
+                <div class="fixture complete">
+                    <div class="date" itemprop="startDate">
+                        <time datetime="2025-09-29">Mon 29 Sep 19:30</time>
+                    </div>
+                    <div class="homeTeam">
+                        <div class="teamName">Morpeth 10</div>
+                    </div>
+                    <div class="awayTeam">
+                        <div class="teamName">Fusion 6 Jr</div>
+                    </div>
+                </div>
+                <!-- Fixture 3: Doesn't match team -->
+                <div class="fixture complete">
+                    <div class="date" itemprop="startDate">
+                        <time datetime="2025-10-01">Wed 01 Oct 19:00</time>
+                    </div>
+                    <div class="homeTeam">
+                        <div class="teamName">Apex 4</div>
+                    </div>
+                    <div class="awayTeam">
+                        <div class="teamName">Irving 4</div>
                     </div>
                 </div>
             </div>`;
@@ -59,9 +84,16 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
         } as Response);
 
         const fixtures = await processor.getTeamFixtures();
-        expect(fixtures.length).toBe(1);
-        expect(fixtures[0].homeTeam).toBe('Fusion 5');
-        expect(fixtures[0].awayTeam).toBe('Morpeth 10');
+
+        // Should only have 2 fixtures (Morpeth 10)
+        expect(fixtures.length).toBe(2);
+
+        // Should be sorted by date: Sep 29 first, then Oct 05
+        expect(fixtures[0].startDateTime.toISOString()).toContain('2025-09-29');
+        expect(fixtures[0].homeTeam).toBe('Morpeth 10');
+
+        expect(fixtures[1].startDateTime.toISOString()).toContain('2025-10-05');
+        expect(fixtures[1].awayTeam).toBe('Morpeth 10');
     });
 
     it('should successfully get team players', async () => {

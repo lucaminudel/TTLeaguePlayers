@@ -1,5 +1,5 @@
 export interface Fixture {
-    startDate: Date;
+    startDateTime: Date;
     venue: string;
     homeTeam: string;
     homeTeamPlayers: string[];
@@ -61,16 +61,16 @@ export class CLTTLActiveSeason2025PagesParser {
             const dateEl = fixtureEl.querySelector('.date[itemprop="startDate"]');
 
             const timeTag = dateEl?.querySelector('time');
-            let startDate = new Date();
+            let startDateTime = new Date();
             if (dateEl && timeTag) {
                 const dateStr = timeTag.getAttribute('datetime'); // "2025-09-29"
                 const fullText = dateEl.textContent;
                 const timeMatch = fullText ? /(\d{2}:\d{2})/.exec(fullText) : null;
 
                 if (dateStr && timeMatch) {
-                    startDate = new Date(`${dateStr}T${timeMatch[1]}`);
+                    startDateTime = new Date(`${dateStr}T${timeMatch[1]}`);
                 } else if (dateStr) {
-                    startDate = new Date(dateStr);
+                    startDateTime = new Date(dateStr);
                 }
             }
 
@@ -121,7 +121,7 @@ export class CLTTLActiveSeason2025PagesParser {
             const isCompleted = fixtureEl.classList.contains('complete');
 
             fixtures.push({
-                startDate,
+                startDateTime,
                 venue,
                 homeTeam,
                 homeTeamPlayers,

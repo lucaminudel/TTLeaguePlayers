@@ -28,14 +28,11 @@ export class CLTTLActiveSeason2025Processor {
      */
     public async getTeamFixtures(): Promise<Fixture[]> {
         const html = await this.fetcher.getTeamFixtures(this.division);
-        return this.getTeamFixturesFromHtml(html);
-    }
+        const allFixtures = this.parser.getTeamFixtures(html);
 
-    /**
-     * Internal helper to allow testing parser result bubbling.
-     */
-    private getTeamFixturesFromHtml(html: string): Fixture[] {
-        return this.parser.getTeamFixtures(html);
+        return allFixtures
+            .filter(f => f.homeTeam === this.team || f.awayTeam === this.team)
+            .sort((a, b) => a.startDateTime.getTime() - b.startDateTime.getTime());
     }
 
     /**
