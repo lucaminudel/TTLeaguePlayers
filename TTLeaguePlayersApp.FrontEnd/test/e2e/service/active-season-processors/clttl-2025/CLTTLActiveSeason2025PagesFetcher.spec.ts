@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { CLTTLActiveSeason2025PagesFetcher } from '../../../src/api/CLTTLActiveSeason2025PagesFetcher';
-import type { ActiveSeasonDataSource } from '../../../src/config/environment';
+import { CLTTLActiveSeason2025PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesFetcher';
+import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
 const DATA_SOURCE: ActiveSeasonDataSource = {
     "league": "CLTTL",

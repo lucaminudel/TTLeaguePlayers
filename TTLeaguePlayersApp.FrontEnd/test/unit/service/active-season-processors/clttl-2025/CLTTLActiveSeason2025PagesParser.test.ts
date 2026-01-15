@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CLTTLActiveSeason2025PagesParser } from '../../../src/service/CLTTLActiveSeason2025PagesParser';
+import { CLTTLActiveSeason2025PagesParser } from '../../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesParser';
 import fs from 'fs';
 import path from 'path';
 

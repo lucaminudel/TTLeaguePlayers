@@ -1,4 +1,4 @@
-import type { ActiveSeasonDataSource } from '../config/environment';
+import type { ActiveSeasonDataSource } from '../../../config/environment';
 
 export class PageFetcherError extends Error {
     constructor(message: string) {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CLTTLActiveSeason2025PagesFetcher, PageFetcherError } from '../../../src/api/CLTTLActiveSeason2025PagesFetcher';
-import type { ActiveSeasonDataSource } from '../../../src/config/environment';
+import { CLTTLActiveSeason2025PagesFetcher, PageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesFetcher';
+import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
 describe('CLTTLActiveSeason2025PagesFetcher', () => {
     const mockDataSource: ActiveSeasonDataSource = {
