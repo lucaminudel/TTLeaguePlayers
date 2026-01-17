@@ -334,7 +334,7 @@ test.describe('Kudos', () => {
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-details')).toBeVisible();
 
             // Wait for loading to complete (may take longer due to network requests)
-            await expect(cards.nth(clttlCardIndex).getByTestId('active-season-loading')).not.toBeVisible({ timeout: 5000 });
+            await expect(cards.nth(clttlCardIndex).getByTestId('active-season-loading')).not.toBeVisible({ timeout: 10000 });
 
             // Verify that the previous match header shows "Today's Match"
             const previousMatchHeader = cards.nth(clttlCardIndex).getByTestId('active-season-prev-match-header');

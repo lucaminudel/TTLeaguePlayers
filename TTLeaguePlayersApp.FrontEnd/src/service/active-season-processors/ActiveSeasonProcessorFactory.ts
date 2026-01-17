@@ -1,6 +1,9 @@
 import type { ActiveSeasonDataSource } from '../../config/environment';
 import type { ActiveSeasonProcessor } from './ActiveSeasonProcessor';
 import { CLTTLActiveSeason2025Processor } from './CLTTLActiveSeason2025Processor';
+
+import { ActiveSeasonProcessorWithLocalStorageCache } from './ActiveSeasonProcessorWithLocalStorageCache';
+
 //import { DummyActiveSeasonProcessor } from './DummyActiveSeasonProcessor'; // add here additiona ActiveSeasonProcessor
 
 type ActiveSeasonProcessorConstructor = new (
@@ -30,5 +33,11 @@ export function createActiveSeasonProcessor(
     if (!ActiveSeasonProcessorClass) {
         throw new Error(`Active Season Processor "${processorName}" not present or registered.`);
     }
-    return new ActiveSeasonProcessorClass(dataSource, division, team, avoidCORS);
+
+    const realProcessor = new ActiveSeasonProcessorClass(dataSource, division, team, avoidCORS);
+
+    // Create a unique cache key
+    const uniqueKey = `cache_${dataSource.league}_${dataSource.season}_${division}_${team}`;
+
+    return new ActiveSeasonProcessorWithLocalStorageCache(realProcessor, uniqueKey);
 }
