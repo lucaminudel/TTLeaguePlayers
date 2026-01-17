@@ -7,12 +7,12 @@ export class LoginPage {
         this.page = page;
     }
 
-    async login(email: string, password: string): Promise<void> {
+    async tryToLogin(email: string, password: string): Promise<void> {
         await this.page.fill('#email', email);
         await this.page.fill('#password', password);
         await this.page.getByTestId('login-submit-button').click();
 
-        // Wait for navigation to complete (either homepage or returnUrl)
+        // Wait for navigation to complete
         await this.page.waitForLoadState('networkidle');
     }
 }

@@ -74,18 +74,9 @@ test.describe('Homepage', () => {
 
         test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
             const user = new User(page);
-            const loginPage = await user.navigateToLogin();
-            await loginPage.login('test_already_registered@user.test', 'aA1!56789012');
-
-            // Verify redirect to homepage
-            await expect(page).toHaveURL('/#/');
-
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+            
             await user.menu.open();
-
-            // Verify logged-in specific menu items are visible: Log out and Kudos
-            const logoutButton = page.getByTestId('main-menu-logout-button');
-            await expect(logoutButton).toBeVisible();
-
             const kudosLink = page.locator('[data-testid="main-menu-nav-kudos"]');
             await expect(kudosLink).toBeVisible();
         });

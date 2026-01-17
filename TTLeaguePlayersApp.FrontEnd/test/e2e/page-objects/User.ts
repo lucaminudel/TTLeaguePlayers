@@ -24,6 +24,28 @@ export class User {
     return loginPage;
   }
 
+  async navigateToLoginAndSuccesfullyLogin(email: string, password: string): Promise<LoginPage> {
+    const loginPage = new LoginPage(this.page);
+    await this.page.goto('/#/login');
+    await expect(this.page.locator('h2')).toHaveText('Log In');
+
+    // Perform login
+    await loginPage.tryToLogin(email, password);
+
+    // Verify redirect to homepage
+    await expect(this.page).toHaveURL('/#/');
+
+    // Open menu, check welcome message and logout item signaling successful loging, close menu
+    await this.menu.open();
+    const logoutButton = this.page.getByTestId('main-menu-logout-button');
+    await expect(logoutButton).toBeVisible();
+    const userInfo = this.page.getByTestId('main-menu-user-info');
+    await expect(userInfo.getByTestId('main-menu-welcome-message')).toContainText('Welcome,');
+    await this.menu.close();
+
+    return loginPage;
+  }
+
   async navigateToRegister(): Promise<RegisterPage> {
     const registerPage = new RegisterPage(this.page);
     await this.page.goto('/#/register');

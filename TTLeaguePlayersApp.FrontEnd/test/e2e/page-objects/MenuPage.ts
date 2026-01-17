@@ -51,5 +51,7 @@ export class MenuPage {
 
         // Wait for redirect to homepage
         await expect(this.page).toHaveURL('/#/');
+        await expect(this.page.locator('h1')).toHaveText('TT League Players');
+
     }
 }

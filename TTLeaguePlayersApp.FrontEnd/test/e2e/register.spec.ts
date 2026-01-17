@@ -518,7 +518,7 @@ test.describe('Register Flow', () => {
     await expect(errorMessage).toHaveText('New verification code sent to your email.');
   });
 
-  test('register and login - to unconfirmed user redirects to verification', async ({ page }) => {
+  test('register and login - the unconfirmed user is redirected to verification', async ({ page }) => {
     const email = uniqueTestEmail();
     const user = new User(page);
     const registerPage = new RegisterPage(page);    
@@ -531,7 +531,7 @@ test.describe('Register Flow', () => {
     const loginPage = await user.navigateToLogin();
 
     // 3. Attempt to log in with the unconfirmed user
-    await loginPage.login(email, validPassword);
+    await loginPage.tryToLogin(email, validPassword);
 
     // 4. Expect redirect back to Verify Email view
     // The URL should contain the email and verify=true param

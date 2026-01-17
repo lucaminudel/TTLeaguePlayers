@@ -53,8 +53,8 @@ export const PageContainer: React.FC<PageContainerProps> = ({
 
     if (formProps) {
         // Avoid passing a className twice after we merged it into containerClassName
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { className: _ignored, ...restFormProps } = formProps;
+        const { className, ...restFormProps } = formProps;
+        void className; // Explicitly discard to avoid duplicate className
 
         return (
             <form className={containerClassName} {...restFormProps}>

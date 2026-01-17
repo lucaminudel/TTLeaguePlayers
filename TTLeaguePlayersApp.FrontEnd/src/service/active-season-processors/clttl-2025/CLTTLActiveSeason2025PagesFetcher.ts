@@ -9,9 +9,11 @@ export class PageFetcherError extends Error {
 
 export class CLTTLActiveSeason2025PagesFetcher {
     private dataSource: ActiveSeasonDataSource;
+    private corsAnyWherePrefix: string;
 
-    constructor(dataSource: ActiveSeasonDataSource) {
+    constructor(dataSource: ActiveSeasonDataSource, avoidCORS = false) {
         this.dataSource = dataSource;
+        this.corsAnyWherePrefix = avoidCORS ? "https://cors-anywhere.com/" : "";
     }
 
     private getUrlFromSource(source: Record<string, string>[], division: string): string {
@@ -25,7 +27,7 @@ export class CLTTLActiveSeason2025PagesFetcher {
     private async fetchWithRetry(url: string, retries = 2, delay = 2000): Promise<string> {
         for (let i = 0; i <= retries; i++) {
             try {
-                const response = await fetch(url);
+                const response = await fetch(this.corsAnyWherePrefix + url);
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + String(response.status));
                 }

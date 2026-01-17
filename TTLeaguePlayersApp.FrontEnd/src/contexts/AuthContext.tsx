@@ -51,13 +51,14 @@ function createInitialAuthState(): InitialAuthState {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const [{ userPool, authInitialisationError }] = useState<InitialAuthState>(() => createInitialAuthState());
+
+  // Initialize isLoading: true if we have a userPool to check for existing sessions, false otherwise
+  const [isLoading, setIsLoading] = useState(() => !!(userPool && !authInitialisationError));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
-
-  const [{ userPool, authInitialisationError }] = useState<InitialAuthState>(() => createInitialAuthState());
 
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -176,17 +177,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // Session discovery is still async (callback-based) but userPool construction is synchronous.
     // This effect only runs once on mount to check for existing sessions.
-    // We use empty dependency array to ensure this only runs on component mount.
     if (!userPool || authInitialisationError) {
-      // If we can't initialize, mark loading as complete
-      setIsLoading(false);
+      // No userPool available - mark loading as complete asynchronously
+      queueMicrotask(() => { setIsLoading(false); });
       return;
     }
 
     const currentUser = userPool.getCurrentUser();
     if (!currentUser) {
-      // No existing session, mark loading as complete
-      setIsLoading(false);
+      // No existing session - mark loading as complete asynchronously
+      queueMicrotask(() => { setIsLoading(false); });
       return;
     }
 
@@ -237,8 +237,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userPool, authInitialisationError, parseActiveSeasonsJson]);
 
   const signIn = async (emailInput: string, password: string): Promise<void> => {
     if (authInitialisationError) {

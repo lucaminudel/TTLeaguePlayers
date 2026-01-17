@@ -70,3 +70,26 @@ aws cognito-idp admin-create-user \
     --message-action SUPPRESS > /dev/null
 
 echo "Cognito Test user '$EMAIL2' registered, not confirmed and pending for invite accepted API call!"
+
+EMAIL3="test_already_registered2@user.test"
+PASSWORD3="aA1!56789012"
+
+# Create the active_seasons JSON with only BCS league
+ACTIVE_SEASONS_JSON3='[{"league": "BCS", "season": "2025-2026","team_name": "Morpeth B","team_division": "Division 2","person_name": "Luca Minudel","role": "PLAYER"}]'
+
+# Create user
+aws cognito-idp admin-create-user \
+    --user-pool-id "$USER_POOL_ID" \
+    --username "$EMAIL3" \
+    --user-attributes "Name=email,Value=$EMAIL3" "Name=email_verified,Value=true" "Name=custom:active_seasons,Value='$ACTIVE_SEASONS_JSON3'" \
+    --temporary-password "$PASSWORD3" \
+    --message-action SUPPRESS > /dev/null
+
+# Set permanent password and confirm user
+aws cognito-idp admin-set-user-password \
+    --user-pool-id $USER_POOL_ID \
+    --username $EMAIL3 \
+    --password $PASSWORD3 \
+    --permanent
+
+echo "Cognito Test user '$EMAIL3' registered and confirmed successfully with only BCS league!"
