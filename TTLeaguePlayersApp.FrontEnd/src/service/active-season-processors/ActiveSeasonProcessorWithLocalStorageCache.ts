@@ -49,7 +49,9 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
                     if (age < this.DOUBLE_EXPIRATION_MS) {
                         // Case 2: Cache is expired but within the "stale-while-revalidate" window (< 6 days)
                         // Return stale data immediately, but trigger background update
-                        void this.refreshCache();
+                        this.refreshCache().catch((error: unknown) => {
+                            console.warn('Background cache refresh failed:', error);
+                        });
                         return deserializeFixtures(entry.data);
                     }
                 }

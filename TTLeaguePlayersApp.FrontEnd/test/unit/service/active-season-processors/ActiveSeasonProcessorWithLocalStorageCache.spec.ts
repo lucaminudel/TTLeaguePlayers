@@ -191,4 +191,46 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(result[0].startDateTime).toBeInstanceOf(Date);
         expect(result[0].startDateTime.toISOString()).toBe(mockFixture.startDateTime.toISOString());
     });
+
+    it('should propagate error when refreshCache fails and no cache exists', async () => {
+        const mockGetTeamFixtures = vi.fn().mockRejectedValue(new Error('Network failure'));
+        vi.mocked(CLTTLActiveSeason2025Processor).mockImplementation(function () {
+            return {
+                getTeamFixtures: mockGetTeamFixtures
+            } as unknown as CLTTLActiveSeason2025Processor;
+        });
+
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+
+        await expect(processor.getTeamFixtures()).rejects.toThrow('Network failure');
+    });
+
+    it('should return stale cache when background refresh fails', async () => {
+        // 1. Seed Cache with old data
+        window.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        await processor1.getTeamFixtures();
+
+        // 2. Advance time to make cache stale (4 days)
+        window.__FIXED_CLOCK_TIME__ = '2025-01-05T10:00:00Z';
+
+        // 3. Create new processor with failing mock
+        const mockGetTeamFixtures = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+        vi.mocked(CLTTLActiveSeason2025Processor).mockImplementation(function () {
+            return {
+                getTeamFixtures: mockGetTeamFixtures
+            } as unknown as CLTTLActiveSeason2025Processor;
+        });
+
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const result = await processor2.getTeamFixtures();
+
+        // Should return stale data (not throw error)
+        expect(result[0].venue).toBe('Old Data');
+        
+        // Background refresh should have been attempted - wait for it to complete
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(mockGetTeamFixtures).toHaveBeenCalledTimes(1);
+    });
 });

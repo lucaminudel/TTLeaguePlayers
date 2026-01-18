@@ -51,7 +51,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
     }, [isExpanded, processor]);
 
     const renderFixture = (fixture: Fixture | null, testId: string) => {
-        if (!fixture) return <p className="text-base sm:text-lg" data-testid={testId}>No fixture found</p>;
+        if (!fixture) return <p className="text-base sm:text-lg" data-testid={testId}>No fixture found, retry later or tomorrow</p>;
 
         const isHome = fixture.homeTeam === season.team_name;
         const opponent = isHome ? fixture.awayTeam : fixture.homeTeam;

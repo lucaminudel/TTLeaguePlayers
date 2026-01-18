@@ -359,4 +359,151 @@ test.describe('Kudos', () => {
             expect(nextMatchText).toContain('Vs Walworth Tigers');
         });
     });
+
+    test.describe('error handling scenarios', () => {
+        test('shows "No fixture found" when network request fails', async ({ page }) => {
+            // Set fixed clock time
+            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
+
+            // Clear all storage before test
+            await page.addInitScript(() => {
+                localStorage.clear();
+                sessionStorage.clear();
+            });
+
+            // Mock network failure for both direct and CORS proxy requests
+            await page.route('**/tabletennis365.com/**', async (route) => {
+                if (route.request().url().includes('Fixtures')) {
+                    await route.abort('failed');
+                } else {
+                    await route.continue();
+                }
+            });
+            await page.route('**/cors-anywhere.com/**', async (route) => {
+                if (route.request().url().includes('Fixtures')) {
+                    await route.abort('failed');
+                } else {
+                    await route.continue();
+                }
+            });
+
+            const user = new UserFlow(page);
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+            await user.navigateToKudos();
+
+            // Find and expand the first active season card
+            const cards = page.getByTestId('active-season-card');
+            await expect(cards.first()).toBeVisible();
+            await cards.first().getByTestId('active-season-header').click();
+
+            // Wait for loading to complete
+            await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
+
+            // Verify "No fixture found" message is displayed
+            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('No fixture found, retry later or tomorrow');
+            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
+        });
+
+        test('shows "No fixture found" when server returns HTTP error', async ({ page }) => {
+            // Set fixed clock time
+            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
+
+            // Clear all storage before test
+            await page.addInitScript(() => {
+                localStorage.clear();
+                sessionStorage.clear();
+            });
+
+            // Mock HTTP 500 error for both direct and CORS proxy requests
+            await page.route('**/tabletennis365.com/**', async (route) => {
+                if (route.request().url().includes('Fixtures')) {
+                    await route.fulfill({
+                        status: 500,
+                        contentType: 'text/html',
+                        body: 'Internal Server Error'
+                    });
+                } else {
+                    await route.continue();
+                }
+            });
+            await page.route('**/cors-anywhere.com/**', async (route) => {
+                if (route.request().url().includes('Fixtures')) {
+                    await route.fulfill({
+                        status: 500,
+                        contentType: 'text/html',
+                        body: 'Internal Server Error'
+                    });
+                } else {
+                    await route.continue();
+                }
+            });
+
+            const user = new UserFlow(page);
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+            await user.navigateToKudos();
+
+            // Find and expand the first active season card
+            const cards = page.getByTestId('active-season-card');
+            await expect(cards.first()).toBeVisible();
+            await cards.first().getByTestId('active-season-header').click();
+
+            // Wait for loading to complete
+            await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
+
+            // Verify "No fixture found" message is displayed
+            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('No fixture found, retry later or tomorrow');
+            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
+        });
+
+        test('shows "No fixture found" when server returns "service unavailable"', async ({ page }) => {
+            // Set fixed clock time
+            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
+
+            // Clear all storage before test
+            await page.addInitScript(() => {
+                localStorage.clear();
+                sessionStorage.clear();
+            });
+
+            // Mock service unavailable response for both direct and CORS proxy requests
+            await page.route('**/tabletennis365.com/**', async (route) => {
+                if (route.request().url().includes('Fixtures')) {
+                    await route.fulfill({
+                        status: 200,
+                        contentType: 'text/html',
+                        body: 'Service unavailable'
+                    });
+                } else {
+                    await route.continue();
+                }
+            });
+            await page.route('**/cors-anywhere.com/**', async (route) => {
+                if (route.request().url().includes('Fixtures')) {
+                    await route.fulfill({
+                        status: 200,
+                        contentType: 'text/html',
+                        body: 'Service unavailable'
+                    });
+                } else {
+                    await route.continue();
+                }
+            });
+
+            const user = new UserFlow(page);
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+            await user.navigateToKudos();
+
+            // Find and expand the first active season card
+            const cards = page.getByTestId('active-season-card');
+            await expect(cards.first()).toBeVisible();
+            await cards.first().getByTestId('active-season-header').click();
+
+            // Wait for loading to complete
+            await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
+
+            // Verify "No fixture found" message is displayed
+            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('No fixture found, retry later or tomorrow');
+            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
+        });
+    });
 });
