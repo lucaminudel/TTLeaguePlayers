@@ -167,6 +167,58 @@ Resources:
               - invited_by
               - accepted_at
 
+  KudosTable:
+    Type: AWS::DynamoDB::Table
+    Condition: IsProdOrStaging
+    Properties:
+      TableName: !Sub "ttleague-kudos-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: match_date_time
+          AttributeType: N
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: KudosByPlayerIndex
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: match_date_time
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - division
+              - receiving_team
+              - giver_team
+              - giver_person_name
+              - kudos_value
+        - IndexName: TeamStandingsIndex
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - positive_kudos_count
+              - neutral_kudos_count
+              - negative_kudos_count
+
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, ""]]
   IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
