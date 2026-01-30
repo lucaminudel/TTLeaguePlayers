@@ -19,19 +19,21 @@ matches:
     replace: |
       Read from this file, the TTLeaguePlayersApp architecture and tech stack info:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
-# 
-# Workflow skills/guidelines
-# 
+
   - trigger: "/ttws" # TT Workflow Staging
-    label: 2. WF - End of task Staging/Commit and CI pipeline execution
+    label: 2. PRJ - End of task Staging/Commit and CI pipeline execution
     replace: |
       This is a general rule about what to do after you complete a task: After completing a step of the tasks for which you have made changes to files, and having successfully passed the verification steps, ask me if I want you to 
       1) run the basic verification commands (defined by other instructions or rules)
       2) wait for me to manually review the file changes 
       3) add the modified files to the stage area (assuming point 1 passes) in one command
 
+# 
+# Tasks specific instructions 
+# 
+
   - trigger: "/ttwfv" # TT Workflow Frontend Verification
-    label: 3a. WF - Frontend verification commands 
+    label: 3a. TSK - Frontend verification commands 
     replace: |
       This is a general rule about the changes you make to the project files: do not make functional or UI changes to the files that have not been explicitly requested.
       This is another rule for when making changes to the frontend code and tests: use the following commands in this order, to verify the changes made:
@@ -46,7 +48,7 @@ matches:
       4) ask me to run the full pipeline lint and build and test full-stack-builds-tests-pipeline test-env (before asking me about staging)
 
   - trigger: "/ttwbv" # TT Workflow Backend Verification
-    label: 3b. WF - Backend verification commands 
+    label: 3b. TSK - Backend verification commands 
     replace: |
       This is a general rule about the changes you make to the project files: do not make functional or UI changes to the files that have not been explicitly requested.
       This is another rule for when making changes to the C# backend code and tests: use the following commands in this order, to verify the changes made:
@@ -57,24 +59,26 @@ matches:
       dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
       3) ask me to run the backend pipeline build and test /Users/lucaminudel/Code/TTLeaguePlayers/scripts/ci_tasks/run_backend_acceptance_tests.sh test-env (before asking me about staging)
 
+  - trigger: "/ttdebug" # TT Workflow Debug local SAM lambdas
+    label: 4 TSK - Start Debugging local SAM lambdas
+    replace: |
+      Read from this file, the debug instructions to debug the Lambdas and Api GatewayC# running on SAM locally:
+      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
+
+# 
+# Workflow instructions 
+# 
   - trigger: "/ttwfwt" # TT Workflow, Write Tests 
-    label: 4a. WF - Test writing guidelines
+    label: 5a. WF - Test writing guidelines
     replace: |
       Read from this file, with the guidelines for writing tests:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
   - trigger: "/ttftests" # TT Workflow, Fix Tests 
-    label: 4b. WF - Broken Test fixing guidelines
+    label: 5b. WF - Broken Test fixing guidelines
     replace: |
       Read from this file, with the guidelines for fixing tests:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
-# 
-# Workflow tasks instructions 
-# 
-  - trigger: "/ttdebug" # TT Workflow Debug local SAM lambdas
-    label: 5 WF - Start Debugging local SAM lambdas
-    replace: |
-      Read from this file, the debug instructions to debug the Lambdas and Api GatewayC# running on SAM locally:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
+
   - trigger: "/tthandoff" # TT Workflow Session Hand-off
     label: 6 WF - Session Handoff
     replace: |
