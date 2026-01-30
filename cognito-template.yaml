@@ -49,9 +49,13 @@ Resources:
       ClientName: !Sub "ttleague-client-${Environment}"
       UserPoolId: !Ref TTLeagueCognitoUserPool
       GenerateSecret: false
-      ExplicitAuthFlows:
-        - ALLOW_USER_SRP_AUTH
-        - ALLOW_REFRESH_TOKEN_AUTH
+      ExplicitAuthFlows: !If
+        - IsProdOrStaging
+        - - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        - - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
       PreventUserExistenceErrors: ENABLED
       RefreshTokenValidity: !If [IsProdOrStaging, 1, 30]
       AccessTokenValidity: !If [IsProdOrStaging, 60, 1440]

@@ -59,6 +59,12 @@ Resources:
     Condition: IsProdOrStaging
     Properties:
       StageName: !Ref Environment
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+            IdentitySource: method.request.header.Authorization
       Domain:
         DomainName: !Ref DomainName
         CertificateArn: !Sub "{{resolve:ssm:/ttleague/${Environment}/certificate-arn}}"
@@ -98,7 +104,26 @@ Resources:
                 - cognito-idp:AdminUpdateUserAttributes
               Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
       Events:
-        ApiEvent:
+      Events:
+        # Public Endpoints (Explicitly override Default Authorizer)
+        InvitesRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites
+            Method: ANY
+            Auth:
+              Authorizer: NONE
+        InvitesProxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites/{proxy+}
+            Method: ANY
+            Auth:
+              Authorizer: NONE
+        # Protected Endpoints (Uses Default Authorizer)
+        CatchAllProxy:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi

@@ -1,9 +1,8 @@
-using Amazon.Lambda.Core;
-using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
-using TTLeaguePlayersApp.BackEnd;
-using Amazon.CognitoIdentityProvider;
-using Amazon.CognitoIdentityProvider.Model;
 using System.Text.Json;
+using Amazon.Lambda.Core;
+using Amazon.CognitoIdentityProvider;
+using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
@@ -11,8 +10,7 @@ public partial class AccepteInviteLambda
 {
     private readonly ILoggerObserver _observer;
     private readonly IInvitesDataTable _invitesDataTable;
-    private readonly string _cognitoUserPoolId;
-    private readonly IAmazonCognitoIdentityProvider _cognitoClient;
+    private readonly CognitoUsers _cognitoUsers;
 
     private static readonly Dictionary<string, string> _fromHere = 
         new() { ["Class"] = nameof(AccepteInviteLambda), ["Method"] = nameof(HandleAsync) };    
@@ -21,8 +19,8 @@ public partial class AccepteInviteLambda
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
-        _cognitoClient = cognitoClient;
-        _cognitoUserPoolId = cognitoUserPoolId;
+
+        _cognitoUsers = new CognitoUsers(observer, cognitoClient, cognitoUserPoolId);
     }
 
     public async Task<Invite> HandleAsync(string nanoId, long acceptedAt, ILambdaContext context)
@@ -47,12 +45,12 @@ public partial class AccepteInviteLambda
         if (inviteAlreadyAccepted)
         {
             _observer.OnRuntimeRegularEvent("ACCEPT INVITE IDEMPOTENT",
-               _fromHere, context, parameters.With("AlreadyAccepted", true.ToString()) );
+               _fromHere, context, parameters.With("AlreadyAccepted", true.ToString()));
 
             return invite;
         }
 
-        var user = await RetrieveCognitoUserByEmailId(invite.InviteeEmailId, nanoId, context);
+        var user = await _cognitoUsers.RetrieveCognitoUserByEmailId(invite.InviteeEmailId, nanoId, context);
 
         var activeSeasonsAttr = user.Attributes.FirstOrDefault(a => a.Name == "custom:active_seasons");
         var activeSeasons = new List<ActiveSeason>();
@@ -93,14 +91,7 @@ public partial class AccepteInviteLambda
             activeSeasons.Add(newActiveSeason);
         }
 
-        var updateAttributesRequest = new AdminUpdateUserAttributesRequest
-        {
-            UserPoolId = _cognitoUserPoolId,
-            Username = user.Username,
-            UserAttributes = new () { new () { Name = "custom:active_seasons", Value = JsonSerializer.Serialize(activeSeasons) } }
-        };
-
-        await _cognitoClient.AdminUpdateUserAttributesAsync(updateAttributesRequest);
+        await _cognitoUsers.UpdateUserAttribute(user.Username, activeSeasons);
 
         try
         {
@@ -113,35 +104,11 @@ public partial class AccepteInviteLambda
             throw new NotFoundException("Invite not found");
         }
 
-        _observer.OnRuntimeRegularEvent("ACCEPT INVITE COMPLETED", _fromHere, context, parameters.With("AcceptedAt", acceptedAt.ToString()) );
+        _observer.OnRuntimeRegularEvent("ACCEPT INVITE COMPLETED", _fromHere, context, parameters.With("AcceptedAt", acceptedAt.ToString()));
 
-        invite.AcceptedAt = acceptedAt; 
+        invite.AcceptedAt = acceptedAt;
         return invite;
 
-    }
-
-    private async Task<UserType> RetrieveCognitoUserByEmailId(string inviteeEmailId, string nanoId, ILambdaContext context)
-    {
-        var listUsersRequest = new ListUsersRequest
-        {
-            UserPoolId = _cognitoUserPoolId,
-            Filter = $"email = \"{inviteeEmailId}\"",
-            Limit = 1
-        };
-
-        var listUsersResponse = await _cognitoClient.ListUsersAsync(listUsersRequest);
-        var user = listUsersResponse.Users.FirstOrDefault();
-
-        if (user == null)
-        {
-            _observer.OnRuntimeRegularEvent("ACCEPT INVITE USER NOT FOUND",
-               source: new() { ["Class"] = nameof(AccepteInviteLambda), ["Method"] = nameof(HandleAsync) },
-               context, parameters: new() { [nameof(nanoId)] = nanoId, ["AlreadyAccepted"] = true.ToString() });
-
-            throw new UserNotFoundException($"The provided email is not a registered user. Email: {inviteeEmailId}");
-        }
-
-        return user;
     }
 
     private void ValidateRequest(string nanoId, long acceptedAt)

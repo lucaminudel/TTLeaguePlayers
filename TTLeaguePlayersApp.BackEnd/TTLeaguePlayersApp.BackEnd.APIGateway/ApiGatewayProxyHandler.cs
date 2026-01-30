@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using System.Text;
 using System.Text.Json;
 using System.Security;
 using Amazon.Lambda.Core;
@@ -9,6 +10,7 @@ using Amazon.CognitoIdentityProvider.Model;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
+using TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -20,6 +22,7 @@ public partial class ApiGatewayProxyHandler
     private readonly CreateInviteLambda _createInviteLambda;
     private readonly AccepteInviteLambda _acceptInviteLambda;
     private readonly DeleteInviteLambda _deleteInviteLambda;
+    private readonly CreateKudosLambda _createKudosLambda;
     private readonly InvitesDataTable _invitesDataTable;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
@@ -44,16 +47,18 @@ public partial class ApiGatewayProxyHandler
         _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable); 
         _acceptInviteLambda = new AccepteInviteLambda(_observer, _invitesDataTable, new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, _invitesDataTable);
+        _createKudosLambda = new CreateKudosLambda(_observer);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
         _acceptInviteLambda = markInviteAcceptedLambda;
         _deleteInviteLambda = deleteInviteLambda;
+        _createKudosLambda = createKudosLambda;
         _invitesDataTable = invitesDataTable;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
@@ -80,6 +85,15 @@ public partial class ApiGatewayProxyHandler
 
                 // Method not allowed for /invites
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+                // Preflight for /kudos
+                ("OPTIONS", "/kudos") => CreatePreflightResponse("OPTIONS,POST", request),
+
+                // Create a new kudos: POST /kudos
+                ("POST", "/kudos") => await HandleCreateKudos(request, context),
+
+                 // Method not allowed for /kudos
+                (var m, "/kudos") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Preflight for /invites/{nano_id}
                 ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH,DELETE", request),
@@ -320,6 +334,40 @@ public partial class ApiGatewayProxyHandler
 
             var additionalHeaders = new Dictionary<string, string> { { "Retry-After", "900" } };
             return CreateResponse(responseStatusCode, new { message = "Service overloaded or temporarely down, retry." }, additionalHeaders);
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleCreateKudos(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleCreateKudos));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GIVE KUDOS", context, inParameters);
+
+        ExtractBodyOrCreateResponseAndNotifyObserver(context, request.Headers, request.Body, fromHere, inParameters,
+                                                     out CreateKudosRequest? createRequest, out APIGatewayProxyResponse? createdResponse);
+        if (createRequest is null)
+            return createdResponse!;
+
+        // Extract claims to pass to Lambda for validation
+        Dictionary<string, string> userClaims = ExtractUserClaims(request);
+
+        try
+        {
+            var createdKudos = await _createKudosLambda.HandleAsync(createRequest, userClaims, context);
+
+            _observer.OnRuntimeRegularEvent("CREATE KUDOS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.Created));
+
+            return CreateResponse(HttpStatusCode.Created, createdKudos);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("CREATE KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
     }
 
@@ -581,6 +629,59 @@ public partial class ApiGatewayProxyHandler
         }
 
         return (userName, userEmail);
+    }
+
+    private Dictionary<string, string> ExtractUserClaims(APIGatewayProxyRequest request)
+    {
+        Dictionary<string, string> userClaims = new();
+        
+        // 1. Try to get claims from the Authorizer (populated by API Gateway in the Cloud)
+        if (request.RequestContext?.Authorizer?.Claims is IDictionary<string, string> authClaims)
+        {
+            foreach (var kvp in authClaims) userClaims[kvp.Key] = kvp.Value;
+        }
+        else if (request.RequestContext?.Authorizer?.Claims != null)
+        {
+            foreach (var key in request.RequestContext.Authorizer.Claims.Keys)
+            {
+                var val = request.RequestContext.Authorizer.Claims[key];
+                userClaims[key] = val?.ToString() ?? string.Empty;
+            }
+        }
+
+        // 2. Fallback for local C# Acceptance testing (test, dev environment) where Authorizer claims are not populated
+        if (userClaims.Count == 0)
+        {
+            if (request.Headers != null && (request.Headers.TryGetValue("Authorization", out var authHeader) || request.Headers.TryGetValue("authorization", out authHeader)))
+            {
+                try
+                {
+                    var token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                        ? authHeader.Substring(7)
+                        : authHeader;
+
+                    var parts = token.Split('.');
+                    if (parts.Length == 3)
+                    {
+                        var payload = parts[1];
+                        // Add padding if needed for Base64 decoding
+                        payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+                        var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+                        using var doc = JsonDocument.Parse(json);
+                        foreach (var prop in doc.RootElement.EnumerateObject())
+                        {
+                            userClaims[prop.Name] = prop.Value.ToString() ?? string.Empty;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore parsing errors in fallback mode; security validation in Lambda will handle missing claims
+                }
+            }
+        }
+
+        return userClaims;
     }
 
 }

@@ -21,7 +21,6 @@
     <ProjectReference Include="../TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests/" />
     <Folder Include="TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests/" />
   </ItemGroup>
 </Project>
