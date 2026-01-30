@@ -46,6 +46,8 @@ matches:
       3) run the e2e tests specific to the test and page files just changed
       npm run "e2e-tests-web:run dev-env" -- test/e2e/<spec fiile .spec.ts>
       4) ask me to run the full pipeline lint and build and test full-stack-builds-tests-pipeline test-env (before asking me about staging)
+      You find more information and commands here: /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
+
 
   - trigger: "/ttwbv" # TT Workflow Backend Verification
     label: 3b. TSK - Backend verification commands 
@@ -58,6 +60,8 @@ matches:
       2) use the following command to run backend  tests 
       dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
       3) ask me to run the backend pipeline build and test /Users/lucaminudel/Code/TTLeaguePlayers/scripts/ci_tasks/run_backend_acceptance_tests.sh test-env (before asking me about staging)
+      You find more information and commands here: /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/tasks.json
+
 
   - trigger: "/ttdebug" # TT Workflow Debug local SAM lambdas
     label: 4 TSK - Start Debugging local SAM lambdas
