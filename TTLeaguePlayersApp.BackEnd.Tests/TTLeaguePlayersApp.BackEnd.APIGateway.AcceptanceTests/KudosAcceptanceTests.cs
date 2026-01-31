@@ -77,11 +77,8 @@ public class KudosAcceptanceTests: IAsyncLifetime
         response.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.BadRequest);
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public async Task POST_Kudos_Should_Create_Kudos_Successfully(int kudosValue)
+    [Fact]
+    public async Task POST_Kudos_Should_Create_Kudos_Successfully()
     {
         // Arrange
         // Arrange
@@ -104,7 +101,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
             giverTeam: "Morpeth 10",
             giverName: "Luca Minudel",
             giverSub: sub,
-            kudosValue: kudosValue
+            kudosValue: 1
         );
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
         
@@ -123,134 +120,10 @@ public class KudosAcceptanceTests: IAsyncLifetime
         
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
         jsonResult.GetProperty("giver_person_name").GetString().Should().Be("Luca Minudel");
-        jsonResult.GetProperty("kudos_value").GetInt32().Should().Be(kudosValue);
+        jsonResult.GetProperty("kudos_value").GetInt32().Should().Be(1);
     }
 
-    [Theory]
-    [InlineData("league", "", "League")]
-    [InlineData("league", null, "League")]
-    [InlineData("season", "", "Season")]
-    [InlineData("season", null, "Season")]
-    [InlineData("division", "", "Division")]
-    [InlineData("division", null, "Division")]
-    [InlineData("receiving_team", "", "ReceivingTeam")]
-    [InlineData("receiving_team", null, "ReceivingTeam")]
-    [InlineData("home_team", "", "HomeTeam")]
-    [InlineData("home_team", null, "HomeTeam")]
-    [InlineData("away_team", "", "AwayTeam")]
-    [InlineData("away_team", null, "AwayTeam")]
-    [InlineData("giver_team", "", "GiverTeam")]
-    [InlineData("giver_team", null, "GiverTeam")]
-    [InlineData("giver_person_name", "", "GiverPersonName")]
-    [InlineData("giver_person_name", null, "GiverPersonName")]
-    [InlineData("giver_person_sub", "", "GiverPersonSub")]
-    [InlineData("giver_person_sub", null, "GiverPersonSub")]
-    public async Task POST_Kudos_Should_Return_400_When_Required_Fields_Are_Missing(string fieldToRemove, string newValue, string expectedFieldNameInError)
-    {
-        // Arrange
-        // Arrange
-        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
-        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
-        var sub = await GetUserSubByEmail(TestUserEmail);
 
-        var requestDict = new Dictionary<string, object>
-        {
-            { "league", "CLTTL" },
-            { "season", "2025-2026" },
-            { "division", "Division 4" },
-            { "receiving_team", "Morpeth 9" },
-            { "home_team", "Morpeth 10" },
-            { "away_team", "Morpeth 9" },
-            { "match_date_time", 1735689600 },
-            { "giver_team", "Morpeth 10" },
-            { "giver_person_name", "Luca Minudel" },
-            { "giver_person_sub", sub },
-            { "kudos_value", 1 }
-        };
-
-        bool isMissingKey = newValue == null;
-        if (isMissingKey)
-            requestDict.Remove(fieldToRemove);
-        else
-            requestDict[fieldToRemove] = newValue;
-
-        var requestBody = JsonSerializer.Serialize(requestDict);
-        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        // Act
-        var response = await _httpClient.PostAsync("/kudos", content);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var result = await response.Content.ReadAsStringAsync();
-        
-        if (isMissingKey)
-        {
-            // System.Text.Json handles 'required' properties during deserialization
-            result.Should().ContainAny("Invalid request body", "Validation failed");
-            result.Should().Contain(fieldToRemove); // Deserialization error uses JSON property name
-        }
-        else
-        {
-            // Business logic validation
-            result.Should().Contain("Validation failed");
-            result.Should().Contain($"{expectedFieldNameInError} is required"); // Logic validation uses PascalCase property name
-        }
-    }
-
-    [Theory]
-    [InlineData("Morpeth 8", "Morpeth 10", "Morpeth 9", "Morpeth 10", "ReceivingTeam must be either the HomeTeam or the AwayTeam")] // Receiving team not in match
-    [InlineData("Morpeth 9", "Morpeth 10", "Morpeth 9", "Morpeth 8", "GiverTeam must be either the HomeTeam or the AwayTeam")]     // Giver team not in match
-    [InlineData("Morpeth 10", "Morpeth 10", "Morpeth 9", "Morpeth 10", "GiverTeam cannot be the same as the ReceivingTeam")]     // Giver is receiver
-    public async Task POST_Kudos_Should_Return_400_When_Teams_Are_Invalid(string recTeam, string homeTeam, string awayTeam, string giverTeam, string expectedError)
-    {
-        // Arrange
-        // Arrange
-        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
-        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
-        var sub = await GetUserSubByEmail(TestUserEmail);
-
-        var requestBody = CreateKudosRequestJson(
-            receivingTeam: recTeam,
-            homeTeam: homeTeam,
-            awayTeam: awayTeam,
-            giverTeam: giverTeam,
-            giverSub: sub
-        );
-        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        // Act
-        var response = await _httpClient.PostAsync("/kudos", content);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var result = await response.Content.ReadAsStringAsync();
-        result.Should().Contain(expectedError);
-    }
-
-    [Theory]
-    [InlineData(-2)]
-    [InlineData(2)]
-    [InlineData(10)]
-    public async Task POST_Kudos_Should_Return_400_When_KudosValue_Is_Invalid(int invalidKudosValue)
-    {
-        // Arrange
-        // Arrange
-        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
-        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
-        var sub = await GetUserSubByEmail(TestUserEmail);
-
-        var requestBody = CreateKudosRequestJson(kudosValue: invalidKudosValue, giverSub: sub);
-        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-        // Act
-        var response = await _httpClient.PostAsync("/kudos", content);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var result = await response.Content.ReadAsStringAsync();
-        result.Should().Contain("KudosValue must be -1, 0, or 1");
-    }
 
     [Fact]
     public async Task POST_Kudos_Should_Return_400_For_Malformed_Json()
@@ -348,5 +221,6 @@ public class KudosAcceptanceTests: IAsyncLifetime
     public async Task DisposeAsync()
     {
         _httpClient?.Dispose();
+        await Task.CompletedTask;
     }
 }

@@ -11,6 +11,7 @@ using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -23,7 +24,6 @@ public partial class ApiGatewayProxyHandler
     private readonly AccepteInviteLambda _acceptInviteLambda;
     private readonly DeleteInviteLambda _deleteInviteLambda;
     private readonly CreateKudosLambda _createKudosLambda;
-    private readonly InvitesDataTable _invitesDataTable;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
@@ -41,25 +41,25 @@ public partial class ApiGatewayProxyHandler
             region = Amazon.RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
         }
 
-        _invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+        var invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
 
-        _createInviteLambda = new CreateInviteLambda(_observer, _invitesDataTable);
-        _getInviteLambda = new GetInviteLambda(_observer, _invitesDataTable); 
-        _acceptInviteLambda = new AccepteInviteLambda(_observer, _invitesDataTable, new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
-        _deleteInviteLambda = new DeleteInviteLambda(_observer, _invitesDataTable);
-        _createKudosLambda = new CreateKudosLambda(_observer);
+        _createInviteLambda = new CreateInviteLambda(_observer, invitesDataTable);
+        _getInviteLambda = new GetInviteLambda(_observer, invitesDataTable); 
+        _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
+        _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);
+         var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+        _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, InvitesDataTable invitesDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
         _acceptInviteLambda = markInviteAcceptedLambda;
         _deleteInviteLambda = deleteInviteLambda;
         _createKudosLambda = createKudosLambda;
-        _invitesDataTable = invitesDataTable;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         _observer = new LoggerObserver();

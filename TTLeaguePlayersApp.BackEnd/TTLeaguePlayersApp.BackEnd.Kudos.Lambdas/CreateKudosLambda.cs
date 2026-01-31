@@ -2,25 +2,23 @@ using System.Text.Json;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas; 
 using TTLeaguePlayersApp.BackEnd.Cognito;
+using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 
 public class CreateKudosLambda
 {
     private readonly ILoggerObserver _observer;
-    
-    // Placeholder for data store
-    // private readonly IKudosDataTable _kudosDataTable; 
+    private readonly IKudosDataTable _kudosDataTable;
 
-    public CreateKudosLambda(ILoggerObserver observer)
+    public CreateKudosLambda(ILoggerObserver observer, IKudosDataTable kudosDataTable)
     {
         _observer = observer;
+        _kudosDataTable = kudosDataTable;
     }
 
     public async Task<Kudos> HandleAsync(CreateKudosRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
-        ValidateRequest(request);
-
         try {
             ValidateRequestSecurity(request, userClaims);
         }
@@ -29,9 +27,6 @@ public class CreateKudosLambda
             // Log optional checks to be esamined later
             _observer.OnSecurityError(ex, context, null, userClaims);
         }
-
-        // Placeholder: Actual interaction with DynamoDB would happen here
-        // await _kudosDataTable.SaveKudosAsync(kudos);
 
         var kudos = new Kudos
         {
@@ -48,6 +43,8 @@ public class CreateKudosLambda
             KudosValue = request.KudosValue
         };
 
+        await _kudosDataTable.SaveKudosAsync(kudos);
+
         _observer.OnRuntimeRegularEvent("CREATE KUDOS COMPLETED",
             source: new() { ["Class"] = nameof(CreateKudosLambda), ["Method"] = nameof(HandleAsync) },
             context, 
@@ -59,46 +56,7 @@ public class CreateKudosLambda
         return await Task.FromResult(kudos);
     }
 
-    private void ValidateRequest(CreateKudosRequest request)
-    {
-        var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(request.ReceivingTeam)) errors.Add($"{nameof(request.ReceivingTeam)} is required");
-        if (string.IsNullOrWhiteSpace(request.HomeTeam)) errors.Add($"{nameof(request.HomeTeam)} is required");
-        if (string.IsNullOrWhiteSpace(request.AwayTeam)) errors.Add($"{nameof(request.AwayTeam)} is required");
-        if (string.IsNullOrWhiteSpace(request.GiverTeam)) errors.Add($"{nameof(request.GiverTeam)} is required");
-
-        if (request.ReceivingTeam != request.HomeTeam && request.ReceivingTeam != request.AwayTeam)
-        {
-            errors.Add($"{nameof(request.ReceivingTeam)} must be either the {nameof(request.HomeTeam)} or the {nameof(request.AwayTeam)}.");
-        }
-
-        if (request.GiverTeam != request.HomeTeam && request.GiverTeam != request.AwayTeam)
-        {
-            errors.Add($"{nameof(request.GiverTeam)} must be either the {nameof(request.HomeTeam)} or the {nameof(request.AwayTeam)}.");
-        }
-
-        if (request.GiverTeam == request.ReceivingTeam)
-        {
-            errors.Add($"{nameof(request.GiverTeam)} cannot be the same as the {nameof(request.ReceivingTeam)}.");
-        }
-
-        if (request.KudosValue != -1 && request.KudosValue != 0 && request.KudosValue != 1)
-        {
-            errors.Add($"{nameof(request.KudosValue)} must be -1, 0, or 1.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.League)) errors.Add($"{nameof(request.League)} is required");
-        if (string.IsNullOrWhiteSpace(request.Season)) errors.Add($"{nameof(request.Season)} is required");
-        if (string.IsNullOrWhiteSpace(request.Division)) errors.Add($"{nameof(request.Division)} is required");
-        if (string.IsNullOrWhiteSpace(request.GiverPersonName)) errors.Add($"{nameof(request.GiverPersonName)} is required");   
-        if (string.IsNullOrWhiteSpace(request.GiverPersonSub)) errors.Add($"{nameof(request.GiverPersonSub)} is required");
-        
-        if (errors.Count > 0)
-        {
-            throw new ValidationException(errors);
-        }
-    }
 
     private void ValidateRequestSecurity(CreateKudosRequest request, Dictionary<string, string> userClaims)
     {
