@@ -17,7 +17,7 @@ public class CreateKudosLambda
         _kudosDataTable = kudosDataTable;
     }
 
-    public async Task<Kudos> HandleAsync(CreateKudosRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
+    public async Task<DataStore.Kudos> HandleAsync(CreateKudosRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         try {
             ValidateRequestSecurity(request, userClaims);
@@ -28,7 +28,7 @@ public class CreateKudosLambda
             _observer.OnSecurityError(ex, context, null, userClaims);
         }
 
-        var kudos = new Kudos
+        var kudos = new DataStore.Kudos
         {
             League = request.League,
             Season = request.Season,
@@ -106,7 +106,7 @@ public class CreateKudosLambda
         }
         else if (tokenSub != request.GiverPersonSub) 
         {
-            errors.Add($"{request.GiverPersonSub} does not match token's User Id Sub.");
+            errors.Add($"{nameof(request.GiverPersonSub)}: '{request.GiverPersonSub}' does not match token's User Id Sub: '{tokenSub}'.");
         }
 
         

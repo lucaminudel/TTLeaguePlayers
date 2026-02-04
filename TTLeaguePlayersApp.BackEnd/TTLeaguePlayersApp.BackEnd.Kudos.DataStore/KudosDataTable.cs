@@ -4,7 +4,7 @@ using Amazon.DynamoDBv2.Model;
 using System.Text.Json;
 using System.Linq;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
-using KudosEvent = TTLeaguePlayersApp.BackEnd.Kudos.Lambdas.Kudos;
+using KudosEvent = TTLeaguePlayersApp.BackEnd.Kudos.DataStore.Kudos;
 using KudosSummary = TTLeaguePlayersApp.BackEnd.Kudos.Lambdas.KudosSummary;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
@@ -174,6 +174,152 @@ public class KudosDataTable : IDisposable, IKudosDataTable
         }
 
         return JsonSerializer.Deserialize<KudosSummary>(document.ToJson())!;
+    }
+
+    public async Task DeleteKudosAsync(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam, string giverPersonSub)
+    {
+        ValidateDeleteParameters(league, season, division, receivingTeam, homeTeam, awayTeam, giverPersonSub);
+
+        var pk = $"{league}#{season}#{division}#{receivingTeam}";
+        var sk = $"match#{homeTeam}#{awayTeam}#{giverPersonSub}";
+        var summarySk = $"match#{homeTeam}#{awayTeam}#SUMMARY";
+
+        // First, retrieve the kudos to get its value for summary update
+        KudosEvent kudos;
+        try
+        {
+            kudos = await RetrieveKudosAsync(league, season, division, receivingTeam, homeTeam, awayTeam, giverPersonSub);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Kudos doesn't exist, nothing to delete - idempotent behavior
+            return;
+        }
+
+        // Determine which counter to decrement
+        string counterField = kudos.KudosValue switch
+        {
+            1 => "positive_kudos_count",
+            0 => "neutral_kudos_count",
+            -1 => "negative_kudos_count",
+            _ => throw new InvalidOperationException($"Invalid KudosValue: {kudos.KudosValue}")
+        };
+
+        // Retrieve current summary to check if we should delete it
+        KudosSummary? summary = null;
+        try
+        {
+            summary = await RetrieveSummaryAsync(league, season, division, receivingTeam, homeTeam, awayTeam);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Summary doesn't exist, just delete the kudos item
+            await _client.DeleteItemAsync(new DeleteItemRequest
+            {
+                TableName = _tableName,
+                Key = new Dictionary<string, AttributeValue>
+                {
+                    ["PK"] = new AttributeValue { S = pk },
+                    ["SK"] = new AttributeValue { S = sk }
+                }
+            });
+            return;
+        }
+
+        // Calculate new counter values
+        int newPositiveCount = summary.PositiveKudosCount - (kudos.KudosValue == 1 ? 1 : 0);
+        int newNeutralCount = summary.NeutralKudosCount - (kudos.KudosValue == 0 ? 1 : 0);
+        int newNegativeCount = summary.NegativeKudosCount - (kudos.KudosValue == -1 ? 1 : 0);
+
+        var transactItems = new List<TransactWriteItem>
+        {
+            // Delete the kudos item
+            new TransactWriteItem
+            {
+                Delete = new Delete
+                {
+                    TableName = _tableName,
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["PK"] = new AttributeValue { S = pk },
+                        ["SK"] = new AttributeValue { S = sk }
+                    }
+                }
+            }
+        };
+
+        // Check if all counters will be zero after this delete
+        if (newPositiveCount == 0 && newNeutralCount == 0 && newNegativeCount == 0)
+        {
+            // Delete the summary item
+            transactItems.Add(new TransactWriteItem
+            {
+                Delete = new Delete
+                {
+                    TableName = _tableName,
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["PK"] = new AttributeValue { S = pk },
+                        ["SK"] = new AttributeValue { S = summarySk }
+                    }
+                }
+            });
+        }
+        else
+        {
+            // Update the summary by decrementing the appropriate counter
+            var updateExpression = $"SET {counterField} = {counterField} - :one";
+
+            transactItems.Add(new TransactWriteItem
+            {
+                Update = new Update
+                {
+                    TableName = _tableName,
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        ["PK"] = new AttributeValue { S = pk },
+                        ["SK"] = new AttributeValue { S = summarySk }
+                    },
+                    UpdateExpression = updateExpression,
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        [":one"] = new AttributeValue { N = "1" },
+                        [":zero"] = new AttributeValue { N = "0" }
+                    },
+                    // Ensure the counter doesn't go below zero
+                    ConditionExpression = $"{counterField} > :zero"
+                }
+            });
+        }
+
+        await _client.TransactWriteItemsAsync(new TransactWriteItemsRequest { TransactItems = transactItems });
+    }
+
+    private void ValidateDeleteParameters(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam, string giverPersonSub)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{nameof(league)} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{nameof(season)} is required");
+        if (string.IsNullOrWhiteSpace(division)) errors.Add($"{nameof(division)} is required");
+        if (string.IsNullOrWhiteSpace(receivingTeam)) errors.Add($"{nameof(receivingTeam)} is required");
+        if (string.IsNullOrWhiteSpace(homeTeam)) errors.Add($"{nameof(homeTeam)} is required");
+        if (string.IsNullOrWhiteSpace(awayTeam)) errors.Add($"{nameof(awayTeam)} is required");
+        if (string.IsNullOrWhiteSpace(giverPersonSub)) errors.Add($"{nameof(giverPersonSub)} is required");
+
+        // Business logic validation
+        if (!string.IsNullOrWhiteSpace(receivingTeam) && !string.IsNullOrWhiteSpace(homeTeam) && !string.IsNullOrWhiteSpace(awayTeam))
+        {
+            if (receivingTeam != homeTeam && receivingTeam != awayTeam)
+            {
+                errors.Add($"{nameof(receivingTeam)} must be either the {nameof(homeTeam)} or the {nameof(awayTeam)}.");
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
     }
 
     private void ValidateKudos(KudosEvent kudos)

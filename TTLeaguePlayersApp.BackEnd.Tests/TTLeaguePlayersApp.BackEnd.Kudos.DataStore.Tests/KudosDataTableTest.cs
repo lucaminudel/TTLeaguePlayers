@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Xunit;
 using System.Collections.Concurrent;
-using KudosEvent = TTLeaguePlayersApp.BackEnd.Kudos.Lambdas.Kudos;
+using KudosEvent = TTLeaguePlayersApp.BackEnd.Kudos.DataStore.Kudos;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.DataStore.Tests;
 
@@ -137,6 +137,231 @@ public class KudosDataTableTest : IAsyncLifetime
         
         summary.PositiveKudosCount.Should().Be(1); // Should NOT be 2
     }
+
+    #region Delete Tests
+
+    [Fact]
+    public async Task DeleteKudosAsync_DeletesKudosAndUpdatesSummary()
+    {
+        // Arrange
+        var kudos1 = CreateTestKudos();
+        kudos1.KudosValue = 1;
+        
+        var kudos2 = CreateTestKudos();
+        kudos2.Season = kudos1.Season;
+        kudos2.League = kudos1.League;
+        kudos2.Division = kudos1.Division;
+        kudos2.ReceivingTeam = kudos1.ReceivingTeam;
+        kudos2.HomeTeam = kudos1.HomeTeam;
+        kudos2.AwayTeam = kudos1.AwayTeam;
+        kudos2.MatchDateTime = kudos1.MatchDateTime;
+        kudos2.GiverTeam = kudos1.GiverTeam;
+        kudos2.KudosValue = 1;
+
+        await TrackedSave(kudos1);
+        await TrackedSave(kudos2);
+
+        // Verify initial state
+        var summaryBefore = await _db.RetrieveSummaryAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam);
+        summaryBefore.PositiveKudosCount.Should().Be(2);
+
+        // Act
+        await _db.DeleteKudosAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam, kudos1.GiverPersonSub);
+
+        // Assert - Kudos should be deleted
+        var retrieveAct = async () => await _db.RetrieveKudosAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam, kudos1.GiverPersonSub);
+        await retrieveAct.Should().ThrowAsync<KeyNotFoundException>();
+
+        // Assert - Summary should be updated
+        var summaryAfter = await _db.RetrieveSummaryAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam);
+        summaryAfter.PositiveKudosCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task DeleteKudosAsync_DeletesSummaryWhenAllCountersReachZero()
+    {
+        // Arrange
+        var kudos = CreateTestKudos();
+        kudos.KudosValue = 1;
+        await TrackedSave(kudos);
+
+        // Verify summary exists
+        var summaryBefore = await _db.RetrieveSummaryAsync(
+            kudos.League, kudos.Season, kudos.Division, kudos.ReceivingTeam,
+            kudos.HomeTeam, kudos.AwayTeam);
+        summaryBefore.PositiveKudosCount.Should().Be(1);
+
+        // Act - Delete the only kudos
+        await _db.DeleteKudosAsync(
+            kudos.League, kudos.Season, kudos.Division, kudos.ReceivingTeam,
+            kudos.HomeTeam, kudos.AwayTeam, kudos.GiverPersonSub);
+
+        // Assert - Summary should be deleted
+        var retrieveSummaryAct = async () => await _db.RetrieveSummaryAsync(
+            kudos.League, kudos.Season, kudos.Division, kudos.ReceivingTeam,
+            kudos.HomeTeam, kudos.AwayTeam);
+        await retrieveSummaryAct.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task DeleteKudosAsync_DecrementsCorrectCounterForEachKudosValue(int kudosValue)
+    {
+        // Arrange
+        var kudos1 = CreateTestKudos();
+        kudos1.KudosValue = kudosValue;
+        
+        var kudos2 = CreateTestKudos();
+        kudos2.Season = kudos1.Season;
+        kudos2.League = kudos1.League;
+        kudos2.Division = kudos1.Division;
+        kudos2.ReceivingTeam = kudos1.ReceivingTeam;
+        kudos2.HomeTeam = kudos1.HomeTeam;
+        kudos2.AwayTeam = kudos1.AwayTeam;
+        kudos2.MatchDateTime = kudos1.MatchDateTime;
+        kudos2.GiverTeam = kudos1.GiverTeam;
+        kudos2.KudosValue = kudosValue;
+
+        await TrackedSave(kudos1);
+        await TrackedSave(kudos2);
+
+        // Act
+        await _db.DeleteKudosAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam, kudos1.GiverPersonSub);
+
+        // Assert
+        var summary = await _db.RetrieveSummaryAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam);
+
+        switch (kudosValue)
+        {
+            case 1:
+                summary.PositiveKudosCount.Should().Be(1);
+                summary.NeutralKudosCount.Should().Be(0);
+                summary.NegativeKudosCount.Should().Be(0);
+                break;
+            case 0:
+                summary.PositiveKudosCount.Should().Be(0);
+                summary.NeutralKudosCount.Should().Be(1);
+                summary.NegativeKudosCount.Should().Be(0);
+                break;
+            case -1:
+                summary.PositiveKudosCount.Should().Be(0);
+                summary.NeutralKudosCount.Should().Be(0);
+                summary.NegativeKudosCount.Should().Be(1);
+                break;
+        }
+    }
+
+    [Fact]
+    public async Task DeleteKudosAsync_IsIdempotent()
+    {
+        // Arrange
+        var kudos = CreateTestKudos();
+        kudos.KudosValue = 1;
+        await TrackedSave(kudos);
+
+        // Act - Delete twice
+        await _db.DeleteKudosAsync(
+            kudos.League, kudos.Season, kudos.Division, kudos.ReceivingTeam,
+            kudos.HomeTeam, kudos.AwayTeam, kudos.GiverPersonSub);
+        
+        // Second delete should not throw
+        await _db.DeleteKudosAsync(
+            kudos.League, kudos.Season, kudos.Division, kudos.ReceivingTeam,
+            kudos.HomeTeam, kudos.AwayTeam, kudos.GiverPersonSub);
+
+        // Assert - Should still be deleted
+        var retrieveAct = async () => await _db.RetrieveKudosAsync(
+            kudos.League, kudos.Season, kudos.Division, kudos.ReceivingTeam,
+            kudos.HomeTeam, kudos.AwayTeam, kudos.GiverPersonSub);
+        await retrieveAct.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task DeleteKudosAsync_ThrowsValidationException_WhenParametersAreMissing()
+    {
+        // Act
+        var act = async () => await _db.DeleteKudosAsync("", "", "", "", "", "", "");
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        exception.Which.Errors.Should().HaveCount(7);
+        exception.Which.Errors.Should().Contain(e => e.Contains("league is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("season is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("division is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("receivingTeam is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("homeTeam is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("awayTeam is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("giverPersonSub is required"));
+    }
+
+    [Fact]
+    public async Task DeleteKudosAsync_ThrowsValidationException_WhenReceivingTeamNotInMatch()
+    {
+        // Act - ReceivingTeam is "TeamC" which is neither HomeTeam nor AwayTeam
+        var act = async () => await _db.DeleteKudosAsync(
+            "CLTTL", "2025", "Division1", "TeamC", "TeamA", "TeamB", "sub123");
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("receivingTeam must be either the homeTeam or the awayTeam"));
+    }
+
+
+    [Fact]
+    public async Task DeleteKudosAsync_DeletesOnlySpecifiedKudos()
+    {
+        // Arrange - Create multiple kudos for the same match
+        var kudos1 = CreateTestKudos();
+        kudos1.KudosValue = 1;
+        
+        var kudos2 = CreateTestKudos();
+        kudos2.Season = kudos1.Season;
+        kudos2.League = kudos1.League;
+        kudos2.Division = kudos1.Division;
+        kudos2.ReceivingTeam = kudos1.ReceivingTeam;
+        kudos2.HomeTeam = kudos1.HomeTeam;
+        kudos2.AwayTeam = kudos1.AwayTeam;
+        kudos2.MatchDateTime = kudos1.MatchDateTime;
+        kudos2.GiverTeam = kudos1.GiverTeam;
+        kudos2.KudosValue = 1;
+
+        await TrackedSave(kudos1);
+        await TrackedSave(kudos2);
+
+        // Act - Delete only kudos1
+        await _db.DeleteKudosAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam, kudos1.GiverPersonSub);
+
+        // Assert - kudos1 should be deleted
+        var retrieveKudos1Act = async () => await _db.RetrieveKudosAsync(
+            kudos1.League, kudos1.Season, kudos1.Division, kudos1.ReceivingTeam,
+            kudos1.HomeTeam, kudos1.AwayTeam, kudos1.GiverPersonSub);
+        await retrieveKudos1Act.Should().ThrowAsync<KeyNotFoundException>();
+
+        // Assert - kudos2 should still exist
+        var retrievedKudos2 = await _db.RetrieveKudosAsync(
+            kudos2.League, kudos2.Season, kudos2.Division, kudos2.ReceivingTeam,
+            kudos2.HomeTeam, kudos2.AwayTeam, kudos2.GiverPersonSub);
+        retrievedKudos2.Should().NotBeNull();
+        retrievedKudos2.GiverPersonSub.Should().Be(kudos2.GiverPersonSub);
+    }
+
+    #endregion
 
     #region Validation Tests
 
@@ -335,9 +560,39 @@ public class KudosDataTableTest : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        // Implementation of cleanup if needed, 
-        // but since we use a local DynamoDB shared for all tests, 
-        // and we don't have a DeleteKudos method yet, we might just leave it or add Delete.
+        foreach (var (pk, sk) in _createdKeys)
+        {
+            // Skip summary keys, as DeleteKudosAsync handles summary updates/deletion automatically
+            // when deleting the corresponding kudos item.
+            if (sk.EndsWith("#SUMMARY")) continue;
+
+            // Parse PK: League#Season#Division#ReceivingTeam
+            var pkParts = pk.Split('#');
+            if (pkParts.Length < 4) continue;
+            var league = pkParts[0];
+            var season = pkParts[1];
+            var division = pkParts[2];
+            var receivingTeam = pkParts[3];
+
+            // Parse SK: match#HomeTeam#AwayTeam#GiverPersonSub
+            var skParts = sk.Split('#');
+            if (skParts.Length < 4) continue;
+            var homeTeam = skParts[1];
+            var awayTeam = skParts[2];
+            var giverPersonSub = skParts[3];
+
+            try
+            {
+                // Use the business operation to delete checking idempotency internally
+                await _db.DeleteKudosAsync(league, season, division, receivingTeam, homeTeam, awayTeam, giverPersonSub);
+            }
+            catch (Exception)
+            {
+                // Ignore exceptions during cleanup (e.g. if validation fails or other issues)
+                // We want to try to clean up as much as possible.
+            }
+        }
+
         _db.Dispose();
         await Task.CompletedTask;
     }

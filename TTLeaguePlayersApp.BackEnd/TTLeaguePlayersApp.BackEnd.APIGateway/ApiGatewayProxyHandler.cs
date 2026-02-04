@@ -24,6 +24,7 @@ public partial class ApiGatewayProxyHandler
     private readonly AccepteInviteLambda _acceptInviteLambda;
     private readonly DeleteInviteLambda _deleteInviteLambda;
     private readonly CreateKudosLambda _createKudosLambda;
+    private readonly DeleteKudosLambda _deleteKudosLambda;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
@@ -49,17 +50,19 @@ public partial class ApiGatewayProxyHandler
         _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);
          var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable);
+        _deleteKudosLambda = new DeleteKudosLambda(_observer, kudosDataTable);
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, DeleteKudosLambda deleteKudosLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
         _acceptInviteLambda = markInviteAcceptedLambda;
         _deleteInviteLambda = deleteInviteLambda;
         _createKudosLambda = createKudosLambda;
+        _deleteKudosLambda = deleteKudosLambda;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         _observer = new LoggerObserver();
@@ -87,13 +90,16 @@ public partial class ApiGatewayProxyHandler
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Preflight for /kudos
-                ("OPTIONS", "/kudos") => CreatePreflightResponse("OPTIONS,POST", request),
+                ("OPTIONS", "/kudos") => CreatePreflightResponse("OPTIONS,POST,DELETE", request),
 
                 // Create a new kudos: POST /kudos
                 ("POST", "/kudos") => await HandleCreateKudos(request, context),
 
+                // Delete a kudos: DELETE /kudos
+                ("DELETE", "/kudos") => await HandleDeleteKudos(request, context),
+
                  // Method not allowed for /kudos
-                (var m, "/kudos") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+                (var m, "/kudos") when m != "POST" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Preflight for /invites/{nano_id}
                 ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH,DELETE", request),
@@ -366,6 +372,39 @@ public partial class ApiGatewayProxyHandler
             var errorMessage = "Validation failed";
 
             _observer.OnRuntimeRegularEvent("CREATE KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleDeleteKudos(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleDeleteKudos));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("DELETE KUDOS", context, inParameters);
+
+        ExtractBodyOrCreateResponseAndNotifyObserver(context, request.Headers, request.Body, fromHere, inParameters,
+                                                     out DeleteKudosRequest? deleteRequest, out APIGatewayProxyResponse? deleteResponse);
+        if (deleteRequest is null)
+            return deleteResponse!;
+
+        Dictionary<string, string> userClaims = ExtractUserClaims(request);
+
+        try
+        {
+            await _deleteKudosLambda.HandleAsync(deleteRequest, userClaims, context);
+
+            _observer.OnRuntimeRegularEvent("DELETE KUDOS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
+
+            return CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("DELETE KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }

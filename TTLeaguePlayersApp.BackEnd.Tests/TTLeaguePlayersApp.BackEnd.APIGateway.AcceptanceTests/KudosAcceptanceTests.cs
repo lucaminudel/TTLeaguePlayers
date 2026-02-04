@@ -18,6 +18,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
     private readonly IAmazonCognitoIdentityProvider _cognitoClient;
     private readonly string _userPoolId;
     private readonly string _clientId;
+    private readonly List<string> _createdKudosJsonInfos = new();
 
     private const string TestUserEmail = "test_already_registered@user.test";
     private const string TestUserPassword = "aA1!56789012";
@@ -107,6 +108,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
         
         // 4. Attach Token
         _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+        _createdKudosJsonInfos.Add(requestBody);
 
         // Act
         var response = await _httpClient.PostAsync("/kudos", content);
@@ -220,6 +222,22 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        // Cleanup created kudos
+        if (_createdKudosJsonInfos.Any())
+        {
+            var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+            foreach (var kudosJson in _createdKudosJsonInfos)
+            {
+               var request = new HttpRequestMessage(HttpMethod.Delete, "/kudos")
+               {
+                   Content = new StringContent(kudosJson, Encoding.UTF8, "application/json")
+               };
+               await _httpClient.SendAsync(request);
+            }
+        }
+
         _httpClient?.Dispose();
         await Task.CompletedTask;
     }
