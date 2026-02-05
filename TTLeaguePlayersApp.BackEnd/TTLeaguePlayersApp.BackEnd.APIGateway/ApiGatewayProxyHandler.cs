@@ -12,6 +12,7 @@ using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -42,15 +43,19 @@ public partial class ApiGatewayProxyHandler
             region = Amazon.RegionEndpoint.GetBySystemName(config.DynamoDB.AWSRegion);
         }
 
-        var invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
 
+        var cognitoUsers = new CognitoUsers(new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
+
+        var invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         _createInviteLambda = new CreateInviteLambda(_observer, invitesDataTable);
         _getInviteLambda = new GetInviteLambda(_observer, invitesDataTable); 
-        _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
+        _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, cognitoUsers);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);
+
          var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
-        _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable);
+        _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable, cognitoUsers);
         _deleteKudosLambda = new DeleteKudosLambda(_observer, kudosDataTable);
+
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
@@ -123,7 +128,7 @@ public partial class ApiGatewayProxyHandler
             _observer.OnRuntimeRegularEvent("API DISPATCH COMPLETED",
                 source: new() { ["Class"] =  nameof(ApiGatewayProxyHandler), ["Method"] =  nameof(Dispatch) }, 
                 context, requestParameters.With((HttpStatusCode)response.StatusCode),
-                userClaims: GetAuthenticatedUserFromCognitoAuthorizerClaims(request));
+                userClaims: CognitoUsers.GetAuthenticatedUserFromCognitoAuthorizerClaims(request?.RequestContext?.Authorizer?.Claims));
             return response;
         }
         catch (ArgumentException ex)
@@ -356,7 +361,7 @@ public partial class ApiGatewayProxyHandler
             return createdResponse!;
 
         // Extract claims to pass to Lambda for validation
-        Dictionary<string, string> userClaims = ExtractUserClaims(request);
+        Dictionary<string, string> userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
 
         try
         {
@@ -389,7 +394,7 @@ public partial class ApiGatewayProxyHandler
         if (deleteRequest is null)
             return deleteResponse!;
 
-        Dictionary<string, string> userClaims = ExtractUserClaims(request);
+        Dictionary<string, string> userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
 
         try
         {
@@ -643,84 +648,6 @@ public partial class ApiGatewayProxyHandler
 
     private Dictionary<string, string>  GetInputParameters(APIGatewayProxyRequest request) {
          return new() { ["RequestPath"] = request.Path ?? string.Empty, ["RequestBody"] = request.Body ?? string.Empty };
-    }
-
-    private  (string userName, string userEmail) GetAuthenticatedUserFromCognitoAuthorizerClaims(APIGatewayProxyRequest? _currentRequest)
-    {
-        var userName = string.Empty;
-        var userEmail = string.Empty;
-        if (_currentRequest?.RequestContext?.Authorizer?.Claims is System.Collections.Generic.IDictionary<string, string> claims)
-        {
-
-            if (claims.TryGetValue("email", out var email) && !string.IsNullOrWhiteSpace(email))
-            {
-                userEmail = email;
-            }
-
-            if (claims.TryGetValue("preferred_username", out var preferred) && !string.IsNullOrWhiteSpace(preferred))
-                userName = preferred;
-            else if (!string.IsNullOrWhiteSpace(email))
-                userName = email;
-            else if (claims.TryGetValue("cognito:username", out var cognitoUser) && !string.IsNullOrWhiteSpace(cognitoUser))
-                userName = cognitoUser;
-            else if (claims.TryGetValue("name", out var name) && !string.IsNullOrWhiteSpace(name))
-                userName = name;
-        }
-
-        return (userName, userEmail);
-    }
-
-    private Dictionary<string, string> ExtractUserClaims(APIGatewayProxyRequest request)
-    {
-        Dictionary<string, string> userClaims = new();
-        
-        // 1. Try to get claims from the Authorizer (populated by API Gateway in the Cloud)
-        if (request.RequestContext?.Authorizer?.Claims is IDictionary<string, string> authClaims)
-        {
-            foreach (var kvp in authClaims) userClaims[kvp.Key] = kvp.Value;
-        }
-        else if (request.RequestContext?.Authorizer?.Claims != null)
-        {
-            foreach (var key in request.RequestContext.Authorizer.Claims.Keys)
-            {
-                var val = request.RequestContext.Authorizer.Claims[key];
-                userClaims[key] = val?.ToString() ?? string.Empty;
-            }
-        }
-
-        // 2. Fallback for local C# Acceptance testing (test, dev environment) where Authorizer claims are not populated
-        if (userClaims.Count == 0)
-        {
-            if (request.Headers != null && (request.Headers.TryGetValue("Authorization", out var authHeader) || request.Headers.TryGetValue("authorization", out authHeader)))
-            {
-                try
-                {
-                    var token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                        ? authHeader.Substring(7)
-                        : authHeader;
-
-                    var parts = token.Split('.');
-                    if (parts.Length == 3)
-                    {
-                        var payload = parts[1];
-                        // Add padding if needed for Base64 decoding
-                        payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
-                        var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
-                        using var doc = JsonDocument.Parse(json);
-                        foreach (var prop in doc.RootElement.EnumerateObject())
-                        {
-                            userClaims[prop.Name] = prop.Value.ToString() ?? string.Empty;
-                        }
-                    }
-                }
-                catch
-                {
-                    // Ignore parsing errors in fallback mode; security validation in Lambda will handle missing claims
-                }
-            }
-        }
-
-        return userClaims;
     }
 
 }

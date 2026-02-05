@@ -4,6 +4,7 @@ using Amazon.CognitoIdentityProvider.Model;
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
 using System.Text.Json;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using Xunit;
@@ -42,8 +43,9 @@ public class AccepteInviteLambdaTests
         var lambda = new AccepteInviteLambda(
             observer: new LoggerObserver(),
             invitesDataTable: dataTable,
+            new CognitoUsers(
             cognitoClient: cognito,
-            cognitoUserPoolId: "pool");
+            cognitoUserPoolId: "pool"));
 
         var result = await lambda.HandleAsync(nanoId, acceptedAt, _context);
 
@@ -101,8 +103,9 @@ public class AccepteInviteLambdaTests
         var lambda = new AccepteInviteLambda(
             observer: new LoggerObserver(),
             invitesDataTable: dataTable,
-            cognitoClient: cognito,
-            cognitoUserPoolId: "pool");
+            new CognitoUsers(
+                cognitoClient: cognito,
+                cognitoUserPoolId: "pool"));
 
         await lambda.HandleAsync(nanoId, acceptedAt, _context);
 
@@ -159,8 +162,9 @@ public class AccepteInviteLambdaTests
         var lambda = new AccepteInviteLambda(
             observer: new LoggerObserver(),
             invitesDataTable: dataTable,
-            cognitoClient: cognito,
-            cognitoUserPoolId: "pool");
+            new CognitoUsers(
+                cognitoClient: cognito,
+                cognitoUserPoolId: "pool"));
 
         var firstAttempt = () => lambda.HandleAsync(nanoId, acceptedAt, _context);
         await firstAttempt.Should().ThrowAsync<Exception>();
@@ -203,8 +207,9 @@ public class AccepteInviteLambdaTests
         var lambda = new AccepteInviteLambda(
             observer: new LoggerObserver(),
             invitesDataTable: dataTable,
-            cognitoClient: cognito,
-            cognitoUserPoolId: "pool");
+            new CognitoUsers(
+                cognitoClient: cognito,
+                cognitoUserPoolId: "pool"));
 
         var result = await lambda.HandleAsync(nanoId, acceptedAt: 222, _context);
 
@@ -244,8 +249,9 @@ public class AccepteInviteLambdaTests
         var lambda = new AccepteInviteLambda(
             observer: new LoggerObserver(),
             invitesDataTable: dataTable,
-            cognitoClient: cognito,
-            cognitoUserPoolId: "pool");
+            new CognitoUsers(
+                cognitoClient: cognito,
+                cognitoUserPoolId: "pool"));
 
         var act = () => lambda.HandleAsync(nanoId, acceptedAt: 333, _context);
 

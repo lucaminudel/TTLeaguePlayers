@@ -7,6 +7,7 @@ export interface ActiveSeason {
   team_division: string;
   person_name: string;
   role: string;
+  latest_kudos: number[];
 }
 
 export interface AuthContextType {

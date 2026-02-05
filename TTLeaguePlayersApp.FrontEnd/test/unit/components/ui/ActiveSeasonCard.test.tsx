@@ -18,7 +18,8 @@ describe('ActiveSeasonCard Error Handling', () => {
         team_name: 'Test Team',
         team_division: 'Division 1',
         person_name: 'Test Person',
-        role: 'player'
+        role: 'player',
+        latest_kudos: []
     };
 
     const mockOnToggle = vi.fn();
@@ -85,7 +86,7 @@ describe('ActiveSeasonCard Error Handling', () => {
 
     it('should handle expansion and show loading state before error', async () => {
         const mockProcessor: ActiveSeasonProcessor = {
-            getTeamFixtures: vi.fn().mockImplementation(() => 
+            getTeamFixtures: vi.fn().mockImplementation(() =>
                 new Promise<never>((_, reject) => {
                     setTimeout(() => {
                         reject(new Error('Delayed error'));

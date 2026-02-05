@@ -21,4 +21,7 @@ public class ActiveSeason
 
     [JsonPropertyName("role")]
     public string Role { get; set; } = string.Empty;
+
+    [JsonPropertyName("latest_kudos")]
+    public List<long> LatestKudos { get; set; } = new List<long>();
 }

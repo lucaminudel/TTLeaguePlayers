@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Amazon.Lambda.Core;
-using Amazon.CognitoIdentityProvider;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Cognito;
 
@@ -15,12 +14,11 @@ public partial class AccepteInviteLambda
     private static readonly Dictionary<string, string> _fromHere = 
         new() { ["Class"] = nameof(AccepteInviteLambda), ["Method"] = nameof(HandleAsync) };    
 
-    public AccepteInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, IAmazonCognitoIdentityProvider cognitoClient, string cognitoUserPoolId)
+    public AccepteInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, CognitoUsers cognitoUsers)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
-
-        _cognitoUsers = new CognitoUsers(observer, cognitoClient, cognitoUserPoolId);
+        _cognitoUsers = cognitoUsers;
     }
 
     public async Task<Invite> HandleAsync(string nanoId, long acceptedAt, ILambdaContext context)
@@ -50,45 +48,19 @@ public partial class AccepteInviteLambda
             return invite;
         }
 
-        var user = await _cognitoUsers.RetrieveCognitoUserByEmailId(invite.InviteeEmailId, nanoId, context);
+        var user = await _cognitoUsers.RetrieveCognitoUserByEmailId(invite.InviteeEmailId);
 
-        var activeSeasonsAttr = user.Attributes.FirstOrDefault(a => a.Name == "custom:active_seasons");
-        var activeSeasons = new List<ActiveSeason>();
-        if (activeSeasonsAttr != null && !string.IsNullOrWhiteSpace(activeSeasonsAttr.Value))
+        List<ActiveSeason> activeSeasons;
+        try
         {
-            try
-            {
-                activeSeasons = JsonSerializer.Deserialize<List<ActiveSeason>>(activeSeasonsAttr.Value) ?? new List<ActiveSeason>();
-            }
-            catch (JsonException)
-            {
-                _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters.With("active_seasons", activeSeasonsAttr.Value));
-
-                throw;
-            }
+            activeSeasons = CognitoUsers.AddActiveSeason(user, invite.League, invite.Season, invite.InviteeTeam,
+                                                          invite.TeamDivision, invite.InviteeName, invite.InviteeRole.ToString());
         }
-
-        var newActiveSeason = new ActiveSeason
+        catch (JsonException)
         {
-            League = invite.League,
-            Season = invite.Season,
-            TeamName = invite.InviteeTeam,
-            TeamDivision = invite.TeamDivision,
-            PersonName = invite.InviteeName,
-            Role = invite.InviteeRole.ToString()
-        };
+            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters);
 
-        var alreadyPresent = activeSeasons.Any(x =>
-            x.League == newActiveSeason.League &&
-            x.Season == newActiveSeason.Season &&
-            x.TeamName == newActiveSeason.TeamName &&
-            x.TeamDivision == newActiveSeason.TeamDivision &&
-            x.PersonName == newActiveSeason.PersonName &&
-            x.Role == newActiveSeason.Role);
-
-        if (!alreadyPresent)
-        {
-            activeSeasons.Add(newActiveSeason);
+            throw;
         }
 
         await _cognitoUsers.UpdateUserAttribute(user.Username, activeSeasons);
@@ -110,6 +82,7 @@ public partial class AccepteInviteLambda
         return invite;
 
     }
+
 
     private void ValidateRequest(string nanoId, long acceptedAt)
     {
