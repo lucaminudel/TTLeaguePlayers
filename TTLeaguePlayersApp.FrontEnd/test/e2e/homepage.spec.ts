@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { User } from './page-objects/User';
 
+const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
+
 test.describe('Homepage', () => {
     test.beforeEach(async ({ page }) => {
         const userPage = new User(page);
@@ -73,6 +75,8 @@ test.describe('Homepage', () => {
         });
 
         test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             const user = new User(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
             

@@ -8,6 +8,7 @@ import { RegisterPage, User } from './page-objects/User';
  * Others mock Cognito to keep scenarios stable/deterministic.
  */
 
+const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 let lastEpochMs = 0;
 const uniqueTestEmail = (): string => {
   // Requested format: test_<epoch timestamps in milliseconds>@delete.me
@@ -211,6 +212,8 @@ test.describe('Register Flow', () => {
   });
 
   test('account already exists error (UsernameExistsException)', async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
     const email = uniqueTestEmail();
     const registerPage = new RegisterPage(page);    
 
@@ -234,6 +237,8 @@ test.describe('Register Flow', () => {
   });
 
   test('registration success - happy path', async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
     const email = uniqueTestEmail();
 
     const registerPage = new RegisterPage(page);    
@@ -518,7 +523,8 @@ test.describe('Register Flow', () => {
     await expect(errorMessage).toHaveText('New verification code sent to your email.');
   });
 
-  test('register and login - the unconfirmed user is redirected to verification', async ({ page }) => {
+  test('register and login - the unconfirmed user is redirected to verification', { tag: '@cognito-integration' }, async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
     const email = uniqueTestEmail();
     const user = new User(page);
     const registerPage = new RegisterPage(page);    
@@ -540,6 +546,8 @@ test.describe('Register Flow', () => {
   });
 
   test('register followed by email verification - simulated verificartion success', async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
     // 1. Mock ONLY ConfirmSignUp to return success.
     // Real SignUp is used (no mock for .SignUp).
     await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
@@ -630,6 +638,8 @@ test.describe('Register with Invite Flow', () => {
     });
 
     test('registration with invite success - happy path', async ({ page }) => {
+      test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
       const inviteId = 'abcd5678';
       const email = uniqueTestEmail();
 

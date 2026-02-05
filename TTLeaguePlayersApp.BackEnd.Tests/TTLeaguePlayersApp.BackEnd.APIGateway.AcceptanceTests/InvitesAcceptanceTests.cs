@@ -282,6 +282,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     #region PATCH /invites/{nano_id} Tests (Mark Accepted)
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PATCH_Invite_Should_Accept_Invite_Successfully()
     {
         // Arrange - Create an invite first
@@ -365,6 +366,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PATCH_Invite_Should_Be_Idempotent_When_Called_Twice()
     {
         // Arrange - Create an invite first
@@ -411,6 +413,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PATCH_Invite_Should_Return_422_For_Unregistered_User()
     {
         // Arrange
@@ -447,6 +450,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]    
     public async Task PATCH_Invite_Should_Update_Cognito_User_Attributes()
     {
         // Arrange

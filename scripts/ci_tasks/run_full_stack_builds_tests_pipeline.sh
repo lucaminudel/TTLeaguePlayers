@@ -8,6 +8,12 @@ ENVIRONMENT="test"
 API_PORT="3003"
 WEB_PORT="4173"
 
+if [ -z "${1}" ]; then
+    EXECUTE_LIVE_COGNITO_TESTS=false
+else    
+    EXECUTE_LIVE_COGNITO_TESTS=true
+fi
+
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
 BACKEND_TEST_PROJECT="TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj"
 FRONTEND_DIR="$PROJECT_ROOT/TTLeaguePlayersApp.FrontEnd"
@@ -20,6 +26,7 @@ NC='\033[0m' # No Color
 echo "🚀 Starting Full Stack Test Pipeline (Environment: $ENVIRONMENT)"
 echo "   API Port: $API_PORT"
 echo "   Web Port: $WEB_PORT"
+echo "   Execute Cognito Tests: $EXECUTE_LIVE_COGNITO_TESTS"
 echo ""
 
 # ==============================================================================
@@ -29,8 +36,12 @@ cleanup() {
     echo ""
     echo "🧹 Cleaning up..."
     
-    # Cognito test users cleanup
-    $PROJECT_ROOT/scripts/cognito/tests_helpers/delete-test-users.sh $ENVIRONMENT
+    if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
+        # Cognito test users cleanup
+        $PROJECT_ROOT/scripts/cognito/tests_helpers/delete-test-users.sh $ENVIRONMENT
+    else
+        echo "No Live Cognito cleanup..."
+    fi
 
     if [ ! -z "$SAM_PID" ]; then
         echo "   Stopping SAM Local (PID: $SAM_PID)..."
@@ -122,12 +133,24 @@ echo -e "${CYAN}# --------------------------------------------------------------
 echo "🔹 [3/7] Running Backend Build + Acceptance Tests..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 
-# Cognito test users setup, for C# Acceptance Teste and  Playwright E2E Tests
-$PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-users.sh $ENVIRONMENT
+if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
+    # Cognito test users setup, for C# Acceptance Teste and  Playwright E2E Tests
+    $PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-users.sh $ENVIRONMENT
+else
+    echo "No Live Cognito setup..."
+fi
+
 
 # Export environment for the C# tests to read (Process.GetEnvironmentVariable)
 export ENVIRONMENT="$ENVIRONMENT"
-dotnet test "$BACKEND_TEST_PROJECT" --configuration Debug --logger "console;verbosity=minimal"
+
+if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
+    FILTER=""
+else
+    echo "Excluding Live Cognito tests..."
+    FILTER="--filter Cognito!=Live"
+fi
+dotnet test "$BACKEND_TEST_PROJECT" $FILTER --configuration Debug --logger "console;verbosity=minimal" 
 
 rc=$?
 echo "Debug: Exit code was $rc"
@@ -203,6 +226,7 @@ echo -e "${CYAN}# --------------------------------------------------------------
 
 # The package.json script "e2e-tests-web:run test-env" sets PORT=4173
 export PW_TEST_HTML_REPORT_OPEN=never
+export EXECUTE_LIVE_COGNITO_TESTS
 npm run "e2e-tests-web:run test-env"
 
 rc=$?

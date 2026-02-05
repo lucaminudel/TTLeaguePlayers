@@ -79,6 +79,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task POST_Kudos_Should_Create_Kudos_Successfully()
     {
         // Arrange
@@ -128,6 +129,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
 
     [Fact]
+    [Trait("Cognito", "Live")]    
     public async Task POST_Kudos_Should_Return_400_For_Malformed_Json()
     {
         // Arrange

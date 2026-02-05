@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage, User as UserFlow } from './page-objects/User';
 
+const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
+
 test.describe('Login Flow', () => {
     test.beforeEach(async ({ page }) => {
         const user = new UserFlow(page);
@@ -8,6 +10,8 @@ test.describe('Login Flow', () => {
     });
 
     test('successful login flow - login, welcome message, and logout', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
         const user = new UserFlow(page);
         await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 

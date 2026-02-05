@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { User as UserFlow, LoginPage, RegisterPage } from './page-objects/User';
 
+const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
+
 /**
  * Helper function to set a fixed clock time for testing time-dependent behavior.
  * @param page - The Playwright page object
@@ -16,6 +18,8 @@ async function setFixedClockTime(page: Page, dateTime: string): Promise<void> {
 test.describe('Kudos', () => {
     test.describe('authenticated users only page, login - logout flows', () => {
         test('when a non logged-in user tries to navigate to kudos, it redirects to login and after successful login it redirects back to kudos', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             const userPage = new UserFlow(page);
 
             // Navigate to kudos page
@@ -90,6 +94,8 @@ test.describe('Kudos', () => {
         });
 
         test('when user logs out from an authenticated-users only page like kudos, user is redirected to home', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
@@ -108,6 +114,8 @@ test.describe('Kudos', () => {
     test.describe('active season cards', () => {
 
         test('shows previous and current match for all active seasons', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Set fixed clock time to Friday 16th January 2026 15:26
             await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
@@ -138,6 +146,8 @@ test.describe('Kudos', () => {
         });
 
         test('only one active season expanded at the time', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Set fixed clock time to Friday 16th January 2026 15:26
             await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
@@ -177,6 +187,8 @@ test.describe('Kudos', () => {
         });
 
         test('when there is only one Active Season Card, it is already opened', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Set fixed clock time to Friday 16th January 2026 15:26
             await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
@@ -196,6 +208,8 @@ test.describe('Kudos', () => {
         });
 
         test('before the registrations_start_date the Active Season Card is not visualised', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Set fixed clock time before FLICK registration start (2025-11-01)
             await setFixedClockTime(page, '2025-10-30T12:00:00Z');
 
@@ -218,6 +232,8 @@ test.describe('Kudos', () => {
         });
 
         test('after the ratings_end_date the Active Season Card is not visualised', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Set fixed clock time after FLICK ratings end date (2026-02-01)
             await setFixedClockTime(page, '2026-02-01T12:00:00Z');
 
@@ -240,6 +256,8 @@ test.describe('Kudos', () => {
         });
 
         test('until 2h after the match start time, NEXT match header shows "Today\'s Match"', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Morpeth 10 has a match on Friday 16th January 2026 at 18:45
             // Set clock to 20:46 (2h1min after the match start time)
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
@@ -300,6 +318,8 @@ test.describe('Kudos', () => {
         });
 
         test('2h after the match start time, PREVIOUS match header shows "Today\'s Match"', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Morpeth 10 has a match on Friday 16th January 2026 at 18:45
             // Set clock to 20:46 (2h1min after the match start time)
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
@@ -362,6 +382,8 @@ test.describe('Kudos', () => {
 
     test.describe('error handling scenarios', () => {
         test('shows "No fixture found" when network request fails', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
             // Set fixed clock time
             await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
@@ -405,6 +427,9 @@ test.describe('Kudos', () => {
         });
 
         test('shows "No fixture found" when server returns HTTP error', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
+
             // Set fixed clock time
             await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
@@ -456,6 +481,8 @@ test.describe('Kudos', () => {
         });
 
         test('shows "No fixture found" when server returns "service unavailable"', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
             // Set fixed clock time
             await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 

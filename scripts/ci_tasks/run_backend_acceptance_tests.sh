@@ -6,6 +6,12 @@
 # Use arguments provided
 PORT=${1}
 CONFIG_ENV=${2}
+if [ -z "${3}" ]; then
+    EXECUTE_LIVE_COGNITO_TESTS=false
+else    
+    EXECUTE_LIVE_COGNITO_TESTS=true
+fi
+
 # ==============================================================================
 TEST_PROJECT="TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj"
 BUILD_DIR=".aws-sam-test"
@@ -99,7 +105,15 @@ echo "✅ SAM Local is ready!"
 echo "🧪 Building and Running Tests..."
 # ENVIRONMENT is local to this script's process and its children
 export ENVIRONMENT="$CONFIG_ENV"
-dotnet test "$TEST_PROJECT" --configuration Debug --logger "console;verbosity=normal"
+
+if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
+    FILTER=""
+else
+    echo "Excluding Live Cognito tests..."
+    FILTER="--filter Cognito!=Live"
+fi
+
+dotnet test "$TEST_PROJECT" $FILTER --configuration Debug --logger "console;verbosity=normal"
 
 TEST_EXIT_CODE=$?
 

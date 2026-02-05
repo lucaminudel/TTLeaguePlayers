@@ -66,9 +66,29 @@
       }
     },
     {
+      "label": "Cognito+ api-tests test-env",
+      "type": "shell",
+      "command": "./scripts/ci_tasks/run_backend_acceptance_tests.sh 3003 test COGNITO",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },    
+    {
       "label": "full-stack-builds-tests-pipeline test-env",
       "type": "shell",
       "command": "./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Cognito+ full-stack-builds-tests-pipeline test-env",
+      "type": "shell",
+      "command": "./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO",
       "group": "test",
       "presentation": {
         "reveal": "always",
