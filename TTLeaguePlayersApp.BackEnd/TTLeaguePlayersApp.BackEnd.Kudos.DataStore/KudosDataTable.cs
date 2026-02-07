@@ -69,9 +69,7 @@ public class KudosDataTable : IDisposable, IKudosDataTable
             ["kudos_value"] = new AttributeValue { N = kudos.KudosValue.ToString() },
             ["item_type"] = new AttributeValue { S = ItemTypeKudos },
             ["created_at"] = new AttributeValue { N = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString() },
-            ["GSI1PK"] = new AttributeValue { S = $"{kudos.League}#{kudos.Season}#{kudos.GiverPersonSub}" },
-            ["GSI2PK"] = new AttributeValue { S = gsi2pk },
-            ["GSI2SK"] = new AttributeValue { S = gsi2sk }
+            ["GSI1PK"] = new AttributeValue { S = $"{kudos.League}#{kudos.Season}#{kudos.GiverPersonSub}" }
         };
 
         string counterField = kudos.KudosValue switch
