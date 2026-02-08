@@ -13,8 +13,6 @@ export const Home: React.FC = () => {
     const handleEnterClick = () => {
         if (hasInviteId) {
             void navigate(`/join/${inviteId}`);
-        } else {
-            console.log('Enter clicked');
         }
     };
 

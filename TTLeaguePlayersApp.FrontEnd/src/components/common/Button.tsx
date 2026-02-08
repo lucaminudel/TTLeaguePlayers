@@ -20,7 +20,8 @@ export const Button: React.FC<ButtonProps> = ({
         <button
             type={resolvedType}
             className={`
-        bg-action-accent hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors duration-200
+        bg-action-accent hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors duration-200 text-base sm:text-lg
+        flex items-center justify-center
         ${fullWidth ? 'w-full' : ''}
         ${props.disabled ? 'button-disabled' : ''}
         ${className}

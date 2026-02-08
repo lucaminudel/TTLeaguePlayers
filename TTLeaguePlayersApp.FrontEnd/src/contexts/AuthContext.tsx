@@ -8,6 +8,7 @@ import {
 } from 'amazon-cognito-identity-js';
 import { getConfig } from '../config/environment';
 import { AuthContext, type ActiveSeason } from './AuthContextDefinition';
+import { setAuthTokenProvider } from '../api/api';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
 
   const [authError, setAuthError] = useState<string | null>(null);
@@ -85,6 +87,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const payload = JSON.parse(atob(idToken.split('.')[1])) as Record<string, unknown>;
       return (payload.email as string | undefined) ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const extractSubFromToken = (idToken: string): string | null => {
+    if (!idToken || typeof idToken !== 'string') {
+      return null;
+    }
+    try {
+      const payload = JSON.parse(atob(idToken.split('.')[1])) as Record<string, unknown>;
+      return (payload.sub as string | undefined) ?? null;
     } catch {
       return null;
     }
@@ -187,6 +201,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsAuthenticated(false);
     setUsername(null);
     setEmail(null);
+    setUserId(null);
     setActiveSeasons([]);
     setAuthError(null);
     setIsLoading(false);
@@ -219,6 +234,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const idToken = session.getIdToken().getJwtToken();
         const extractedUsername = extractUsernameFromToken(idToken);
         const extractedEmail = extractEmailFromToken(idToken);
+        const extractedUserId = extractSubFromToken(idToken);
 
         // Fetch active seasons synchronously to get the seasons data
         currentUser.getUserAttributes((userErr, attributes) => {
@@ -237,6 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setIsAuthenticated(true);
           setUsername(extractedUsername);
           setEmail(extractedEmail);
+          setUserId(extractedUserId);
           setActiveSeasons(seasons);
           setIsLoading(false);
         });
@@ -247,6 +264,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsAuthenticated(false);
       setUsername(null);
       setEmail(null);
+      setUserId(null);
       setActiveSeasons([]);
       setAuthError(null);
       setIsLoading(false);
@@ -282,11 +300,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const idToken = session.getIdToken().getJwtToken();
           const extractedUsername = extractUsernameFromToken(idToken);
           const extractedEmail = extractEmailFromToken(idToken);
+          const extractedUserId = extractSubFromToken(idToken);
 
           void fetchActiveSeasons(cognitoUser).then((seasons) => {
             setIsAuthenticated(true);
             setUsername(extractedUsername);
             setEmail(extractedEmail);
+            setUserId(extractedUserId);
             setActiveSeasons(seasons);
             resolve();
           });
@@ -372,7 +392,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   };
 
-  const getIdToken = async (): Promise<string | null> => {
+  const getIdToken = useCallback(async (): Promise<string | null> => {
     if (!userPool || !isAuthenticated) return null;
 
     return new Promise((resolve) => {
@@ -390,11 +410,61 @@ export function AuthProvider({ children }: AuthProviderProps) {
         resolve(session.getIdToken().getJwtToken());
       });
     });
-  };
+  }, [userPool, isAuthenticated]);
+
+  useEffect(() => {
+    setAuthTokenProvider(getIdToken);
+  }, [getIdToken]);
 
   const clearAuthError = () => {
     setAuthError(null);
   };
+
+  const refreshActiveSeasons = useCallback(async (): Promise<void> => {
+    if (!userPool || !isAuthenticated) {
+      return;
+    }
+
+    const currentUser = userPool.getCurrentUser();
+    if (!currentUser) {
+      return;
+    }
+
+    return new Promise((resolve) => {
+      currentUser.getSession((err: unknown, session: CognitoUserSession | null) => {
+        if (err || !session?.isValid()) {
+          resolve();
+          return;
+        }
+
+        try {
+          currentUser.getUserAttributes((attrErr, attributes) => {
+            if (attrErr || !attributes) {
+              resolve();
+              return;
+            }
+
+            const activeSeasonsAttribute = attributes.find((attr) => {
+              const name = attr.getName();
+              return name === 'custom:active_seasons' || name === 'active_seasons';
+            });
+
+            const rawValue = activeSeasonsAttribute?.getValue();
+
+            const seasons = parseActiveSeasonsJson(rawValue);
+
+            if (seasons.length > 0) {
+              setActiveSeasons(seasons);
+            }
+            resolve();
+          });
+        } catch (error) {
+          console.error('Failed to refresh seasons:', error);
+          resolve();
+        }
+      });
+    });
+  }, [userPool, isAuthenticated, parseActiveSeasonsJson]);
 
   return (
     <AuthContext
@@ -403,6 +473,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading,
         username,
         email,
+        userId,
         activeSeasons,
         authInitialisationError,
         signIn,
@@ -412,7 +483,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signOut,
         getIdToken,
         authError,
-        clearAuthError
+        clearAuthError,
+        refreshActiveSeasons
       }}
     >
       {children}

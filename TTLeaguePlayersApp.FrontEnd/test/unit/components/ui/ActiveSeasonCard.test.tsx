@@ -4,6 +4,27 @@ import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
 
+// Mock react-router-dom
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+    useNavigate: () => mockNavigate
+}));
+
+// Mock useAuth hook
+vi.mock('../../../../src/hooks/useAuth', () => ({
+    useAuth: () => ({
+        activeSeasons: [{
+            league: 'TEST',
+            season: '2025',
+            team_name: 'Test Team',
+            team_division: 'Division 1',
+            person_name: 'Test Person',
+            role: 'player',
+            latest_kudos: []
+        }]
+    })
+}));
+
 // Mock DateUtils
 vi.mock('../../../../src/utils/DateUtils', () => ({
     getClockTime: () => new Date('2025-01-15T12:00:00Z'),

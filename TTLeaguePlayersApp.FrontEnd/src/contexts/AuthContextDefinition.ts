@@ -20,6 +20,7 @@ export interface AuthContextType {
   isLoading: boolean;
   username: string | null;
   email: string | null;
+  userId: string | null;
   activeSeasons: ActiveSeason[];
 
   /**
@@ -37,6 +38,7 @@ export interface AuthContextType {
 
   authError: string | null;
   clearAuthError: () => void;
+  refreshActiveSeasons: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

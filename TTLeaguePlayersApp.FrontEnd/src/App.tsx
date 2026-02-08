@@ -6,6 +6,7 @@ import { Join } from './pages/Join';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Kudos } from './pages/Kudos';
+import { AwardKudos } from './pages/AwardKudos';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -42,6 +43,14 @@ function InitializationGate() {
         element={
           <ProtectedRoute>
             <Kudos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/award-kudos"
+        element={
+          <ProtectedRoute>
+            <AwardKudos />
           </ProtectedRoute>
         }
       />

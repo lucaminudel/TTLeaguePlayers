@@ -31,6 +31,13 @@ export function getClockTime(): Date {
 /**
  * Formats a date for display (e.g., "Fri 12th Dec 19:00").
  */
+export function formatFixtureDateTime(date: Date): string {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+
+    return `${formatFixtureDate(date)} ${hours}:${minutes}`;
+}
+
 export function formatFixtureDate(date: Date): string {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -38,8 +45,6 @@ export function formatFixtureDate(date: Date): string {
     const dayName = days[date.getDay()];
     const dayOfMonth = date.getDate();
     const monthName = months[date.getMonth()];
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
 
     // Ordinal suffix
     let suffix = 'th';
@@ -47,7 +52,7 @@ export function formatFixtureDate(date: Date): string {
     else if (dayOfMonth === 2 || dayOfMonth === 22) suffix = 'nd';
     else if (dayOfMonth === 3 || dayOfMonth === 23) suffix = 'rd';
 
-    return `${dayName} ${String(dayOfMonth)}${suffix} ${monthName} ${hours}:${minutes}`;
+    return `${dayName} ${String(dayOfMonth)}${suffix} ${monthName}`;
 }
 
 /**
