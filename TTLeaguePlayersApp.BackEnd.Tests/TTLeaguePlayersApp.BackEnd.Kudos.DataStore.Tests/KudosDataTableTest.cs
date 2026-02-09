@@ -528,6 +528,244 @@ public class KudosDataTableTest : IAsyncLifetime
 
     #endregion
 
+
+    
+    #region RetrieveKudosGivenByPlayer Tests
+
+    [Fact]
+    public async Task RetrieveKudosGivenByPlayerAsync_ReturnsKudosForSpecificPlayer()
+    {
+        // Arrange
+        var giverSub = Guid.NewGuid().ToString("N");
+        var league = "CLTTL";
+        var season = "2025";
+        var division = "Division1";
+        var giverTeam = "TeamB_Giver";
+        var anotherGiverTeam = "TeamB2_Giver";
+        var anotherLeague = "BSC";
+        
+        // Create 2 kudos from this player
+        var kudos1 = CreateTestKudos();
+        kudos1.League = league;
+        kudos1.Season = season;
+        kudos1.Division = division;
+        kudos1.GiverTeam = giverTeam;
+        kudos1.GiverPersonSub = giverSub;
+        kudos1.MatchDateTime = 1000;
+        kudos1.HomeTeam = "TeamA";
+        kudos1.AwayTeam = "TeamB_Giver";
+        kudos1.ReceivingTeam = "TeamA";
+
+        var kudos2 = CreateTestKudos();
+        kudos2.League = league;
+        kudos2.Season = season;
+        kudos2.Division = division;
+        kudos2.GiverTeam = giverTeam;
+        kudos2.GiverPersonSub = giverSub;
+        kudos2.MatchDateTime = 2000;
+        kudos2.HomeTeam = "TeamC";
+        kudos2.AwayTeam = "TeamB_Giver";
+        kudos2.ReceivingTeam = "TeamC";
+
+        // Create 1 kudos from same player on a different team
+        var kudos3 = CreateTestKudos();
+        kudos3.League = league;
+        kudos3.Season = season;
+        kudos3.Division = division;
+        kudos3.GiverTeam = anotherGiverTeam;
+        kudos3.GiverPersonSub = giverSub;
+        kudos3.MatchDateTime = 2000;
+        kudos3.HomeTeam = "TeamC";
+        kudos3.AwayTeam = anotherGiverTeam;
+        kudos3.ReceivingTeam = "TeamC";
+
+        // Create 1 kudos from same player on a different league
+        var kudosToDifferentLeague = CreateTestKudos();
+        kudosToDifferentLeague.League = anotherLeague;
+        kudosToDifferentLeague.Season = season;
+        kudosToDifferentLeague.Division = division;
+        kudosToDifferentLeague.GiverTeam = "TeamB_Giver";
+        kudosToDifferentLeague.GiverPersonSub = giverSub;
+        kudosToDifferentLeague.MatchDateTime = 2000;
+        kudosToDifferentLeague.HomeTeam = "TeamC";
+        kudosToDifferentLeague.AwayTeam = "TeamB_Giver";
+        kudosToDifferentLeague.ReceivingTeam = "TeamC";
+
+        // Create 1 kudos from a DIFFERENT player
+        var kudosFromDifferentPlayer = CreateTestKudos();
+        kudosFromDifferentPlayer.League = league;
+        kudosFromDifferentPlayer.Season = season;
+        kudosFromDifferentPlayer.Division = division;
+        kudosFromDifferentPlayer.GiverTeam = "TeamB_Giver";
+        kudosFromDifferentPlayer.GiverPersonSub = "OtherSub"; // Different player
+        kudosFromDifferentPlayer.MatchDateTime = 2000;
+        kudosFromDifferentPlayer.HomeTeam = "TeamC";
+        kudosFromDifferentPlayer.AwayTeam = "TeamB_Giver";
+        kudosFromDifferentPlayer.ReceivingTeam = "TeamC";
+
+
+        await TrackedSave(kudos1);
+        await TrackedSave(kudos2);
+        await TrackedSave(kudos3);
+        await TrackedSave(kudosToDifferentLeague);
+        await TrackedSave(kudosFromDifferentPlayer);
+
+        // Act
+        var result = await _db.RetrieveKudosGivenByPlayerAsync(league, season, giverSub, division, giverTeam);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().ContainEquivalentOf(kudos1);
+        result.Should().ContainEquivalentOf(kudos2);
+        result.Should().NotContainEquivalentOf(kudosToDifferentLeague);
+        result.Should().NotContainEquivalentOf(kudosFromDifferentPlayer);
+        
+        // Verify order (descending by MatchDateTime)
+        result.First().MatchDateTime.Should().Be(2000); // Verify order
+        result.Last().MatchDateTime.Should().Be(1000);
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToTeamAsync_ReturnsSummariesForSpecificTeam()
+    {
+        // Arrange
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var matchDate1 = 1000L;
+        var matchDate2 = 2000L;
+
+        // Create kudos awarded TO the target team (Morpeth 10)
+        var kudos1 = CreateTestKudos();
+        kudos1.League = league;
+        kudos1.Season = season;
+        kudos1.Division = division;
+        kudos1.ReceivingTeam = teamName;
+        kudos1.MatchDateTime = matchDate1;
+        kudos1.HomeTeam = teamName;
+        kudos1.AwayTeam = "TeamB";
+        kudos1.GiverTeam = "TeamB";
+        kudos1.GiverPersonSub = Guid.NewGuid().ToString("N");
+        kudos1.KudosValue = 1;
+
+        var kudos2 = CreateTestKudos();
+        kudos2.League = league;
+        kudos2.Season = season;
+        kudos2.Division = division;
+        kudos2.ReceivingTeam = teamName;
+        kudos2.MatchDateTime = matchDate2;
+        kudos2.HomeTeam = "TeamC";
+        kudos2.AwayTeam = teamName;
+        kudos2.GiverTeam = "TeamC";
+        kudos2.GiverPersonSub = Guid.NewGuid().ToString("N");
+        kudos2.KudosValue = -1;
+
+        // Create kudos awarded to a DIFFERENT team
+        var kudosOther = CreateTestKudos();
+        kudosOther.League = league;
+        kudosOther.Season = season;
+        kudosOther.Division = division;
+        kudosOther.ReceivingTeam = "Morpeth 9";
+        kudosOther.MatchDateTime = matchDate1;
+        kudosOther.HomeTeam = "Morpeth 9";
+        kudosOther.AwayTeam = "TeamX";
+        kudosOther.GiverTeam = "TeamX";
+        kudosOther.GiverPersonSub = Guid.NewGuid().ToString("N");
+        kudosOther.KudosValue = -1;
+
+
+        await TrackedSave(kudos1);
+        await TrackedSave(kudos2);
+        await TrackedSave(kudosOther);
+
+        // Act
+        var result = await _db.RetrieveKudosAwardedToTeamAsync(league, season, division, teamName);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(s => s.MatchDateTime == matchDate1 && s.ReceivingTeam == teamName);
+        result.Should().Contain(s => s.MatchDateTime == matchDate2 && s.ReceivingTeam == teamName);
+        result.Should().NotContain(s => s.ReceivingTeam == "Morpeth 9");
+        result.First().MatchDateTime.Should().Be(matchDate2); // Verify descending order
+
+        // Verify counts
+        result.Sum(s => s.NegativeKudosCount).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToAllDivisionTeams_ReturnsAllSummariesForDivision()
+    {
+        // Arrange
+        var id = Guid.NewGuid().ToString("N")[..8];
+        var league = "League_" + id;
+        var season = "Season_" + id;
+        var division = "Division_" + id;
+        var team1 = "Team1_" + id;
+        var team2 = "Team2_" + id;
+
+        var kudos1 = CreateTestKudos();
+        kudos1.League = league; kudos1.Season = season; kudos1.Division = division;
+        kudos1.ReceivingTeam = team1;
+        kudos1.MatchDateTime = 1000L;
+        kudos1.HomeTeam = team1; kudos1.AwayTeam = "Other"; kudos1.GiverTeam = "Other";
+
+        var kudos2 = CreateTestKudos();
+        kudos2.League = league; kudos2.Season = season; kudos2.Division = division;
+        kudos2.ReceivingTeam = team2;
+        kudos2.MatchDateTime = 2000L;
+        kudos2.HomeTeam = "Other"; kudos2.AwayTeam = team2; kudos2.GiverTeam = "Other";
+
+        // Different division
+        var kudosOther = CreateTestKudos();
+        kudosOther.League = league; kudosOther.Season = season; kudosOther.Division = "OtherDiv";
+        kudosOther.ReceivingTeam = "OtherTeam";
+        kudosOther.HomeTeam = "OtherTeam";
+        kudosOther.AwayTeam = "Opponent";
+        kudosOther.GiverTeam = "Opponent";
+
+        await TrackedSave(kudos1);
+        await TrackedSave(kudos2);
+        await TrackedSave(kudosOther);
+
+        // Act
+        var result = await _db.RetrieveKudosAwardedToAllDivisionTeams(league, season, division);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(s => s.ReceivingTeam == team1);
+        result.Should().Contain(s => s.ReceivingTeam == team2);
+        result.Should().NotContain(s => s.Division == "OtherDiv");
+    }
+
+    [Fact]
+    public async Task RetrieveKudosGivenByPlayerAsync_ReturnsEmptyList_WhenNoKudosFound()
+    {
+        // Act
+        var result = await _db.RetrieveKudosGivenByPlayerAsync("LeagueX", "2025", "NonExistentSub", "Div1", "TeamX");
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RetrieveKudosGivenByPlayerAsync_ThrowsValidationException_WhenParametersAreMissing()
+    {
+        // Act
+        var act = async () => await _db.RetrieveKudosGivenByPlayerAsync("", "", "", "", "");
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        exception.Which.Errors.Should().HaveCount(5);
+        exception.Which.Errors.Should().Contain(e => e.Contains("league is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("season is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("giverPersonSub is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("division is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("giverTeam is required"));
+    }
+
+    #endregion
+
     private static KudosEvent CreateTestKudos()
     {
         var id = Guid.NewGuid().ToString("N")[..8];

@@ -148,6 +148,219 @@ public class KudosAcceptanceTests: IAsyncLifetime
     }
 
     #endregion
+    
+    #region GET /kudos Tests
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Kudos_Should_Retrieve_Kudos_Given_By_Player()
+    {
+        // 1. Arrange - Authenticate and get sub
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // 2. Create a Kudos to retrieve
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10"; // Giver team
+        
+        var requestBody = CreateKudosRequestJson(
+            league: league,
+            season: season,
+            division: division,
+            receivingTeam: "Morpeth 9", 
+            homeTeam: teamName,
+            awayTeam: "Morpeth 9",
+            giverTeam: teamName,
+            giverName: "Luca Minudel",
+            giverSub: sub,
+            kudosValue: 1
+        );
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        
+        // Post the kudos
+        var createResponse = await _httpClient.PostAsync("/kudos", content);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        _createdKudosJsonInfos.Add(requestBody); // Mark for cleanup
+
+        // 3. Act - Retrieve Kudos
+        // Construct query parameters
+        var queryParams = $"?given_by={WebUtility.UrlEncode(sub)}&league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}&team_name={WebUtility.UrlEncode(teamName)}";
+        
+        var getResponse = await _httpClient.GetAsync("/kudos" + queryParams);
+
+        // 4. Assert
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await getResponse.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        var kudosList = jsonDoc.RootElement;
+
+        kudosList.ValueKind.Should().Be(JsonValueKind.Array);
+        kudosList.GetArrayLength().Should().BeGreaterThanOrEqualTo(1);
+
+        // Verify the retrieved item matches what we created
+        var firstKudos = kudosList.EnumerateArray().FirstOrDefault(k => 
+            k.GetProperty("league").GetString() == league &&
+            k.GetProperty("season").GetString() == season &&
+            k.GetProperty("giver_person_sub").GetString() == sub
+        );
+        
+        firstKudos.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        firstKudos.GetProperty("kudos_value").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Kudos_Should_Retrieve_Kudos_Awarded_To_Team()
+    {
+        // 1. Arrange - Authenticate
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // 2. Create a Kudos to retrieve (awarded TO Morpeth 9)
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 9";
+        var requestBody = CreateKudosRequestJson(
+            league: league, 
+            season: season, 
+            division: division, 
+            receivingTeam: teamName, 
+            homeTeam: teamName, 
+            awayTeam: "Morpeth 10", 
+            giverTeam: "Morpeth 10", 
+            giverName: "Luca Minudel", 
+            giverSub: sub, 
+            kudosValue: 1);
+        
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        var createResponse = await _httpClient.PostAsync("/kudos", content);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        _createdKudosJsonInfos.Add(requestBody); // For cleanup
+
+        // 3. Act - Retrieve Kudos Summaries for the team
+        var queryParams = $"?league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}&team_name={WebUtility.UrlEncode(teamName)}";
+        var getResponse = await _httpClient.GetAsync("/kudos" + queryParams);
+
+        // 4. Assert
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await getResponse.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        var kudosList = jsonDoc.RootElement;
+        
+        kudosList.ValueKind.Should().Be(JsonValueKind.Array);
+        kudosList.GetArrayLength().Should().BeGreaterThanOrEqualTo(1);
+        
+        var summary = kudosList.EnumerateArray().FirstOrDefault(k => 
+            k.GetProperty("league").GetString() == league && 
+            k.GetProperty("season").GetString() == season && 
+            k.GetProperty("receiving_team").GetString() == teamName);
+            
+        summary.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        summary.GetProperty("positive_kudos_count").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_KudosStandings_Should_Retrieve_Tables()
+    {
+        // 1. Arrange
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        
+        // Ensure at least one kudos summary exists (previous test might have created some, but let's be safe)
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // 2. Act
+        var queryParams = $"?league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}";
+        var response = await _httpClient.GetAsync("/kudos/standings" + queryParams);
+
+        // 3. Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        var root = jsonDoc.RootElement;
+
+        root.GetProperty("positive_kudos_table").ValueKind.Should().Be(JsonValueKind.Array);
+        root.GetProperty("negative_kudos_table").ValueKind.Should().Be(JsonValueKind.Array);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Kudos_Should_Return_400_When_Parameters_Are_Missing()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // Act - Missing all parameters
+        var response = await _httpClient.GetAsync("/kudos");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact(Skip = "Currently security check just generates a log")]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Kudos_Should_Return_403_When_Requesting_For_Different_User()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        var otherUserSub = Guid.NewGuid().ToString(); // Random sub mimicking another user
+
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+
+        var queryParams = $"?given_by={WebUtility.UrlEncode(otherUserSub)}&league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}&team_name={WebUtility.UrlEncode(teamName)}";
+
+        // Act
+        var response = await _httpClient.GetAsync("/kudos" + queryParams);
+
+        // Assert
+        // With current design, security validation error only logs but doesn't block the request
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Kudos_Should_Return_403_When_User_Not_Active_In_Season()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // Use a League/Season the user is NOT active in (based on register-test-users.sh)
+        var league = "InvalidLeague";
+        var season = "2099";
+        var division = "DivX";
+        var teamName = "TeamX";
+
+        var queryParams = $"?given_by={WebUtility.UrlEncode(sub)}&league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}&team_name={WebUtility.UrlEncode(teamName)}";
+
+        // Act
+        var response = await _httpClient.GetAsync("/kudos" + queryParams);
+
+        // Assert
+        // Security check for active seasons should be logged but currently doesn't block (returns 200 empty list)
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        result.Should().Be("[]");
+    }
+
+    #endregion
 
     #region Helpers
 

@@ -26,6 +26,9 @@ public partial class ApiGatewayProxyHandler
     private readonly DeleteInviteLambda _deleteInviteLambda;
     private readonly CreateKudosLambda _createKudosLambda;
     private readonly DeleteKudosLambda _deleteKudosLambda;
+    private readonly RetrieveKudosGivenByPlayerLambda _retrieveKudosGivenByPlayerLambda;
+    private readonly RetrieveKudosAwardedToTeamLambda _retrieveKudosAwardedToTeamLambda;
+    private readonly RetrieveKudosStandingsLambda _retrieveKudosStandingsLambda;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
@@ -55,12 +58,15 @@ public partial class ApiGatewayProxyHandler
          var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable, cognitoUsers);
         _deleteKudosLambda = new DeleteKudosLambda(_observer, kudosDataTable);
+        _retrieveKudosGivenByPlayerLambda = new RetrieveKudosGivenByPlayerLambda(_observer, kudosDataTable);
+        _retrieveKudosAwardedToTeamLambda = new RetrieveKudosAwardedToTeamLambda(_observer, kudosDataTable);
+        _retrieveKudosStandingsLambda = new RetrieveKudosStandingsLambda(_observer, kudosDataTable);
 
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, DeleteKudosLambda deleteKudosLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, DeleteKudosLambda deleteKudosLambda, RetrieveKudosGivenByPlayerLambda retrieveKudosGivenByPlayerLambda, RetrieveKudosAwardedToTeamLambda retrieveKudosAwardedToTeamLambda, RetrieveKudosStandingsLambda retrieveKudosStandingsLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
@@ -68,6 +74,9 @@ public partial class ApiGatewayProxyHandler
         _deleteInviteLambda = deleteInviteLambda;
         _createKudosLambda = createKudosLambda;
         _deleteKudosLambda = deleteKudosLambda;
+        _retrieveKudosGivenByPlayerLambda = retrieveKudosGivenByPlayerLambda;
+        _retrieveKudosAwardedToTeamLambda = retrieveKudosAwardedToTeamLambda;
+        _retrieveKudosStandingsLambda = retrieveKudosStandingsLambda;
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         _observer = new LoggerObserver();
@@ -102,6 +111,12 @@ public partial class ApiGatewayProxyHandler
 
                 // Delete a kudos: DELETE /kudos
                 ("DELETE", "/kudos") => await HandleDeleteKudos(request, context),
+
+                // Get kudos standings: GET /kudos/standings
+                ("GET", "/kudos/standings") => await HandleGetKudosStandings(request, context),
+
+                // Get kudos given by player: GET /kudos
+                ("GET", "/kudos") => await HandleGetKudos(request, context),
 
                  // Method not allowed for /kudos
                 (var m, "/kudos") when m != "POST" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
@@ -413,6 +428,194 @@ public partial class ApiGatewayProxyHandler
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetKudos(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetKudos));
+        var inParameters = GetInputParameters(request);
+        inParameters["QueryString"] = JsonSerializer.Serialize(request.QueryStringParameters);
+
+
+        var queryParams = request.QueryStringParameters ?? new Dictionary<string, string>();
+        
+        if (queryParams.ContainsKey("given_by"))
+        {
+            _observer.OnBusinessEvent("GET PLAYER AWARDED KUDOS", context, inParameters);
+
+            ExtractQueryParametersOrCreateResponseAndNotifyObserver(context, queryParams, fromHere, inParameters,
+                                                                    out RetrieveKudosGivenByPlayerRequest? retrieveRequest, out APIGatewayProxyResponse? validationErrorResponse);
+            if (retrieveRequest is null)
+                return validationErrorResponse!;
+            
+            Dictionary<string, string> userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+            try
+            {
+                var kudosList = await _retrieveKudosGivenByPlayerLambda.HandleAsync(retrieveRequest, userClaims, context);
+                _observer.OnRuntimeRegularEvent("GET PLAYER AWARDED KUDOS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+                return CreateResponse(HttpStatusCode.OK, kudosList);
+            }
+            catch (ValidationException ex)
+            {
+                var responseStatusCode = HttpStatusCode.BadRequest;
+                var errorMessage = "Validation failed";
+                _observer.OnRuntimeRegularEvent("GET PLAYER AWARDED KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+                return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+            }
+        }
+        else
+        {
+            _observer.OnBusinessEvent("GET TEAM'S RECEIVED KUDOS", context, inParameters);
+            ExtractRetrieveKudosAwardedToTeamParametersOrCreateResponseAndNotifyObserver(context, queryParams, fromHere, inParameters,
+                                                                                       out RetrieveKudosAwardedToTeamRequest? teamRequest, out APIGatewayProxyResponse? teamValidationErrorResponse);
+            if (teamRequest is null)
+                return teamValidationErrorResponse!;
+
+            try
+            {
+                var kudosSummaryList = await _retrieveKudosAwardedToTeamLambda.HandleAsync(teamRequest, context);
+                _observer.OnRuntimeRegularEvent("GET TEAM'S RECEIVED KUDOS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+                return CreateResponse(HttpStatusCode.OK, kudosSummaryList);
+            }
+            catch (ValidationException ex)
+            {
+                var responseStatusCode = HttpStatusCode.BadRequest;
+                var errorMessage = "Validation failed";
+                _observer.OnRuntimeRegularEvent("GET TEAM'S RECEIVED KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+                return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+            }
+        }
+    }
+
+    private void ExtractRetrieveKudosAwardedToTeamParametersOrCreateResponseAndNotifyObserver(ILambdaContext context, IDictionary<string, string> queryParams, Dictionary<string, string> fromHere, Dictionary<string, string> inParameters, out RetrieveKudosAwardedToTeamRequest? retrieveRequest, out APIGatewayProxyResponse? createdResponse)
+    {
+        retrieveRequest = new RetrieveKudosAwardedToTeamRequest
+        {
+            League = SafeUrlDecode(GetParam(queryParams, "league")),
+            Season = SafeUrlDecode(GetParam(queryParams, "season")),
+            TeamDivision = SafeUrlDecode(GetParam(queryParams, "team_division")),
+            TeamName = SafeUrlDecode(GetParam(queryParams, "team_name"))
+        };
+
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(retrieveRequest.League)) errors.Add("league is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.Season)) errors.Add("season is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.TeamDivision)) errors.Add("team_division is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.TeamName)) errors.Add("team_name is required");
+
+        if (errors.Count > 0)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+            _observer.OnRuntimeRegularEvent("GET KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+            createdResponse = CreateResponse(responseStatusCode, new { message = errorMessage, errors });
+            retrieveRequest = null;
+            return;
+        }
+
+        createdResponse = null;
+    }
+
+    private void ExtractQueryParametersOrCreateResponseAndNotifyObserver(ILambdaContext context, IDictionary<string, string>? queryParams, Dictionary<string, string> fromHere, Dictionary<string, string> inParameters, out RetrieveKudosGivenByPlayerRequest? retrieveRequest, out APIGatewayProxyResponse? createdResponse)
+    {
+        queryParams ??= new Dictionary<string, string>();
+        
+        retrieveRequest = new RetrieveKudosGivenByPlayerRequest
+        {
+            GiverPersonSub = SafeUrlDecode(GetParam(queryParams, "given_by")),
+            League = SafeUrlDecode(GetParam(queryParams, "league")),
+            Season = SafeUrlDecode(GetParam(queryParams, "season")),
+            TeamDivision = SafeUrlDecode(GetParam(queryParams, "team_division")),
+            TeamName = SafeUrlDecode(GetParam(queryParams, "team_name"))
+        };
+
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(retrieveRequest.GiverPersonSub)) errors.Add("given_by is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.League)) errors.Add("league is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.Season)) errors.Add("season is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.TeamDivision)) errors.Add("team_division is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.TeamName)) errors.Add("team_name is required");
+
+        if (errors.Count > 0)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+            
+            _observer.OnRuntimeRegularEvent("GET KUDOS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+            
+            createdResponse = CreateResponse(responseStatusCode, new { message = errorMessage, errors });
+            retrieveRequest = null;
+            return;
+        }
+
+        createdResponse = null;
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetKudosStandings(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetKudosStandings));
+        var inParameters = GetInputParameters(request);
+        inParameters["QueryString"] = JsonSerializer.Serialize(request.QueryStringParameters);
+
+        _observer.OnBusinessEvent("GET KUDOS STANDINGS", context, inParameters);
+
+        var queryParams = request.QueryStringParameters ?? new Dictionary<string, string>();
+
+        ExtractRetrieveKudosStandingsParametersOrCreateResponseAndNotifyObserver(context, queryParams, fromHere, inParameters,
+                                                                                 out RetrieveKudosStandingsRequest? standingsRequest, out APIGatewayProxyResponse? validationErrorResponse);
+        if (standingsRequest is null)
+            return validationErrorResponse!;
+        
+        try
+        {
+            var standings = await _retrieveKudosStandingsLambda.HandleAsync(standingsRequest, context);
+
+            _observer.OnRuntimeRegularEvent("GET KUDOS STANDINGS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+
+            return CreateResponse(HttpStatusCode.OK, standings);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("GET KUDOS STANDINGS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+        }
+    }
+
+    private void ExtractRetrieveKudosStandingsParametersOrCreateResponseAndNotifyObserver(ILambdaContext context, IDictionary<string, string> queryParams, Dictionary<string, string> fromHere, Dictionary<string, string> inParameters, out RetrieveKudosStandingsRequest? retrieveRequest, out APIGatewayProxyResponse? createdResponse)
+    {
+        retrieveRequest = new RetrieveKudosStandingsRequest
+        {
+            League = SafeUrlDecode(GetParam(queryParams, "league")),
+            Season = SafeUrlDecode(GetParam(queryParams, "season")),
+            TeamDivision = SafeUrlDecode(GetParam(queryParams, "team_division"))
+        };
+
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(retrieveRequest.League)) errors.Add("league is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.Season)) errors.Add("season is required");
+        if (string.IsNullOrWhiteSpace(retrieveRequest.TeamDivision)) errors.Add("team_division is required");
+
+        if (errors.Count > 0)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+            _observer.OnRuntimeRegularEvent("GET KUDOS STANDINGS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+            createdResponse = CreateResponse(responseStatusCode, new { message = errorMessage, errors });
+            retrieveRequest = null;
+            return;
+        }
+
+        createdResponse = null;
+    }
+
+    private static string GetParam(IDictionary<string, string> dict, string key)
+    {
+        return dict.TryGetValue(key, out var val) ? val : string.Empty;
     }
 
     private void ExtractNanoIdOrCreateResponseAndNotifyObserver(ILambdaContext context, string path, Dictionary<string, string> inParameters,  Dictionary<string, string> here, 

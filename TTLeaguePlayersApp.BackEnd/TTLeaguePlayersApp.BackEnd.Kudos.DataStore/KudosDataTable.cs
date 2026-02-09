@@ -364,6 +364,202 @@ public class KudosDataTable : IDisposable, IKudosDataTable
         }
     }
 
+    public async Task<List<KudosEvent>> RetrieveKudosGivenByPlayerAsync(string league, string season, string giverPersonSub, string division, string giverTeam)
+    {
+        ValidateRetrieveKudosGivenByPlayerParameters(league, season, giverPersonSub, division, giverTeam);
+
+        var gsi1pk = $"{league}#{season}#{giverPersonSub}";
+
+        var request = new QueryRequest
+        {
+            TableName = _tableName,
+            IndexName = "KudosByPlayerIndex",
+            KeyConditionExpression = "GSI1PK = :gsi1pk",
+            FilterExpression = "division = :division AND giver_team = :giverTeam",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":gsi1pk", new AttributeValue { S = gsi1pk } },
+                { ":division", new AttributeValue { S = division } },
+                { ":giverTeam", new AttributeValue { S = giverTeam } }
+            },
+            ScanIndexForward = false // Descending order by match_date_time
+        };
+
+        var response = await _client.QueryAsync(request);
+
+        return response.Items.Select(item => 
+        {
+            var parts = item["SK"].S.Split('#');
+            return new KudosEvent
+            {
+                League = league,
+                Season = season,
+                Division = GetString(item, "division"),
+                ReceivingTeam = GetString(item, "receiving_team"),
+                HomeTeam = parts[1],
+                AwayTeam = parts[2],
+                MatchDateTime = GetLong(item, "match_date_time"),
+                GiverTeam = GetString(item, "giver_team"),
+                GiverPersonName = GetString(item, "giver_person_name"),
+                GiverPersonSub = giverPersonSub,
+                KudosValue = GetInt(item, "kudos_value")
+            };
+        }).ToList();
+    }
+
+    public async Task<List<KudosSummary>> RetrieveKudosAwardedToTeamAsync(string league, string season, string division, string teamName)
+    {
+        ValidateRetrieveKudosAwardedToTeamParameters(league, season, division, teamName);
+
+        var gsi2pk = $"{league}#{season}#{division}";
+        var gsi2skPrefix = $"{teamName}#";
+
+        var request = new QueryRequest
+        {
+            TableName = _tableName,
+            IndexName = "TeamStandingsIndex",
+            KeyConditionExpression = "GSI2PK = :gsi2pk AND begins_with(GSI2SK, :gsi2skPrefix)",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":gsi2pk", new AttributeValue { S = gsi2pk } },
+                { ":gsi2skPrefix", new AttributeValue { S = gsi2skPrefix } }
+            },
+            ScanIndexForward = false // Descending order
+        };
+
+        var response = await _client.QueryAsync(request);
+
+        return response.Items.Select(item => 
+        {
+            var sk = item["GSI2SK"].S;
+            var parts = sk.Split('#');
+            
+            return new KudosSummary
+            {
+                League = league,
+                Season = season,
+                Division = division,
+                ReceivingTeam = parts[0],
+                MatchDateTime = parts.Length > 1 && long.TryParse(parts[1], out var dt) ? dt : 0,
+                HomeTeam = parts.Length > 2 ? parts[2] : string.Empty,
+                AwayTeam = parts.Length > 3 ? parts[3] : string.Empty,
+                PositiveKudosCount = GetInt(item, "positive_kudos_count"),
+                NeutralKudosCount = GetInt(item, "neutral_kudos_count"),
+                NegativeKudosCount = GetInt(item, "negative_kudos_count")
+            };
+        }).ToList();
+    }
+
+    public async Task<List<KudosSummary>> RetrieveKudosAwardedToAllDivisionTeams(string league, string season, string division)
+    {
+        ValidateRetrieveKudosAwardedToAllDivisionTeamsParameters(league, season, division);
+
+        var gsi2pk = $"{league}#{season}#{division}";
+        var resultList = new List<KudosSummary>();
+        Dictionary<string, AttributeValue>? lastKeyEvaluated = null;
+
+        do
+        {
+            var request = new QueryRequest
+            {
+                TableName = _tableName,
+                IndexName = "TeamStandingsIndex",
+                KeyConditionExpression = "GSI2PK = :gsi2pk",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                {
+                    { ":gsi2pk", new AttributeValue { S = gsi2pk } }
+                },
+                ScanIndexForward = true, 
+                ExclusiveStartKey = lastKeyEvaluated
+            };
+
+            var response = await _client.QueryAsync(request);
+            resultList.AddRange(response.Items.Select(item => 
+            {
+                var sk = item["GSI2SK"].S;
+                var parts = sk.Split('#');
+                
+                return new KudosSummary
+                {
+                    League = league,
+                    Season = season,
+                    Division = division,
+                    ReceivingTeam = parts[0],
+                    MatchDateTime = parts.Length > 1 && long.TryParse(parts[1], out var dt) ? dt : 0,
+                    HomeTeam = parts.Length > 2 ? parts[2] : string.Empty,
+                    AwayTeam = parts.Length > 3 ? parts[3] : string.Empty,
+                    PositiveKudosCount = GetInt(item, "positive_kudos_count"),
+                    NeutralKudosCount = GetInt(item, "neutral_kudos_count"),
+                    NegativeKudosCount = GetInt(item, "negative_kudos_count")
+                };
+            }));
+
+            lastKeyEvaluated = response.LastEvaluatedKey;
+        } while (lastKeyEvaluated != null && lastKeyEvaluated.Count > 0);
+
+        return resultList;
+    }
+
+
+    private string GetString(Dictionary<string, AttributeValue> item, string key)
+    {
+        return item.TryGetValue(key, out var val) ? val.S : string.Empty;
+    }
+
+    private long GetLong(Dictionary<string, AttributeValue> item, string key)
+    {
+        return item.TryGetValue(key, out var val) && long.TryParse(val.N, out var result) ? result : 0;
+    }
+
+    private int GetInt(Dictionary<string, AttributeValue> item, string key)
+    {
+        return item.TryGetValue(key, out var val) && int.TryParse(val.N, out var result) ? result : 0;
+    }
+
+    private void ValidateRetrieveKudosGivenByPlayerParameters(string league, string season, string giverPersonSub, string division, string giverTeam)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{nameof(league)} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{nameof(season)} is required");
+        if (string.IsNullOrWhiteSpace(division)) errors.Add($"{nameof(division)} is required");
+        if (string.IsNullOrWhiteSpace(giverTeam)) errors.Add($"{nameof(giverTeam)} is required");
+        if (string.IsNullOrWhiteSpace(giverPersonSub)) errors.Add($"{nameof(giverPersonSub)} is required");
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+    private void ValidateRetrieveKudosAwardedToTeamParameters(string league, string season, string division, string teamName)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{nameof(league)} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{nameof(season)} is required");
+        if (string.IsNullOrWhiteSpace(division)) errors.Add($"{nameof(division)} is required");
+        if (string.IsNullOrWhiteSpace(teamName)) errors.Add($"{nameof(teamName)} is required");
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private void ValidateRetrieveKudosAwardedToAllDivisionTeamsParameters(string league, string season, string division)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{nameof(league)} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{nameof(season)} is required");
+        if (string.IsNullOrWhiteSpace(division)) errors.Add($"{nameof(division)} is required");
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
     public void Dispose()
     {
         _client?.Dispose();

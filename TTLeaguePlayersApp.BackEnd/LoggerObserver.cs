@@ -1,6 +1,7 @@
 using Amazon.Lambda.Core;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
 
 namespace TTLeaguePlayersApp.BackEnd;
 
@@ -58,7 +59,8 @@ public class LoggerObserver : ILoggerObserver
     }
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
 }
