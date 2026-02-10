@@ -7,6 +7,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Kudos } from './pages/Kudos';
 import { AwardKudos } from './pages/AwardKudos';
+import { KudosStanding } from './pages/KudosStanding';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -51,6 +52,14 @@ function InitializationGate() {
         element={
           <ProtectedRoute>
             <AwardKudos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/kudos-standing"
+        element={
+          <ProtectedRoute>
+            <KudosStanding />
           </ProtectedRoute>
         }
       />

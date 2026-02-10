@@ -38,7 +38,7 @@ test.describe('Kudos', () => {
             await expect(page.locator('h2')).toHaveText('Fair play Kudos');
         });
 
-        test('when a non logged-in user tries to login with unverified email, it is redirected through verification with returnUrl preserved', async ({ page }) => {
+        test('when a non logged-in user tries to navigate to kudos and login+verifyemail, is redirected through verification with returnUrl preserved', async ({ page }) => {
             // Mock InitiateAuth to return UserNotConfirmedException
             await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
                 const request = route.request();
@@ -122,10 +122,10 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             // Verify that on the page there is one active card per each active season of the user
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
 
             // We expect at least one card based on the test user data
             const count = await cards.count();
@@ -154,9 +154,9 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage =await user.navigateToKudos();
 
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
             const count = await cards.count();
 
             // Ensure we have at least 3 cards for this test scenario as per instructions
@@ -168,19 +168,19 @@ test.describe('Kudos', () => {
             }
 
             // Verify that after expanding the 1st season card, that is expanded, the other two are collapsed
-            await cards.nth(0).getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(0);
             await expect(cards.nth(0).getByTestId('active-season-details')).toBeVisible();
             await expect(cards.nth(1).getByTestId('active-season-details')).not.toBeVisible();
             await expect(cards.nth(2).getByTestId('active-season-details')).not.toBeVisible();
 
             // Verify that after expanding the 2nd season card, that is expanded, the other two are collapsed
-            await cards.nth(1).getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(1);
             await expect(cards.nth(1).getByTestId('active-season-details')).toBeVisible();
             await expect(cards.nth(0).getByTestId('active-season-details')).not.toBeVisible();
             await expect(cards.nth(2).getByTestId('active-season-details')).not.toBeVisible();
 
             // Verify that after expanding the 3nd season card, that is expanded, the other two are collapsed
-            await cards.nth(2).getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(2);
             await expect(cards.nth(2).getByTestId('active-season-details')).toBeVisible();
             await expect(cards.nth(0).getByTestId('active-season-details')).not.toBeVisible();
             await expect(cards.nth(1).getByTestId('active-season-details')).not.toBeVisible();
@@ -195,9 +195,9 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered2@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();            
             const count = await cards.count();
 
             // Ensure we have exactly 1 card for this test scenario
@@ -216,9 +216,9 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
 
             // We expect FLICK to be hidden, so only 2 cards (CLTTL and BCS) should be visible
             await expect(cards).toHaveCount(2);
@@ -240,9 +240,9 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
 
             // We expect FLICK to be hidden, so only 2 cards (CLTTL and BCS) should be visible
             await expect(cards).toHaveCount(2);
@@ -268,10 +268,10 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             // Find and expand the CLTTL 2025-2026 active season card
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
             const count = await cards.count();
             expect(count).toBeGreaterThan(0);
 
@@ -288,7 +288,7 @@ test.describe('Kudos', () => {
             expect(clttlCardIndex).toBeGreaterThanOrEqual(0);
 
             // Expand the CLTTL card
-            await cards.nth(clttlCardIndex).getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(clttlCardIndex);
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-details')).toBeVisible();
 
             // Wait for loading to complete (may take longer due to network requests)
@@ -330,10 +330,10 @@ test.describe('Kudos', () => {
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             // Find and expand the CLTTL 2025-2026 active season card
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
             const count = await cards.count();
             expect(count).toBeGreaterThan(0);
 
@@ -350,7 +350,7 @@ test.describe('Kudos', () => {
             expect(clttlCardIndex).toBeGreaterThanOrEqual(0);
 
             // Expand the CLTTL card
-            await cards.nth(clttlCardIndex).getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(clttlCardIndex);
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-details')).toBeVisible();
 
             // Wait for loading to complete (may take longer due to network requests)
@@ -411,12 +411,12 @@ test.describe('Kudos', () => {
 
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             // Find and expand the first active season card
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
             await expect(cards.first()).toBeVisible();
-            await cards.first().getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(0);
 
             // Wait for loading to complete
             await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
@@ -465,12 +465,12 @@ test.describe('Kudos', () => {
 
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             // Find and expand the first active season card
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
             await expect(cards.first()).toBeVisible();
-            await cards.first().getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(0);
 
             // Wait for loading to complete
             await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
@@ -518,12 +518,12 @@ test.describe('Kudos', () => {
 
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-            await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             // Find and expand the first active season card
-            const cards = page.getByTestId('active-season-card');
+            const cards = kudosPage.activeSeasonCards();
             await expect(cards.first()).toBeVisible();
-            await cards.first().getByTestId('active-season-header').click();
+            await kudosPage.openActiveSeasonCard(0);
 
             // Wait for loading to complete
             await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });

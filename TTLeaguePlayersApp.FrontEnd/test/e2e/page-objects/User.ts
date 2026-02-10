@@ -3,10 +3,10 @@ import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
 import { JoinPage } from './JoinPage';
 import { HomePage } from './HomePage';
-import { KudosPage } from './KudosPage';
+import { KudosAndAwardPages } from './KudosAndAwardPages';
 import { MenuPage } from './MenuPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosPage, MenuPage };
+export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, MenuPage };
 
 export class User {
   private page: Page;
@@ -90,15 +90,15 @@ export class User {
     return homePage;
   }
 
-  async navigateToKudos(): Promise<KudosPage> {
-    const kudosPage = new KudosPage(this.page);
+  async navigateToKudos(): Promise<KudosAndAwardPages> {
+    const kudosPage = new KudosAndAwardPages(this.page);
     await this.page.goto('/#/kudos');
     await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
     return kudosPage;
   }
 
-  async tentativelyNavigateToKudos(): Promise<KudosPage> {
-    const kudosPage = new KudosPage(this.page);
+  async tentativelyNavigateToKudos(): Promise<KudosAndAwardPages> {
+    const kudosPage = new KudosAndAwardPages(this.page);
     await this.page.goto('/#/kudos');
 
     return kudosPage;

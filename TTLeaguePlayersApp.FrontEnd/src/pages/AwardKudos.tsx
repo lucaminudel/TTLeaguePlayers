@@ -92,8 +92,16 @@ export const AwardKudos: React.FC = () => {
             // Refresh local user attributes so 'latest_kudos' is updated in the UI
             await refreshActiveSeasons();
 
-            // On success, navigate back to kudos page
-            void navigate('/kudos');
+            // On success, navigate to kudos standing page
+            void navigate('/kudos-standing', {
+                state: {
+                    league: state.league,
+                    season: state.season,
+                    team_name: state.teamName,
+                    team_division: state.teamDivision,
+                    person_name: state.personName,
+                }
+            });
         } catch (err) {
             let userFriendlyMessage = 'Something went wrong while awarding kudos. Please try again.';
 

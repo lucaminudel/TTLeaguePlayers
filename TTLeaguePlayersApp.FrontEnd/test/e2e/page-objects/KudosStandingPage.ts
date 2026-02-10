@@ -1,6 +1,6 @@
-import { type Page, expect } from '@playwright/test';
+import { type Page,  expect } from '@playwright/test';
 
-export class KudosPage {
+export class KudosStandingPage {
     private page: Page;
 
     constructor(page: Page) {
@@ -10,4 +10,5 @@ export class KudosPage {
     async expectIsVisible(): Promise<void> {
         await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
     }
+
 }

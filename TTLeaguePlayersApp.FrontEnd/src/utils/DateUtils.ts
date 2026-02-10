@@ -15,8 +15,15 @@ declare global {
  * 
  * Usage in Playwright tests:
  * ```typescript
+ * // 1. For future "hard" navigations or reloads
  * await page.addInitScript(() => {
  *     window.__FIXED_CLOCK_TIME__ = '2025-01-15T14:30:00Z';
+ * }, dateTime);    
+ * 
+ * // 2. For the current page context (if already loaded)
+ * await page.evaluate((time) => {
+ *     window.__FIXED_CLOCK_TIME__ = time;
+ * }, dateTime);    
  * });
  * ```
  */

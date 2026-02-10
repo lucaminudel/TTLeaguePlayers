@@ -19,7 +19,7 @@
     "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright test",
     "e2e-tests-web:run test-env": "cross-env PORT=4173 playwright test",
     "e2e-tests-web:report": "playwright show-report",
-    "e2e-tests-web:run-browser dev-env": "cross-env PORT=5173 playwright test --ui",
+    "Cognito+ e2e-tests-web:run-browser dev-env": "cross-env PORT=5173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui",
     "e2e-tests-web:run-browser test-env": "cross-env PORT=4173 playwright test --ui"
   },
   "dependencies": {
