@@ -4,9 +4,10 @@ import { RegisterPage } from './RegisterPage';
 import { JoinPage } from './JoinPage';
 import { HomePage } from './HomePage';
 import { KudosAndAwardPages } from './KudosAndAwardPages';
+import { KudosStandingsPage } from './KudosStandingsPage';
 import { MenuPage } from './MenuPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, MenuPage };
+export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage };
 
 export class User {
   private page: Page;
@@ -102,6 +103,13 @@ export class User {
     await this.page.goto('/#/kudos');
 
     return kudosPage;
+  }
+
+  async navigateToKudosStandings(): Promise<KudosStandingsPage> {
+    const kudosStandingPage = new KudosStandingsPage(this.page);
+    await this.page.goto('/#/kudos-standings');
+    await expect(this.page.locator('h2')).toHaveText('Kudos Standings');
+    return kudosStandingPage;
   }
 
   get menu(): MenuPage {

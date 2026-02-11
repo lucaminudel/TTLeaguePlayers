@@ -1,5 +1,5 @@
 import { type Page, type Locator, expect } from '@playwright/test';
-import { KudosStandingPage } from './KudosStandingPage';
+import { KudosStandingsPage } from './KudosStandingsPage';
 
 export class KudosAndAwardPages {
     private page: Page;
@@ -17,7 +17,11 @@ export class KudosAndAwardPages {
     async openActiveSeasonCard(index: number): Promise<void> {
         this.openCard = this.activeSeasonCards().nth(index);
 
-        await this.openCard.getByTestId('active-season-header').click();
+        // Expand card if not already expanded as only card 
+        const count = await this.activeSeasonCards().count();
+        if (count > 0) {
+            await this.openCard.getByTestId('active-season-header').click();
+        }
 
         await expect(this.openCard.getByTestId('active-season-details')).toBeVisible();
     }
@@ -39,9 +43,12 @@ export class KudosAndAwardPages {
         }
         expect(clttlCardIndex).toBeGreaterThanOrEqual(0);
 
-        // Expand card if not already expanded (assumed logic from previous tests, or just click header)
         this.openCard = cards.nth(clttlCardIndex);
-        await this.openCard.getByTestId('active-season-header').click();
+
+        // Expand card if not already expanded as only card 
+        if (count > 1) {
+            await this.openCard.getByTestId('active-season-header').click();
+        }
 
         // Wait for details
         await expect(this.openCard.getByTestId('active-season-details')).toBeVisible();
@@ -49,22 +56,22 @@ export class KudosAndAwardPages {
         return this.openCard;
     }
 
-    async ratePositiveKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingPage> {
+    async ratePositiveKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
 
         return this.RateKudosFromOpenCard('Positive Kudos', receivingTeamName);
     }
 
-    async RateNeutralKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingPage> {
+    async RateNeutralKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
 
         return this.RateKudosFromOpenCard('Neutral Kudos', receivingTeamName);
     }
 
-    async RateNegativeKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingPage> {
+    async RateNegativeKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
 
         return this.RateKudosFromOpenCard('Negative Kudos', receivingTeamName);
     }
 
-    private async RateKudosFromOpenCard(rating: string, receivingTeamName: string): Promise<KudosStandingPage> {
+    private async RateKudosFromOpenCard(rating: string, receivingTeamName: string): Promise<KudosStandingsPage> {
 
         if (!this.openCard) {
             throw new Error('No active season card is open. Please call openActiveSeasonCard or findAndOpenActiveSeasonCard first.');
@@ -81,9 +88,12 @@ export class KudosAndAwardPages {
         await this.page.getByRole('button', { name: rating }).click();
         await this.page.getByRole('button', { name: 'Confirm' }).click();
 
-        // Verify we are on kudos-standing page (implicit by next steps or explicit check)
-        await expect(this.page).toHaveURL(/\/kudos-standing/, { timeout: 10000 });
+        // Verify we are on kudos-standings page (implicit by next steps or explicit check)
+        await expect(this.page).toHaveURL(/\/kudos-standings/, { timeout: 10000 });
 
-        return new KudosStandingPage(this.page);
+        // Check "Awarded" tab is active. 
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Given By You');
+
+        return new KudosStandingsPage(this.page);
     }
 }

@@ -45,26 +45,26 @@ public class RetrieveKudosStandingsLambda
 
         // The following code is based on the assumption that summaries are ordered by receiving team name ascending
         // as retured by the data store query. 
-        foreach (var s in summaries)
+        foreach (var matchSummary in summaries)
         {
-            if (s.ReceivingTeam != currentTeam)
+            if (matchSummary.ReceivingTeam != currentTeam)
             {
-                currentTeam = s.ReceivingTeam;
+                currentTeam = matchSummary.ReceivingTeam;
                 posEntry = new KudosStandingsEntry { TeamName = currentTeam, Count = 0 };
                 negEntry = new KudosStandingsEntry { TeamName = currentTeam, Count = 0 };
                 positiveEntries.Add(posEntry);
                 negativeEntries.Add(negEntry);
             }
 
-            if (s.PositiveKudosCount >= 1) posEntry!.Count++;
-            if (s.NegativeKudosCount >= 1) negEntry!.Count++;
+            if (matchSummary.PositiveKudosCount >= 1) posEntry!.Count++;
+            if (matchSummary.NegativeKudosCount >= 1) negEntry!.Count++;
         }
 
         var response = new KudosStandingsResponse
         {
             // Order by count descending. Stable sort preserves the existing team-name order for ties.
-            PositiveKudosTable = positiveEntries.OrderByDescending(e => e.Count).ToList(),
-            NegativeKudosTable = negativeEntries.OrderByDescending(e => e.Count).ToList()
+            PositiveKudosTable = positiveEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList(),
+            NegativeKudosTable = negativeEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList()
         };
 
         _observer.OnRuntimeRegularEvent("RETRIEVE KUDOS STANDINGS COMPLETED",

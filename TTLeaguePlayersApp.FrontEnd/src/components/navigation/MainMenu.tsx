@@ -23,7 +23,7 @@ export const MainMenu: React.FC = () => {
         },
         {
             label: 'Kudos Standings',
-            path: '#', // Update with actual path when available
+            path: '/kudos-standings', 
             visibleToAuthenticated: true,
             visibleToUnauthenticated: true
         },

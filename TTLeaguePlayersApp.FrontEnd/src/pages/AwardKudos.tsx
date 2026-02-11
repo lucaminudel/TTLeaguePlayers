@@ -93,7 +93,7 @@ export const AwardKudos: React.FC = () => {
             await refreshActiveSeasons();
 
             // On success, navigate to kudos standing page
-            void navigate('/kudos-standing', {
+            void navigate('/kudos-standings', {
                 state: {
                     league: state.league,
                     season: state.season,

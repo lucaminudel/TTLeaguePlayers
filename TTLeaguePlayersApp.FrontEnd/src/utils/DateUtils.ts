@@ -62,6 +62,17 @@ export function formatFixtureDate(date: Date): string {
     return `${dayName} ${String(dayOfMonth)}${suffix} ${monthName}`;
 }
 
+export function shortFormatFixtureDate(date: Date): string {
+    const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const dayName = days[date.getDay()];
+    const dayOfMonth = date.getDate();
+    const monthName = months[date.getMonth()];
+
+    return `${dayName} ${String(dayOfMonth)}-${monthName}`;
+}
+
 /**
  * Checks if two dates are the same calendar day.
  */

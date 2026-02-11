@@ -7,7 +7,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Kudos } from './pages/Kudos';
 import { AwardKudos } from './pages/AwardKudos';
-import { KudosStanding } from './pages/KudosStanding';
+import { KudosStandings } from './pages/KudosStandings';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -56,10 +56,10 @@ function InitializationGate() {
         }
       />
       <Route
-        path="/kudos-standing"
+        path="/kudos-standings"
         element={
           <ProtectedRoute>
-            <KudosStanding />
+            <KudosStandings />
           </ProtectedRoute>
         }
       />

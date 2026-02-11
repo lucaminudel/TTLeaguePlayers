@@ -65,6 +65,37 @@ export interface KudosResponse {
     kudos_value: number;
 }
 
+export interface KudosSummaryResponse {
+    league: string;
+    season: string;
+    division: string;
+    home_team: string;
+    away_team: string;
+    receiving_team: string;
+    match_date_time: number;
+    positive_kudos_count: number;
+    neutral_kudos_count: number;
+    negative_kudos_count: number;
+    item_type: string;
+}
+
+export interface KudosStandingsEntry {
+    team_name: string;
+    count: number;
+}
+
+export interface KudosStandingsResponse {
+    positive_kudos_table: KudosStandingsEntry[];
+    negative_kudos_table: KudosStandingsEntry[];
+}
+
+export interface GetTeamKudosRequest {
+    league: string;
+    season: string;
+    teamDivision: string;
+    teamName: string;
+}
+
 export async function getKudos(request: GetKudosRequest): Promise<KudosResponse[]> {
     const config = getConfig();
     const baseUrl = config.ApiGateWay.ApiBaseUrl;
@@ -79,6 +110,41 @@ export async function getKudos(request: GetKudosRequest): Promise<KudosResponse[
     params.append('team_name', request.teamName);
 
     return apiFetch<KudosResponse[]>(baseUrl, `/kudos?${params.toString()}`, {
+        method: 'GET',
+    });
+}
+
+export async function getTeamKudos(request: GetTeamKudosRequest): Promise<KudosSummaryResponse[]> {
+    const config = getConfig();
+    const baseUrl = config.ApiGateWay.ApiBaseUrl;
+
+    const params = new URLSearchParams();
+    params.append('league', request.league);
+    params.append('season', request.season);
+    params.append('team_division', request.teamDivision);
+    params.append('team_name', request.teamName);
+
+    return apiFetch<KudosSummaryResponse[]>(baseUrl, `/kudos?${params.toString()}`, {
+        method: 'GET',
+    });
+}
+
+export interface GetKudosStandingsRequest {
+    league: string;
+    season: string;
+    teamDivision: string;
+}
+
+export async function getKudosStandings(request: GetKudosStandingsRequest): Promise<KudosStandingsResponse> {
+    const config = getConfig();
+    const baseUrl = config.ApiGateWay.ApiBaseUrl;
+
+    const params = new URLSearchParams();
+    params.append('league', request.league);
+    params.append('season', request.season);
+    params.append('team_division', request.teamDivision);
+
+    return apiFetch<KudosStandingsResponse>(baseUrl, `/kudos/standings?${params.toString()}`, {
         method: 'GET',
     });
 }

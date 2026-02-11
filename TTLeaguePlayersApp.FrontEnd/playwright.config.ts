@@ -13,8 +13,24 @@ export default defineConfig({
     },
 
     projects: [
+        // Dedicated project for long-running KudosAwardAndStanding tests
+        {
+            name: 'kudos-long-tests',
+            testMatch: /KudosAwardAndStanding\.spec\.ts$/,
+            workers: 1,
+            fullyParallel: false,
+            use: {
+                ...devices['iPhone SE'],
+                // Use Chromium engine but emulate iPhone SE viewport/UA/touch.
+                // The built-in 'iPhone SE' device preset defaults to WebKit.
+                browserName: 'chromium',
+            },
+        },
+        // Default project for other tests
         {
             name: 'chromium (iPhone SE emulation)',
+            // Exclude the long test from the default project
+            testIgnore: /KudosAwardAndStanding\.spec\.ts$/,
             use: {
                 ...devices['iPhone SE'],
                 // Use Chromium engine but emulate iPhone SE viewport/UA/touch.
@@ -23,6 +39,4 @@ export default defineConfig({
             },
         },
     ],
-
-
 });

@@ -41,21 +41,17 @@ public class RetrieveKudosStandingsLambdaTests
         var result = await lambda.HandleAsync(request, _context);
 
         // Assert
-        result.PositiveKudosTable.Should().HaveCount(3);
+        result.PositiveKudosTable.Should().HaveCount(2);
         result.PositiveKudosTable[0].TeamName.Should().Be("TeamA");
         result.PositiveKudosTable[0].Count.Should().Be(2);
         result.PositiveKudosTable[1].TeamName.Should().Be("TeamB");
         result.PositiveKudosTable[1].Count.Should().Be(1);
-        result.PositiveKudosTable[2].TeamName.Should().Be("TeamC");
-        result.PositiveKudosTable[2].Count.Should().Be(0);
 
-        result.NegativeKudosTable.Should().HaveCount(3);
+        result.NegativeKudosTable.Should().HaveCount(2);
         result.NegativeKudosTable[0].TeamName.Should().Be("TeamC");
         result.NegativeKudosTable[0].Count.Should().Be(2);
         result.NegativeKudosTable[1].TeamName.Should().Be("TeamB");
         result.NegativeKudosTable[1].Count.Should().Be(1);
-        result.NegativeKudosTable[2].TeamName.Should().Be("TeamA");
-        result.NegativeKudosTable[2].Count.Should().Be(0);
     }
 
     private sealed class FakeKudosDataTable : IKudosDataTable
