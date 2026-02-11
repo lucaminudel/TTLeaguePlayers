@@ -94,6 +94,11 @@ public partial class ApiGatewayProxyHandler
 
             var response = (method, path) switch
             {
+
+                //
+                // INVITES ENDPOINTS
+                //
+
                 // Preflight for /invites
                 ("OPTIONS", "/invites") => CreatePreflightResponse("OPTIONS,POST", request),
 
@@ -102,24 +107,6 @@ public partial class ApiGatewayProxyHandler
 
                 // Method not allowed for /invites
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
-
-                // Preflight for /kudos
-                ("OPTIONS", "/kudos") => CreatePreflightResponse("OPTIONS,POST,DELETE", request),
-
-                // Create a new kudos: POST /kudos
-                ("POST", "/kudos") => await HandleCreateKudos(request, context),
-
-                // Delete a kudos: DELETE /kudos
-                ("DELETE", "/kudos") => await HandleDeleteKudos(request, context),
-
-                // Get kudos standings: GET /kudos/standings
-                ("GET", "/kudos/standings") => await HandleGetKudosStandings(request, context),
-
-                // Get kudos given by player: GET /kudos
-                ("GET", "/kudos") => await HandleGetKudos(request, context),
-
-                 // Method not allowed for /kudos
-                (var m, "/kudos") when m != "POST" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Preflight for /invites/{nano_id}
                 ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH,DELETE", request),
@@ -135,6 +122,40 @@ public partial class ApiGatewayProxyHandler
 
                 // Method not allowed for /invites/{id}
                 (var m, var p) when p.StartsWith("/invites/") && m != "GET" && m != "PATCH" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+
+                //
+                // KUDOS ENDPOINTS
+                //
+
+                // Preflight for /kudos
+                ("OPTIONS", "/kudos") => CreatePreflightResponse("OPTIONS,POST,DELETE,GET", request),
+
+                // Create a new kudos: POST /kudos
+                ("POST", "/kudos") => await HandleCreateKudos(request, context),
+
+                // Delete a kudos: DELETE /kudos
+                ("DELETE", "/kudos") => await HandleDeleteKudos(request, context),
+
+                // Get kudos given by player: GET /kudos
+                ("GET", "/kudos") => await HandleGetKudos(request, context),
+
+                // Method not allowed for /kudos
+                (var m, "/kudos") when m != "GET" && m != "POST" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+                // Preflight for /kudos/standings
+                ("OPTIONS", var p) when p.StartsWith("/kudos/standings") => CreatePreflightResponse("OPTIONS,GET", request),
+
+                // Get kudos standings: GET /kudos/standings
+                ("GET", "/kudos/standings") => await HandleGetKudosStandings(request, context),
+
+                 // Method not allowed for /kudos/standings
+                (var m, "/kudos/standings") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+
+                //
+                // UNKNOWN ENDPOINTS
+                //
 
                 // Fallback: 404 for unknown paths
                 _ => CreateResponse(HttpStatusCode.NotFound, new { message = "Not Found" })
