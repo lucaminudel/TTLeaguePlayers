@@ -38,10 +38,12 @@ public class RetrieveKudosStandingsLambda
 
         var positiveEntries = new List<KudosStandingsEntry>();
         var negativeEntries = new List<KudosStandingsEntry>();
+        var neutralEntries = new List<KudosStandingsEntry>();
 
         string? currentTeam = null;
         KudosStandingsEntry? posEntry = null;
         KudosStandingsEntry? negEntry = null;
+        KudosStandingsEntry? neuEntry = null;
 
         // The following code is based on the assumption that summaries are ordered by receiving team name ascending
         // as retured by the data store query. 
@@ -52,19 +54,23 @@ public class RetrieveKudosStandingsLambda
                 currentTeam = matchSummary.ReceivingTeam;
                 posEntry = new KudosStandingsEntry { TeamName = currentTeam, Count = 0 };
                 negEntry = new KudosStandingsEntry { TeamName = currentTeam, Count = 0 };
+                neuEntry = new KudosStandingsEntry { TeamName = currentTeam, Count = 0 };
                 positiveEntries.Add(posEntry);
                 negativeEntries.Add(negEntry);
+                neutralEntries.Add(neuEntry);
             }
 
             if (matchSummary.PositiveKudosCount >= 1) posEntry!.Count++;
             if (matchSummary.NegativeKudosCount >= 1) negEntry!.Count++;
+            if (matchSummary.NeutralKudosCount >= 1) neuEntry!.Count++;
         }
 
         var response = new KudosStandingsResponse
         {
             // Order by count descending. Stable sort preserves the existing team-name order for ties.
             PositiveKudosTable = positiveEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList(),
-            NegativeKudosTable = negativeEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList()
+            NegativeKudosTable = negativeEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList(),
+            NeutralKudosTable = neutralEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList()
         };
 
         _observer.OnRuntimeRegularEvent("RETRIEVE KUDOS STANDINGS COMPLETED",

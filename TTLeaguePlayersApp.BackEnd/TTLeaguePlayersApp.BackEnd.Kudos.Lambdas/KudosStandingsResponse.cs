@@ -9,6 +9,9 @@ public class KudosStandingsResponse
 
     [JsonPropertyName("negative_kudos_table")]
     public List<KudosStandingsEntry> NegativeKudosTable { get; set; } = new();
+
+    [JsonPropertyName("neutral_kudos_table")]
+    public List<KudosStandingsEntry> NeutralKudosTable { get; set; } = new();
 }
 
 public class KudosStandingsEntry

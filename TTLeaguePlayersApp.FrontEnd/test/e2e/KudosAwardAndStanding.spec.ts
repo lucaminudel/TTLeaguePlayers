@@ -417,6 +417,13 @@ test.describe('Kudos Standings', () => {
 
         // 2 - Fusion 5, 1 match with negative kudos
         await kudosStandingsPage.negativeKudosTableContains('Fusion 5', '1');
+
+        // Check the Neutral Kudos table contains 1 entry
+        expect(await kudosStandingsPage.neutralKudosTableCount()).toBe(1);
+
+        // Verify the entries in neutral kudos table
+        // 1 - Walworth Tigers, 1 match with neutral kudos
+        await kudosStandingsPage.neutralKudosTableContains('Walworth Tigers', '1');
     });
 
 });

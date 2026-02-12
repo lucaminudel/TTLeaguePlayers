@@ -12,11 +12,11 @@ export class KudosStandingsPage {
         const header = this.page.getByTestId('active-season-header');
         if ((await header.count()) > 0) {
             const headerText = await header.textContent();
-            const seasonAlreadySelected = headerText && 
-                                            headerText.includes(teamName) && 
-                                            headerText.includes(league) && 
-                                            headerText.includes(season);
-            
+            const seasonAlreadySelected = headerText &&
+                headerText.includes(teamName) &&
+                headerText.includes(league) &&
+                headerText.includes(season);
+
             if (seasonAlreadySelected) {
                 return;
             }
@@ -46,7 +46,7 @@ export class KudosStandingsPage {
     async myKudosItemsContains(standingsPosition: number, team: string, kudos: string) {
         await expect(this.page.getByTestId('active tab')).toContainText('Kudos Given By You');
 
-        const myKudosItem = this.page.getByTestId('my-kudos-item').nth(standingsPosition-1)
+        const myKudosItem = this.page.getByTestId('my-kudos-item').nth(standingsPosition - 1)
         await expect(myKudosItem.filter({ hasText: team }).filter({ hasText: kudos })).toBeVisible();
     }
 
@@ -73,7 +73,7 @@ export class KudosStandingsPage {
     async teamKudosItemsContains(standingsPosition: number, team: string, kudos: string) {
         await expect(this.page.getByTestId('active tab')).toContainText('Kudos Received By Your Team');
 
-        const teamKudosItem = this.page.getByTestId('team-kudos-item').nth(standingsPosition-1)
+        const teamKudosItem = this.page.getByTestId('team-kudos-item').nth(standingsPosition - 1)
         await expect(teamKudosItem.filter({ hasText: team }).filter({ hasText: kudos })).toBeVisible();
     }
 
@@ -81,25 +81,25 @@ export class KudosStandingsPage {
         const tableTab = this.page.getByRole('button', { name: 'Table' });
         await tableTab.click();
 
-        await expect(this.page.getByTestId('active tab')).toContainText('Division Team Standings');
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
     }
 
     async positiveKudosTableCount(): Promise<number> {
-        await expect(this.page.getByTestId('active tab')).toContainText('Division Team Standings');
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
         await expect(this.page.getByTestId('positive-kudos-standings')).toBeVisible();
         const positiveStandings = this.page.locator('[data-testid^="positive-standing-"]');
         return positiveStandings.count();
     }
 
     async negativeKudosTableCount(): Promise<number> {
-        await expect(this.page.getByTestId('active tab')).toContainText('Division Team Standings');
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
         await expect(this.page.getByTestId('negative-kudos-standings')).toBeVisible();
         const negativeStandings = this.page.locator('[data-testid^="negative-standing-"]');
         return negativeStandings.count();
     }
 
     async positiveKudosTableContains(team: string, count: string) {
-        await expect(this.page.getByTestId('active tab')).toContainText('Division Team Standings');
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
 
         const positiveStanding = this.page.getByTestId(`positive-standing-${team}`);
         await expect(positiveStanding).toBeVisible();
@@ -107,11 +107,26 @@ export class KudosStandingsPage {
     }
 
     async negativeKudosTableContains(team: string, count: string) {
-        await expect(this.page.getByTestId('active tab')).toContainText('Division Team Standings');
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
 
         const negativeStanding = this.page.getByTestId(`negative-standing-${team}`);
         await expect(negativeStanding).toBeVisible();
         await expect(negativeStanding).toContainText(count);
     }
-    
+
+    async neutralKudosTableCount(): Promise<number> {
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
+        await expect(this.page.getByTestId('neutral-kudos-standings')).toBeVisible();
+        const neutralStandings = this.page.locator('[data-testid^="neutral-standing-"]');
+        return neutralStandings.count();
+    }
+
+    async neutralKudosTableContains(team: string, count: string) {
+        await expect(this.page.getByTestId('active tab')).toContainText('Kudos Table');
+
+        const neutralStanding = this.page.getByTestId(`neutral-standing-${team}`);
+        await expect(neutralStanding).toBeVisible();
+        await expect(neutralStanding).toContainText(count);
+    }
+
 }

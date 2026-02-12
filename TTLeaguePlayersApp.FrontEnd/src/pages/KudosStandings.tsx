@@ -226,7 +226,9 @@ export const KudosStandings: React.FC = () => {
     const renderKudosStandingsTable = () => {
         if (loading) return <div className="text-center p-4">Loading...</div>;
         if (error) return <ErrorMessage>{error}</ErrorMessage>;
-        if (!standingsData || (standingsData.positive_kudos_table.length === 0 && standingsData.negative_kudos_table.length === 0)) {
+        if (!standingsData || (standingsData.positive_kudos_table.length === 0 &&
+            standingsData.neutral_kudos_table.length === 0 &&
+            standingsData.negative_kudos_table.length === 0)) {
             return <div className="text-center p-4 text-gray-500">No standings data available.</div>;
         }
 
@@ -235,7 +237,7 @@ export const KudosStandings: React.FC = () => {
                 {/* Positive Kudos Table */}
                 {standingsData.positive_kudos_table.length > 0 && (
                     <div data-testid="positive-kudos-standings">
-                        <h3 className="text-sm font-bold text-main-text mb-3 uppercase tracking-wide">Positive Kudos</h3>
+                        <h3 className="text-xs font-bold text-main-text mb-3 uppercase tracking-wide">Positive Kudos Match Tally</h3>
                         <div className="space-y-2">
                             {standingsData.positive_kudos_table.map((entry) => (
                                 <div key={entry.team_name} className="flex justify-between items-center" data-testid={`positive-standing-${entry.team_name}`}>
@@ -249,10 +251,27 @@ export const KudosStandings: React.FC = () => {
                     </div>
                 )}
 
+                {/* Neutral Kudos Table */}
+                {standingsData.neutral_kudos_table.length > 0 && (
+                    <div data-testid="neutral-kudos-standings">
+                        <h3 className="text-xs font-bold text-main-text mb-3 uppercase tracking-wide">Neutral Kudos Match Tally</h3>
+                        <div className="space-y-2">
+                            {standingsData.neutral_kudos_table.map((entry) => (
+                                <div key={entry.team_name} className="flex justify-between items-center" data-testid={`neutral-standing-${entry.team_name}`}>
+                                    <span className="font-bold text-main-text text-sm">{entry.team_name}</span>
+                                    <div className="px-2 py-1 rounded text-xs font-bold bg-[#85a3c2] text-white">
+                                        {entry.count}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Negative Kudos Table */}
                 {standingsData.negative_kudos_table.length > 0 && (
                     <div data-testid="negative-kudos-standings">
-                        <h3 className="text-sm font-bold text-main-text mb-3 uppercase tracking-wide">Negative Kudos</h3>
+                        <h3 className="text-xs font-bold text-main-text mb-2 uppercase tracking-wide">Negative Kudos Match Tally</h3>
                         <div className="space-y-2">
                             {standingsData.negative_kudos_table.map((entry) => (
                                 <div key={entry.team_name} className="flex justify-between items-center" data-testid={`negative-standing-${entry.team_name}`}>
@@ -366,7 +385,6 @@ export const KudosStandings: React.FC = () => {
                             {activeTab === 'Awarded' && (
                                 <div>
                                     <div className="mb-2 text-sm text-secondary-text uppercase tracking-wide font-bold" data-testid='active tab'>
-                                        
                                         Kudos Given By You<br /><br />
                                     </div>
                                     {renderKudosList()}
@@ -383,7 +401,7 @@ export const KudosStandings: React.FC = () => {
                             {activeTab === 'Table' && (
                                 <div>
                                     <div className="mb-4 text-sm text-secondary-text uppercase tracking-wide font-bold" data-testid='active tab'>
-                                        Division Team Standings<br /><br />
+                                        Kudos Table<br /><br />
                                     </div>
                                     {renderKudosStandingsTable()}
                                 </div>

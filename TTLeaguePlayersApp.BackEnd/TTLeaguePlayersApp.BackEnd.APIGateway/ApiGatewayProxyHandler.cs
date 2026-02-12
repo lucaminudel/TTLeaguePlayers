@@ -1,6 +1,5 @@
 using System.Net;
 using System.Web;
-using System.Text;
 using System.Text.Json;
 using System.Security;
 using Amazon.Lambda.Core;

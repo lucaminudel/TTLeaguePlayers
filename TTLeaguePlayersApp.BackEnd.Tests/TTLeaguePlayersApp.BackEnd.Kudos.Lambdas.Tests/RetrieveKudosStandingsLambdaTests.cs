@@ -28,9 +28,9 @@ public class RetrieveKudosStandingsLambdaTests
             new KudosSummary { ReceivingTeam = "TeamB", PositiveKudosCount = 1, NegativeKudosCount = 0, League = league, Season = season, Division = division, HomeTeam = "B", AwayTeam = "A" },
             new KudosSummary { ReceivingTeam = "TeamB", PositiveKudosCount = 0, NegativeKudosCount = 1, League = league, Season = season, Division = division, HomeTeam = "B", AwayTeam = "D" },
 
-            // Team C: 0 positive, 2 negative
-            new KudosSummary { ReceivingTeam = "TeamC", PositiveKudosCount = 0, NegativeKudosCount = 1, League = league, Season = season, Division = division, HomeTeam = "C", AwayTeam = "A" },
-            new KudosSummary { ReceivingTeam = "TeamC", PositiveKudosCount = 0, NegativeKudosCount = 1, League = league, Season = season, Division = division, HomeTeam = "C", AwayTeam = "E" }
+            // Team C: 0 positive, 2 negative, 1 neutral
+            new KudosSummary { ReceivingTeam = "TeamC", PositiveKudosCount = 0, NegativeKudosCount = 1, NeutralKudosCount = 1, League = league, Season = season, Division = division, HomeTeam = "C", AwayTeam = "A" },
+            new KudosSummary { ReceivingTeam = "TeamC", PositiveKudosCount = 0, NegativeKudosCount = 1, NeutralKudosCount = 0, League = league, Season = season, Division = division, HomeTeam = "C", AwayTeam = "E" }
         };
 
         var fakeDataTable = new FakeKudosDataTable { SummariesToReturn = summaries };
@@ -52,6 +52,10 @@ public class RetrieveKudosStandingsLambdaTests
         result.NegativeKudosTable[0].Count.Should().Be(2);
         result.NegativeKudosTable[1].TeamName.Should().Be("TeamB");
         result.NegativeKudosTable[1].Count.Should().Be(1);
+
+        result.NeutralKudosTable.Should().HaveCount(1);
+        result.NeutralKudosTable[0].TeamName.Should().Be("TeamC");
+        result.NeutralKudosTable[0].Count.Should().Be(1);
     }
 
     private sealed class FakeKudosDataTable : IKudosDataTable

@@ -86,6 +86,7 @@ export interface KudosStandingsEntry {
 
 export interface KudosStandingsResponse {
     positive_kudos_table: KudosStandingsEntry[];
+    neutral_kudos_table: KudosStandingsEntry[];
     negative_kudos_table: KudosStandingsEntry[];
 }
 
