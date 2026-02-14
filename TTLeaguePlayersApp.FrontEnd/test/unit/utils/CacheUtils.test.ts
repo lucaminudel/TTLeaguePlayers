@@ -120,5 +120,26 @@ describe('CacheUtils', () => {
 
         expect(result.date).toBeInstanceOf(Date);
         expect(result.date.toISOString()).toBe('2025-01-01T10:00:00.000Z');
+
+    });
+
+    it('Stale cache: triggers onBackgroundUpdate callback with fresh data', async () => {
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
+        const fetcher1 = vi.fn().mockResolvedValue({ version: 1 });
+        await withSWR(CACHE_KEY, fetcher1, OPTIONS);
+
+        // Advance time by 2 seconds (stale)
+        setUnitFixedClockTime('2025-01-01T10:00:02Z');
+        const fetcher2 = vi.fn().mockResolvedValue({ version: 2 });
+        const onBackgroundUpdate = vi.fn();
+
+        const result = await withSWR<{ version: number }>(CACHE_KEY, fetcher2, OPTIONS, undefined, onBackgroundUpdate);
+
+        expect(result).toEqual({ version: 1 }); // Stale data returned immediately
+
+        // Wait for background refresh and callback
+        await vi.waitUntil(() => onBackgroundUpdate.mock.calls.length > 0);
+        expect(onBackgroundUpdate).toHaveBeenCalledTimes(1);
+        expect(onBackgroundUpdate).toHaveBeenCalledWith({ version: 2 });
     });
 });

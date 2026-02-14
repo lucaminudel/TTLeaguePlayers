@@ -88,6 +88,21 @@ test.describe('Kudos Caching E2E', () => {
         await expect(page.locator('text=Loading...')).not.toBeVisible();
         await expect(page.getByTestId('my-kudos-items').or(page.getByText('No kudos awarded yet.'))).toBeVisible();
 
+        // Check for error first to fail fast with a better message
+        const errorLocator = page.getByTestId('error-message');
+        if (await errorLocator.isVisible()) {
+            const errorText = await errorLocator.textContent();
+            throw new Error(`Kudos Standings failed to load: ${errorText ?? 'Unknown error'}`);
+        }
+
+        try {
+            await expect(page.getByTestId('my-kudos-items').or(page.getByText('No kudos awarded yet.'))).toBeVisible({ timeout: 15000 });
+        } catch (e) {
+            console.log('--- PAGE BODY CONTENT ON FAILURE ---');
+            console.log(await page.content());
+            throw e;
+        }
+
         // 6. Verify localStorage has cache entries
         const cacheKeysBefore = await page.evaluate(() => {
             return Object.keys(localStorage).filter(key => key.startsWith('kudos_cache_'));

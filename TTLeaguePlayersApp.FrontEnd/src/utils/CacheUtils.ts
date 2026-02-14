@@ -17,7 +17,8 @@ export async function withSWR<T>(
     cacheKey: string,
     fetcher: () => Promise<T>,
     options: SWROptions,
-    onDataLoaded?: (data: T) => T // Optional transformer for deserialization
+    transformer?: (data: T) => T, // Optional transformer for deserialization
+    onBackgroundUpdate?: (data: T) => void // Callback for fresh data after a stale hit
 ): Promise<T> {
     const cached = localStorage.getItem(cacheKey);
 
@@ -30,8 +31,8 @@ export async function withSWR<T>(
                 const age = now - parsed.timestamp;
 
                 let data = parsed.data as T;
-                if (onDataLoaded) {
-                    data = onDataLoaded(data);
+                if (transformer) {
+                    data = transformer(data);
                 }
 
                 if (age < options.freshDurationMs) {
@@ -42,7 +43,7 @@ export async function withSWR<T>(
                 if (age < options.staleDurationMs) {
                     // Case 2: Cache is stale but within revalidation window
                     // Return stale data immediately, trigger background refresh
-                    void refreshCache(cacheKey, fetcher).catch((err: unknown) => {
+                    void refreshCache(cacheKey, fetcher, onBackgroundUpdate).catch((err: unknown) => {
                         console.warn(`Background cache refresh failed for ${cacheKey}:`, err);
                     });
                     return data;
@@ -55,8 +56,8 @@ export async function withSWR<T>(
     }
 
     // Case 3: No cache or expired
-    const data = await refreshCache(cacheKey, fetcher);
-    return onDataLoaded ? onDataLoaded(data) : data;
+    const data = await refreshCache(cacheKey, fetcher, onBackgroundUpdate);
+    return transformer ? transformer(data) : data;
 }
 
 /**
@@ -80,13 +81,22 @@ export function invalidateCacheByPrefix(prefix: string): void {
     keysToRemove.forEach((key) => { localStorage.removeItem(key); });
 }
 
-async function refreshCache<T>(cacheKey: string, fetcher: () => Promise<T>): Promise<T> {
+async function refreshCache<T>(
+    cacheKey: string,
+    fetcher: () => Promise<T>,
+    onBackgroundUpdate?: (data: T) => void
+): Promise<T> {
     const data = await fetcher();
     const entry: CacheEntry<T> = {
         timestamp: getClockTime().getTime(),
         data,
     };
     localStorage.setItem(cacheKey, JSON.stringify(entry));
+
+    if (onBackgroundUpdate) {
+        onBackgroundUpdate(data);
+    }
+
     return data;
 }
 

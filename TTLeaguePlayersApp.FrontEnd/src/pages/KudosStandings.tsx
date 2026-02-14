@@ -60,7 +60,7 @@ export const KudosStandings: React.FC = () => {
                     teamDivision: state.team_division,
                     teamName: state.team_name,
                     giverPersonSub: userId,
-                });
+                }, (freshData) => { setKudosList(freshData); });
                 setKudosList(data);
             } catch (err) {
                 setError('Failed to fetch kudos history');
@@ -80,7 +80,7 @@ export const KudosStandings: React.FC = () => {
                     season: state.season,
                     teamDivision: state.team_division,
                     teamName: state.team_name,
-                });
+                }, (freshData) => { setTeamKudosList(freshData); });
                 setTeamKudosList(data);
             } catch (err) {
                 setError('Failed to fetch team kudos');
@@ -99,7 +99,7 @@ export const KudosStandings: React.FC = () => {
                     league: state.league,
                     season: state.season,
                     teamDivision: state.team_division,
-                });
+                }, (freshData) => { setStandingsData(freshData); });
                 setStandingsData(data);
             } catch (err) {
                 setError('Failed to fetch kudos standings');
