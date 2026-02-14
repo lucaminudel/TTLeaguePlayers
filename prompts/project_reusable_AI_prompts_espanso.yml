@@ -40,13 +40,19 @@ matches:
       1) use the following command to lint and build the frontend to check if it is ok or there are errors and warnings that need fixing: 
       mpm  build-web:dev-env
       defined in tasks.json as cross-env ENVIRONMENT=dev npm run build:steps
+      Run this command from the frontend project directly.
       2) use the following command to run basic frontend  tests 
       nmp unit-tests-web:run
       defined in tasks.json as  vitest run
+      Run this command from the frontend project directly.
       3) run the e2e tests specific to the test and page files just changed
       npm run "e2e-tests-web:run dev-env" -- test/e2e/<spec fiile .spec.ts>
+      or if the frontend code changes involve login and API calls to operaitons that access or change cognito users that offer to run this command instead
+      npm run "e2e-tests-web:run dev-env" -- test/e2e/<spec fiile .spec.ts>
+      Run this command from the frontend project directly.      
       4) ask me to run the full pipeline lint and build and test full-stack-builds-tests-pipeline test-env (before asking me about staging)
-      You find more information and commands here: /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
+      You find more information and commands here: /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json 
+      and here: /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/tasks.json
 
 
   - trigger: "/ttwbv" # TT Workflow Backend Verification
