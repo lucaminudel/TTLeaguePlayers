@@ -30,7 +30,7 @@ export class MenuPage {
         // Verify overlay is visible and interactive with menu items centered
         await expect(overlay).toHaveCSS('opacity', '1');
         await expect(overlay).toHaveCSS('pointer-events', 'auto');
-        const link = this.page.getByTestId('main-menu-nav-kudos-standings');
+        const link = this.page.getByTestId('main-menu-nav-tournaments-&-clubs');
         await expect(link).toBeVisible();
     }
 

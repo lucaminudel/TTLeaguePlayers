@@ -32,9 +32,7 @@ test.describe('Homepage', () => {
             // that all menu items are present and are visiblised in the whole page
             const menuItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
-                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
-                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
-                { name: 'Forums', testId: 'main-menu-nav-forums' }
+                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' }
             ];
 
             for (const item of menuItems) {
@@ -74,12 +72,77 @@ test.describe('Homepage', () => {
             await enterButton.click({ trial: true });
         });
 
+        test('when clicking the hamburger menu an authenticated users should see all the menu items for loggedin users', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            await user.menu.open();
+
+
+            // that all menu items are present and are visiblised in the whole page
+            const menuItems = [
+                { name: 'Log out', testId: 'main-menu-logout-button' },
+                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                { name: 'Forums', testId: 'main-menu-nav-forums' }
+            ];
+
+            for (const item of menuItems) {
+                const link = page.getByTestId(item.testId);
+                await expect(link).toBeVisible();
+            }
+
+            // Verify menu items are all centred
+            const overlay = page.getByTestId('main-menu-overlay');
+            await expect(overlay).toHaveCSS('display', 'flex');
+            await expect(overlay).toHaveCSS('flex-direction', 'column');
+            await expect(overlay).toHaveCSS('justify-content', 'center');
+            await expect(overlay).toHaveCSS('align-items', 'center');
+        });
+
+        test('when clicking Kudos menu item, a loggedin user should navigate to kudos page', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            await user.menu.open();
+
+            // Click on Kudos menu item
+            const kudosLink = page.getByTestId('main-menu-nav-kudos');
+            await kudosLink.click();
+
+            // Verify navigation to kudos page
+            await expect(page).toHaveURL(/\/kudos$/);
+        });
+
+        test('when clicking Kudos Standings menu item, a loggeing user should navigate to kudos-standings page', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            await user.menu.open();
+
+            // Click on Kudos Standings menu item
+            const kudosStandingsLink = page.getByTestId('main-menu-nav-kudos-standings');
+            await kudosStandingsLink.click();
+
+            // Verify navigation to kudos-standings page
+            await expect(page).toHaveURL(/\/kudos-standings$/);
+        });
+
         test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
+
             const user = new User(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-            
+
             await user.menu.open();
             const kudosLink = page.locator('[data-testid="main-menu-nav-kudos"]');
             await expect(kudosLink).toBeVisible();

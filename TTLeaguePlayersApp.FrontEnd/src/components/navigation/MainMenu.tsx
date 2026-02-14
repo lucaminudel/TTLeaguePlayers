@@ -25,7 +25,7 @@ export const MainMenu: React.FC = () => {
             label: 'Kudos Standings',
             path: '/kudos-standings', 
             visibleToAuthenticated: true,
-            visibleToUnauthenticated: true
+            visibleToUnauthenticated: false
         },
         {
             label: 'Tournaments & Clubs',
@@ -37,7 +37,7 @@ export const MainMenu: React.FC = () => {
             label: 'Forums',
             path: '#',
             visibleToAuthenticated: true,
-            visibleToUnauthenticated: true
+            visibleToUnauthenticated: false
         }
     ];
 
