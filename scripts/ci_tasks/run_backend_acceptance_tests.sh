@@ -13,6 +13,7 @@ else
 fi
 
 # ==============================================================================
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
 TEST_PROJECT="TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj"
 BUILD_DIR=".aws-sam-test"
 
@@ -25,6 +26,14 @@ cd "$SCRIPT_DIR/../.."
 cleanup() {
     echo ""
     echo "🧹 Cleaning up..."
+
+    if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
+        # Cognito test users cleanup
+        $PROJECT_ROOT/scripts/cognito/tests_helpers/delete-test-users.sh $CONFIG_ENV
+    else
+        echo "No Live Cognito cleanup..."
+    fi
+
     # Only kill SAM if we started it (SAM_PID is set)
     if [ ! -z "$SAM_PID" ]; then
         echo "Stopping SAM Local (PID: $SAM_PID)..."
@@ -78,7 +87,7 @@ if lsof -i ":$PORT" >/dev/null; then
     SAM_ALREADY_RUNNING=true
 else
     # Start SAM Local API in the background, redirecting logs to a file to keep the terminal clean
-    SAM_LOG_FILE="scripts/ci_tasks/sam_local_test.log"
+    SAM_LOG_FILE="scripts/ci_tasks/sam_local_apitests.log"
     echo "📝 Redirecting SAM logs to $SAM_LOG_FILE (check this file if tests fail to connect)"
     sam local start-api --config-env "$CONFIG_ENV" --port "$PORT"  > "$SAM_LOG_FILE" 2>&1 &
     SAM_PID=$!
@@ -103,6 +112,14 @@ echo ""
 echo "✅ SAM Local is ready!"
 
 echo "🧪 Building and Running Tests..."
+
+if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
+    # Cognito test users setup, for C# Acceptance Teste and  Playwright E2E Tests
+    $PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-users.sh $CONFIG_ENV
+else
+    echo "No Live Cognito setup..."
+fi
+
 # ENVIRONMENT is local to this script's process and its children
 export ENVIRONMENT="$CONFIG_ENV"
 
