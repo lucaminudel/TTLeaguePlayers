@@ -1,66 +1,8 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { User } from './page-objects/User';
+import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
-
-
-interface CognitoAttribute {
-    Name: string;
-    Value: string;
-}
-
-interface CognitoUserResponse {
-    UserAttributes?: CognitoAttribute[];
-}
-
-interface ActiveSeasonEntry {
-    latest_kudos: number[];
-    [key: string]: unknown;
-}
-
-async function mockCognitoLatestKudos(page: Page) {
-    await page.route('**/cognito-idp.*.amazonaws.com/', async (route) => {
-        const request = route.request();
-        const headers = request.headers();
-        const xAmzTarget = headers['x-amz-target'] ?? '';
-        if (request.method() === 'POST' && xAmzTarget.endsWith('.GetUser')) {
-            try {
-                const response = await route.fetch();
-                const contentType = response.headers()['content-type'];
-                if (!contentType || (!contentType.includes('application/x-amz-json') && !contentType.includes('application/json'))) {
-                    await route.continue();
-                    return;
-                }
-                const body = await response.json() as CognitoUserResponse;
-                if (body.UserAttributes) {
-                    const activeSeasonsAttr = body.UserAttributes.find((attr) =>
-                        attr.Name === 'custom:active_seasons' || attr.Name === 'active_seasons'
-                    );
-                    if (activeSeasonsAttr?.Value) {
-                        try {
-                            const seasons = JSON.parse(activeSeasonsAttr.Value) as ActiveSeasonEntry[];
-                            if (Array.isArray(seasons)) {
-                                const modifiedSeasons = seasons.map((season) => ({
-                                    ...season,
-                                    latest_kudos: []
-                                }));
-                                activeSeasonsAttr.Value = JSON.stringify(modifiedSeasons);
-                            }
-                        } catch (e) {
-                            console.log('Failed to parse or modify active_seasons in mock:', e);
-                        }
-                    }
-                }
-                await route.fulfill({ response, body: JSON.stringify(body) });
-                return;
-            } catch (err) {
-                console.log('Error mocking Cognito response:', err);
-                await route.continue();
-            }
-        }
-        await route.continue();
-    });
-}
 
 test.describe('Kudos Caching E2E', () => {
     test('Verify standings are cached and invalidated on award', async ({ page }) => {
