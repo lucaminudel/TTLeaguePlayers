@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type MockInstance } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
@@ -79,8 +79,9 @@ describe('ActiveSeasonCard Error Handling', () => {
     });
 
     it('should not fetch data when not expanded', async () => {
+        const getTeamFixturesMock = vi.fn().mockRejectedValue(new Error('Should not be called'));
         const mockProcessor: ActiveSeasonProcessor = {
-            getTeamFixtures: vi.fn().mockRejectedValue(new Error('Should not be called'))
+            getTeamFixtures: getTeamFixturesMock
         };
 
         render(
@@ -99,8 +100,6 @@ describe('ActiveSeasonCard Error Handling', () => {
             }, 10);
         });
 
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const getTeamFixturesMock = mockProcessor.getTeamFixtures as unknown as MockInstance;
         expect(getTeamFixturesMock).not.toHaveBeenCalled();
         expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
