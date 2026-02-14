@@ -20,6 +20,7 @@ The Client-Side Rendered (CSR) Single Page App (SPA)  web application to be host
 - Language: Typescript
 - CSS Framework: Tailwind CSS
 - Amazon Cognito User Pools Library for React: amazon-cognito-identity-js
+- Client-Side API call Caching: A generic Stale-While-Revalidate (SWR) utility using `localStorage` used to cache responses
 - Unit test framework: Vitest 
 - E2e test framework: Playwright
 

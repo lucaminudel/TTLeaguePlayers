@@ -4,7 +4,8 @@ import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { useAuth } from '../hooks/useAuth';
-import { getKudos, getTeamKudos, getKudosStandings, type KudosResponse, type KudosSummaryResponse, type KudosStandingsResponse } from '../api/kudosApi';
+import { type KudosResponse, type KudosSummaryResponse, type KudosStandingsResponse } from '../api/kudosApi';
+import { getCachedPlayerKudos, getCachedTeamKudos, getCachedKudosStandings } from '../api/cachedKudosApi';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { shortFormatFixtureDate } from '../utils/DateUtils';
 
@@ -53,7 +54,7 @@ export const KudosStandings: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getKudos({
+                const data = await getCachedPlayerKudos({
                     league: state.league,
                     season: state.season,
                     teamDivision: state.team_division,
@@ -74,7 +75,7 @@ export const KudosStandings: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getTeamKudos({
+                const data = await getCachedTeamKudos({
                     league: state.league,
                     season: state.season,
                     teamDivision: state.team_division,
@@ -94,7 +95,7 @@ export const KudosStandings: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getKudosStandings({
+                const data = await getCachedKudosStandings({
                     league: state.league,
                     season: state.season,
                     teamDivision: state.team_division,
@@ -359,7 +360,7 @@ export const KudosStandings: React.FC = () => {
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex border-b border-gray-700 mb-4">
+                        <div className="flex border-b border-gray-700 mb-4" data-testid="kudos-standings-tabs">
                             <button
                                 className={`flex-1 py-2 text-center text-sm font-medium ${activeTab === 'Awarded' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}
                                 onClick={() => { setActiveTab('Awarded'); }}

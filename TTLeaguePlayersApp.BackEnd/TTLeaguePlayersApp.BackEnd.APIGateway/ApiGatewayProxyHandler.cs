@@ -136,7 +136,7 @@ public partial class ApiGatewayProxyHandler
                 // Delete a kudos: DELETE /kudos
                 ("DELETE", "/kudos") => await HandleDeleteKudos(request, context),
 
-                // Get kudos given by player: GET /kudos
+                // Get kudos given by player or to the team: GET /kudos
                 ("GET", "/kudos") => await HandleGetKudos(request, context),
 
                 // Method not allowed for /kudos

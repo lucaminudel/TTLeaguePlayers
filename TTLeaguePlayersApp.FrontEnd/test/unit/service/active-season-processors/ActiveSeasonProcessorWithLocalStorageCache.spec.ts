@@ -4,10 +4,17 @@ import { createActiveSeasonProcessor } from '../../../../src/service/active-seas
 import { CLTTLActiveSeason2025Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2025Processor';
 import type { Fixture } from '../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesParser';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
-import type { CacheEntry } from '../../../../src/service/active-season-processors/ActiveSeasonProcessorWithLocalStorageCache';
+import type { CacheEntry } from '../../../../src/utils/CacheUtils';
 
 // Mock the CLTTL processor so we can spy on it
 vi.mock('../../../../src/service/active-season-processors/CLTTLActiveSeason2025Processor');
+
+// Augmented window for testing
+interface TestWindow extends Window {
+    __FIXED_CLOCK_TIME__?: string;
+}
+
+const testWindow = (typeof window !== 'undefined' ? (window as unknown as TestWindow) : ({} as TestWindow));
 
 describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     const mockFixture: Fixture = {
@@ -37,7 +44,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         localStorage.clear();
         vi.clearAllMocks();
         // Reset window property
-        delete window.__FIXED_CLOCK_TIME__;
+        testWindow.__FIXED_CLOCK_TIME__ = undefined;
     });
 
     afterEach(() => {
@@ -77,9 +84,9 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(getFixturesSpy).toHaveBeenCalledTimes(1);
 
         // 3. Check cache was written
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached === null) throw new Error('Cache should be present');
-        const entry = JSON.parse(cached) as CacheEntry;
+        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        if (cachedRaw === null) throw new Error('Cache missing');
+        const entry = JSON.parse(cachedRaw) as CacheEntry<Fixture[]>;
         expect(entry.data).toHaveLength(1);
     });
 
@@ -87,17 +94,16 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         setupMockProcessor([mockFixture]);
 
         // 1. Seed Cache (Time: T0)
-        window.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z'; // T0
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z'; // T0
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures(); // seeds cache
         const spy1 = getMockedGetTeamFixtures();
         expect(spy1).toHaveBeenCalledTimes(1);
 
         // 2. Advance time by 1 hour (Fresh < 72h)
-        window.__FIXED_CLOCK_TIME__ = '2025-01-01T11:00:00Z'; // T0 + 1h
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T11:00:00Z'; // T0 + 1h
 
         // Re-create processor (simulate new page load)
-        // We need to clear mocks so we get a fresh spy for the new instance
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'Fresh Data' }]); // New data on network
 
@@ -114,13 +120,13 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
     it('Stale Cache (< 6 days): Returns cached data AND refreshes in background', async () => {
         // 1. Seed Cache
-        window.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
         // 2. Advance time by 4 days (72h < 96h < 144h) -> Stale
-        window.__FIXED_CLOCK_TIME__ = '2025-01-05T10:00:00Z'; // +96 hrs
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-05T10:00:00Z'; // +96 hrs
 
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'New Data' }]);
@@ -132,16 +138,16 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(result[0].venue).toBe('Old Data');
 
         // Expect network call happened (background refresh)
-        // Since the method is void/fire-and-forget, we might need to wait a tick
+        // Wait a tick for fire-and-forget
         await new Promise(resolve => setTimeout(resolve, 0));
 
         const spy2 = getMockedGetTeamFixtures();
         expect(spy2).toHaveBeenCalledTimes(1);
 
         // Expect Cache to be updated for NEXT time
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached === null) throw new Error('Cache should be updated');
-        const entry = JSON.parse(cached) as CacheEntry;
+        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        if (cachedRaw === null) throw new Error('Cache missing');
+        const entry = JSON.parse(cachedRaw) as CacheEntry<Fixture[]>;
         expect(entry.data[0].venue).toBe('New Data');
         // New timestamp
         expect(entry.timestamp).toBe(new Date('2025-01-05T10:00:00Z').getTime());
@@ -149,13 +155,13 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
     it('Expired Cache (> 6 days): Fetches new data and returns it', async () => {
         // 1. Seed Cache
-        window.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
         // 2. Advance time by 7 days (> 144h) -> Expired / Missing
-        window.__FIXED_CLOCK_TIME__ = '2025-01-08T10:00:00Z';
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-08T10:00:00Z';
 
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'Brand New Data' }]);
@@ -178,9 +184,9 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         await processor.getTeamFixtures();
 
         // Read directly from cache
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached === null) throw new Error('Cache entry should exist');
-        const entry = JSON.parse(cached) as CacheEntry;
+        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        if (cachedRaw === null) throw new Error('Cache missing');
+        const entry = JSON.parse(cachedRaw) as CacheEntry<{ startDateTime: string }[]>;
         // JSON stores dates as strings
         expect(typeof entry.data[0].startDateTime).toBe('string');
 
@@ -207,13 +213,13 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
     it('should return stale cache when background refresh fails', async () => {
         // 1. Seed Cache with old data
-        window.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
         // 2. Advance time to make cache stale (4 days)
-        window.__FIXED_CLOCK_TIME__ = '2025-01-05T10:00:00Z';
+        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-05T10:00:00Z';
 
         // 3. Create new processor with failing mock
         const mockGetTeamFixtures = vi.fn().mockRejectedValue(new Error('Refresh failed'));
@@ -228,7 +234,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
         // Should return stale data (not throw error)
         expect(result[0].venue).toBe('Old Data');
-        
+
         // Background refresh should have been attempted - wait for it to complete
         await new Promise(resolve => setTimeout(resolve, 10));
         expect(mockGetTeamFixtures).toHaveBeenCalledTimes(1);

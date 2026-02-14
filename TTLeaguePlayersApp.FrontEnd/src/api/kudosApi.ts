@@ -1,5 +1,7 @@
 import { apiFetch } from './api';
 import { getConfig } from '../config/environment';
+import { invalidateCacheByPrefix } from '../utils/CacheUtils';
+import { KUDOS_CACHE_PREFIX } from './cachedKudosApi';
 
 export interface KudosRequest {
     league: string;
@@ -37,10 +39,15 @@ export async function awardKudos(request: KudosRequest): Promise<{ message: stri
         kudos_value: request.kudosValue,
     };
 
-    return apiFetch<{ message: string }>(baseUrl, '/kudos', {
+    const response = await apiFetch<{ message: string }>(baseUrl, '/kudos', {
         method: 'POST',
         body: JSON.stringify(body),
     });
+
+    // Invalidate local cache on success
+    invalidateCacheByPrefix(KUDOS_CACHE_PREFIX);
+
+    return response;
 }
 
 export interface GetKudosRequest {
