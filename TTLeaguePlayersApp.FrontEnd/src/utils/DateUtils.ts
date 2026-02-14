@@ -2,12 +2,6 @@
  * Utility for handling dates and times, allowing for mocking in tests.
  */
 
-// Extend the Window interface to include our custom property
-declare global {
-    interface Window {
-        __FIXED_CLOCK_TIME__?: string;
-    }
-}
 
 /**
  * Returns the current date/time, or a mocked date if set via window.__FIXED_CLOCK_TIME__.

@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { withSWR, invalidateCache, invalidateCacheByPrefix, type CacheEntry } from '../../../src/utils/CacheUtils';
+import { setUnitFixedClockTime } from '../TestClockUtils';
 
-// Augmented window for testing
-interface TestWindow extends Window {
-    __FIXED_CLOCK_TIME__?: string;
-}
-
-const testWindow = (typeof window !== 'undefined' ? (window as unknown as TestWindow) : ({} as TestWindow));
 
 describe('CacheUtils', () => {
     const CACHE_KEY = 'test_cache_key';
@@ -18,7 +13,7 @@ describe('CacheUtils', () => {
     beforeEach(() => {
         localStorage.clear();
         vi.clearAllMocks();
-        testWindow.__FIXED_CLOCK_TIME__ = undefined;
+        setUnitFixedClockTime(undefined);
     });
 
     afterEach(() => {
@@ -41,12 +36,12 @@ describe('CacheUtils', () => {
     });
 
     it('Fresh cache: returns data without fetching', async () => {
-        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
         const fetcher1 = vi.fn().mockResolvedValue({ version: 1 });
         await withSWR(CACHE_KEY, fetcher1, OPTIONS);
 
         // Advance time by 500ms (still fresh)
-        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00.500Z';
+        setUnitFixedClockTime('2025-01-01T10:00:00.500Z');
         const fetcher2 = vi.fn().mockResolvedValue({ version: 2 });
 
         const result = await withSWR(CACHE_KEY, fetcher2, OPTIONS);
@@ -56,12 +51,12 @@ describe('CacheUtils', () => {
     });
 
     it('Stale cache: returns stale data and fetches in background', async () => {
-        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
         const fetcher1 = vi.fn().mockResolvedValue({ version: 1 });
         await withSWR(CACHE_KEY, fetcher1, OPTIONS);
 
         // Advance time by 2 seconds (stale, but within 5s window)
-        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:02Z';
+        setUnitFixedClockTime('2025-01-01T10:00:02Z');
         const fetcher2 = vi.fn().mockResolvedValue({ version: 2 });
 
         const result = await withSWR(CACHE_KEY, fetcher2, OPTIONS);
@@ -80,12 +75,12 @@ describe('CacheUtils', () => {
     });
 
     it('Expired cache: fetches new data', async () => {
-        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:00Z';
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
         const fetcher1 = vi.fn().mockResolvedValue({ version: 1 });
         await withSWR(CACHE_KEY, fetcher1, OPTIONS);
 
         // Advance time by 10 seconds (expired)
-        testWindow.__FIXED_CLOCK_TIME__ = '2025-01-01T10:00:10Z';
+        setUnitFixedClockTime('2025-01-01T10:00:10Z');
         const fetcher2 = vi.fn().mockResolvedValue({ version: 2 });
 
         const result = await withSWR(CACHE_KEY, fetcher2, OPTIONS);

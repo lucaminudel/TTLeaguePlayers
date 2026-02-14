@@ -1,25 +1,14 @@
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
 import { User as UserFlow, LoginPage, RegisterPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-/**
- * Helper function to set a fixed clock time for testing time-dependent behavior.
- * @param page - The Playwright page object
- * @param dateTime - ISO 8601 date-time string (e.g., '2026-01-16T15:26:00Z')
- */
-async function setFixedClockTime(page: Page, dateTime: string): Promise<void> {
-    await page.addInitScript((time) => {
-        window.__FIXED_CLOCK_TIME__ = time;
-    }, dateTime);
-}
 
 test.describe('Kudos', () => {
     test.describe('authenticated users only page, login - logout flows', () => {
         test('when a non logged-in user tries to navigate to kudos, it redirects to login and after successful login it redirects back to kudos', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
+
             const userPage = new UserFlow(page);
 
             // Navigate to kudos page
@@ -95,7 +84,7 @@ test.describe('Kudos', () => {
 
         test('when user logs out from an authenticated-users only page like kudos, user is redirected to home', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
+
             const user = new UserFlow(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
@@ -115,11 +104,10 @@ test.describe('Kudos', () => {
 
         test('shows previous and current match for all active seasons', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
-            // Set fixed clock time to Friday 16th January 2026 15:26
-            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
             const user = new UserFlow(page);
+            // Set fixed clock time to Friday 16th January 2026 15:26
+            await user.setFixedClockTime('2026-01-16T15:26:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -147,14 +135,13 @@ test.describe('Kudos', () => {
 
         test('only one active season expanded at the time', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
-            // Set fixed clock time to Friday 16th January 2026 15:26
-            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
             const user = new UserFlow(page);
+            // Set fixed clock time to Friday 16th January 2026 15:26
+            await user.setFixedClockTime('2026-01-16T15:26:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
-            const kudosPage =await user.navigateToKudos();
+            const kudosPage = await user.navigateToKudos();
 
             const cards = kudosPage.activeSeasonCards();
             const count = await cards.count();
@@ -188,16 +175,15 @@ test.describe('Kudos', () => {
 
         test('when there is only one Active Season Card, it is already opened', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
-            // Set fixed clock time to Friday 16th January 2026 15:26
-            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
             const user = new UserFlow(page);
+            // Set fixed clock time to Friday 16th January 2026 15:26
+            await user.setFixedClockTime('2026-01-16T15:26:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered2@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
 
-            const cards = kudosPage.activeSeasonCards();            
+            const cards = kudosPage.activeSeasonCards();
             const count = await cards.count();
 
             // Ensure we have exactly 1 card for this test scenario
@@ -209,11 +195,10 @@ test.describe('Kudos', () => {
 
         test('before the registrations_start_date the Active Season Card is not visualised', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
-            // Set fixed clock time before FLICK registration start (2025-11-01)
-            await setFixedClockTime(page, '2025-10-30T12:00:00Z');
 
             const user = new UserFlow(page);
+            // Set fixed clock time before FLICK registration start (2025-11-01)
+            await user.setFixedClockTime('2025-10-30T12:00:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -233,11 +218,10 @@ test.describe('Kudos', () => {
 
         test('after the ratings_end_date the Active Season Card is not visualised', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
-            // Set fixed clock time after FLICK ratings end date (2026-02-01)
-            await setFixedClockTime(page, '2026-02-01T12:00:00Z');
 
             const user = new UserFlow(page);
+            // Set fixed clock time after FLICK ratings end date (2026-02-01)
+            await user.setFixedClockTime('2026-02-01T12:00:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -257,15 +241,14 @@ test.describe('Kudos', () => {
 
         test('until 2h after the match start time, NEXT match header shows "Today\'s Match"', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
+
+            const user = new UserFlow(page);
             // Morpeth 10 has a match on Friday 16th January 2026 at 18:45
             // Set clock to 20:46 (2h1min after the match start time)
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
             // At 20:46, now - 2h = 18:46, so 18:45 < 18:46, making it the previous match
             // Since the previous match is on the same day, it shows "Today's Match"
-            await setFixedClockTime(page, '2026-01-16T20:45:00Z');
-
-            const user = new UserFlow(page);
+            await user.setFixedClockTime('2026-01-16T20:45:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -319,15 +302,14 @@ test.describe('Kudos', () => {
 
         test('2h after the match start time, PREVIOUS match header shows "Today\'s Match"', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
+
+            const user = new UserFlow(page);
             // Morpeth 10 has a match on Friday 16th January 2026 at 18:45
             // Set clock to 20:46 (2h1min after the match start time)
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
             // At 20:46, now - 2h = 18:46, so 18:45 < 18:46, making it the previous match
             // Since the previous match is on the same day, it shows "Today's Match"
-            await setFixedClockTime(page, '2026-01-16T20:46:00Z');
-
-            const user = new UserFlow(page);
+            await user.setFixedClockTime('2026-01-16T20:46:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -384,8 +366,6 @@ test.describe('Kudos', () => {
         test('shows "No fixture found" when network request fails', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
-            // Set fixed clock time
-            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
             // Clear all storage before test
             await page.addInitScript(() => {
@@ -410,6 +390,8 @@ test.describe('Kudos', () => {
             });
 
             const user = new UserFlow(page);
+            // Set fixed clock time
+            await user.setFixedClockTime('2026-01-16T15:26:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
             const kudosPage = await user.navigateToKudos();
 
@@ -428,10 +410,8 @@ test.describe('Kudos', () => {
 
         test('shows "No fixture found" when server returns HTTP error', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
 
-            // Set fixed clock time
-            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
+
 
             // Clear all storage before test
             await page.addInitScript(() => {
@@ -464,6 +444,8 @@ test.describe('Kudos', () => {
             });
 
             const user = new UserFlow(page);
+            // Set fixed clock time
+            await user.setFixedClockTime('2026-01-16T15:26:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
             const kudosPage = await user.navigateToKudos();
 
@@ -483,8 +465,6 @@ test.describe('Kudos', () => {
         test('shows "No fixture found" when server returns "service unavailable"', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
     
-            // Set fixed clock time
-            await setFixedClockTime(page, '2026-01-16T15:26:00Z');
 
             // Clear all storage before test
             await page.addInitScript(() => {
@@ -517,6 +497,8 @@ test.describe('Kudos', () => {
             });
 
             const user = new UserFlow(page);
+            // Set fixed clock time
+            await user.setFixedClockTime('2026-01-16T15:26:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
             const kudosPage = await user.navigateToKudos();
 

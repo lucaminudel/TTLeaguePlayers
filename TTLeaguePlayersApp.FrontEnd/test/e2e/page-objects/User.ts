@@ -112,6 +112,22 @@ export class User {
     return kudosStandingPage;
   }
 
+  /**
+   * Helper function to set a fixed clock time for testing time-dependent behavior.
+   * @param dateTime - ISO 8601 date-time string (e.g., '2026-01-16T15:26:00Z')
+   */
+  async setFixedClockTime(dateTime: string): Promise<void> {
+    // 1. For future "hard" navigations or reloads
+    await this.page.addInitScript((time) => {
+      window.__FIXED_CLOCK_TIME__ = time;
+    }, dateTime);
+
+    // 2. For the current page context (if already loaded)
+    await this.page.evaluate((time) => {
+      window.__FIXED_CLOCK_TIME__ = time;
+    }, dateTime);
+  }
+
   get menu(): MenuPage {
     return this._menu;
   }

@@ -3,17 +3,6 @@ import { User } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-async function setFixedClockTime(page: Page, dateTime: string): Promise<void> {
-    // 1. For future "hard" navigations or reloads
-    await page.addInitScript((time) => {
-        window.__FIXED_CLOCK_TIME__ = time;
-    }, dateTime);
-
-    // 2. For the current page context (if already loaded)
-    await page.evaluate((time) => {
-        window.__FIXED_CLOCK_TIME__ = time;
-    }, dateTime);
-}
 
 interface CognitoAttribute {
     Name: string;
@@ -193,7 +182,7 @@ test.describe('Kudos Standings', () => {
         await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
         // 1. Rate Match 1: 18th Jan 2026 - Fusion 5 - Positive
-        await setFixedClockTime(page, '2026-01-18T12:00:00Z');
+        await user.setFixedClockTime('2026-01-18T12:00:00Z');
         const kudosPage = await user.navigateToKudos();
 
         // Open Active Season CLTTL 2020-2026 Division 4 Morpeth 10
@@ -203,7 +192,7 @@ test.describe('Kudos Standings', () => {
         await kudosPage.ratePositiveKudosFromOpenCard('Fusion 5');
 
         // 2. Rate Match 2: 21st Jan 2026 - Walworth Tigers - Neutral
-        await setFixedClockTime(page, '2026-01-21T12:00:00Z');
+        await user.setFixedClockTime('2026-01-21T12:00:00Z');
         await user.navigateToKudos();
 
         // Open Active Season CLTTL 2020-2026 Division 4 Morpeth 10
@@ -214,7 +203,7 @@ test.describe('Kudos Standings', () => {
 
 
         // 3. Rate Match 3: 7th Feb 2026 - Fusion 6 Jr - Negative
-        await setFixedClockTime(page, '2026-02-07T12:00:00Z');
+        await user.setFixedClockTime('2026-02-07T12:00:00Z');
         await user.navigateToKudos();
 
         // Open Active Season CLTTL 2020-2026 Division 4 Morpeth 10
@@ -259,7 +248,7 @@ test.describe('Kudos Standings', () => {
         await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
 
         // Set current date time: 21st January 2026
-        await setFixedClockTime(page, '2026-01-21T12:00:00Z');
+        await user.setFixedClockTime('2026-01-21T12:00:00Z');
 
         // Navigate to Kudos
         const kudosPageWT = await user.navigateToKudos();
@@ -278,7 +267,7 @@ test.describe('Kudos Standings', () => {
         await user.navigateToLoginAndSuccesfullyLogin('test_kudos_f5@user.test', 'aA1!56789012');
 
         // Set current date time: 18th January 2026
-        await setFixedClockTime(page, '2026-01-18T12:00:00Z');
+        await user.setFixedClockTime('2026-01-18T12:00:00Z');
 
         // Navigate to Kudos
         const kudosPageF5 = await user.navigateToKudos();
@@ -330,7 +319,7 @@ test.describe('Kudos Standings', () => {
         await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
 
         // Set current date time: 10th February 2026
-        await setFixedClockTime(page, '2026-02-10T12:00:00Z');
+        await user.setFixedClockTime('2026-02-10T12:00:00Z');
 
         // Navigate to Kudos
         let kudosPageWT = await user.navigateToKudos();
@@ -342,7 +331,7 @@ test.describe('Kudos Standings', () => {
         await kudosPageWT.RateNegativeKudosFromOpenCard('Fusion 5');
 
         // Set current date time: 7th March 2026
-        await setFixedClockTime(page, '2026-03-07T12:00:00Z');
+        await user.setFixedClockTime('2026-03-07T12:00:00Z');
 
         // Navigate to Kudos
         kudosPageWT = await user.navigateToKudos();
@@ -361,7 +350,7 @@ test.describe('Kudos Standings', () => {
         await user.navigateToLoginAndSuccesfullyLogin('test_kudos_f5@user.test', 'aA1!56789012');
 
         // Set current date time: 10th February 2026
-        await setFixedClockTime(page, '2026-02-10T12:00:00Z');
+        await user.setFixedClockTime('2026-02-10T12:00:00Z');
 
         // Navigate to Kudos
         let kudosPageF5 = await user.navigateToKudos();
@@ -373,7 +362,7 @@ test.describe('Kudos Standings', () => {
         await kudosPageF5.ratePositiveKudosFromOpenCard('Walworth Tigers');
 
         // Set current date time: 15th November 2025
-        await setFixedClockTime(page, '2025-11-15T12:00:00Z');
+        await user.setFixedClockTime('2025-11-15T12:00:00Z');
 
         // Navigate to Kudos
         kudosPageF5 = await user.navigateToKudos();

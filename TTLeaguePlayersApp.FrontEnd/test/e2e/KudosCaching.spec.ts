@@ -3,14 +3,6 @@ import { User } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-async function setFixedClockTime(page: Page, dateTime: string): Promise<void> {
-    await page.addInitScript((time) => {
-        window.__FIXED_CLOCK_TIME__ = time;
-    }, dateTime);
-    await page.evaluate((time) => {
-        window.__FIXED_CLOCK_TIME__ = time;
-    }, dateTime);
-}
 
 interface CognitoAttribute {
     Name: string;
@@ -81,7 +73,7 @@ test.describe('Kudos Caching E2E', () => {
         await mockCognitoLatestKudos(page);
 
         // 2. Set fixed clock to make "Previous Match" predictable (Fusion 5 context)
-        await setFixedClockTime(page, '2026-01-18T12:00:00Z');
+        await user.setFixedClockTime('2026-01-18T12:00:00Z');
 
         // 3. Login
         await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
