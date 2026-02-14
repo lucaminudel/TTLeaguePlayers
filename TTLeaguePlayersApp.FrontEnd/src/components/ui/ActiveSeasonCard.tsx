@@ -17,8 +17,8 @@ interface ActiveSeasonCardProps {
 export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, processor, isExpanded, onToggle }) => {
     const navigate = useNavigate();
     const { activeSeasons } = useAuth();
-    const [prevMatch, setPrevMatch] = useState<Fixture | null>(null);
-    const [nextMatch, setNextMatch] = useState<Fixture | null>(null);
+    const [prevMatch, setPrevMatch] = useState<Fixture | null | -1>(null);
+    const [nextMatch, setNextMatch] = useState<Fixture | null | -1>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
     useEffect(() => {
@@ -42,7 +42,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                         }
                     } else {
                         // All fixtures in the past?
-                        setNextMatch(null);
+                        setNextMatch(fixtures.length > 0 ? -1 : null);
                         setPrevMatch(fixtures.length > 0 ? fixtures[fixtures.length - 1] : null);
                     }
                 } catch (error) {
@@ -105,7 +105,8 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         });
     };
 
-    const renderFixture = (fixture: Fixture | null, testId: string) => {
+    const renderFixture = (fixture: Fixture | null | -1, testId: string) => {
+        if (fixture === -1) return <p className="text-base sm:text-lg" data-testid={testId}>None</p>;
         if (!fixture) return <p className="text-base sm:text-lg" data-testid={testId}>No fixture found, retry later or tomorrow</p>;
 
         const isHome = fixture.homeTeam === season.team_name;
@@ -123,10 +124,10 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
     };
 
     const currentClockTime = getClockTime();
-    const prevMatchHeader = prevMatch && isSameDay(prevMatch.startDateTime, currentClockTime)
+    const prevMatchHeader = prevMatch && prevMatch !== -1 && isSameDay(prevMatch.startDateTime, currentClockTime)
         ? "Today's Match"
         : "Previous Match";
-    const nextMatchHeader = nextMatch && isSameDay(nextMatch.startDateTime, currentClockTime)
+    const nextMatchHeader = nextMatch && nextMatch !== -1 && isSameDay(nextMatch.startDateTime, currentClockTime)
         ? "Today's Match"
         : "Next Match";
 
@@ -168,7 +169,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                                     {prevMatchHeader}
                                 </p>
                                 {renderFixture(prevMatch, "active-season-prev-match")}
-                                {prevMatch && shouldShowRateButton(prevMatch) && (
+                                {prevMatch && prevMatch !== -1 && shouldShowRateButton(prevMatch) && (
                                     <div className="mt-2 flex justify-center">
                                         <Button
                                             onClick={() => { handleRateClick(prevMatch); }}
@@ -178,7 +179,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                                         </Button>
                                     </div>
                                 )}
-                                {!(prevMatch && shouldShowRateButton(prevMatch)) && (
+                                {!(prevMatch && prevMatch !== -1 && shouldShowRateButton(prevMatch)) && (
                                     <>
                                         <div className="h-4"></div>
                                         <div className="h-4"></div>

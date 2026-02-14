@@ -133,6 +133,61 @@ test.describe('Kudos', () => {
             }
         });
 
+
+        test('after the last match, next match shows NONE', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new UserFlow(page);
+            // Set fixed clock time to Friday 16th January 2026 15:26
+            await user.setFixedClockTime('2026-03-25T15:26:00Z');
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            const kudosPage = await user.navigateToKudos();
+            const cards = kudosPage.activeSeasonCards();
+            const count = await cards.count();
+            expect(count).toBeGreaterThan(0);
+
+            // Find the CLTTL card by checking the league text
+            let clttlCardIndex = -1;
+            for (let i = 0; i < count; i++) {
+                const leagueText = await cards.nth(i).getByTestId('active-season-league').textContent();
+                if (leagueText && leagueText.includes('CLTTL') && leagueText.includes('2025-2026')) {
+                    clttlCardIndex = i;
+                    break;
+                }
+            }
+
+            expect(clttlCardIndex).toBeGreaterThanOrEqual(0);
+
+            // Expand the CLTTL card
+            await kudosPage.openActiveSeasonCard(clttlCardIndex);
+            await expect(cards.nth(clttlCardIndex).getByTestId('active-season-details')).toBeVisible();
+
+            // Wait for loading to complete (may take longer due to network requests)
+            await expect(cards.nth(clttlCardIndex).getByTestId('active-season-loading')).not.toBeVisible({ timeout: 10000 });
+
+            // Verify that the previous match header shows "Previous Match"
+            const previousMatchHeader = cards.nth(clttlCardIndex).getByTestId('active-season-prev-match-header');
+            await expect(previousMatchHeader).toContainText("Previous Match");
+
+            // Verify that the next match header shows "Next Match"
+            const details = cards.nth(clttlCardIndex).getByTestId('active-season-next-match-header');
+            await expect(details).toContainText("Next Match");
+
+            // Verify both Previous Match and Next Match sections are visible
+            await expect(cards.nth(clttlCardIndex).getByTestId('active-season-prev-match')).toBeVisible();
+            await expect(cards.nth(clttlCardIndex).getByTestId('active-season-next-match')).toBeVisible();
+
+            // Verify the previous match (Today's Match) shows the correct date (Friday 16th Jan 18:45)
+            const prevMatchText = await cards.nth(clttlCardIndex).getByTestId('active-season-prev-match').textContent();
+            expect(prevMatchText).toContain('Tue 24th Mar 19:00');
+            expect(prevMatchText).toContain('Vs Irving 4');
+
+            // Verify the next match shows the upcoming fixture (Tuesday 20th Jan)
+            const nextMatchText = await cards.nth(clttlCardIndex).getByTestId('active-season-next-match').textContent();
+            expect(nextMatchText).toContain('None');
+        });
+
         test('only one active season expanded at the time', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
