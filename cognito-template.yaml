@@ -7,7 +7,7 @@ Parameters:
 
 Conditions:
   IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
-  IsProdOrStagingOrDev: !Or [!Equals [!Ref Environment, dev], !Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
+  IsProd: !Equals [!Ref Environment, prod]
 
 Resources:
   TTLeagueCognitoUserPool:
@@ -22,10 +22,8 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
           TemporaryPasswordValidityDays: !If [IsProdOrStaging, 2, 7]
-      AutoVerifiedAttributes: !If
-        - IsProdOrStagingOrDev
-        - [email]
-        - !Ref "AWS::NoValue"
+      AutoVerifiedAttributes:
+        - email
       Schema:
         - Name: active_seasons
           AttributeDataType: String
@@ -50,16 +48,16 @@ Resources:
       UserPoolId: !Ref TTLeagueCognitoUserPool
       GenerateSecret: false
       ExplicitAuthFlows: !If
-        - IsProdOrStaging
+        - IsProd
         - - ALLOW_USER_SRP_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
         - - ALLOW_USER_SRP_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
           - ALLOW_ADMIN_USER_PASSWORD_AUTH
       PreventUserExistenceErrors: ENABLED
-      RefreshTokenValidity: !If [IsProdOrStaging, 1, 30]
-      AccessTokenValidity: !If [IsProdOrStaging, 60, 1440]
-      IdTokenValidity: !If [IsProdOrStaging, 60, 1440]
+      RefreshTokenValidity: !If [IsProdOrStaging, 2, 30]
+      AccessTokenValidity: !If [IsProdOrStaging, 120, 1440]
+      IdTokenValidity: !If [IsProdOrStaging, 120, 1440]
       TokenValidityUnits:
         RefreshToken: days
         AccessToken: minutes

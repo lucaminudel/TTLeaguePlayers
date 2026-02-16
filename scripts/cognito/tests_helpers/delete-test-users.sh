@@ -6,12 +6,12 @@
 ENVIRONMENT=$1
 
 if [ -z "$ENVIRONMENT" ]; then
-    echo "Usage: $0 [dev|test]"
+    echo "Usage: $0 [dev|test|staging]"
     exit 1
 fi
 
-if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "test" ]]; then
-    echo "Error: Only 'dev' and 'test' environments are allowed"
+if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "test" && "$ENVIRONMENT" != "staging" ]]; then
+    echo "Error: Only 'dev' and 'test' and 'staging' environments are allowed"
     exit 1
 fi
 

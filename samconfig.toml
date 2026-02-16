@@ -23,23 +23,20 @@ parameter_overrides = "Environment=test LambdaArchitecture=arm64 DotnetBuildConf
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
 fail_on_empty_changeset = false
+region = "eu-west-2"
 
 [dev.deploy.parameters]
 parameter_overrides = "Environment=dev LambdaArchitecture=arm64 DotnetBuildConfiguration=Debug DomainName= AllowedOrigin=http://localhost:5173"
 stack_name = "ttleague-players-dev"
-region = "eu-west-2"
 
 [test.deploy.parameters]
 parameter_overrides = "Environment=test LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName= AllowedOrigin=http://localhost:4173"
 stack_name = "ttleague-players-test"
-region = "eu-west-2"
 
 [staging.deploy.parameters]
-parameter_overrides = "Environment=staging LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName=staging.yourdomain.com AllowedOrigin=https://staging.ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain="
+parameter_overrides = "Environment=staging LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName=staging.ttleagueplayers.uk AllowedOrigin=https://staging.ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain="
 stack_name = "ttleague-players-staging"
-region = "us-east-1"
 
 [prod.deploy.parameters]
-parameter_overrides = "Environment=prod LambdaArchitecture=x86_64 DotnetBuildConfiguration=Release DomainName=yourdomain.com AllowedOrigin=https://ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain="
+parameter_overrides = "Environment=prod LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName=ttleagueplayers.uk AllowedOrigin=https://ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain="
 stack_name = "ttleague-players-prod"
-region = "us-east-1"

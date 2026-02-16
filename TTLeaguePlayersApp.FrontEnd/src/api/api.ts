@@ -151,6 +151,18 @@ export async function apiFetch<T>(
             lastStatus = response.status;
 
             if (!response.ok) {
+                // Handle 401 by refreshing token and retrying once
+                if (response.status === 401 && attempt === 0 && getAuthToken) {
+                    telemetry.log({
+                        endpoint, method, status: 401, durationMs: Date.now() - requestStartTime,
+                        attempt, isRetry: true, error: 'Token expired, refreshing'
+                    });
+                    
+                    await getAuthToken(); // Triggers token refresh
+                    attempt++;
+                    continue;
+                }
+
                 const retryAfterMs = getRetryAfterMs(response);
 
                 if (RETRYABLE_STATUS_CODES.includes(response.status) && attempt < maxRetries) {
