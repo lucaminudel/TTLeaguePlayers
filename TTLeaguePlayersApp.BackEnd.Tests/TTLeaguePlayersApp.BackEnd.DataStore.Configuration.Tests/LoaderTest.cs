@@ -5,6 +5,7 @@ using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Configuration.DataStore.Tests;
 
+[Trait("Environment", "Staging")]
 public class LoaderTest : IDisposable
 {
     private readonly string? _originalEnvironment;

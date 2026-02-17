@@ -10,6 +10,7 @@ using Amazon.CognitoIdentityProvider.Model;
 
 namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 
+[Trait("Environment", "Staging")]
 public class InvitesAcceptanceTests : IAsyncLifetime
 {
     private readonly HttpClient _httpClient;
@@ -17,6 +18,8 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     private readonly IAmazonCognitoIdentityProvider _cognitoClient;
     private readonly string _userPoolId;
     private readonly string _clientId;
+
+
 
     public InvitesAcceptanceTests()
     {
@@ -604,15 +607,36 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GET_NonExistentPath_Should_Return_404_NotFound()
+    public async Task GET_Protected_NonExistentPath_Should_Return_401_Unauthorized()
     {
+        if (RunningAgainst.ALocalEnvironmentIsTrue())
+        {
+            // In local/dev/test, unknown paths return 404 without auth check
+            return;
+        }
+
         // Act
         var response = await _httpClient.GetAsync("/some/random/path");
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        // Assert - Protected endpoints require authentication, even if they don't exist
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
     
+    [Fact]
+    public async Task GET_NonExistentPath_Should_Return_404_NotFound()
+     {
+         if (RunningAgainst.ACloudEnvironmentIsTrue())
+         {
+             // In staging/prod, this path returns 400 due to nano_id validation
+             return;
+         }
+
+         // Act - Path with invalid nano_id format (too long)
+         var response = await _httpClient.GetAsync("/some/random/path");
+ 
+        // Assert - In local/dev/test, returns 404 for unknown paths
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
     #endregion
 
 

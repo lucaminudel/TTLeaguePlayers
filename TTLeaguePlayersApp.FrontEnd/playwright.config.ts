@@ -8,7 +8,7 @@ export default defineConfig({
     workers: process.env.CI ? 1 : undefined,
     reporter: 'html',
     use: {
-        baseURL: `http://localhost:${process.env.PORT ?? '5173'}`,
+        baseURL: process.env.STAGING_URL ?? `http://localhost:${process.env.PORT ?? '5173'}`,
         trace: 'on-first-retry',
     },
 

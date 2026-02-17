@@ -5,6 +5,7 @@ using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore.Tests;
 
+[Trait("Environment", "Staging")]
 public class InvitesDataTableTest : IAsyncLifetime
 {
     private readonly InvitesDataTable _db;

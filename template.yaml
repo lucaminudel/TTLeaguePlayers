@@ -11,7 +11,7 @@ Parameters:
   # In AWS you can choose either architecture; locally on Apple Silicon prefer arm64.
   LambdaArchitecture:
     Type: String
-    Default: x86_64
+    Default: arm64
     AllowedValues: [arm64, x86_64]
 
   # Build configuration for the .NET Lambda (SAM build time).
@@ -103,7 +103,19 @@ Resources:
                 - cognito-idp:ListUsers
                 - cognito-idp:AdminUpdateUserAttributes
               Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
-      Events:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource:
+                - !GetAtt InvitesTable.Arn
+                - !Sub "${InvitesTable.Arn}/index/*"
+                - !GetAtt KudosTable.Arn
+                - !Sub "${KudosTable.Arn}/index/*"
       Events:
         # Public Endpoints (Explicitly override Default Authorizer)
         InvitesRoot:
@@ -114,12 +126,28 @@ Resources:
             Method: ANY
             Auth:
               Authorizer: NONE
+        InvitesRootOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         InvitesProxy:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
             Path: /invites/{proxy+}
             Method: ANY
+            Auth:
+              Authorizer: NONE
+        InvitesProxyOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites/{proxy+}
+            Method: OPTIONS
             Auth:
               Authorizer: NONE
         # Protected Endpoints (Uses Default Authorizer)
@@ -129,6 +157,23 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /{proxy+}
             Method: ANY
+        # OPTIONS handlers for protected endpoints (bypass auth for CORS preflight)
+        KudosOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /kudos
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+        KudosStandingsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /kudos/standings
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
     Metadata:
       BuildProperties:
         Configuration: !Ref DotnetBuildConfiguration

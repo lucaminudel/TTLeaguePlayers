@@ -12,6 +12,14 @@
     <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Release'">false</PublishReadyToRun>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- Add these for AWS optimization -->
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+
+    <!-- Single file deployment (smaller package) -->
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.3" />
     <PackageReference Include="Amazon.Lambda.Core" Version="2.7.0" />

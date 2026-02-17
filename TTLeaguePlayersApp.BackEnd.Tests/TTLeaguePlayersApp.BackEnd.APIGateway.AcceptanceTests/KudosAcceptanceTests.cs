@@ -10,6 +10,7 @@ using Amazon.CognitoIdentityProvider.Model;
 
 namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 
+[Trait("Environment", "Staging")]
 public class KudosAcceptanceTests: IAsyncLifetime
 {
 
@@ -41,9 +42,15 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
     #region POST /kudos Tests
 
-    [Fact(Skip = "The Cognito Authorizer that protect the call is not supported in SAM Local")]
+    [Fact]
     public async Task POST_Kudos_Should_Be_Protected()
     {
+        if (RunningAgainst.ALocalEnvironmentIsTrue())
+        {
+            // Test is skipped in local/dev/test environments
+            return;
+        }
+
         /*
             // Try this changing the url to the Staging environment to verify the behavior in cloud
             curl -X POST http://127.0.0.1:3003/kudos \
@@ -74,8 +81,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // Assert
         // 401: Blocked by API Gateway Authorizer (Cloud environment)
-        // 400: Reached Lambda but failed validation because token/sub is missing (Local/SAM environment)
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]

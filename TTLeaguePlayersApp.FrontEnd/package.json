@@ -22,13 +22,15 @@
 
     "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright dev",
     "e2e-tests-web:run test-env": "cross-env PORT=4173 playwright test",
-    "Cognito+ e2e-tests-web:run dev-env": "cross-env PORT=5173 EXECUTE_LIVE_COGNITO_TESTS=true playwright dev",
-    "Cognito+ e2e-tests-web:run test-env": "cross-env PORT=4173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
+    "C+ e2e-tests-web:run staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
+    "C+ e2e-tests-web:run dev-env": "cross-env PORT=5173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
+    "C+ e2e-tests-web:run test-env": "cross-env PORT=4173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
 
     "e2e-tests-web:report": "playwright show-report",
     
-    "e2e-tests-web:run-browser test-env": "cross-env PORT=4173 playwright test --ui",
-    "Cognito+ e2e-tests-web:run-browser dev-env": "cross-env PORT=5173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui"
+    "e2e-tests-web:run-browser test-env": "cross-env PORT=4173 ENVIRONMENT=test playwright test --ui",
+    "C+ e2e-tests-web:run-browser dev-env": "cross-env PORT=5173 ENVIRONMENT=dev EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui",
+    "C+ e2e-tests-web:run-browser staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui"
   },
   "dependencies": {
     "amazon-cognito-identity-js": "^6.3.16",

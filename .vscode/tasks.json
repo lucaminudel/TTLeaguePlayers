@@ -66,9 +66,19 @@
       }
     },
     {
-      "label": "Cognito+ api-tests test-env",
+      "label": "C+ api-tests test-env",
       "type": "shell",
       "command": "./scripts/ci_tasks/run_backend_acceptance_tests.sh 3003 test COGNITO",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },    
+    {
+      "label": "C+ staging smoke tests",
+      "type": "shell",
+      "command": "./scripts/ci_tasks/run_smoke_tests_staging.sh",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -86,7 +96,7 @@
       }
     },
     {
-      "label": "Cognito+ full-stack-builds-tests-pipeline test-env",
+      "label": "C+ full-stack-builds-tests-pipeline test-env",
       "type": "shell",
       "command": "./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO",
       "group": "test",

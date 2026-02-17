@@ -5,6 +5,7 @@ using KudosEvent = TTLeaguePlayersApp.BackEnd.Kudos.DataStore.Kudos;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.DataStore.Tests;
 
+[Trait("Environment", "Staging")]
 public class KudosDataTableTest : IAsyncLifetime
 {
     private readonly KudosDataTable _db;
