@@ -148,38 +148,57 @@ export const AwardKudos: React.FC = () => {
 
                         <div className="flex-grow flex flex-col space-y-4">
                             <Button
-                                className="!bg-[#004d27] hover:!bg-[#143D33] py-12 flex-grow flex items-center"
+                                className="!bg-[#004d27] hover:!bg-[#143D33] py-8 flex-grow flex items-center"
                                 fullWidth
                                 onClick={() => { handleKudosClick('Positive'); }}
                             >
-                                Positive Kudos
+                                <div className="flex flex-col items-center">
+                                    <span>Positive Kudos</span>
+                                    <span className="text-xs sm:text-sm font-normal opacity-90 mt-1">
+                                        <i>for a notably friendly conduct &amp; fair play</i>
+                                    </span>
+                                </div>
                             </Button>
 
                             <Button
-                                className="!bg-[#85a3c2] hover:!bg-[#6a8bb1] py-12 flex-grow flex items-center"
+                                className="!bg-[#85a3c2] hover:!bg-[#6a8bb1] py-8 flex-grow flex items-center"
                                 fullWidth
                                 onClick={() => { handleKudosClick('Neutral'); }}
                             >
-                                Neutral Kudos
+                                <div className="flex flex-col items-center">
+                                    <span>Neutral Kudos</span>
+                                    <span className="text-xs sm:text-sm font-normal opacity-90 mt-1">
+                                        <i>for a standard match experience</i>
+                                    </span>
+                                </div>
                             </Button>
 
                             <Button
-                                className="!bg-[#F06400] hover:!bg-[#CC5500] py-12 flex-grow flex items-center"
+                                className="!bg-[#F06400] hover:!bg-[#CC5500] py-8 flex-grow flex items-center"
                                 fullWidth
                                 onClick={() => { handleKudosClick('Negative'); }}
                             >
-                                <span className="p-0 m-0">Negative Kudos</span>
+                                <div className="flex flex-col items-center text-center">
+                                    <span>Negative Kudos</span>
+                                    <span className="text-xs sm:text-sm font-normal opacity-90 mt-1">
+                                        <i>for markedly poor sportsmanship or incidents</i>
+                                    </span>
+                                </div>
                             </Button>
                         </div>
+                    </div>
 
-                        <div className="mt-4 text-center">
-                            <button
-                                onClick={() => { setShowGuidelines(true); }}
-                                className="text-main-text text-sm hover:underline"
-                            >
-                                Rating guidelines
-                            </button>
-                        </div>
+                    <div className="mt-4 text-center">
+                        <br />
+                        <button
+                            onClick={() => { setShowGuidelines(true); }}
+                            className="text-main-text text-sm hover:underline flex items-center justify-center w-full"
+                        >
+                            <span>Rating Guidelines</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
                     </div>
 
                     {showGuidelines && (
@@ -204,13 +223,10 @@ export const AwardKudos: React.FC = () => {
                                         <h3 className="text-base sm:text-lg font-bold text-[#48bb78] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award positive Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Happy Atmosphere</b> The environment was friendly, inclusive, and kind (including players, supporters, and staff).</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Welcoming Atmosphere</b> The environment was friendly, inclusive, and kind.</span>
                                             </li>
                                             <li className="flex flex-col">
                                                 <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism</b> The match started on time, progressed smoothly, was played and umpired with good sportsmanship, and disputes, if any, were handled calmly and fairly.</span>
-                                            </li>
-                                            <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Accessibility</b> The venue was easy to find, well-prepared (nets, tables, etc.), and the basic facilities (changing rooms/toilets/etc.) were available and in good condition.</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -219,13 +235,10 @@ export const AwardKudos: React.FC = () => {
                                         <h3 className="text-base sm:text-lg font-bold text-[#f56565] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award negative Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Hostile Atmosphere</b> There were episodes of hostile, unwelcoming, disrespectful or aggressive behaviour from the opponents or their supporters.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Hostile Atmosphere</b> There were episodes of hostile, unwelcoming, disrespectful or aggressive behaviour.</span>
                                             </li>
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Unprofessionalism</b> The match was chaotic, players arrived or were substituted very late without notice or due care, or the playing area was managed in a disruptive way. Play was notably unfair or "over-competitive" to the point of conflict, including biased umpiring or escalated disputes.</span>
-                                            </li>
-                                            <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Unaccessibility</b> Significant issues in finding the venue or using basic facilities.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Unprofessionalism</b> The match was chaotic, players arrived or were substituted very late without notice or due care, or the playing area was managed in a disruptive way. Or the play was markedly unfair or "over-competitive" to the point of conflict, including biased umpiring or escalated disputes.</span>
                                             </li>
                                         </ul>
                                     </div>
