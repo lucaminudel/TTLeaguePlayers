@@ -59,6 +59,7 @@ export const KudosStandings: React.FC = () => {
                     season: state.season,
                     teamDivision: state.team_division,
                     teamName: state.team_name,
+                    giver_person_name: state.person_name,
                     giverPersonSub: userId,
                 }, (freshData) => { setKudosList(freshData); });
                 setKudosList(data);

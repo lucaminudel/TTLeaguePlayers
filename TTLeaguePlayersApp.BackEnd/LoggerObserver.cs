@@ -49,7 +49,7 @@ public class LoggerObserver : ILoggerObserver
             source,
             exception,
             parameters,
-            userClaims,
+            user_claims = userClaims,
             requestId = context.AwsRequestId,
             functionName = context.FunctionName,
             functionVersion = context.FunctionVersion

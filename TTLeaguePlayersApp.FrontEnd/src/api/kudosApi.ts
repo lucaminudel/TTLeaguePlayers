@@ -55,13 +55,14 @@ export interface GetKudosRequest {
     season: string;
     teamDivision: string;
     teamName: string;
+    giver_person_name?: string; // Added for log display purposes (readable version of the sub), not used by the API
     giverPersonSub?: string;
 }
 
 export interface KudosResponse {
     league: string;
     season: string;
-    division: string; // mapped from JsonPropertyName("division")
+    division: string; 
     receiving_team: string;
     home_team: string;
     away_team: string;
@@ -112,6 +113,10 @@ export async function getKudos(request: GetKudosRequest): Promise<KudosResponse[
     if (request.giverPersonSub) {
         params.append('given_by', request.giverPersonSub);
     }
+    if (request.giver_person_name) {
+        params.append('giver_person_name', request.giver_person_name);
+    }
+
     params.append('league', request.league);
     params.append('season', request.season);
     params.append('team_division', request.teamDivision);
