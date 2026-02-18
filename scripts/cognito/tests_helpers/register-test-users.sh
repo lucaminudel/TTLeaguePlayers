@@ -4,6 +4,7 @@
 # Usage: ./register-test-users.sh [dev|test]
 
 ENVIRONMENT=$1
+FORCE_DELETE=$2
 
 if [ -z "$ENVIRONMENT" ]; then
     echo "Usage: $0 [dev|test|staging]"
@@ -13,6 +14,20 @@ fi
 if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "test" && "$ENVIRONMENT" != "staging" ]]; then
     echo "Error: Only 'dev' and 'test' and 'staging' environments are allowed"
     exit 1
+fi
+
+if [[ -n "$FORCE_DELETE" && "$FORCE_DELETE" != "force" ]]; then
+    echo "Error: Second parameter must be empty or 'force'"
+    exit 1
+fi
+
+if [[ "$FORCE_DELETE" == "force" ]]; then
+    # No test_* emails exclusion from deletion
+    echo "Standard test users will be created."
+else
+    # Emails to exclude from deletion
+    echo "If you want to create the standard test users, add the 'force' parameter"
+    exit 0
 fi
 
 STACK_NAME="ttleague-cognito-$ENVIRONMENT"
