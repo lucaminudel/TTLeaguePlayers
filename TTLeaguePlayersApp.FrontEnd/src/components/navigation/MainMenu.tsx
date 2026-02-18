@@ -16,6 +16,12 @@ export const MainMenu: React.FC = () => {
 
     const menuItems: MenuItem[] = [
         {
+            label: 'Home',
+            path: '/',
+            visibleToAuthenticated: true,
+            visibleToUnauthenticated: true
+        },
+        {
             label: 'Kudos',
             path: '/kudos',
             visibleToAuthenticated: true,
@@ -23,19 +29,19 @@ export const MainMenu: React.FC = () => {
         },
         {
             label: 'Kudos Standings',
-            path: '/kudos-standings', 
+            path: '/kudos-standings',
             visibleToAuthenticated: true,
             visibleToUnauthenticated: false
         },
         {
             label: 'Tournaments & Clubs',
-            path: '#',
+            path: '/tournaments-and-clubs',
             visibleToAuthenticated: true,
             visibleToUnauthenticated: true
         },
         {
             label: 'Forums',
-            path: '#',
+            path: '/forums',
             visibleToAuthenticated: true,
             visibleToUnauthenticated: false
         }
@@ -120,12 +126,12 @@ export const MainMenu: React.FC = () => {
                             </li>
                         )}
                         {menuItems.map((item) => {
-                            const isVisible = isAuthenticated 
-                                ? item.visibleToAuthenticated 
+                            const isVisible = isAuthenticated
+                                ? item.visibleToAuthenticated
                                 : item.visibleToUnauthenticated;
-                            
+
                             if (!isVisible) return null;
-                            
+
                             return (
                                 <li key={item.label}>
                                     <Link

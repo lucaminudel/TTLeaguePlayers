@@ -13,6 +13,8 @@ export const Home: React.FC = () => {
     const handleEnterClick = () => {
         if (hasInviteId) {
             void navigate(`/join/${inviteId}`);
+        } else {
+            void navigate(`/kudos`);
         }
     };
 
@@ -48,7 +50,7 @@ export const Home: React.FC = () => {
                     <br />
                     <br />
                     <b>We stay connected</b><br />
-                    Never miss a tournament, stay informed on new venues and clubs, discuss gear and more (forums will be added), manage team members availability (feature will be added).<br />
+                    Features Coming Soon &#10144; Never miss a tournament, stay informed on new venues and clubs, manage team members availability and team formation, discuss gear and more.<br />
                 </p>
 
             </PageContainer>

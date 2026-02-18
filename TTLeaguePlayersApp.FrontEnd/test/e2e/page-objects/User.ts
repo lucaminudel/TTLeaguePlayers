@@ -5,9 +5,11 @@ import { JoinPage } from './JoinPage';
 import { HomePage } from './HomePage';
 import { KudosAndAwardPages } from './KudosAndAwardPages';
 import { KudosStandingsPage } from './KudosStandingsPage';
+import { TournamentsAndClubsPage } from './TournamentsAndClubsPage';
+import { ForumsPage } from './ForumsPage';
 import { MenuPage } from './MenuPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage };
+export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, TournamentsAndClubsPage, ForumsPage };
 
 export class User {
   private page: Page;

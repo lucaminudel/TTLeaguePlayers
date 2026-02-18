@@ -1,4 +1,7 @@
 import { type Page, expect } from '@playwright/test';
+import { HomePage } from './HomePage';
+import { TournamentsAndClubsPage } from './TournamentsAndClubsPage';
+import { ForumsPage } from './ForumsPage';
 
 export class MenuPage {
     private page: Page;
@@ -52,6 +55,31 @@ export class MenuPage {
         // Wait for redirect to homepage
         await expect(this.page).toHaveURL('/#/');
         await expect(this.page.locator('h1')).toHaveText('TT League Players');
+    }
 
+    async navigateToHome(): Promise<HomePage> {
+        const link = this.page.getByTestId('main-menu-nav-home');
+        await link.click();
+
+        await expect(this.page.locator('h2')).toHaveText('Welcome');
+        return new HomePage(this.page);
+    }
+
+    async navigateToTournamentsAndClubs(): Promise<TournamentsAndClubsPage> {
+        const link = this.page.getByTestId('main-menu-nav-tournaments-&-clubs');
+        await link.click();
+
+        const tournamentsAndClubsPage = new TournamentsAndClubsPage(this.page);
+        await tournamentsAndClubsPage.expectLoaded();
+        return tournamentsAndClubsPage;
+    }
+
+    async navigateToForums(): Promise<ForumsPage> {
+        const link = this.page.getByTestId('main-menu-nav-forums');
+        await link.click();
+
+        const forumsPage = new ForumsPage(this.page);
+        await forumsPage.expectLoaded();
+        return forumsPage;
     }
 }

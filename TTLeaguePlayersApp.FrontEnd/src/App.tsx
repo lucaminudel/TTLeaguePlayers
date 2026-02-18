@@ -8,6 +8,8 @@ import { Register } from './pages/Register';
 import { Kudos } from './pages/Kudos';
 import { AwardKudos } from './pages/AwardKudos';
 import { KudosStandings } from './pages/KudosStandings';
+import { TournamentsAndClubs } from './pages/TournamentsAndClubs';
+import { Forums } from './pages/Forums';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -60,6 +62,15 @@ function InitializationGate() {
         element={
           <ProtectedRoute>
             <KudosStandings />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/tournaments-and-clubs" element={<TournamentsAndClubs />} />
+      <Route
+        path="/forums"
+        element={
+          <ProtectedRoute>
+            <Forums />
           </ProtectedRoute>
         }
       />

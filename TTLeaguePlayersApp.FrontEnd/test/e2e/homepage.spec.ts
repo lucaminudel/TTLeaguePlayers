@@ -24,6 +24,29 @@ test.describe('Homepage', () => {
         await expect(enterButton).toBeVisible();
     });
 
+    test('when clicking the Ready To Play? button should navigate to the login page for non-loggedin users', async ({ page }) => {
+        const user = new User(page);
+        const homePage = await user.navigateToHome();
+
+        await homePage.tentativeReadyToPlay();
+
+        // Verify redirect to login page with returnUrl
+        await expect(page).toHaveURL(/\/#\/login\?returnUrl=/);
+        await expect(page.locator('h2')).toHaveText('Log In');
+    });
+
+    test('when clicking the Ready To Play? button an authenticated user should navigate to the kudos page', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+        const user = new User(page);
+
+        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+        const homePage = await user.navigateToHome();
+
+        await homePage.readyToPlay();
+    });
+
     test.describe('Menu', () => {
         test('when clicking the hamburger menu should show all the menu items for non-loggedin users', async ({ page }) => {
             const user = new User(page);
@@ -32,6 +55,7 @@ test.describe('Homepage', () => {
             // that all menu items are present and are visiblised in the whole page
             const menuItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
+                { name: 'Home', testId: 'main-menu-nav-home' },
                 { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' }
             ];
 
@@ -45,6 +69,49 @@ test.describe('Homepage', () => {
             await expect(overlay).toHaveCSS('flex-direction', 'column');
             await expect(overlay).toHaveCSS('justify-content', 'center');
             await expect(overlay).toHaveCSS('align-items', 'center');
+        });
+
+        test('when clicking the hamburger menu an authenticated users should see all the menu items for loggedin users', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            await user.menu.open();
+
+
+            // that all menu items are present and are visiblised in the whole page
+            const menuItems = [
+                { name: 'Log out', testId: 'main-menu-logout-button' },
+                { name: 'Home', testId: 'main-menu-nav-home' },
+                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                { name: 'Forums', testId: 'main-menu-nav-forums' }
+            ];
+
+            for (const item of menuItems) {
+                const link = page.getByTestId(item.testId);
+                await expect(link).toBeVisible();
+            }
+
+            // Verify menu items are all centred
+            const overlay = page.getByTestId('main-menu-overlay');
+            await expect(overlay).toHaveCSS('display', 'flex');
+            await expect(overlay).toHaveCSS('flex-direction', 'column');
+            await expect(overlay).toHaveCSS('justify-content', 'center');
+            await expect(overlay).toHaveCSS('align-items', 'center');
+        });
+
+        test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            await user.menu.open();
+            const kudosLink = page.locator('[data-testid="main-menu-nav-kudos"]');
+            await expect(kudosLink).toBeVisible();
         });
 
         test('when clicking the X after opening the menu, it should close the menu', async ({ page }) => {
@@ -72,42 +139,18 @@ test.describe('Homepage', () => {
             await enterButton.click({ trial: true });
         });
 
-        test('when clicking the hamburger menu an authenticated users should see all the menu items for loggedin users', async ({ page }) => {
-            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-
+        test('when clicking Home menu item, a non-loggedin user should navigate to the home page', async ({ page }) => {
             const user = new User(page);
-            
-            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-
             await user.menu.open();
-
-
-            // that all menu items are present and are visiblised in the whole page
-            const menuItems = [
-                { name: 'Log out', testId: 'main-menu-logout-button' },
-                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
-                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
-                { name: 'Forums', testId: 'main-menu-nav-forums' }
-            ];
-
-            for (const item of menuItems) {
-                const link = page.getByTestId(item.testId);
-                await expect(link).toBeVisible();
-            }
-
-            // Verify menu items are all centred
-            const overlay = page.getByTestId('main-menu-overlay');
-            await expect(overlay).toHaveCSS('display', 'flex');
-            await expect(overlay).toHaveCSS('flex-direction', 'column');
-            await expect(overlay).toHaveCSS('justify-content', 'center');
-            await expect(overlay).toHaveCSS('align-items', 'center');
+            await user.menu.navigateToHome();
+            await expect(page).toHaveURL(/\/$/);
         });
 
         test('when clicking Kudos menu item, a loggedin user should navigate to kudos page', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new User(page);
-            
+
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             await user.menu.open();
@@ -124,7 +167,7 @@ test.describe('Homepage', () => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new User(page);
-            
+
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             await user.menu.open();
@@ -137,15 +180,21 @@ test.describe('Homepage', () => {
             await expect(page).toHaveURL(/\/kudos-standings$/);
         });
 
-        test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
+        test('when clicking Tournaments and Clubs menu item, a non-loggedin user should navigate to the tournaments and clubs page', async ({ page }) => {
+            const user = new User(page);
+            await user.menu.open();
+            await user.menu.navigateToTournamentsAndClubs();
+            await expect(page).toHaveURL(/\/tournaments-and-clubs$/);
+        });
+
+        test('when clicking Forums menu item, a loggedin user should navigate to forums page', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new User(page);
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-
             await user.menu.open();
-            const kudosLink = page.locator('[data-testid="main-menu-nav-kudos"]');
-            await expect(kudosLink).toBeVisible();
+            await user.menu.navigateToForums();
+            await expect(page).toHaveURL(/\/forums$/);
         });
     });
 
