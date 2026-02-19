@@ -55,4 +55,4 @@ echo ""
 echo ""
 echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-"$SCRIPT_DIR/get-cognito-values-for-env-config-files.sh" $ENVIRONMENT
+"$SCRIPT_DIR/../cognito/get-cognito-values-for-env-config-files.sh" $ENVIRONMENT

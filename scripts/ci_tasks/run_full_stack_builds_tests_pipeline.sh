@@ -66,11 +66,43 @@ cleanup() {
 trap cleanup EXIT
 
 # ==============================================================================
-# 1. BACKEND PHASE
+# 1. BUILD PHASE
 # ==============================================================================
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [1/7] Building Backend (SAM)..."
+echo "🔹 [1/8] Backend: Build..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo ""
+cd "$PROJECT_ROOT"
+dotnet build "$BACKEND_TEST_PROJECT" --configuration Debug
+if [ $? -ne 0 ]; then
+    echo "   ❌ Backend: Build failed."
+    exit 1
+fi
+
+echo ""
+echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo "🔹 [2/8] Frontend: Build & Lint..."
+echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo ""
+
+cd "$FRONTEND_DIR"
+# build-web:test-env includes copy-config and lint
+npm run build-web:test-env
+
+rc=$?
+echo "   Debug: Exit code was $rc"
+
+if [ $rc -ne 0 ]; then
+    echo "   ❌ Frontend: Build & Lint failed."
+    exit 1
+fi
+
+echo ""
+echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo "🔹 [3/8] Backend: local SAM Building..."
+echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo ""
+
 cd "$PROJECT_ROOT"
 
 # Ensure directory exists before building
@@ -99,9 +131,17 @@ if [ $sync_count -eq $MAX_SYNC_RETRIES ]; then
 fi
 echo "   ✅ Docker sync is ready."
 
+# ==============================================================================
+# 2. BACKEND TEST PHASE
+# ==============================================================================
+
+echo ""
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [2/7] Starting SAM Local API..."
+echo "🔹 [4/8] Starting SAM Local API..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo ""
+
+cd "$PROJECT_ROOT"
 # Check if port is already in use
 if lsof -i ":$API_PORT" >/dev/null; then
     echo "   ⚠️  Port $API_PORT is in use. Assuming external SAM instance."
@@ -129,9 +169,11 @@ else
     echo "   ✅ API is ready."
 fi
 
+echo ""
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [3/7] Running Backend Build + Acceptance Tests..."
+echo "🔹 [5/8] Backend: Unit - Integration - Acceptance Tests..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
+echo ""
 
 if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
     # Cognito test users setup, for C# Acceptance Teste and  Playwright E2E Tests
@@ -150,50 +192,37 @@ else
     echo "Excluding Live Cognito tests..."
     FILTER="--filter Cognito!=Live"
 fi
-dotnet test "$BACKEND_TEST_PROJECT" $FILTER --configuration Debug --logger "console;verbosity=minimal" 
+dotnet test "$BACKEND_TEST_PROJECT" $FILTER --configuration Debug --no-build --logger "console;verbosity=minimal" 
 
 rc=$?
-echo "Debug: Exit code was $rc"
+echo "   Debug: Exit code was $rc"
 
-if [ $? -ne 0 ]; then
-    echo "   ❌ Backend Build + Acceptance Tests failed."
+if [ $rc -ne 0 ]; then
+    echo "   ❌ Backend: Acceptance Tests failed."
     exit 1
 fi
 
 # ==============================================================================
-# 2. FRONTEND PHASE
+# 3. FRONTEND TEST PHASE
 # ==============================================================================
 echo ""
-echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [4/7] Frontend: Build & Lint..."
-echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 cd "$FRONTEND_DIR"
-# build-web:test-env includes copy-config and lint
-npm run build-web:test-env
-
-rc=$?
-echo "Debug: Exit code was $rc"
-
-if [ $? -ne 0 ]; then
-    echo "   ❌ Frontend: Build & Lint failed."
-    exit 1
-fi
 
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [5/7] Frontend: Unit Tests..."
+echo "🔹 [6/8] Frontend: Unit Tests..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 npm run unit-tests-web:run
 
 rc=$?
-echo "Debug: Exit code was $rc"
+echo "   Debug: Exit code was $rc"
 
-if [ $? -ne 0 ]; then
+if [ $rc -ne 0 ]; then
     echo "   ❌ Frontend: Unit Tests failed."
     exit 1
 fi
 
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [6/7] Frontend: Starting Web Server..."
+echo "🔹 [7/8] Frontend: Starting Web Server..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 # Start the preview server for the built artifacts
 # Note: "npm run run-web:test-env" usually runs "vite" (dev server). 
@@ -221,7 +250,7 @@ fi
 echo "   ✅ Web server is ready."
 
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-echo "🔹 [7/7] Frontend: Running E2E Tests (Playwright)..."
+echo "🔹 [8/8] Frontend: Running E2E Tests (Playwright)..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 
 # The package.json script "e2e-tests-web:run test-env" sets PORT=4173
@@ -230,9 +259,9 @@ export EXECUTE_LIVE_COGNITO_TESTS
 npm run "e2e-tests-web:run test-env"
 
 rc=$?
-echo "Debug: Exit code was $rc"
+echo "   Debug: Exit code was $rc"
 
-if [ $? -ne 0 ]; then
+if [ $rc -ne 0 ]; then
     echo "   ❌ Frontend: E2E Tests (Playwright) failed."
     exit 1
 fi

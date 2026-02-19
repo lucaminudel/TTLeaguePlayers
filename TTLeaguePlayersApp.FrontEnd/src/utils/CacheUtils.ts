@@ -35,14 +35,12 @@ export async function withSWR<T>(
 
                 if (age < options.freshDurationMs) {
                     // Case 1: Cache is fresh
-                    console.debug(`Cache hit (fresh) for ${cacheKey}`);
                     return transformedData;
                 }
 
                 if (age < options.staleDurationMs) {
                     // Case 2: Cache is stale but within revalidation window
                     // Return stale data immediately, trigger background refresh
-                    console.debug(`Cache hit (stale) for ${cacheKey}, triggering background refresh`);
                     void refreshCache(cacheKey, fetcher, transformer, onBackgroundUpdate).catch((err: unknown) => {
                         console.warn(`Background cache refresh failed for ${cacheKey}:`, err);
                     });
@@ -59,7 +57,6 @@ export async function withSWR<T>(
     }
 
     // Case 3: No cache or expired
-    console.debug(`Cache miss for ${cacheKey}, fetching fresh data`);
     const data = await refreshCache(cacheKey, fetcher, transformer);
     return transformer ? transformer(data) : data;
 }

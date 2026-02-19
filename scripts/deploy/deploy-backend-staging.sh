@@ -2,7 +2,7 @@
 
 set -e
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENVIRONMENT="staging"
 REGION="eu-west-2"
 BACKEND_STACK="ttleague-players-staging"

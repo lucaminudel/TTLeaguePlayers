@@ -43,7 +43,7 @@ set -e
 
 ENVIRONMENT="staging"
 REGION="eu-west-2"
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
 
 # Domain configuration
 FRONTEND_DOMAIN="staging.ttleagueplayers.uk"
@@ -93,7 +93,8 @@ echo ""
 echo -e "${YELLOW}[2/7] Building and deploying backend...${NC}"
 
 # Call the dedicated backend deployment script
-bash "$PROJECT_ROOT/scripts/deploy-backend-staging.sh"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+bash "$SCRIPT_DIR/deploy-backend-staging.sh"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: Backend deployment failed${NC}"
@@ -173,7 +174,8 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Call the dedicated frontend deployment script
-bash "$PROJECT_ROOT/scripts/deploy-frontend-staging.sh"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+bash "$SCRIPT_DIR/deploy-frontend-staging.sh"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: Frontend deployment failed${NC}"
