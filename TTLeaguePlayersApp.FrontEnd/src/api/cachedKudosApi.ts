@@ -17,8 +17,8 @@ const ONE_WEEK = 7 * ONE_DAY;
 
 const CACHE_CONFIG = {
     PLAYER_KUDOS: {
-        freshDurationMs: ONE_DAY,
-        staleDurationMs: 2 * ONE_WEEK,
+        freshDurationMs: 2 * ONE_HOUR,
+        staleDurationMs: ONE_WEEK,
     },
     TEAM_KUDOS: {
         freshDurationMs: 2 * ONE_HOUR,

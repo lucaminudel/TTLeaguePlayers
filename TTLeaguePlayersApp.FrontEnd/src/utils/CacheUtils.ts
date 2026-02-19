@@ -30,24 +30,27 @@ export async function withSWR<T>(
                 const now = getClockTime().getTime();
                 const age = now - parsed.timestamp;
 
-                let data = parsed.data as T;
-                if (transformer) {
-                    data = transformer(data);
-                }
+                const data = parsed.data as T;
+                const transformedData = transformer ? transformer(data) : data;
 
                 if (age < options.freshDurationMs) {
                     // Case 1: Cache is fresh
-                    return data;
+                    console.debug(`Cache hit (fresh) for ${cacheKey}`);
+                    return transformedData;
                 }
 
                 if (age < options.staleDurationMs) {
                     // Case 2: Cache is stale but within revalidation window
                     // Return stale data immediately, trigger background refresh
-                    void refreshCache(cacheKey, fetcher, onBackgroundUpdate).catch((err: unknown) => {
+                    console.debug(`Cache hit (stale) for ${cacheKey}, triggering background refresh`);
+                    void refreshCache(cacheKey, fetcher, transformer, onBackgroundUpdate).catch((err: unknown) => {
                         console.warn(`Background cache refresh failed for ${cacheKey}:`, err);
                     });
-                    return data;
+                    return transformedData;
                 }
+            } else {
+                // Remove invalid entry if it doesn't match expected structure
+                localStorage.removeItem(cacheKey);
             }
         } catch (e: unknown) {
             console.warn(`Error parsing cached data for ${cacheKey}:`, e);
@@ -56,7 +59,8 @@ export async function withSWR<T>(
     }
 
     // Case 3: No cache or expired
-    const data = await refreshCache(cacheKey, fetcher, onBackgroundUpdate);
+    console.debug(`Cache miss for ${cacheKey}, fetching fresh data`);
+    const data = await refreshCache(cacheKey, fetcher, transformer);
     return transformer ? transformer(data) : data;
 }
 
@@ -84,6 +88,7 @@ export function invalidateCacheByPrefix(prefix: string): void {
 async function refreshCache<T>(
     cacheKey: string,
     fetcher: () => Promise<T>,
+    transformer?: (data: T) => T,
     onBackgroundUpdate?: (data: T) => void
 ): Promise<T> {
     const data = await fetcher();
@@ -91,10 +96,17 @@ async function refreshCache<T>(
         timestamp: getClockTime().getTime(),
         data,
     };
-    localStorage.setItem(cacheKey, JSON.stringify(entry));
+
+    try {
+        localStorage.setItem(cacheKey, JSON.stringify(entry));
+    } catch (e) {
+        // If localStorage is full, we still want the app to work with the fresh data
+        console.warn(`Failed to save data to cache for ${cacheKey}:`, e);
+    }
 
     if (onBackgroundUpdate) {
-        onBackgroundUpdate(data);
+        const transformedData = transformer ? transformer(data) : data;
+        onBackgroundUpdate(transformedData);
     }
 
     return data;

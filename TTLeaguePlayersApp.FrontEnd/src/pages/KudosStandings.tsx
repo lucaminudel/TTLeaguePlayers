@@ -111,10 +111,13 @@ export const KudosStandings: React.FC = () => {
         };
 
         if (state && activeTab === 'Awarded' && userId) {
+            console.debug("Tab Awarded Fetch Kudos")
             void fetchKudosAwarded();
         } else if (state && activeTab === 'Team') {
+            console.debug("Tab Team Fetch Kudos")
             void fetchTeamKudos();
         } else if (state && activeTab === 'Table') {
+            console.debug("Tab Table Fetch Kudos")
             void fetchKudosStandings();
         }
     }, [state, activeTab, userId]);
