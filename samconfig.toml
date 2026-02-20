@@ -36,13 +36,13 @@ parameter_overrides = "Environment=test LambdaArchitecture=arm64 DotnetBuildConf
 stack_name = "ttleague-players-test"
 
 [staging.deploy.parameters]
-parameter_overrides = "Environment=staging LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName=api-staging.ttleagueplayers.uk AllowedOrigin=https://staging.ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain="
+parameter_overrides = "Environment=staging LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName=api-staging.ttleagueplayers.uk AllowedOrigin=https://staging.ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain= HostedZoneId=Z07708401HNB3O1D566US ApexDomain=ttleagueplayers.uk"
 stack_name = "ttleague-players-staging"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-azbrsvywwzmf"
 s3_prefix = "ttleague-players"
 
 [prod.deploy.parameters]
-parameter_overrides = "Environment=prod LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName=api.ttleagueplayers.uk AllowedOrigin=https://ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain="
+parameter_overrides = "Environment=prod LambdaArchitecture=arm64 DotnetBuildConfiguration=Release DomainName=api.ttleagueplayers.uk AllowedOrigin=https://ttleagueplayers.uk CognitoUserPoolId= CognitoClientId= CognitoDomain= HostedZoneId=Z07708401HNB3O1D566US ApexDomain=ttleagueplayers.uk"
 stack_name = "ttleague-players-prod"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-azbrsvywwzmf"
 s3_prefix = "ttleague-players"

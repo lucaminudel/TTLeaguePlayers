@@ -56,7 +56,8 @@ test.describe('Homepage', () => {
             const menuItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
                 { name: 'Home', testId: 'main-menu-nav-home' },
-                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' }
+                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
+                { name: 'About', testId: 'main-menu-nav-about' }
             ];
 
             for (const item of menuItems) {
@@ -87,7 +88,8 @@ test.describe('Homepage', () => {
                 { name: 'Home', testId: 'main-menu-nav-home' },
                 { name: 'Kudos', testId: 'main-menu-nav-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
-                { name: 'Forums', testId: 'main-menu-nav-forums' }
+                { name: 'Forums', testId: 'main-menu-nav-forums' },
+                { name: 'About', testId: 'main-menu-nav-about' }
             ];
 
             for (const item of menuItems) {
@@ -195,6 +197,13 @@ test.describe('Homepage', () => {
             await user.menu.open();
             await user.menu.navigateToForums();
             await expect(page).toHaveURL(/\/forums$/);
+        });
+
+        test('when clicking About menu item, a non-loggedin user should navigate to the about page', async ({ page }) => {
+            const user = new User(page);
+            await user.menu.open();
+            await user.menu.navigateToAbout();
+            await expect(page).toHaveURL(/\/about$/);
         });
     });
 

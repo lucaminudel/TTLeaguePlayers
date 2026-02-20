@@ -10,6 +10,7 @@ import { AwardKudos } from './pages/AwardKudos';
 import { KudosStandings } from './pages/KudosStandings';
 import { TournamentsAndClubs } from './pages/TournamentsAndClubs';
 import { Forums } from './pages/Forums';
+import { About } from './pages/About';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -74,6 +75,7 @@ function InitializationGate() {
           </ProtectedRoute>
         }
       />
+      <Route path="/about" element={<About />} />
     </Routes>
   );
 }

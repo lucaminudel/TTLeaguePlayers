@@ -2,6 +2,7 @@ import { type Page, expect } from '@playwright/test';
 import { HomePage } from './HomePage';
 import { TournamentsAndClubsPage } from './TournamentsAndClubsPage';
 import { ForumsPage } from './ForumsPage';
+import { AboutPage } from './AboutPage';
 
 export class MenuPage {
     private page: Page;
@@ -33,7 +34,7 @@ export class MenuPage {
         // Verify overlay is visible and interactive with menu items centered
         await expect(overlay).toHaveCSS('opacity', '1');
         await expect(overlay).toHaveCSS('pointer-events', 'auto');
-        const link = this.page.getByTestId('main-menu-nav-tournaments-&-clubs');
+        const link = this.page.getByTestId('main-menu-nav-about');
         await expect(link).toBeVisible();
     }
 
@@ -81,5 +82,14 @@ export class MenuPage {
         const forumsPage = new ForumsPage(this.page);
         await forumsPage.expectLoaded();
         return forumsPage;
+    }
+
+    async navigateToAbout(): Promise<AboutPage> {
+        const link = this.page.getByTestId('main-menu-nav-about');
+        await link.click();
+
+        const aboutPage = new AboutPage(this.page);
+        await aboutPage.expectLoaded();
+        return aboutPage;
     }
 }

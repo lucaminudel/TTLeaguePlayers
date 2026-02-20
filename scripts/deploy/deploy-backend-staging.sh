@@ -62,7 +62,9 @@ sam deploy --config-env staging \
         "AllowedOrigin=https://staging.ttleagueplayers.uk" \
         "CognitoUserPoolId=$COGNITO_USER_POOL_ID" \
         "CognitoClientId=$COGNITO_CLIENT_ID" \
-        "CognitoDomain=$COGNITO_DOMAIN"
+        "CognitoDomain=$COGNITO_DOMAIN" \
+        "HostedZoneId=Z07708401HNB3O1D566US" \
+        "ApexDomain=ttleagueplayers.uk"
 
 echo ""
 echo -e "${GREEN}✓ Backend deployed successfully!${NC}"

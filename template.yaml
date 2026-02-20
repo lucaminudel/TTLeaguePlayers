@@ -44,6 +44,16 @@ Parameters:
     Default: ""
     Description: Cognito Domain (from cognito stack or local config)
 
+  ApexDomain:
+    Type: String
+    Default: "ttleagueplayers.uk"
+    Description: Apex domain name for MX and SPF records
+
+  HostedZoneId:
+    Type: String
+    Default: ""
+    Description: Route 53 Hosted Zone ID for the domain
+
 Globals:
   Function:
     Runtime: dotnet8
@@ -174,6 +184,102 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+
+  EmailForwarderLambda:
+    Type: AWS::Serverless::Function
+    Condition: IsProdOrStaging
+    Properties:
+      CodeUri: TTLeaguePlayersApp.BackEnd/
+      Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.Utilities.EmailForwarderLambda::HandleAsync
+      Runtime: dotnet8
+      Architectures:
+        - !Ref LambdaArchitecture
+      Policies:
+        - S3CrudPolicy:
+            BucketName: "ttleague-incoming-emails"
+        - SESCrudPolicy:
+            IdentityName: "ttleagueplayers.uk"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendRawEmail
+              Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/*"
+      Events:
+        EmailReceivedEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref IncomingEmailsBucket
+            Events: s3:ObjectCreated:*
+
+  IncomingEmailsBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProdOrStaging
+    Properties:
+      BucketName: "ttleague-incoming-emails"
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldEmails
+            Status: Enabled
+            ExpirationInDays: 7
+
+  IncomingEmailsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: IsProdOrStaging
+    Properties:
+      Bucket: !Ref IncomingEmailsBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:PutObject
+            Effect: Allow
+            Principal:
+              Service: ses.amazonaws.com
+            Resource: !Sub "arn:aws:s3:::${IncomingEmailsBucket}/*"
+
+  SESReceiptRuleSet:
+    Type: AWS::SES::ReceiptRuleSet
+    Condition: IsProdOrStaging
+    Properties:
+      RuleSetName: !Sub "ttleague-rules-${Environment}"
+
+  SESReceiptRule:
+    Type: AWS::SES::ReceiptRule
+    Condition: IsProdOrStaging
+    DependsOn: IncomingEmailsBucketPolicy
+    Properties:
+      RuleSetName: !Ref SESReceiptRuleSet
+      Rule:
+        Name: "ForwardToS3AndTriggerLambda"
+        Enabled: true
+        Recipients:
+          - "contact_us@ttleagueplayers.uk"
+        Actions:
+          - S3Action:
+              BucketName: !Ref IncomingEmailsBucket
+
+  MXRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: IsProdOrStaging
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApexDomain
+      Type: MX
+      TTL: 3600
+      ResourceRecords:
+        - !Sub "10 inbound-smtp.${AWS::Region}.amazonaws.com"
+
+  SPFRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: IsProdOrStaging
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApexDomain
+      Type: TXT
+      TTL: 3600
+      ResourceRecords:
+        - "\"v=spf1 include:amazonses.com ~all\""
     Metadata:
       BuildProperties:
         Configuration: !Ref DotnetBuildConfiguration

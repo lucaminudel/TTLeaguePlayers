@@ -44,6 +44,12 @@ export const MainMenu: React.FC = () => {
             path: '/forums',
             visibleToAuthenticated: true,
             visibleToUnauthenticated: false
+        },
+        {
+            label: 'About',
+            path: '/about',
+            visibleToAuthenticated: true,
+            visibleToUnauthenticated: true
         }
     ];
 

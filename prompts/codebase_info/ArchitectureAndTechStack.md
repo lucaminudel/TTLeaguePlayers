@@ -56,6 +56,12 @@ These config files contains additional info on the implememntation details of th
 - /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/*
 - /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj
 
+### Email Architecture
+The application handles incoming and outgoing emails (e.g., via `contact_us@ttleagueplayers.uk`) using AWS SES and Route 53:
+- **DNS & Route 53**: MX and SPF records are configured in Route 53 to authorize AWS SES to handle email for the apex domain (`ttleagueplayers.uk`).
+- **Incoming Emails**: AWS SES uses a Receipt Rule to save incoming emails for `contact_us@ttleagueplayers.uk` into an S3 bucket (`ttleague-incoming-emails`).
+- **Email Forwarding**: An AWS Lambda function (`EmailForwarderLambda`) is triggered by S3 `ObjectCreated` events. It parses the raw email from S3, strips SES-specific routing headers, sets the `Reply-To` to the original sender, and forwards the email to an administration address (e.g., `luca.minudel@gmail.com`) using AWS SES.
+
 ### Environments
 There are four different environments for this application.
 Two are manly local environment:

@@ -92,13 +92,25 @@ echo ""
 # ==============================================================================
 echo -e "${YELLOW}[2/7] Building and deploying backend...${NC}"
 
-# Call the dedicated backend deployment script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-bash "$SCRIPT_DIR/deploy-backend-staging.sh"
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}ERROR: Backend deployment failed${NC}"
-    exit 1
+# Temporarily disable 'set -e' for backend deployment
+set +e
+BACKEND_DEPLOY_OUTPUT=$(bash "$SCRIPT_DIR/deploy-backend-staging.sh" 2>&1)
+BACKEND_DEPLOY_EXIT_CODE=$?
+set -e
+
+# Always print backend deploy output for debugging
+echo "$BACKEND_DEPLOY_OUTPUT"
+
+# Check for 'No changes to deploy' and allow script to continue
+if [ $BACKEND_DEPLOY_EXIT_CODE -ne 0 ]; then
+    if echo "$BACKEND_DEPLOY_OUTPUT" | grep -q "No changes to deploy. Stack"; then
+        echo -e "${YELLOW}Backend up to date: No changes to deploy${NC}"
+    else
+        echo -e "${RED}ERROR: Backend deployment failed${NC}"
+        exit 1
+    fi
 fi
 
 # Get API Gateway endpoint
@@ -174,7 +186,6 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Call the dedicated frontend deployment script
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 bash "$SCRIPT_DIR/deploy-frontend-staging.sh"
 
 if [ $? -ne 0 ]; then
@@ -302,11 +313,6 @@ if [ -n "$CLOUDFRONT_DOMAIN" ]; then
 fi
 echo "  Backend API: $API_URL"
 echo "  Backend API (custom domain): https://${API_DOMAIN}"
-echo ""
-echo "Cognito:"
-echo "  User Pool ID: $COGNITO_USER_POOL_ID"
-echo "  Client ID: $COGNITO_CLIENT_ID"
-echo "  Domain: $COGNITO_DOMAIN"
 echo ""
 echo "Next steps:"
 echo "  1. Wait for DNS propagation (5-30 minutes)"
