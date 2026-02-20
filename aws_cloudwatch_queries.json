@@ -13,9 +13,9 @@
         {
             "queryLanguage": "CWLI",
             "queryDefinitionId": "e670d319-5f5f-4ada-86eb-e8fa7be5b1b9",
-            "name": "Staging/All business events",
+            "name": "Staging - Business/All business events",
             "queryString": "fields @timestamp, event_name, @message\n| filter event_category = \"BUSINESS_EVENT\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771412114354,
+            "lastModified": 1771601994819,
             "logGroupNames": [
                 "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
             ]
@@ -23,9 +23,9 @@
         {
             "queryLanguage": "CWLI",
             "queryDefinitionId": "a9da0007-f030-4602-98ed-36e1a667ad80",
-            "name": "Staging/Business event GIVE KUDOS",
+            "name": "Staging - Business/Business event GIVE KUDOS",
             "queryString": "fields @timestamp, event_name, @message, parameters.RequestBody \n| filter event_category = \"BUSINESS_EVENT\" and event_name = \"GIVE KUDOS\" \n| fields @timestamp, event_name, @message, jsonParse(parameters.RequestBody) as requestBody \n| fields @timestamp, event_name, requestBody.league as league, requestBody.season as season, requestBody.division as division, requestBody.receiving_team as receiving_team, requestBody.giver_person_name as giver_person_name, @message \n| display @timestamp, event_name, league, season, division, receiving_team, giver_person_name, @message\n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771414455311,
+            "lastModified": 1771602055777,
             "logGroupNames": [
                 "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
             ]
@@ -43,9 +43,9 @@
         {
             "queryLanguage": "CWLI",
             "queryDefinitionId": "53fa1a9d-c027-4b4f-b1b0-fdd608ebbd83",
-            "name": "Staging/Business event ACCEPT INVITE",
-            "queryString": "fields @timestamp, event_name, parameters.RequestPath , @message \n| filter event_category = \"BUSINESS_EVENT\" and event_name = \"ACCESS INVITE\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771414541501,
+            "name": "Staging - Business/Business event ACCEPT INVITE",
+            "queryString": "fields @timestamp, event_name, parameters.RequestPath , @message \n| filter event_category = \"BUSINESS_EVENT\" and event_name = \"ACCEPT INVITE\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771602037300,
             "logGroupNames": [
                 "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
             ]
@@ -73,9 +73,9 @@
         {
             "queryLanguage": "CWLI",
             "queryDefinitionId": "14966d46-b696-4f8d-91dc-50e5a958070f",
-            "name": "Staging/Business event GET <Kudos Standings>",
+            "name": "Staging - Business/Business event GET <Kudos Standings>",
             "queryString": "fields @timestamp, event_name, @message \n| filter event_category = \"BUSINESS_EVENT\" and event_name in [\"GET KUDOS STANDINGS\", \"GET TEAM'S RECEIVED KUDOS\", \"GET PLAYER AWARDED KUDOS\"] \n| fields @timestamp, event_name, @message, jsonParse(parameters.QueryString) as queryString \n| fields @timestamp, event_name, queryString.league as league, queryString.season as season, queryString.team_division as team_division, queryString.team_name as team_name, queryString.giver_person_name as queryString.giver_person_name, queryString.given_by as given_by, @message \n| display @timestamp, event_name, league, season, team_division, team_name, giver_person_name, given_by, @message\n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771422810492,
+            "lastModified": 1771602074169,
             "logGroupNames": [
                 "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
             ]

@@ -63,7 +63,10 @@ public class EmailForwarderLambda
             var originalFromMailbox = message.From.Mailboxes.FirstOrDefault();
             var originalEmail = originalFromMailbox?.Address ?? string.Empty;
             var obfuscatedEmail = originalEmail.Replace("@", " at ");
-            var manualFromHeader = $"\"Forwarded - Originally from {obfuscatedEmail}\" <contact_us@ttleagueplayers.uk>";
+            
+            // Extract the recipient email address (who the email was sent to)
+            var recipientEmail = message.To.Mailboxes.FirstOrDefault()?.Address ?? "contact_us@ttleagueplayers.uk";
+            var manualFromHeader = $"\"Forwarded - Originally from {obfuscatedEmail}\" <{recipientEmail}>";
 
             // Remove all existing From headers and inject the manual one
             message.Headers.RemoveAll("From");
@@ -112,5 +115,9 @@ public class EmailForwarderLambda
                 // continue with the next record without deleting this email, so it can be retried later
             }
         }
+        _observer.OnRuntimeRegularEvent("EMAIL FORWARDING COMPLETED",
+            source: new() { ["Class"] =  nameof(EmailForwarderLambda), ["Method"] =  nameof(HandleAsync) }, 
+            context, parameters: new () { [nameof(s3Event)] = s3Event.ToString() ?? "" } );
+
     }
 }

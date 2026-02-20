@@ -126,6 +126,16 @@ Resources:
                 - !Sub "${InvitesTable.Arn}/index/*"
                 - !GetAtt KudosTable.Arn
                 - !Sub "${KudosTable.Arn}/index/*"
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/*"
       Events:
         # Public Endpoints (Explicitly override Default Authorizer)
         InvitesRoot:
@@ -251,10 +261,25 @@ Resources:
     Properties:
       RuleSetName: !Ref SESReceiptRuleSet
       Rule:
-        Name: "ForwardToS3AndTriggerLambda"
+        Name: "ForwardContactUsToS3AndTriggerLambda"
         Enabled: true
         Recipients:
           - "contact_us@ttleagueplayers.uk"
+        Actions:
+          - S3Action:
+              BucketName: !Ref IncomingEmailsBucket
+
+  SESReceiptRuleInvite:
+    Type: AWS::SES::ReceiptRule
+    Condition: IsProdOrStaging
+    DependsOn: IncomingEmailsBucketPolicy
+    Properties:
+      RuleSetName: !Ref SESReceiptRuleSet
+      Rule:
+        Name: "ForwardInviteToS3AndTriggerLambda"
+        Enabled: true
+        Recipients:
+          - "invite@ttleagueplayers.uk"
         Actions:
           - S3Action:
               BucketName: !Ref IncomingEmailsBucket
