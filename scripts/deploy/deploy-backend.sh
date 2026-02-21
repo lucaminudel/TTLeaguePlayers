@@ -79,6 +79,11 @@ else
     ALLOWED_ORIGIN="https://${ENVIRONMENT}.ttleagueplayers.uk"
 fi
 
+MANAGE_MAILFROM_DNS="false"
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+    MANAGE_MAILFROM_DNS="true"
+fi
+
 echo ""
 echo -e "${YELLOW}[2/3] Building backend...${NC}"
 
@@ -106,7 +111,8 @@ sam deploy --config-env "$ENVIRONMENT" \
         "CognitoDomain=$COGNITO_DOMAIN" \
         "CertificateArn=$CERTIFICATE_ARN" \
         "HostedZoneId=Z07708401HNB3O1D566US" \
-        "ApexDomain=ttleagueplayers.uk"
+        "ApexDomain=ttleagueplayers.uk" \
+        "ManageMailFromDnsRecords=$MANAGE_MAILFROM_DNS"
 
 echo ""
 echo -e "${GREEN}✓ Backend deployed successfully!${NC}"
