@@ -12,6 +12,11 @@ Parameters:
     Default: "false"
     AllowedValues: ["true", "false"]
 
+  ManageMailFromDnsRecords:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+
   # NOTE: These are primarily for local dev (SAM) vs cloud deploy differences.
   # In AWS you can choose either architecture; locally on Apple Silicon prefer arm64.
   LambdaArchitecture:
@@ -395,6 +400,28 @@ Resources:
       BuildProperties:
         Configuration: !Ref DotnetBuildConfiguration
 
+  MailFromMXRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: ManageMailFromDns
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "mailfrom.${ApexDomain}"
+      Type: MX
+      TTL: 300
+      ResourceRecords:
+        - !Sub "10 feedback-smtp.${AWS::Region}.amazonses.com"
+
+  MailFromSPFRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: ManageMailFromDns
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "mailfrom.${ApexDomain}"
+      Type: TXT
+      TTL: 300
+      ResourceRecords:
+        - "\"v=spf1 include:amazonses.com ~all\""
+
   InvitesTable:
     Type: AWS::DynamoDB::Table
     Condition: IsProdOrStaging
@@ -486,6 +513,8 @@ Conditions:
   IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
   IsProd: !Equals [!Ref Environment, prod]
   IsStaging: !Equals [!Ref Environment, staging]
+  HasHostedZoneId: !Not [!Equals [!Ref HostedZoneId, ""]]
+  ManageMailFromDns: !And [!Equals [!Ref ManageMailFromDnsRecords, "true"], !Condition HasHostedZoneId]
   HasCognitoParams: !And [!Not [!Equals [!Ref CognitoUserPoolId, ""]], !Not [!Equals [!Ref CognitoClientId, ""]], !Not [!Equals [!Ref CognitoDomain, ""]]]
 
 Outputs:
