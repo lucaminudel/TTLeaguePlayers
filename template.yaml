@@ -288,7 +288,7 @@ Resources:
 
   EmailForwarderLambda:
     Type: AWS::Serverless::Function
-    Condition: IsStaging
+    Condition: IsStagingOrLocal
     Properties:
       CodeUri: TTLeaguePlayersApp.BackEnd/
       Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.Utilities.EmailForwarderLambda::HandleAsync
@@ -511,6 +511,7 @@ Resources:
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, ""]]
   IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
+  IsStagingOrLocal: !Not [!Equals [!Ref Environment, prod]]
   IsProd: !Equals [!Ref Environment, prod]
   IsStaging: !Equals [!Ref Environment, staging]
   HasHostedZoneId: !Not [!Equals [!Ref HostedZoneId, ""]]
