@@ -70,7 +70,7 @@ Two are manly local environment:
 	* Local SAM: to deploy the backend and its HTTPS API
 	* Local DynamoDB: to access a local instance of the DynamoDB
 	* Local Webserver: to run and debug the frontend locally instead of using S3
-- Test: to run the automated e2e tests, it uses
+* Test: to run the automated e2e tests, it uses
 	* AWS Cognito online: a test instance 
 	* Local SAM: to deploy the backend and its HTTPS API
 	* Local DynamoDB: to access a local instance of the DynamoDB
@@ -80,4 +80,17 @@ And there are two are fully online environment:
 * Staging: all the backend and frontend and the services are deployed and run online on Amazon,  on a nested subdomain
 * Prod: all the backend and frontend and the services are deployed and run online on Amazon,  on the main domain.
 
+### Techical debt
+
+#### IoC and email forwarding
+The yalm templates need two improvements:
+- verify that all the one settings in AWS are included in the yalm templates (there is no manual setting missing in the templates)
+- the SES/DNS/etc configurations and the lamba for sending and forwarding emails received are convigured once in staging. They should be duplicated and independed, for the staging and prod environments.
+
+#### EmailForwarderLambda
+This lambda that implements email forwarding, preventing the need for a full fledged email server, is currently implemented in the application assembly even if it is unrelated.
+On top, having it there hits a limitation of the local SAM environment, preventing to run the tests in fast mode with the warm-containers EAGER parameter.
+
+#### Test users creation
+- The scripts that create and clean-up all Cognito test users do skip the creation of the static test users as they can be reused multiple times. But this currently requires to run the creation script with a force paramiter to create them the 1st time
 
