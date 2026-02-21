@@ -1,10 +1,20 @@
 #!/bin/bash
 set -e
 
+# Accept environment as parameter [staging|prod]
+ENVIRONMENT=$1
+
+# Validate environment parameter
+if [[ ! "$ENVIRONMENT" =~ ^(staging|prod)$ ]]; then
+    echo "Usage: $0 [staging|prod]"
+    echo "Error: Invalid environment '$ENVIRONMENT'. Must be 'staging' or 'prod'."
+    exit 1
+fi
+
 # ==============================================================================
 # STAGING DEPLOYMENT SCRIPT
 # ==============================================================================
-# This script deploys the complete TTLeague Players application to staging:
+# This script deploys the complete TTLeague Players application to staging/prod:
 # - Backend (Lambda, API Gateway, DynamoDB)
 # - Frontend (S3, CloudFront)
 # - DNS configuration (Route 53)
@@ -41,19 +51,23 @@ set -e
 #
 # ==============================================================================
 
-ENVIRONMENT="staging"
 REGION="eu-west-2"
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
 
 # Domain configuration
-FRONTEND_DOMAIN="staging.ttleagueplayers.uk"
-API_DOMAIN="api-staging.ttleagueplayers.uk"
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+    FRONTEND_DOMAIN="ttleagueplayers.uk"
+    API_DOMAIN="api.ttleagueplayers.uk"
+else
+    FRONTEND_DOMAIN="${ENVIRONMENT}.ttleagueplayers.uk"
+    API_DOMAIN="api-${ENVIRONMENT}.ttleagueplayers.uk"
+fi
 FRONTEND_URL="https://${FRONTEND_DOMAIN}"
 
 # Stack names
-BACKEND_STACK="ttleague-players-staging"
-FRONTEND_STACK="ttleague-frontend-staging"
-COGNITO_STACK="ttleague-cognito-staging"
+BACKEND_STACK="ttleague-players-${ENVIRONMENT}"
+FRONTEND_STACK="ttleague-frontend-${ENVIRONMENT}"
+COGNITO_STACK="ttleague-cognito-${ENVIRONMENT}"
 
 # Colors
 GREEN='\033[0;32m'
@@ -62,7 +76,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo "========================================"
-echo "  TTLeague Players - Staging Deployment"
+echo "  TTLeague Players - ${ENVIRONMENT} Deployment"
 echo "========================================"
 echo ""
 
@@ -79,9 +93,38 @@ if ! aws cloudformation describe-stacks --stack-name "$COGNITO_STACK" --region "
 fi
 
 # Check certificates in SSM
-if ! aws ssm get-parameter --name /ttleague/staging/certificate-arn --region "$REGION" &>/dev/null; then
-    echo -e "${RED}ERROR: Backend certificate ARN not found in SSM${NC}"
-    exit 1
+BACKEND_CERTIFICATE_ARN_FROM_SSM=$(aws ssm get-parameter \
+    --name "/ttleague/${ENVIRONMENT}/certificate-arn" \
+    --region "$REGION" \
+    --query 'Parameter.Value' \
+    --output text 2>/dev/null || echo "")
+
+CLOUDFRONT_CERTIFICATE_ARN_FROM_SSM=$(aws ssm get-parameter \
+    --name "/ttleague/${ENVIRONMENT}/cloudfront-certificate-arn" \
+    --region "$REGION" \
+    --query 'Parameter.Value' \
+    --output text 2>/dev/null || echo "")
+
+if [ -z "$BACKEND_CERTIFICATE_ARN_FROM_SSM" ]; then
+    if [ -n "$BACKEND_CERTIFICATE_ARN" ]; then
+        echo -e "${YELLOW}⚠ Backend certificate ARN not found in SSM; will bootstrap using BACKEND_CERTIFICATE_ARN${NC}"
+    else
+        BACKEND_CERTIFICATE_ARN="arn:aws:acm:eu-west-2:318866803001:certificate/e7d44891-30b3-4c47-9f6a-aee908d4c57c"
+        echo -e "${YELLOW}⚠ Backend certificate ARN not found in SSM; using default known ARN${NC}"
+    fi
+else
+    BACKEND_CERTIFICATE_ARN="$BACKEND_CERTIFICATE_ARN_FROM_SSM"
+fi
+
+if [ -z "$CLOUDFRONT_CERTIFICATE_ARN_FROM_SSM" ]; then
+    if [ -n "$CLOUDFRONT_CERTIFICATE_ARN" ]; then
+        echo -e "${YELLOW}⚠ CloudFront certificate ARN not found in SSM; will bootstrap using CLOUDFRONT_CERTIFICATE_ARN${NC}"
+    else
+        CLOUDFRONT_CERTIFICATE_ARN="arn:aws:acm:us-east-1:318866803001:certificate/f14f89b6-d8a6-41f4-b5cb-fc33842188af"
+        echo -e "${YELLOW}⚠ CloudFront certificate ARN not found in SSM; using default known ARN${NC}"
+    fi
+else
+    CLOUDFRONT_CERTIFICATE_ARN="$CLOUDFRONT_CERTIFICATE_ARN_FROM_SSM"
 fi
 
 echo -e "${GREEN}✓ Prerequisites verified${NC}"
@@ -96,7 +139,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Temporarily disable 'set -e' for backend deployment
 set +e
-BACKEND_DEPLOY_OUTPUT=$(bash "$SCRIPT_DIR/deploy-backend-staging.sh" 2>&1)
+BACKEND_DEPLOY_OUTPUT=$(BACKEND_CERTIFICATE_ARN="$BACKEND_CERTIFICATE_ARN" bash "$SCRIPT_DIR/deploy-backend.sh" "$ENVIRONMENT" 2>&1)
 BACKEND_DEPLOY_EXIT_CODE=$?
 set -e
 
@@ -131,12 +174,8 @@ echo -e "${YELLOW}[3/7] Deploying frontend infrastructure...${NC}"
 
 cd "$PROJECT_ROOT"
 
-# Get CloudFront certificate ARN from SSM
-CLOUDFRONT_CERT_ARN=$(aws ssm get-parameter \
-    --name /ttleague/staging/cloudfront-certificate-arn \
-    --region "$REGION" \
-    --query 'Parameter.Value' \
-    --output text 2>/dev/null || echo "arn:aws:acm:us-east-1:318866803001:certificate/f14f89b6-d8a6-41f4-b5cb-fc33842188af")
+# Get CloudFront certificate ARN from SSM (must exist)
+CLOUDFRONT_CERT_ARN="$CLOUDFRONT_CERTIFICATE_ARN"
 
 aws cloudformation deploy \
     --template-file frontend-template.yaml \
@@ -146,6 +185,7 @@ aws cloudformation deploy \
         "DomainName=$FRONTEND_DOMAIN" \
         "CertificateArn=$CLOUDFRONT_CERT_ARN" \
     --region "$REGION" \
+    --capabilities CAPABILITY_IAM \
     --no-fail-on-empty-changeset
 
 if [ $? -ne 0 ]; then
@@ -186,7 +226,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Call the dedicated frontend deployment script
-bash "$SCRIPT_DIR/deploy-frontend-staging.sh"
+bash "$SCRIPT_DIR/deploy-frontend.sh" "$ENVIRONMENT"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: Frontend deployment failed${NC}"
@@ -278,7 +318,7 @@ echo ""
 echo -e "${YELLOW}[6/7] Testing deployment...${NC}"
 
 # Test backend API
-API_URL="https://${API_GATEWAY_ID}.execute-api.${REGION}.amazonaws.com/staging"
+API_URL="https://${API_GATEWAY_ID}.execute-api.${REGION}.amazonaws.com/${ENVIRONMENT}"
 echo "  Testing backend API: $API_URL"
 
 if curl -s -o /dev/null -w "%{http_code}" "$API_URL/invites" | grep -q "200\|404"; then

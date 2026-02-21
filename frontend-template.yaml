@@ -51,6 +51,104 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub '${FrontendBucket.Arn}/*'
 
+  SsmParameterWriterRole:
+    Type: AWS::IAM::Role
+    Condition: IsProdOrStaging
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SsmPutParameter
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ttleague/*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  SsmParameterWriterFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsProdOrStaging
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt SsmParameterWriterRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import urllib.request
+          import urllib.error
+
+          def _send(event, context, status, data=None, physical_id=None, reason=None):
+            response_url = event['ResponseURL']
+            body = {
+              'Status': status,
+              'Reason': reason or f"See details in CloudWatch Log Stream: {context.log_stream_name}",
+              'PhysicalResourceId': physical_id or context.log_stream_name,
+              'StackId': event['StackId'],
+              'RequestId': event['RequestId'],
+              'LogicalResourceId': event['LogicalResourceId'],
+              'NoEcho': False,
+              'Data': data or {},
+            }
+            payload = json.dumps(body).encode('utf-8')
+            req = urllib.request.Request(response_url, data=payload, method='PUT', headers={'content-type': ''})
+            try:
+              with urllib.request.urlopen(req) as r:
+                r.read()
+            except urllib.error.HTTPError as e:
+              e.read()
+
+          def handler(event, context):
+            props = event.get('ResourceProperties', {})
+            name = props.get('Name')
+            value = props.get('Value')
+            param_type = props.get('Type', 'String')
+            description = props.get('Description', '')
+
+            if not name:
+              _send(event, context, 'FAILED', reason='Missing required property: Name')
+              return
+
+            try:
+              if event['RequestType'] in ('Create', 'Update'):
+                boto3.client('ssm').put_parameter(
+                  Name=name,
+                  Value=value or '',
+                  Type=param_type,
+                  Description=description,
+                  Overwrite=True,
+                )
+                _send(event, context, 'SUCCESS', data={'Name': name}, physical_id=name)
+              else:
+                _send(event, context, 'SUCCESS', data={'Name': name}, physical_id=name)
+            except Exception as e:
+              _send(event, context, 'FAILED', reason=str(e))
+
+  CloudFrontCertificateArnParameter:
+    Type: Custom::SsmParameter
+    Condition: IsProdOrStaging
+    Properties:
+      ServiceToken: !GetAtt SsmParameterWriterFunction.Arn
+      Name: !Sub "/ttleague/${Environment}/cloudfront-certificate-arn"
+      Type: String
+      Value: !Ref CertificateArn
+      Description: "ACM Certificate ARN for CloudFront (certificate must exist in us-east-1)"
+
   # CloudFront Origin Access Identity (for private S3 access - optional, using public for simplicity)
   # CloudFrontOAI:
   #   Type: AWS::CloudFront::CloudFrontOriginAccessIdentity

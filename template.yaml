@@ -7,6 +7,11 @@ Parameters:
 #    Default: dev   # this force all the commands to specify the environments and avoids confusions caused by mixing the architectures
     AllowedValues: [dev, test, staging, prod]
 
+  ManageApexEmailDnsRecords:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+
   # NOTE: These are primarily for local dev (SAM) vs cloud deploy differences.
   # In AWS you can choose either architecture; locally on Apple Silicon prefer arm64.
   LambdaArchitecture:
@@ -54,6 +59,11 @@ Parameters:
     Default: ""
     Description: Route 53 Hosted Zone ID for the domain
 
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: ACM Certificate ARN for API Gateway custom domain (eu-west-2 region)
+
 Globals:
   Function:
     Runtime: dotnet8
@@ -77,7 +87,7 @@ Resources:
             IdentitySource: method.request.header.Authorization
       Domain:
         DomainName: !Ref DomainName
-        CertificateArn: !Sub "{{resolve:ssm:/ttleague/${Environment}/certificate-arn}}"
+        CertificateArn: !Ref CertificateArn
         Condition: HasDomain
       Cors:
         AllowMethods: "'GET,POST,PATCH,DELETE,OPTIONS'"
@@ -96,6 +106,82 @@ Resources:
               Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
               Access-Control-Allow-Headers: "'*'"
               Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+
+  SsmParameterWriterFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsProdOrStaging
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      InlineCode: |
+        import json
+        import boto3
+        import urllib.request
+        import urllib.error
+
+        def _send(event, context, status, data=None, physical_id=None, reason=None):
+          response_url = event['ResponseURL']
+          body = {
+            'Status': status,
+            'Reason': reason or f"See details in CloudWatch Log Stream: {context.log_stream_name}",
+            'PhysicalResourceId': physical_id or context.log_stream_name,
+            'StackId': event['StackId'],
+            'RequestId': event['RequestId'],
+            'LogicalResourceId': event['LogicalResourceId'],
+            'NoEcho': False,
+            'Data': data or {},
+          }
+          payload = json.dumps(body).encode('utf-8')
+          req = urllib.request.Request(response_url, data=payload, method='PUT', headers={'content-type': ''})
+          try:
+            with urllib.request.urlopen(req) as r:
+              r.read()
+          except urllib.error.HTTPError as e:
+            e.read()
+
+        def handler(event, context):
+          props = event.get('ResourceProperties', {})
+          name = props.get('Name')
+          value = props.get('Value')
+          param_type = props.get('Type', 'String')
+          description = props.get('Description', '')
+
+          if not name:
+            _send(event, context, 'FAILED', reason='Missing required property: Name')
+            return
+
+          try:
+            if event['RequestType'] in ('Create', 'Update'):
+              boto3.client('ssm').put_parameter(
+                Name=name,
+                Value=value or '',
+                Type=param_type,
+                Description=description,
+                Overwrite=True,
+              )
+              _send(event, context, 'SUCCESS', data={'Name': name}, physical_id=name)
+            else:
+              _send(event, context, 'SUCCESS', data={'Name': name}, physical_id=name)
+          except Exception as e:
+            _send(event, context, 'FAILED', reason=str(e))
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:PutParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ttleague/*"
+
+  BackendCertificateArnParameter:
+    Type: Custom::SsmParameter
+    Condition: HasDomain
+    Properties:
+      ServiceToken: !GetAtt SsmParameterWriterFunction.Arn
+      Name: !Sub "/ttleague/${Environment}/certificate-arn"
+      Type: String
+      Value: !Ref CertificateArn
+      Description: "ACM Certificate ARN for API Gateway custom domain"
 
   ApiGatewayFunction:
     Type: AWS::Serverless::Function
@@ -197,7 +283,7 @@ Resources:
 
   EmailForwarderLambda:
     Type: AWS::Serverless::Function
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     Properties:
       CodeUri: TTLeaguePlayersApp.BackEnd/
       Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.Utilities.EmailForwarderLambda::HandleAsync
@@ -224,7 +310,7 @@ Resources:
 
   IncomingEmailsBucket:
     Type: AWS::S3::Bucket
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     Properties:
       BucketName: "ttleague-incoming-emails"
       VersioningConfiguration:
@@ -237,7 +323,7 @@ Resources:
 
   IncomingEmailsBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     Properties:
       Bucket: !Ref IncomingEmailsBucket
       PolicyDocument:
@@ -250,13 +336,13 @@ Resources:
 
   SESReceiptRuleSet:
     Type: AWS::SES::ReceiptRuleSet
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     Properties:
       RuleSetName: !Sub "ttleague-rules-${Environment}"
 
   SESReceiptRule:
     Type: AWS::SES::ReceiptRule
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     DependsOn: IncomingEmailsBucketPolicy
     Properties:
       RuleSetName: !Ref SESReceiptRuleSet
@@ -271,7 +357,7 @@ Resources:
 
   SESReceiptRuleInvite:
     Type: AWS::SES::ReceiptRule
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     DependsOn: IncomingEmailsBucketPolicy
     Properties:
       RuleSetName: !Ref SESReceiptRuleSet
@@ -286,7 +372,7 @@ Resources:
 
   MXRecord:
     Type: AWS::Route53::RecordSet
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !Ref ApexDomain
@@ -297,7 +383,7 @@ Resources:
 
   SPFRecord:
     Type: AWS::Route53::RecordSet
-    Condition: IsProdOrStaging
+    Condition: IsStaging
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !Ref ApexDomain
@@ -398,6 +484,8 @@ Resources:
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, ""]]
   IsProdOrStaging: !Or [!Equals [!Ref Environment, staging], !Equals [!Ref Environment, prod]]
+  IsProd: !Equals [!Ref Environment, prod]
+  IsStaging: !Equals [!Ref Environment, staging]
   HasCognitoParams: !And [!Not [!Equals [!Ref CognitoUserPoolId, ""]], !Not [!Equals [!Ref CognitoClientId, ""]], !Not [!Equals [!Ref CognitoDomain, ""]]]
 
 Outputs:

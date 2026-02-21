@@ -2,83 +2,75 @@
     "queryDefinitions": [
         {
             "queryLanguage": "CWLI",
-            "queryDefinitionId": "f01cf7ad-6c91-4eb8-afbc-31fdc46f9910",
-            "name": "Staging/Errors CRITICAL",
-            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"CRITICAL\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771416882855,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
-        },
-        {
-            "queryLanguage": "CWLI",
-            "queryDefinitionId": "e670d319-5f5f-4ada-86eb-e8fa7be5b1b9",
-            "name": "Staging - Business/All business events",
-            "queryString": "fields @timestamp, event_name, @message\n| filter event_category = \"BUSINESS_EVENT\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771601994819,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
-        },
-        {
-            "queryLanguage": "CWLI",
-            "queryDefinitionId": "a9da0007-f030-4602-98ed-36e1a667ad80",
-            "name": "Staging - Business/Business event GIVE KUDOS",
+            "queryDefinitionId": "f92152b9-6b92-4412-9791-683f4e358337",
+            "name": "Business/Business event GIVE KUDOS",
             "queryString": "fields @timestamp, event_name, @message, parameters.RequestBody \n| filter event_category = \"BUSINESS_EVENT\" and event_name = \"GIVE KUDOS\" \n| fields @timestamp, event_name, @message, jsonParse(parameters.RequestBody) as requestBody \n| fields @timestamp, event_name, requestBody.league as league, requestBody.season as season, requestBody.division as division, requestBody.receiving_team as receiving_team, requestBody.giver_person_name as giver_person_name, @message \n| display @timestamp, event_name, league, season, division, receiving_team, giver_person_name, @message\n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771602055777,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
+            "lastModified": 1771622115696,
+            "logGroupNames": []
         },
         {
             "queryLanguage": "CWLI",
-            "queryDefinitionId": "71f2f823-acd2-49d7-93ad-236623e33703",
-            "name": "Staging/Errors ERROR",
-            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"ERROR\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771417112600,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
-        },
-        {
-            "queryLanguage": "CWLI",
-            "queryDefinitionId": "53fa1a9d-c027-4b4f-b1b0-fdd608ebbd83",
-            "name": "Staging - Business/Business event ACCEPT INVITE",
-            "queryString": "fields @timestamp, event_name, parameters.RequestPath , @message \n| filter event_category = \"BUSINESS_EVENT\" and event_name = \"ACCEPT INVITE\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771602037300,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
-        },
-        {
-            "queryLanguage": "CWLI",
-            "queryDefinitionId": "3230f6f6-6be2-43a1-870c-8453d6e615f0",
-            "name": "Staging/Errors WARN",
-            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"WARN\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771417568518,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
-        },
-        {
-            "queryLanguage": "CWLI",
-            "queryDefinitionId": "2f48a420-94ac-4272-8935-da2ad89adfd4",
-            "name": "Staging/Info",
+            "queryDefinitionId": "f01150c8-be9d-46fb-ada5-184434bd6006",
+            "name": "General/Info",
             "queryString": "fields @timestamp, log_level, event_category, event_name, source.Class, source.Method ,@message \n| filter log_level = \"INFO\" and event_category != \"BUSINESS_EVENT\" \n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771418015551,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
+            "lastModified": 1771621956872,
+            "logGroupNames": []
         },
         {
             "queryLanguage": "CWLI",
-            "queryDefinitionId": "14966d46-b696-4f8d-91dc-50e5a958070f",
-            "name": "Staging - Business/Business event GET <Kudos Standings>",
+            "queryDefinitionId": "e4c694a3-f3ae-4db1-8858-865f12dbfc85",
+            "name": "Business/All business events",
+            "queryString": "fields @timestamp, event_name, @message\n| filter event_category = \"BUSINESS_EVENT\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771622000872,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
+            "queryDefinitionId": "cb49a23d-0017-4914-92c9-7e63cd4b2b3b",
+            "name": "General/Errors WARN",
+            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"WARN\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771621906281,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
+            "queryDefinitionId": "8fa31884-5cf3-4fbc-a295-0eb67fda5df2",
+            "name": "General/Errors ERROR",
+            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"ERROR\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771621857496,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
+            "queryDefinitionId": "73786ce1-881f-4cc7-abf8-bb912a9c6d4d",
+            "name": "Business/Business event GET <Kudos Standings>",
             "queryString": "fields @timestamp, event_name, @message \n| filter event_category = \"BUSINESS_EVENT\" and event_name in [\"GET KUDOS STANDINGS\", \"GET TEAM'S RECEIVED KUDOS\", \"GET PLAYER AWARDED KUDOS\"] \n| fields @timestamp, event_name, @message, jsonParse(parameters.QueryString) as queryString \n| fields @timestamp, event_name, queryString.league as league, queryString.season as season, queryString.team_division as team_division, queryString.team_name as team_name, queryString.giver_person_name as queryString.giver_person_name, queryString.given_by as given_by, @message \n| display @timestamp, event_name, league, season, team_division, team_name, giver_person_name, given_by, @message\n| sort @timestamp desc \n| limit 10000",
-            "lastModified": 1771602074169,
-            "logGroupNames": [
-                "/aws/lambda/ttleague-players-staging-ApiGatewayFunction-F81bzCOsgPQO"
-            ]
+            "lastModified": 1771622065621,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
+            "queryDefinitionId": "59bec16a-7c16-42a5-a2a2-0afb63f0e435",
+            "name": "Business/Business event ACCEPT INVITE",
+            "queryString": "fields @timestamp, event_name, parameters.RequestPath , @message \n| filter event_category = \"BUSINESS_EVENT\" and event_name = \"ACCEPT INVITE\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771622033945,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
+            "queryDefinitionId": "3750a275-ef47-459e-84c0-7e500e648f46",
+            "name": "General/All Errors",
+            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"WARN\" or log_level = \"ERROR\" or log_level = \"CRITICAL\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771681631664,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
+            "queryDefinitionId": "30fe861e-e1ad-44c4-8f8a-7d6a580bbf26",
+            "name": "General/Errors CRITICAL",
+            "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"CRITICAL\" \n| sort @timestamp desc \n| limit 10000",
+            "lastModified": 1771621843061,
+            "logGroupNames": []
         }
     ]
 }

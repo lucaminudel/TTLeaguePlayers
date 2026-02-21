@@ -1,8 +1,8 @@
 using System.Net.Mail;
 using Amazon.Lambda.Core;
-using NanoidDotNet;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
+using NanoidDotNet;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
@@ -14,7 +14,7 @@ public class CreateInviteLambda
     private readonly Uri _inviteWebsiteUrl;
 
     private readonly string _bccTo = "luca.minudel@gmail.com";
-    private readonly string _from = "invite@ttleagueplayers.uk";
+    private readonly string _from = "\"TTLeaguePlayers - Invite\" <invite@ttleagueplayers.uk>";
 
 
     public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, Uri inviteWebsiteUrl)
@@ -28,13 +28,13 @@ public class CreateInviteLambda
     {
 
         ValidateRequest(request);
-        
+
         // Create invite based on request
         var invite = new Invite
         {
             NanoId = Nanoid.Generate(size: 8),
             InviteeName = request.InviteeName,
-            InviteeEmailId = request.InviteeEmailId!, 
+            InviteeEmailId = request.InviteeEmailId!,
             InviteeRole = request.InviteeRole,
             InviteeTeam = request.InviteeTeam,
             TeamDivision = request.TeamDivision,
@@ -47,20 +47,32 @@ public class CreateInviteLambda
 
         await _invitesDataTable.CreateNewInvite(invite);
 
+        await SendInviteEmail(context, invite, _inviteWebsiteUrl, _from, _bccTo);
+
+        _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
+            source: new() { ["Class"] = nameof(CreateInviteLambda), ["Method"] = nameof(HandleAsync) },
+            context, parameters: new() { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId ?? "", [nameof(invite.NanoId)] = invite.NanoId });
+
+        return invite;
+    }
+
+
+    private async Task SendInviteEmail(ILambdaContext context, Invite invite, Uri inviteWebsiteUrl, string from, string bccTo)
+    {
 #if !DEBUG
-        
+
         var emailBody = $@"Hi {invite.InviteeName},
 
 As team Captain for {invite.InviteeTeam}, you’re invited to join this web-app designed to promote Fair Play & Positive Behavior in league matches.
 
-With this app you will be able to:
+With this app, you will be able to:
 - See the Kudos other teams awarded to {invite.InviteeTeam}
-- Award Kudos to other teams based on your and your team match experience
+- Award Kudos to other teams based on your and your team's match experience
 
-Additional features to help you manage the team formations, remain informed about local tournaments and new venues, and stay connected with other players will be introduced later.
+Future features will help you manage team formations, discover local tournaments and new venues, and stay connected with other players.
 
-To get started:, follow this link:
-=> {_inviteWebsiteUrl}/#/{invite.NanoId} (*)
+To get started, follow this link:
+=> {inviteWebsiteUrl}/#/{invite.NanoId} (*)
 
 For any other questions or feedback, simply reply to this email.
 
@@ -69,52 +81,47 @@ Luca Minudel
 
 _______________________
 (*) Instructions
-1. Click'“Redeem your invite' at the bottom of the page, and sign up
+
+1. Click 'Redeem your invite' at the bottom of the page, and sign up
+
 2. Complete your registration by entering the verification code you will receive via email
+
 3. Log in and enjoy the app!
-
 ";
+        var sesClient = new AmazonSimpleEmailServiceV2Client();
 
-                using var sesClient = new AmazonSimpleEmailServiceV2Client();
 
+        var sendRequest = new SendEmailRequest
+        {
 
-            var sendRequest = new SendEmailRequest
+            FromEmailAddress = from,
+
+            Destination = new Destination
             {
+                ToAddresses = invite.InviteeEmailId != null ? [invite.InviteeEmailId] : [],
+                BccAddresses = bccTo != null ? [bccTo] : []
+            },
 
-                FromEmailAddress = _from,
-
-                Destination = new Destination
+            Content = new EmailContent
+            {
+                Simple = new Message
                 {
-                    ToAddresses = invite.InviteeEmailId != null ? [invite.InviteeEmailId] : [],
-                    BccAddresses =  _bccTo != null ? [_bccTo] : []
-                },
+                    Subject = new Content { Data = $"{invite.InviteeTeam} Captain's Invite to join TT League Players App" },
+                    Body = new Body { Text = new Content { Data = emailBody } }
+                }
+            },
 
-                Content = new EmailContent
-                {
-                    Simple = new Message
-                    {
-                        Subject = new Content { Data = $"{invite.InviteeTeam} Captain's Invite to join TT League Players App" },
-                        Body = new Body { Text = new Content { Data = emailBody } }
-                    }
-                },
+        };
 
-            };
-
-                await sesClient.SendEmailAsync(sendRequest);
+        await sesClient.SendEmailAsync(sendRequest);
 #else
             _observer.OnRuntimeIrregularEvent("CREATE INVITE - NO EMAIL IN LOCAL/TEST", 
                 source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) },
                 context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId, [nameof(invite.NanoId)] = invite.NanoId } );
 #endif
-
-        _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
-            source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) }, 
-            context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId ?? "", [nameof(invite.NanoId)] = invite.NanoId } );
-
-        return invite;
     }
 
-    private void ValidateRequest(CreateInviteRequest request)
+    private static void ValidateRequest(CreateInviteRequest request)
     {
         var errors = new List<string>();
 
@@ -140,7 +147,7 @@ _______________________
         }
     }
 
-    private bool IsValidEmail(string email)
+    private static bool IsValidEmail(string email)
     {
         try
         {

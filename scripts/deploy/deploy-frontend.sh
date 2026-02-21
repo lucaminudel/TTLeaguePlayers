@@ -2,11 +2,23 @@
 
 set -e
 
+# Accept environment as parameter [staging|prod]
+ENVIRONMENT=$1
+
+# Validate environment parameter
+if [[ ! "$ENVIRONMENT" =~ ^(staging|prod)$ ]]; then
+    echo "Usage: $0 [staging|prod]"
+    echo "Error: Invalid environment '$ENVIRONMENT'. Must be 'staging' or 'prod'."
+    exit 1
+fi
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENVIRONMENT="staging"
 REGION="eu-west-2"
-FRONTEND_DOMAIN="staging.ttleagueplayers.uk"
-FRONTEND_STACK="ttleague-frontend-staging"
+FRONTEND_DOMAIN="${ENVIRONMENT}.ttleagueplayers.uk"
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+    FRONTEND_DOMAIN="ttleagueplayers.uk"
+fi
+FRONTEND_STACK="ttleague-frontend-${ENVIRONMENT}"
 
 # Colors
 GREEN='\033[0;32m'
@@ -15,7 +27,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo "========================================"
-echo "  Frontend Deployment - Staging"
+echo "  Frontend Deployment - ${ENVIRONMENT}"
 echo "========================================"
 echo ""
 
@@ -35,7 +47,7 @@ fi
 cd "$PROJECT_ROOT/TTLeaguePlayersApp.FrontEnd"
 
 echo -e "${YELLOW}[1/3] Building frontend...${NC}"
-npm run build-web:staging-env
+npm run "build-web:${ENVIRONMENT}-env"
 
 echo ""
 echo -e "${YELLOW}[2/3] Deploying to S3...${NC}"
