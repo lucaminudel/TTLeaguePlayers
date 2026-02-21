@@ -51,6 +51,7 @@ public class LoaderTest : IDisposable
         // ApiGateWay
         Assert.NotNull(config.ApiGateWay);
         Assert.NotNull(config.ApiGateWay.ApiBaseUrl);
+        Assert.IsType<bool>(config.ApiGateWay.CreateInviteAutomaticallySendInviteEmail);
 
         // DynamoDB
         Assert.NotNull(config.DynamoDB);

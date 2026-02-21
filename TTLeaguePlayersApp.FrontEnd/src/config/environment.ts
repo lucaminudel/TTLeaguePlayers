@@ -4,6 +4,7 @@ export interface EnvironmentConfig {
     }
     ApiGateWay: {
         ApiBaseUrl: string;
+        CreateInviteAutomaticallySendInviteEmail: boolean;
     }
     DynamoDB: {
         ServiceLocalUrl: string;

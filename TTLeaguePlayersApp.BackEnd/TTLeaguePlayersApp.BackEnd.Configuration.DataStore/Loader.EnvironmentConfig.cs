@@ -15,6 +15,7 @@ public partial class Loader
 
             FrontEnd.WebsiteBaseUrl = new Uri(cfg.FrontEnd.WebsiteBaseUrl);
             ApiGateWay.ApiBaseUrl = new Uri(cfg.ApiGateWay.ApiBaseUrl);
+            ApiGateWay.CreateInviteAutomaticallySendInviteEmail = cfg.ApiGateWay.CreateInviteAutomaticallySendInviteEmail;
             
             if (!string.IsNullOrEmpty(cfg.DynamoDB.ServiceLocalUrl))
             {

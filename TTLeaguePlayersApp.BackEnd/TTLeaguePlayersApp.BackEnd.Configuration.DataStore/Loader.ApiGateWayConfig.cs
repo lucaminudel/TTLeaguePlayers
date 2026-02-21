@@ -5,5 +5,6 @@ public partial class Loader
     public class ApiGateWayConfig
     {
         public Uri ApiBaseUrl { get; internal set; } = null!;
+        public bool CreateInviteAutomaticallySendInviteEmail { get; internal set; }
     }
 }

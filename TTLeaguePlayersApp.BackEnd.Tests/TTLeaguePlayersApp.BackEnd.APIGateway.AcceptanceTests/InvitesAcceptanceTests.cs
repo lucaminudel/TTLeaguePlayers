@@ -642,60 +642,6 @@ public class InvitesAcceptanceTests : IAsyncLifetime
 
     #region Helpers
 
-    private async Task<string> LoginAndGetIdTokenAsync(string email, string password)
-    {
-        var authRequest = new AdminInitiateAuthRequest
-        {
-            UserPoolId = _userPoolId,
-            ClientId = _clientId,
-            AuthFlow = AuthFlowType.ADMIN_NO_SRP_AUTH,
-            AuthParameters = new Dictionary<string, string>
-            {
-                { "USERNAME", email },
-                { "PASSWORD", password }
-            }
-        };
-
-        var response = await _cognitoClient.AdminInitiateAuthAsync(authRequest);
-        return response.AuthenticationResult.IdToken;
-    }
-
-    private static string CreateKudosRequestJson(
-        string league = "CLTTL",
-        string season = "2025-2026",
-        string division = "Division 4",
-        string receivingTeam = "Morpeth 9",
-        string homeTeam = "Morpeth 10",
-        string awayTeam = "Morpeth 9",
-        long matchDateTime = 1735689600,
-        string giverTeam = "Morpeth 10",
-        string giverName = "Luca Minudel",
-        string giverSub = "xxx",
-        int kudosValue = 1)
-    {
-        var kudos = new Dictionary<string, object>
-        {
-            { "league", league },
-            { "season", season },
-            { "division", division },
-            { "receiving_team", receivingTeam },
-            { "home_team", homeTeam },
-            { "away_team", awayTeam },
-            { "match_date_time", matchDateTime },
-            { "giver_team", giverTeam },
-            { "giver_person_name", giverName },
-            { "giver_person_sub", giverSub },
-            { "kudos_value", kudosValue }
-        };
-        return JsonSerializer.Serialize(kudos);
-    }
-
-    private async Task<string> GetUserSubByEmail(string email)
-    {
-        var user = await GetCognitoUserByEmail(email);
-        return user?.Attributes.FirstOrDefault(a => a.Name == "sub")?.Value ?? string.Empty;
-    }
-
     private async Task<string> CreateInviteAsync(
         string name = "Test User",
         string email = "test@example.com",

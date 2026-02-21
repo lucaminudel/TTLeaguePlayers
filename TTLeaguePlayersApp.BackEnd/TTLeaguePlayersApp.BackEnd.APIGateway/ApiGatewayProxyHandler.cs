@@ -49,7 +49,9 @@ public partial class ApiGatewayProxyHandler
         var cognitoUsers = new CognitoUsers(new AmazonCognitoIdentityProviderClient(), config.Cognito.UserPoolId);
 
         var invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
-        _createInviteLambda = new CreateInviteLambda(_observer, invitesDataTable, config.FrontEnd.WebsiteBaseUrl);
+        var sendInviteEmail = config.ApiGateWay.CreateInviteAutomaticallySendInviteEmail;
+        
+        _createInviteLambda = new CreateInviteLambda(_observer, invitesDataTable, config.FrontEnd.WebsiteBaseUrl, sendInviteEmail);
         _getInviteLambda = new GetInviteLambda(_observer, invitesDataTable); 
         _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, cognitoUsers);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);

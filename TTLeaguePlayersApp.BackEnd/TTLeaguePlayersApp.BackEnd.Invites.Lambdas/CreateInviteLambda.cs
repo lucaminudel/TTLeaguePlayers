@@ -12,16 +12,18 @@ public class CreateInviteLambda
     private readonly ILoggerObserver _observer;
     private readonly IInvitesDataTable _invitesDataTable;
     private readonly Uri _inviteWebsiteUrl;
+    private readonly bool _sendInviteEmail;
 
     private readonly string _bccTo = "luca.minudel@gmail.com";
     private readonly string _from = "\"TTLeaguePlayers - Invite\" <invite@ttleagueplayers.uk>";
 
 
-    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, Uri inviteWebsiteUrl)
+    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, Uri inviteWebsiteUrl, bool sendInviteImail)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
         _inviteWebsiteUrl = inviteWebsiteUrl;
+        _sendInviteEmail = sendInviteImail;
     }
 
     public async Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
@@ -47,7 +49,16 @@ public class CreateInviteLambda
 
         await _invitesDataTable.CreateNewInvite(invite);
 
-        await SendInviteEmail(context, invite, _inviteWebsiteUrl, _from, _bccTo);
+        if (_sendInviteEmail) 
+        {
+            await SendInviteEmail(invite, _inviteWebsiteUrl, _from, _bccTo);
+        } 
+        else 
+        {
+            _observer.OnRuntimeIrregularEvent("CREATE INVITE - NO EMAIL IN LOCAL/TEST", 
+                source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) },
+                context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId, [nameof(invite.NanoId)] = invite.NanoId } );
+        }
 
         _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
             source: new() { ["Class"] = nameof(CreateInviteLambda), ["Method"] = nameof(HandleAsync) },
@@ -57,9 +68,8 @@ public class CreateInviteLambda
     }
 
 
-    private async Task SendInviteEmail(ILambdaContext context, Invite invite, Uri inviteWebsiteUrl, string from, string bccTo)
+    private async Task SendInviteEmail(Invite invite, Uri inviteWebsiteUrl, string from, string bccTo)
     {
-#if !DEBUG
 
         var emailBody = $@"Hi {invite.InviteeName},
 
@@ -114,11 +124,6 @@ _______________________
         };
 
         await sesClient.SendEmailAsync(sendRequest);
-#else
-            _observer.OnRuntimeIrregularEvent("CREATE INVITE - NO EMAIL IN LOCAL/TEST", 
-                source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) },
-                context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId, [nameof(invite.NanoId)] = invite.NanoId } );
-#endif
     }
 
     private static void ValidateRequest(CreateInviteRequest request)

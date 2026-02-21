@@ -8,7 +8,7 @@ describe('Environment Config (build-time)', () => {
 
     const mockConfig = {
       FrontEnd: { WebsiteBaseUrl: 'http://localhost:3000' },
-      ApiGateWay: { ApiBaseUrl: 'http://api.localhost' },
+      ApiGateWay: { ApiBaseUrl: 'http://api.localhost', CreateInviteAutomaticallySendInviteEmail: true },
       DynamoDB: { ServiceLocalUrl: 'http://dynamo', "AWS.Profile": "test", "AWS.Region": "us-east-1" },
       Cognito: { UserPoolId: 'pool', ClientId: 'client', Domain: 'domain' },
       active_seasons_data_source: [
