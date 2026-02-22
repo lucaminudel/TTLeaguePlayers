@@ -59,7 +59,9 @@ export function Input({ uiSize = 'sm', className = '', ref, showPasswordToggle, 
         <button
           type="button"
           className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-          onClick={() => setShowPassword(!showPassword)}
+          onClick={() => {
+            setShowPassword(!showPassword);
+          }}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
         >
           {showPassword ? (
