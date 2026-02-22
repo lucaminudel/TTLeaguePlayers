@@ -73,7 +73,7 @@ public class CreateInviteLambda
 
         var emailBody = $@"Hi {invite.InviteeName},
 
-As team Captain for {invite.InviteeTeam}, you’re invited to join this web-app designed to promote Fair Play & Positive Behavior in league matches.
+As team Captain for {invite.InviteeTeam}, you’re invited to join this web-app (*) designed to promote Fair Play & Positive Behavior in league matches.
 
 With this app, you will be able to:
 - See the Kudos other teams awarded to {invite.InviteeTeam}
@@ -82,7 +82,7 @@ With this app, you will be able to:
 Future features will help you manage team formations, discover local tournaments and new venues, and stay connected with other players.
 
 To get started, follow this link:
-=> {inviteWebsiteUrl}/#/{invite.NanoId} (*)
+=> {inviteWebsiteUrl}/#/{invite.NanoId} (**)
 
 For any other questions or feedback, simply reply to this email.
 
@@ -90,7 +90,12 @@ Ciao!
 Luca Minudel
 
 _______________________
-(*) Instructions
+(*)  FYI
+
+This is a platform built by Players for Players; we operate independently of the CLTTL and other local league organisations.
+
+
+(**) Instructions
 
 1. Click 'Redeem your invite' at the bottom of the page, and sign up
 

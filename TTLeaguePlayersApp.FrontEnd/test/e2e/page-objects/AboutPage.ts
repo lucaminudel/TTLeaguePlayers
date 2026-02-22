@@ -9,7 +9,7 @@ export class AboutPage {
 
     async expectLoaded(): Promise<void> {
         await expect(this.page.getByRole('heading', { name: 'About', exact: true })).toBeVisible();
-        await expect(this.page.locator('main')).toContainText('This App is created by Table Tennis players for Table Tennis players');
+        await expect(this.page.locator('main')).toContainText('Built by Players, for Players');
     }
 
     async getEmail(): Promise<string | null> {
