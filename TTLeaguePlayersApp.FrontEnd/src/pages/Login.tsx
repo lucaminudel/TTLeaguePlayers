@@ -96,6 +96,7 @@ export const Login: React.FC = () => {
               onChange={(e) => { setPassword(e.target.value); }}
               required
               placeholder="Enter your password"
+              showPasswordToggle
             />
           </FormField>
 

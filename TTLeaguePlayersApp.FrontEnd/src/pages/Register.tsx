@@ -374,6 +374,7 @@ export const Register: React.FC = () => {
               ref={passwordInputRef}
               disabled={inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
               placeholder="Enter your password"
+              showPasswordToggle
             />
           </FormField>
 
@@ -388,6 +389,7 @@ export const Register: React.FC = () => {
               required
               disabled={inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
               placeholder="Confirm your password"
+              showPasswordToggle
             />
             {password && (password !== confirmPassword) && (
               <FieldError testId="register-confirm-password-field-error">Passwords do not match</FieldError>
