@@ -49,7 +49,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
             // First fixture: Fusion 5 v's Morpeth 10
             const firstFixture = fixtures[0];
-            expect(firstFixture.startDateTime).toEqual(new Date('2025-09-29T19:30'));
+            expect(firstFixture.startDateTime).toEqual(new Date('2025-09-29T19:30:00Z'));
             expect(firstFixture.venue).toBe('Fusion');
             expect(firstFixture.homeTeam).toBe('Fusion 5');
             expect(firstFixture.homeTeamPlayers).toEqual(['Yufeng Qiu', 'Charlie Boom', 'Stephen Odili']);
@@ -59,7 +59,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
             // A fixture from Week 2 (index 5): Highbury 3 v's Fusion 5
             const week2Fixture = fixtures[5];
-            expect(week2Fixture.startDateTime).toEqual(new Date('2025-10-07T19:15'));
+            expect(week2Fixture.startDateTime).toEqual(new Date('2025-10-07T19:15:00Z'));
             expect(week2Fixture.venue).toBe('Bridge Academy');
             expect(week2Fixture.homeTeam).toBe('Highbury 3');
             expect(week2Fixture.homeTeamPlayers).toEqual(['Oscar Wallentin', 'Marcin Szymanski', 'Gustav Roedstroem']);
@@ -69,7 +69,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
             // Second to last fixture: Irving 4 v's Morpeth 10 from Week 26
             const secondToLastFixture = fixtures[fixtures.length - 2];
-            expect(secondToLastFixture.startDateTime).toEqual(new Date('2026-03-24T19:00'));
+            expect(secondToLastFixture.startDateTime).toEqual(new Date('2026-03-24T19:00:00Z'));
             expect(secondToLastFixture.venue).toBe('All Saints, New Cross');
             expect(secondToLastFixture.homeTeam).toBe('Irving 4');
             expect(secondToLastFixture.homeTeamPlayers).toEqual([]); // unplayed
@@ -79,7 +79,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
             // Last fixture: Fusion 6 Jr v's Highbury 2 from Week 26
             const lastFixture = fixtures[fixtures.length - 1];
-            expect(lastFixture.startDateTime).toEqual(new Date('2026-03-27T18:30'));
+            expect(lastFixture.startDateTime).toEqual(new Date('2026-03-27T18:30:00Z'));
             expect(lastFixture.venue).toBe('Fusion');
             expect(lastFixture.homeTeam).toBe('Fusion 6 Jr');
             expect(lastFixture.homeTeamPlayers).toEqual([]); // unplayed

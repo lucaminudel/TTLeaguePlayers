@@ -68,8 +68,9 @@ export class CLTTLActiveSeason2025PagesParser {
                 const timeMatch = fullText ? /(\d{2}:\d{2})/.exec(fullText) : null;
 
                 if (dateStr && timeMatch) {
-                    startDateTime = new Date(`${dateStr}T${timeMatch[1]}`);
+                    startDateTime = new Date(`${dateStr}T${timeMatch[1]}:00Z`);
                 } else if (dateStr) {
+                    // Note: date-only strings like "2025-09-29" are already parsed as UTC midnight per spec
                     startDateTime = new Date(dateStr);
                 }
             }

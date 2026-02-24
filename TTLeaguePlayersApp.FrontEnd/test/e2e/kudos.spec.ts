@@ -303,7 +303,7 @@ test.describe('Kudos', () => {
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
             // At 20:46, now - 2h = 18:46, so 18:45 < 18:46, making it the previous match
             // Since the previous match is on the same day, it shows "Today's Match"
-            await user.setFixedClockTime('2026-01-16T20:45:00');
+            await user.setFixedClockTime('2026-01-16T20:45:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -519,7 +519,7 @@ test.describe('Kudos', () => {
 
         test('shows "No fixture found" when server returns "service unavailable"', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-    
+
 
             // Clear all storage before test
             await page.addInitScript(() => {

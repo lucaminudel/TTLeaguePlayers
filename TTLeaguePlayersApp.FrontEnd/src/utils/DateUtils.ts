@@ -33,8 +33,8 @@ export function getClockTime(): Date {
  * Formats a date for display (e.g., "Fri 12th Dec 19:00").
  */
 export function formatFixtureDateTime(date: Date): string {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
 
     return `${formatFixtureDate(date)} ${hours}:${minutes}`;
 }
@@ -43,9 +43,9 @@ export function formatFixtureDate(date: Date): string {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    const dayName = days[date.getDay()];
-    const dayOfMonth = date.getDate();
-    const monthName = months[date.getMonth()];
+    const dayName = days[date.getUTCDay()];
+    const dayOfMonth = date.getUTCDate();
+    const monthName = months[date.getUTCMonth()];
 
     // Ordinal suffix
     let suffix = 'th';
@@ -60,9 +60,9 @@ export function shortFormatFixtureDate(date: Date): string {
     const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    const dayName = days[date.getDay()];
-    const dayOfMonth = date.getDate();
-    const monthName = months[date.getMonth()];
+    const dayName = days[date.getUTCDay()];
+    const dayOfMonth = date.getUTCDate();
+    const monthName = months[date.getUTCMonth()];
 
     return `${dayName} ${String(dayOfMonth)}-${monthName}`;
 }
@@ -72,9 +72,9 @@ export function shortFormatFixtureDate(date: Date): string {
  */
 export function isSameDay(date1: Date, date2: Date): boolean {
     return (
-        date1.getFullYear() === date2.getFullYear() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getDate() === date2.getDate()
+        date1.getUTCFullYear() === date2.getUTCFullYear() &&
+        date1.getUTCMonth() === date2.getUTCMonth() &&
+        date1.getUTCDate() === date2.getUTCDate()
     );
 }
 
