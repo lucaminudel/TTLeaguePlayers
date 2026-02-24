@@ -73,7 +73,7 @@ public class CreateInviteLambda
 
         var emailBody = $@"Hi {invite.InviteeName},
 
-As team Captain for {invite.InviteeTeam}, you’re invited to join this web-app (*) designed to promote Fair Play & Positive Behavior in league matches.
+As team Captain for {invite.InviteeTeam}, you’re invited to join this web-app (*) designed to promote Fair Play & Positive Behaviour in league matches.
 
 With this app, you will be able to:
 - See the Kudos other teams awarded to {invite.InviteeTeam}
