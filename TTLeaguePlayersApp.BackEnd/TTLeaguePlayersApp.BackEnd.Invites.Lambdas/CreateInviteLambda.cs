@@ -73,18 +73,19 @@ public class CreateInviteLambda
 
         var emailBody = $@"Hi {invite.InviteeName},
 
-As team Captain for {invite.InviteeTeam}, you’re invited to join this web-app (*) designed to promote Fair Play & Positive Behaviour in league matches.
+As team captain for {invite.InviteeTeam}, you’re invited to join our new web-app (*) designed to promote Fair Play & Positive Behaviour in league matches.
+Our core values are: a modern digital experience, healthy transparency, and a self-organising community.
 
-With this app, you will be able to:
-- See the Kudos other teams awarded to {invite.InviteeTeam}
-- Award Kudos to other teams based on your and your team's match experience
+With the TT League Players app, you can already:
+- See the Kudos {invite.InviteeTeam} has received from other teams
+- Award Kudos to other teams based on your team's match experience
 
-Future features will help you manage team formations, discover local tournaments and new venues, and stay connected with other players.
+Future features will allow you to manage team formations, discover local tournaments and venues, and stay connected with other players.
 
-To get started, follow this link:
-=> {inviteWebsiteUrl}/#/{invite.NanoId} (**)
+To access the app and accept your invitation, follow the link:
+=> https://ttleagueplayers.uk//#/lrtJV6nc (**)
 
-For any other questions or feedback, simply reply to this email.
+For any other questions or feedback, reply to this email.
 
 Ciao!
 Luca Minudel
