@@ -4,6 +4,7 @@ using Amazon.S3;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using MimeKit;
+using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 
 namespace TTLeaguePlayersApp.BackEnd.Utilities;
 
@@ -12,17 +13,21 @@ public class EmailForwarderLambda
     private readonly IAmazonS3 _s3Client;
     private readonly IAmazonSimpleEmailServiceV2 _sesClient;
     private readonly string _forwardTo;
+    private readonly string _contactUsEmailAddress;
     private readonly ILoggerObserver _observer;
 
-    public EmailForwarderLambda() : this(new LoggerObserver(), new AmazonS3Client(), new AmazonSimpleEmailServiceV2Client())
+    public EmailForwarderLambda() : this(new LoggerObserver(), new AmazonS3Client(), new AmazonSimpleEmailServiceV2Client(),
+        new Loader().GetEnvironmentVariables().EmailForwarder.ForwardToEmailAddress,
+        new Loader().GetEnvironmentVariables().EmailForwarder.ContactUsEmailAddress)
     {
     }
 
-    public EmailForwarderLambda(ILoggerObserver observer, IAmazonS3 s3Client, IAmazonSimpleEmailServiceV2 sesClient)
+    public EmailForwarderLambda(ILoggerObserver observer, IAmazonS3 s3Client, IAmazonSimpleEmailServiceV2 sesClient, string forwardToEmailAddress, string contactUsEmailAddress)
     {
         _s3Client = s3Client;
         _sesClient = sesClient;
-        _forwardTo = "luca.minudel@gmail.com";
+        _forwardTo = forwardToEmailAddress;
+        _contactUsEmailAddress = contactUsEmailAddress;
         _observer = observer;   
     }
 
@@ -65,7 +70,7 @@ public class EmailForwarderLambda
             var obfuscatedEmail = originalEmail.Replace("@", " at ");
             
             // Extract the recipient email address (who the email was sent to)
-            var recipientEmail = message.To.Mailboxes.FirstOrDefault()?.Address ?? "contact_us@ttleagueplayers.uk";
+            var recipientEmail = message.To.Mailboxes.FirstOrDefault()?.Address ?? _contactUsEmailAddress;
             var manualFromHeader = $"\"Forwarded - Originally from {obfuscatedEmail}\" <{recipientEmail}>";
 
             // Remove all existing From headers and inject the manual one

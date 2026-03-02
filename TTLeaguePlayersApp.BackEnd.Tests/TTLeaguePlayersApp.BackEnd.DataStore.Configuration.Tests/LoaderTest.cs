@@ -67,6 +67,12 @@ public class LoaderTest : IDisposable
         Assert.NotNull(config.Cognito.UserPoolId);
         Assert.NotNull(config.Cognito.ClientId);
         Assert.NotNull(config.Cognito.Domain);
+
+        // EmailForwarder
+        Assert.NotNull(config.EmailForwarder);
+        Assert.NotEmpty(config.EmailForwarder.InviteEmailAddress);
+        Assert.NotEmpty(config.EmailForwarder.ContactUsEmailAddress);
+        Assert.NotEmpty(config.EmailForwarder.ForwardToEmailAddress);
     }
 
     [Fact]

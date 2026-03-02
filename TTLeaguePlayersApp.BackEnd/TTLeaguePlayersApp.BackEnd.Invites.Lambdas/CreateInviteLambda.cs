@@ -15,15 +15,16 @@ public class CreateInviteLambda
     private readonly bool _sendInviteEmail;
 
     private readonly string _bccTo = "luca.minudel@gmail.com";
-    private readonly string _from = "\"TTLeaguePlayers - Invite\" <invite@ttleagueplayers.uk>";
+    private readonly string _from;
 
 
-    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, Uri inviteWebsiteUrl, bool sendInviteImail)
+    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, Uri inviteWebsiteUrl, bool sendInviteImail, string inviteEmailAddress)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
         _inviteWebsiteUrl = inviteWebsiteUrl;
         _sendInviteEmail = sendInviteImail;
+        _from = inviteEmailAddress;
     }
 
     public async Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)

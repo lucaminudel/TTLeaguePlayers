@@ -11,6 +11,7 @@ describe('Environment Config (build-time)', () => {
       ApiGateWay: { ApiBaseUrl: 'http://api.localhost', CreateInviteAutomaticallySendInviteEmail: true },
       DynamoDB: { ServiceLocalUrl: 'http://dynamo', "AWS.Profile": "test", "AWS.Region": "us-east-1" },
       Cognito: { UserPoolId: 'pool', ClientId: 'client', Domain: 'domain' },
+      EmailForwarder: { InviteEmailAddress: 'invite@test.com', ContactUsEmailAddress: 'contact@test.com', ForwardToEmailAddress: 'forward@test.com' },
       active_seasons_data_source: [
         {
           league: "TestLeague",

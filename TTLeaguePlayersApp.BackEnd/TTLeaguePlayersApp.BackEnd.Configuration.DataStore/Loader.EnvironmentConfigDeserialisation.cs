@@ -11,5 +11,7 @@ public partial class Loader
         public DynamoDBConfigDeserialisation DynamoDB { get; set; } = new();
 
         public CognitoConfigDeserialisation Cognito { get; set; } = new();
+
+        public EmailForwarderConfigDeserialisation EmailForwarder { get; set; } = new();
     }
 }

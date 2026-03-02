@@ -8,6 +8,7 @@ public partial class Loader
         public ApiGateWayConfig ApiGateWay { get; internal set; } = new();
         public DynamoDBConfig DynamoDB { get; internal set; } = new();
         public CognitoConfig Cognito { get; internal set; } = new();
+        public EmailForwarderConfig EmailForwarder { get; internal set; } = new();
 
         internal EnvironmentConfig(EnvironmentConfigDeserialisation cfg, string environment)
         {
@@ -32,6 +33,10 @@ public partial class Loader
             Cognito.UserPoolId = cfg.Cognito.UserPoolId.TrimEnd(' ', '?');
             Cognito.ClientId = cfg.Cognito.ClientId.TrimEnd(' ', '?');
             Cognito.Domain = cfg.Cognito.Domain.TrimEnd(' ', '?');
+
+            EmailForwarder.InviteEmailAddress = cfg.EmailForwarder.InviteEmailAddress;
+            EmailForwarder.ContactUsEmailAddress = cfg.EmailForwarder.ContactUsEmailAddress;
+            EmailForwarder.ForwardToEmailAddress = cfg.EmailForwarder.ForwardToEmailAddress;
         }
 
         private static void ValidateConfigFileInfo(EnvironmentConfigDeserialisation cfg)
@@ -60,6 +65,15 @@ public partial class Loader
 
             if (string.IsNullOrEmpty(cfg.Cognito.Domain))
                 throw new ArgumentNullException($"{nameof(cfg.Cognito)}.{nameof(cfg.Cognito.Domain)} configuration value cannot be null or empty.");
+
+            if (string.IsNullOrEmpty(cfg.EmailForwarder.InviteEmailAddress))
+                throw new ArgumentNullException($"{nameof(cfg.EmailForwarder)}.{nameof(cfg.EmailForwarder.InviteEmailAddress)} configuration value cannot be null or empty.");
+
+            if (string.IsNullOrEmpty(cfg.EmailForwarder.ContactUsEmailAddress))
+                throw new ArgumentNullException($"{nameof(cfg.EmailForwarder)}.{nameof(cfg.EmailForwarder.ContactUsEmailAddress)} configuration value cannot be null or empty.");
+
+            if (string.IsNullOrEmpty(cfg.EmailForwarder.ForwardToEmailAddress))
+                throw new ArgumentNullException($"{nameof(cfg.EmailForwarder)}.{nameof(cfg.EmailForwarder.ForwardToEmailAddress)} configuration value cannot be null or empty.");
         }
     }
 }

@@ -51,7 +51,7 @@ public partial class ApiGatewayProxyHandler
         var invitesDataTable = new InvitesDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         var sendInviteEmail = config.ApiGateWay.CreateInviteAutomaticallySendInviteEmail;
         
-        _createInviteLambda = new CreateInviteLambda(_observer, invitesDataTable, config.FrontEnd.WebsiteBaseUrl, sendInviteEmail);
+        _createInviteLambda = new CreateInviteLambda(_observer, invitesDataTable, config.FrontEnd.WebsiteBaseUrl, sendInviteEmail, config.EmailForwarder.InviteEmailAddress);
         _getInviteLambda = new GetInviteLambda(_observer, invitesDataTable); 
         _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, cognitoUsers);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);

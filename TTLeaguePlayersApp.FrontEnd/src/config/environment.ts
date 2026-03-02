@@ -16,6 +16,11 @@ export interface EnvironmentConfig {
         ClientId: string;
         Domain: string;
     }
+    EmailForwarder: {
+        InviteEmailAddress: string;
+        ContactUsEmailAddress: string;
+        ForwardToEmailAddress: string;
+    }
     active_seasons_data_source: ActiveSeasonDataSource[];
 }
 
