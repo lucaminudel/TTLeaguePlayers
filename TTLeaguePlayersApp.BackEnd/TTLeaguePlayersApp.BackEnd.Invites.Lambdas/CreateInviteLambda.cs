@@ -73,8 +73,13 @@ public class CreateInviteLambda
 
         var emailBody = $@"Hi {invite.InviteeName},
 
-As team captain for {invite.InviteeTeam}, you’re invited to join our new web-app (*) designed to promote Fair Play & Positive Behaviour in league matches.
-Our core values are: a modern digital experience, healthy transparency, and a self-organising community.
+As team captain for {invite.InviteeTeam}, you’re invited to join our new web-app (**) designed to promote Fair Play & Positive Behaviour in league matches.
+Our core values are: 
+- a modern digital experience over handwriting
+- transparency and accountability, for all
+- a self-organising community with freedom of choice.
+
+Several captains have already registered. Committee members too. So why not you?  
 
 With the TT League Players app, you can already:
 - See the Kudos {invite.InviteeTeam} has received from other teams
@@ -83,7 +88,7 @@ With the TT League Players app, you can already:
 Future features will allow you to manage team formations, discover local tournaments and venues, and stay connected with other players.
 
 To access the app and accept your invitation, follow the link:
-=> https://ttleagueplayers.uk//#/lrtJV6nc (**)
+=> {inviteWebsiteUrl}/#/{invite.NanoId} (*)
 
 For any other questions or feedback, reply to this email.
 
@@ -91,18 +96,19 @@ Ciao!
 Luca Minudel
 
 _______________________
-(*)  FYI
 
-This is a platform built by Players for Players; we operate independently of the CLTTL and other local league organisations.
-
-
-(**) Instructions
+(*) Instructions
 
 1. Click 'Redeem your invite' at the bottom of the page, and sign up
 
 2. Complete your registration by entering the verification code you will receive via email
 
 3. Log in and enjoy the app!
+
+
+(**)  FYI
+
+This is a platform built by Players for Players; we operate independently of any local league organisations.
 ";
         var sesClient = new AmazonSimpleEmailServiceV2Client();
 
