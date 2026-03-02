@@ -40,6 +40,21 @@ Resources:
             Priority: 1
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
+      EmailConfiguration: !If
+        - IsProdOrStaging
+        - EmailSendingAccount: DEVELOPER
+          SourceArn: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/ttleagueplayers.uk"
+          From: !If
+            - IsProd
+            - "TT League Players <noreply@ttleagueplayers.uk>"
+            - "TT League Players (staging) <noreply@staging.ttleagueplayers.uk>"
+        - !Ref "AWS::NoValue"
+      VerificationMessageTemplate: !If
+        - IsProdOrStaging
+        - DefaultEmailOption: CONFIRM_WITH_CODE
+          EmailSubject: "Your TT League Players verification code"
+          EmailMessage: "Hello!<br><br>Your verification code for TT League Players is {####}.<br>It expires in 24 hours.<br><br>If you didn't create this account, you can ignore this email."
+        - !Ref "AWS::NoValue"
 
   TTLeagueCognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
