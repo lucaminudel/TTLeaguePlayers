@@ -288,7 +288,7 @@ Resources:
 
   EmailForwarderLambda:
     Type: AWS::Serverless::Function
-    Condition: IsStagingOrLocal
+    Condition: IsProdOrStaging
     Properties:
       CodeUri: TTLeaguePlayersApp.BackEnd/
       Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.Utilities.EmailForwarderLambda::HandleAsync
@@ -297,7 +297,7 @@ Resources:
         - !Ref LambdaArchitecture
       Policies:
         - S3CrudPolicy:
-            BucketName: "ttleague-incoming-emails"
+            BucketName: !Sub "ttleague-incoming-emails-${Environment}"
         - SESCrudPolicy:
             IdentityName: "ttleagueplayers.uk"
         - Version: '2012-10-17'
@@ -315,9 +315,9 @@ Resources:
 
   IncomingEmailsBucket:
     Type: AWS::S3::Bucket
-    Condition: IsStaging
+    Condition: IsProdOrStaging
     Properties:
-      BucketName: "ttleague-incoming-emails"
+      BucketName: !Sub "ttleague-incoming-emails-${Environment}"
       VersioningConfiguration:
         Status: Enabled
       LifecycleConfiguration:
@@ -328,7 +328,7 @@ Resources:
 
   IncomingEmailsBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    Condition: IsStaging
+    Condition: IsProdOrStaging
     Properties:
       Bucket: !Ref IncomingEmailsBucket
       PolicyDocument:
@@ -339,48 +339,51 @@ Resources:
               Service: ses.amazonaws.com
             Resource: !Sub "arn:aws:s3:::${IncomingEmailsBucket}/*"
 
-  SESReceiptRuleSet:
-    Type: AWS::SES::ReceiptRuleSet
-    Condition: IsStaging
-    Properties:
-      RuleSetName: !Sub "ttleague-rules-${Environment}"
-
   SESReceiptRule:
     Type: AWS::SES::ReceiptRule
-    Condition: IsStaging
+    Condition: IsProdOrStaging
     DependsOn: IncomingEmailsBucketPolicy
     Properties:
-      RuleSetName: !Ref SESReceiptRuleSet
+      RuleSetName: "ttleague-rules"
       Rule:
-        Name: "ForwardContactUsToS3AndTriggerLambda"
+        Name: !Sub "ForwardContactUsToS3AndTriggerLambda-${Environment}"
         Enabled: true
         Recipients:
-          - "contact_us@ttleagueplayers.uk"
+          - !If
+            - IsProd
+            - "contact_us@ttleagueplayers.uk"
+            - "contact_us@staging.ttleagueplayers.uk"
         Actions:
           - S3Action:
               BucketName: !Ref IncomingEmailsBucket
 
   SESReceiptRuleInvite:
     Type: AWS::SES::ReceiptRule
-    Condition: IsStaging
+    Condition: IsProdOrStaging
     DependsOn: IncomingEmailsBucketPolicy
     Properties:
-      RuleSetName: !Ref SESReceiptRuleSet
+      RuleSetName: "ttleague-rules"
       Rule:
-        Name: "ForwardInviteToS3AndTriggerLambda"
+        Name: !Sub "ForwardInviteToS3AndTriggerLambda-${Environment}"
         Enabled: true
         Recipients:
-          - "invite@ttleagueplayers.uk"
+          - !If
+            - IsProd
+            - "invite@ttleagueplayers.uk"
+            - "invite@staging.ttleagueplayers.uk"
         Actions:
           - S3Action:
               BucketName: !Ref IncomingEmailsBucket
 
   MXRecord:
     Type: AWS::Route53::RecordSet
-    Condition: IsStaging
+    Condition: IsProdOrStaging
     Properties:
       HostedZoneId: !Ref HostedZoneId
-      Name: !Ref ApexDomain
+      Name: !If
+        - IsProd
+        - !Ref ApexDomain
+        - !Sub "staging.${ApexDomain}"
       Type: MX
       TTL: 3600
       ResourceRecords:
@@ -388,10 +391,13 @@ Resources:
 
   SPFRecord:
     Type: AWS::Route53::RecordSet
-    Condition: IsStaging
+    Condition: IsProdOrStaging
     Properties:
       HostedZoneId: !Ref HostedZoneId
-      Name: !Ref ApexDomain
+      Name: !If
+        - IsProd
+        - !Ref ApexDomain
+        - !Sub "staging.${ApexDomain}"
       Type: TXT
       TTL: 3600
       ResourceRecords:

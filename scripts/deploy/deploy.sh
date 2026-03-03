@@ -48,6 +48,10 @@ fi
 #    - Verify stack outputs: UserPoolId, ClientId, Domain
 #       ./get-cognito-values-for-env-config-files.sh [dev|test|staging|prod]
 #
+# 5. C SES Receipt Rule Set:
+#    - Deploy  SES Receipt Rule Set:
+#      ./deploy-ses-ruleset.sh
+#
 #
 # ==============================================================================
 
@@ -89,6 +93,13 @@ echo -e "${YELLOW}[1/7] Verifying prerequisites...${NC}"
 if ! aws cloudformation describe-stacks --stack-name "$COGNITO_STACK" --region "$REGION" &>/dev/null; then
     echo -e "${RED}ERROR: Cognito stack '$COGNITO_STACK' not found${NC}"
     echo "Run: sam deploy --template-file cognito-template.yaml --stack-name $COGNITO_STACK --parameter-overrides Environment=staging --region $REGION --capabilities CAPABILITY_IAM"
+    exit 1
+fi
+
+# Check SES Receipt Rule Set exists
+if ! aws ses describe-receipt-rule-set --rule-set-name "ttleague-rules" --region "$REGION" &>/dev/null; then
+    echo -e "${RED}ERROR: SES Receipt Rule Set 'ttleague-rules' not found${NC}"
+    echo "Run: ./deploy-ses-ruleset.sh"
     exit 1
 fi
 
