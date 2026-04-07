@@ -64,7 +64,7 @@ The application handles incoming and outgoing emails (e.g., via `contact_us@ttle
 
 ### Environments
 There are four different environments for this application.
-Two are manly local environment:
+Two are mainly local environment:
 * Dev: to run and debug locally the whole application, it uses
 	* AWS Cognito online: a dev instance 
 	* Local SAM: to deploy the backend and its HTTPS API
@@ -85,7 +85,6 @@ And there are two are fully online environment:
 #### IoC and email forwarding
 The yalm templates need two improvements:
 - verify that all the one settings in AWS are included in the yalm templates (there is no manual setting missing in the templates)
-- the SES/DNS/etc configurations and the lamba for sending and forwarding emails received are convigured once in staging. They should be duplicated and independed, for the staging and prod environments.
 
 #### EmailForwarderLambda
 This lambda that implements email forwarding, preventing the need for a full fledged email server, is currently implemented in the application assembly even if it is unrelated.

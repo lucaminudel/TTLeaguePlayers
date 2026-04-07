@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Register test user for TTLeague environments
-# Usage: ./register-test-users.sh [dev|test]
+# Usage: ./register-test-users.sh [dev|test|staging]
 
 ENVIRONMENT=$1
 FORCE_DELETE=$2
