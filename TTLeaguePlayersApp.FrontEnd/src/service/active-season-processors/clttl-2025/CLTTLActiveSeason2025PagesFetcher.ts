@@ -13,7 +13,7 @@ export class CLTTLActiveSeason2025PagesFetcher {
 
     constructor(dataSource: ActiveSeasonDataSource, avoidCORS = false) {
         this.dataSource = dataSource;
-        this.corsAnyWherePrefix = avoidCORS ? "https://cors-anywhere.com/" : "";
+        this.corsAnyWherePrefix = avoidCORS ? "https://go.x2u.in/proxy?email=contact_us@ttleagueplayers.uk&apiKey=307a1c8f&url=" : "";
     }
 
     private getUrlFromSource(source: Record<string, string>[], division: string): string {

@@ -436,7 +436,7 @@ test.describe('Kudos', () => {
                     await route.continue();
                 }
             });
-            await page.route('**/cors-anywhere.com/**', async (route) => {
+            await page.route('**/go.x2u.in**', async (route) => {
                 if (route.request().url().includes('Fixtures')) {
                     await route.abort('failed');
                 } else {
@@ -486,7 +486,7 @@ test.describe('Kudos', () => {
                     await route.continue();
                 }
             });
-            await page.route('**/cors-anywhere.com/**', async (route) => {
+            await page.route('**/go.x2u.in**', async (route) => {
                 if (route.request().url().includes('Fixtures')) {
                     await route.fulfill({
                         status: 500,
@@ -539,7 +539,7 @@ test.describe('Kudos', () => {
                     await route.continue();
                 }
             });
-            await page.route('**/cors-anywhere.com/**', async (route) => {
+            await page.route('**/go.x2u.in**', async (route) => {
                 if (route.request().url().includes('Fixtures')) {
                     await route.fulfill({
                         status: 200,
