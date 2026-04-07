@@ -38,7 +38,7 @@ public class EmailForwarderLambda
             var bucket = record.S3.Bucket.Name;
             var key = record.S3.Object.Key;
 
-            context.Logger.LogInformation($"Processing email from {bucket}/{key}");
+            context.Logger.LogInformation("Processing email from {Bucket}/{Key}", bucket, key);
 
             using var response = await _s3Client.GetObjectAsync(bucket, key);
             using var ms = new MemoryStream();
@@ -54,9 +54,26 @@ public class EmailForwarderLambda
             // Remove problematic headers
             var headersToStrip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                "Return-Path", "Received", "X-SES-RECEIPT", "X-SES-DKIM-SIGNATURE",
-                "Authentication-Results", "Received-SPF", "X-Gmail-Message-State", "X-Received",
-                "X-SES-CONFIGURATION-SET", "X-SES-MESSAGE-TAGS"
+                "DKIM-Signature",
+                "X-Google-DKIM-Signature",
+                "DomainKey-Signature",
+                "ARC-Seal",
+                "ARC-Message-Signature",
+                "ARC-Authentication-Results",
+                "Message-ID",
+                "Return-Path", 
+                "Received", 
+                "Authentication-Results", 
+                "Received-SPF", 
+                "X-Forwarded-To",
+                "X-Original-To",
+                "X-Gmail-Message-State", 
+                "X-Received",
+                "X-Forwarded-For",
+                "X-SES-RECEIPT", 
+                "X-SES-DKIM-SIGNATURE",
+                "X-SES-CONFIGURATION-SET", 
+                "X-SES-MESSAGE-TAGS"
             };
 
             foreach (var header in headersToStrip)
@@ -66,12 +83,14 @@ public class EmailForwarderLambda
 
             // Save original From
             var originalFromMailbox = message.From.Mailboxes.FirstOrDefault();
+            var originalDisplayName = originalFromMailbox?.Name;
             var originalEmail = originalFromMailbox?.Address ?? string.Empty;
             var obfuscatedEmail = originalEmail.Replace("@", " at ");
+            var fromDisplay = string.IsNullOrWhiteSpace(originalDisplayName) ? obfuscatedEmail : originalDisplayName;
             
             // Extract the recipient email address (who the email was sent to)
             var recipientEmail = message.To.Mailboxes.FirstOrDefault()?.Address ?? _contactUsEmailAddress;
-            var manualFromHeader = $"\"Forwarded - Originally from {obfuscatedEmail}\" <{recipientEmail}>";
+            var manualFromHeader = $"\"{fromDisplay} (via TTLeague contact form)\" <{recipientEmail}>";
 
             // Remove all existing From headers and inject the manual one
             message.Headers.RemoveAll("From");
