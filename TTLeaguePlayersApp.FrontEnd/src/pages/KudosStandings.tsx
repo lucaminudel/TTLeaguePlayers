@@ -45,7 +45,8 @@ export const KudosStandings: React.FC = () => {
                 person_name: season.person_name,
             });
         }
-        // TODO: Handle multiple active seasons selection
+        // With no KudosStandingsLocationState has been passed to this page and there aer multiple active seasons 
+        // the user will be left to select one of the active season available.
     }, [location.state, activeSeasons]);
 
     useEffect(() => {

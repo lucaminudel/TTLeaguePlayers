@@ -12,7 +12,7 @@ The build and unit tests commands
 They must be run directly from the FrontEnd project root.
 
 The end-to-end tests require:
-- the local SAM environment running on Docker: `sam-start dev-env` and `sam-start test-env` that will also run the build for SAM
+- the local SAM environment running on Docker: `sam-start dev-env` and `sam-start test-env` that will also run the build for SAM, as defined in as VS Code Terminal task json
 - the website running: `run-web:dev-env` and `run-web:test-env` or the deployment on staging 
 - the creation of the Cognito standard test users: `scripts/cognito/tests_helpers/register-test-users.sh dev | test | staging  force`
 

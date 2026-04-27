@@ -15,7 +15,7 @@ Most C# integration DataStore tests require
 - the local DynamoDb instance for test or dev, running on Docker => simply have Docker and the local DynamoDb image running
 
 Most C# integration Lambda tests require 
-- the local SAM environment running on Docker: `sam-start dev-env` and `sam-start test-env` that will also run the build for SAM
+- the local SAM environment running on Docker: `sam-start dev-env` and `sam-start test-env` that will also run the build for SAM, as defined in as VS Code Terminal task json
 
 Most C# acceptance tests require 
 - the creation of the Cognito standard test users: `scripts/cognito/tests_helpers/register-test-users.sh dev | test | staging  force`
