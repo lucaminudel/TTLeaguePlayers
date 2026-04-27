@@ -1,6 +1,5 @@
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
-using TTLeaguePlayersApp.BackEnd;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
@@ -15,7 +14,7 @@ public class GetInviteLambda
         _invitesDataTable = invitesDataTable;
     }
 
-    public async Task<Invite> HandleAsync(string nanoId, ILambdaContext context)
+    public async Task<CaptainOrPlayerInvite> HandleAsync(string nanoId, ILambdaContext context)
     {
 
         ValidateRequest(nanoId);
@@ -42,7 +41,7 @@ public class GetInviteLambda
 
     private void ValidateRequest(string nanoId)
     {
-        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
+        var nanoIdJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(nanoId));
 
         if (string.IsNullOrWhiteSpace(nanoId))
         {

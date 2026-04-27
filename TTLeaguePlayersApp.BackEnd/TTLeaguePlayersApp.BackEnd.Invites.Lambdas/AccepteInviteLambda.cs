@@ -21,12 +21,12 @@ public partial class AccepteInviteLambda
         _cognitoUsers = cognitoUsers;
     }
 
-    public async Task<Invite> HandleAsync(string nanoId, long acceptedAt, ILambdaContext context)
+    public async Task<CaptainOrPlayerInvite> HandleAsync(string nanoId, long acceptedAt, ILambdaContext context)
     {
         var parameters = new Dictionary<string, string>() { [nameof(nanoId)] = nanoId };
         ValidateRequest(nanoId, acceptedAt);
 
-        Invite invite;
+        CaptainOrPlayerInvite invite;
         try
         {
             invite = await _invitesDataTable.RetrieveInvite(nanoId);
@@ -86,8 +86,8 @@ public partial class AccepteInviteLambda
 
     private void ValidateRequest(string nanoId, long acceptedAt)
     {
-        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
-        var acceptedAtJsonName = JsonFieldName.For<Invite>(nameof(acceptedAt));
+        var nanoIdJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(nanoId));
+        var acceptedAtJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(acceptedAt));
 
         if (string.IsNullOrWhiteSpace(nanoId))
         {

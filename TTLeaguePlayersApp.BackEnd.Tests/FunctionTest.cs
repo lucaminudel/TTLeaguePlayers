@@ -57,7 +57,7 @@ public class FunctionTest : IAsyncLifetime
 
         // Create an invite to retrieve
         var nanoId = Random.Shared.Next(10_000_000, 99_999_999).ToString(); // 8 digits
-        var testInvite = new Invite
+        var testInvite = new CaptainOrPlayerInvite
         {
             NanoId = nanoId,
             InviteeName = "Test User",

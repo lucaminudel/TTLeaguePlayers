@@ -174,9 +174,9 @@ public class InvitesDataTableTest : IAsyncLifetime
     }
     
     // Helper to create a valid invite object
-    private static Invite CreateTestInvite()
+    private static CaptainOrPlayerInvite CreateTestInvite()
     {
-        return new Invite
+        return new CaptainOrPlayerInvite
         {
             NanoId = GenerateNanoId(),
             InviteeName = "Test User",
@@ -192,7 +192,7 @@ public class InvitesDataTableTest : IAsyncLifetime
         };
     }
 
-    private async Task TrackedCreate(Invite invite)
+    private async Task TrackedCreate(CaptainOrPlayerInvite invite)
     {
         await _db.CreateNewInvite(invite);
         _createdNanoIds.Add(invite.NanoId);

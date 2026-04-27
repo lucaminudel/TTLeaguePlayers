@@ -334,7 +334,7 @@ public partial class ApiGatewayProxyHandler
         if (patchRequest.AcceptedAt is null)
         {
             var responseStatusCode = HttpStatusCode.BadRequest;
-            var errorMessage = $"Missing {JsonFieldName.For<Invite>(nameof(patchRequest.AcceptedAt))}.";
+            var errorMessage = $"Missing {JsonFieldName.For<CaptainOrPlayerInvite>(nameof(patchRequest.AcceptedAt))}.";
 
             _observer.OnRuntimeIrregularEvent("PATCH INVITE COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
@@ -650,7 +650,7 @@ public partial class ApiGatewayProxyHandler
         }
         
         var responseStatusCode = HttpStatusCode.BadRequest;
-        var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<Invite>(nameof(nanoId))}.";
+        var errorMessage = $"Invalid path format. Missing {JsonFieldName.For<CaptainOrPlayerInvite>(nameof(nanoId))}.";
 
         _observer.OnRuntimeIrregularEvent("INVALID PATH FORMAT", here, context, inParameters.With(responseStatusCode, errorMessage));
 

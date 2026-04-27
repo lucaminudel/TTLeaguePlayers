@@ -261,7 +261,7 @@ public class AccepteInviteLambdaTests
         dataTable.Invites[nanoId].AcceptedAt.Should().BeNull();
     }
 
-    private static Invite CreateInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
+    private static CaptainOrPlayerInvite CreateInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
         => new()
         {
             NanoId = nanoId,
@@ -279,15 +279,15 @@ public class AccepteInviteLambdaTests
 
     private sealed class FakeInvitesDataTable : IInvitesDataTable
     {
-        public Dictionary<string, Invite> Invites { get; } = new();
+        public Dictionary<string, CaptainOrPlayerInvite> Invites { get; } = new();
 
         public int MarkInviteAcceptedCalls { get; private set; }
 
         public Exception? ThrowOnceOnMarkInviteAccepted { get; set; }
 
-        public void Seed(Invite invite) => Invites[invite.NanoId] = invite;
+        public void Seed(CaptainOrPlayerInvite invite) => Invites[invite.NanoId] = invite;
 
-        public Task<Invite> RetrieveInvite(string nanoId)
+        public Task<CaptainOrPlayerInvite> RetrieveInvite(string nanoId)
         {
             if (!Invites.TryGetValue(nanoId, out var invite))
             {
@@ -317,7 +317,7 @@ public class AccepteInviteLambdaTests
             return Task.CompletedTask;
         }
 
-        public Task CreateNewInvite(Invite invite)
+        public Task CreateNewInvite(CaptainOrPlayerInvite invite)
         {
             Invites[invite.NanoId] = invite;
             return Task.CompletedTask;

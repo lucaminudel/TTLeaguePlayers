@@ -3,7 +3,6 @@ using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using System.Net.Mail;
 using System.Text.Json;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
@@ -32,7 +31,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
             .Build();
     }
 
-    public async Task CreateNewInvite(Invite invite)
+    public async Task CreateNewInvite(CaptainOrPlayerInvite invite)
     {
         ValidateInvite(invite);
 
@@ -41,7 +40,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
         await _table.PutItemAsync(document);
     }
 
-    public async Task<Invite> RetrieveInvite(string nanoId)
+    public async Task<CaptainOrPlayerInvite> RetrieveInvite(string nanoId)
     {
         EnsureValidId(nanoId);
 
@@ -51,7 +50,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
             throw new KeyNotFoundException($"Invite with NanoId '{nanoId}' not found.");
         }
 
-        return JsonSerializer.Deserialize<Invite>(document.ToJson())!;
+        return JsonSerializer.Deserialize<CaptainOrPlayerInvite>(document.ToJson())!;
     }
 
     public async Task MarkInviteAccepted(string nanoId, long acceptedAt)
@@ -92,7 +91,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
             throw new ArgumentException("NanoId cannot be null or empty", nameof(nanoId));
     }
 
-    private void ValidateInvite(Invite invite)
+    private void ValidateInvite(CaptainOrPlayerInvite invite)
     {
         if (invite == null) throw new ArgumentNullException(nameof(invite));
 

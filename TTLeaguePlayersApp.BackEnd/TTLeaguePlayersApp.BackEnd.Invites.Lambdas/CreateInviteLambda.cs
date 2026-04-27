@@ -27,13 +27,13 @@ public class CreateInviteLambda
         _from = inviteEmailAddress;
     }
 
-    public async Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
+    public async Task<CaptainOrPlayerInvite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
     {
 
         ValidateRequest(request);
 
         // Create invite based on request
-        var invite = new Invite
+        var invite = new CaptainOrPlayerInvite
         {
             NanoId = Nanoid.Generate(size: 8),
             InviteeName = request.InviteeName,
@@ -69,7 +69,7 @@ public class CreateInviteLambda
     }
 
 
-    private async Task SendInviteEmail(Invite invite, Uri inviteWebsiteUrl, string from, string bccTo)
+    private async Task SendInviteEmail(CaptainOrPlayerInvite invite, Uri inviteWebsiteUrl, string from, string bccTo)
     {
 
         var emailBody = $@"Hi {invite.InviteeName},

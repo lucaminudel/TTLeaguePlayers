@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
+namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
-public class Invite
+public class CaptainOrPlayerInvite
 {
     [JsonPropertyName("nano_id")]
     public required string NanoId { get; set; }

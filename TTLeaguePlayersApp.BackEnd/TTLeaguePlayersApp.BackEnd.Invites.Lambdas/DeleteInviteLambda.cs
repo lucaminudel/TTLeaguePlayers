@@ -1,5 +1,4 @@
 using Amazon.Lambda.Core;
-using TTLeaguePlayersApp.BackEnd;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
@@ -30,7 +29,7 @@ public class DeleteInviteLambda
 
     private static void ValidateRequest(string nanoId)
     {
-        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
+        var nanoIdJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(nanoId));
 
         if (string.IsNullOrWhiteSpace(nanoId))
         {
