@@ -298,7 +298,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.DeleteKudosAsync("", "", "", "", "", "", "");
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().HaveCount(7);
         exception.Which.Errors.Should().Contain(e => e.Contains("league is required"));
         exception.Which.Errors.Should().Contain(e => e.Contains("season is required"));
@@ -317,7 +317,7 @@ public class KudosDataTableTest : IAsyncLifetime
             "CLTTL", "2025", "Division1", "TeamC", "TeamA", "TeamB", "sub123");
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().Contain(e => e.Contains("receivingTeam must be either the homeTeam or the awayTeam"));
     }
 
@@ -387,7 +387,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.SaveKudosAsync(kudos);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         // Note: We get 10 errors because empty strings also trigger "GiverTeam cannot be the same as the ReceivingTeam"
         exception.Which.Errors.Should().HaveCount(10);
         exception.Which.Errors.Should().Contain(e => e.Contains("League is required"));
@@ -420,7 +420,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.SaveKudosAsync(kudos);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().HaveCount(3);
         exception.Which.Errors.Should().Contain(e => e.Contains("ReceivingTeam must be either the HomeTeam or the AwayTeam"));
         exception.Which.Errors.Should().Contain(e => e.Contains("GiverTeam must be either the HomeTeam or the AwayTeam"));
@@ -443,7 +443,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.SaveKudosAsync(kudos);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().Contain(e => e.Contains("ReceivingTeam must be either the HomeTeam or the AwayTeam"));
     }
 
@@ -463,7 +463,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.SaveKudosAsync(kudos);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().Contain(e => e.Contains("GiverTeam must be either the HomeTeam or the AwayTeam"));
     }
 
@@ -483,7 +483,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.SaveKudosAsync(kudos);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().Contain(e => e.Contains("GiverTeam cannot be the same as the ReceivingTeam"));
     }
 
@@ -502,7 +502,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.SaveKudosAsync(kudos);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().Contain(e => e.Contains("KudosValue must be -1, 0, or 1"));
     }
 
@@ -756,7 +756,7 @@ public class KudosDataTableTest : IAsyncLifetime
         var act = async () => await _db.RetrieveKudosGivenByPlayerAsync("", "", "", "", "");
 
         // Assert
-        var exception = await act.Should().ThrowAsync<Invites.Lambdas.ValidationException>();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().HaveCount(5);
         exception.Which.Errors.Should().Contain(e => e.Contains("league is required"));
         exception.Which.Errors.Should().Contain(e => e.Contains("season is required"));

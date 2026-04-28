@@ -2,8 +2,6 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using System.Text.Json;
-using System.Linq;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using KudosEvent = TTLeaguePlayersApp.BackEnd.Kudos.DataStore.Kudos;
 using KudosSummary = TTLeaguePlayersApp.BackEnd.Kudos.Lambdas.KudosSummary;
 

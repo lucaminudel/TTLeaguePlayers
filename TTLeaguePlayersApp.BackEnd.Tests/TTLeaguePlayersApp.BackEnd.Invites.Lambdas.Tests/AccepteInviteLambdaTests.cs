@@ -6,12 +6,11 @@ using FluentAssertions;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests;
 
-public class AccepteInviteLambdaTests
+public partial class AccepteInviteLambdaTests
 {
     private readonly TestLambdaContext _context = new();
 
@@ -20,7 +19,7 @@ public class AccepteInviteLambdaTests
     {
         var nanoId = "11223344";
         var acceptedAt = 444;
-        var invite = CreateInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
 
         var dataTable = new FakeInvitesDataTable();
         dataTable.Seed(invite);
@@ -76,11 +75,11 @@ public class AccepteInviteLambdaTests
     }
 
     [Fact]
-    public async Task WhenInviteSuccefullyAccepted_UserActiveSeasonsUpdateIsWellFormed()
+    public async Task WhenCaptainInviteSuccefullyAccepted_UserActiveSeasonsUpdateIsWellFormed()
     {
         var nanoId = "44332211";
         var acceptedAt = 555;
-        var invite = CreateInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
 
         var dataTable = new FakeInvitesDataTable();
         dataTable.Seed(invite);
@@ -135,11 +134,69 @@ public class AccepteInviteLambdaTests
     }
 
     [Fact]
+    public async Task WhenClubManagerInviteSuccefullyAccepted_UserActiveSeasonsUpdateIsWellFormed()
+    {
+        var nanoId = "44332211";
+        var acceptedAt = 555;
+        var invite = CreateClubManagerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+
+        var dataTable = new FakeInvitesDataTable();
+        dataTable.Seed(invite);
+
+        var cognito = new FakeCognitoClient
+        {
+            ListUsersResult = new ListUsersResponse
+            {
+                Users = new()
+                {
+                    new UserType
+                    {
+                        Username = "user-1",
+                        Attributes = new() { new AttributeType { Name = "email", Value = "user@example.com" } }
+                    }
+                }
+            }
+        };
+
+        var lambda = new AccepteInviteLambda(
+            observer: new LoggerObserver(),
+            invitesDataTable: dataTable,
+            new CognitoUsers(
+                cognitoClient: cognito,
+                cognitoUserPoolId: "pool"));
+
+        await lambda.HandleAsync(nanoId, acceptedAt, _context);
+
+        cognito.LastAdminUpdateUserAttributesRequest.Should().NotBeNull();
+        var request = cognito.LastAdminUpdateUserAttributesRequest!;
+        request.UserAttributes.Should().ContainSingle(a => a.Name == "custom:managed_clubs");
+
+        var seasonsJson = request.UserAttributes.Single(a => a.Name == "custom:managed_clubs").Value;
+        seasonsJson.Should().NotBeNullOrWhiteSpace();
+
+        using var jsonDoc = JsonDocument.Parse(seasonsJson);
+        var seasons = jsonDoc.RootElement;
+        seasons.ValueKind.Should().Be(JsonValueKind.Array);
+
+        var match = seasons.EnumerateArray().FirstOrDefault(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == invite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == invite.Season);
+
+        match.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+
+        match.GetProperty("league").GetString().Should().Be(invite.League);
+        match.GetProperty("season").GetString().Should().Be(invite.Season);
+        match.GetProperty("club_name").GetString().Should().Be(invite.InviteeClub);
+        match.GetProperty("club_location").GetString().Should().Be(invite.ClubLocation);
+        match.GetProperty("manager_name").GetString().Should().Be(invite.InviteeName);
+    }
+
+    [Fact]
     public async Task WhenInviteAcceptedAtUpdateFailsThenRetrySucceeds_UserActiveSeasonsDoesNotContainDuplicates()
     {
         var nanoId = "55667788";
         var acceptedAt = 777;
-        var invite = CreateInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
 
         var dataTable = new FakeInvitesDataTable { ThrowOnceOnMarkInviteAccepted = new Exception("transient dynamodb failure") };
         dataTable.Seed(invite);
@@ -197,7 +254,7 @@ public class AccepteInviteLambdaTests
     public async Task WhenInviteAlreadyAccepted_DoesNotUpdateUserActiveSeasonsOrInviteAcceptedDate()
     {
         var nanoId = "12345678";
-        var invite = CreateInvite(nanoId, acceptedAt: 111);
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: 111);
 
         var dataTable = new FakeInvitesDataTable();
         dataTable.Seed(invite);
@@ -225,7 +282,7 @@ public class AccepteInviteLambdaTests
     public async Task WhenUserActiveSeasonsUpdateFails_InviteAcceptedDateIsNotSet()
     {
         var nanoId = "87654321";
-        var invite = CreateInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
 
         var dataTable = new FakeInvitesDataTable();
         dataTable.Seed(invite);
@@ -261,7 +318,7 @@ public class AccepteInviteLambdaTests
         dataTable.Invites[nanoId].AcceptedAt.Should().BeNull();
     }
 
-    private static CaptainOrPlayerInvite CreateInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
+    private static CaptainOrPlayerInvite CreatePlayerInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
         => new()
         {
             NanoId = nanoId,
@@ -277,60 +334,21 @@ public class AccepteInviteLambdaTests
             AcceptedAt = acceptedAt
         };
 
-    private sealed class FakeInvitesDataTable : IInvitesDataTable
-    {
-        public Dictionary<string, CaptainOrPlayerInvite> Invites { get; } = new();
-
-        public int MarkInviteAcceptedCalls { get; private set; }
-
-        public Exception? ThrowOnceOnMarkInviteAccepted { get; set; }
-
-        public void Seed(CaptainOrPlayerInvite invite) => Invites[invite.NanoId] = invite;
-
-        public Task<CaptainOrPlayerInvite> RetrieveInvite(string nanoId)
+    private static ClubManagerInvite CreateClubManagerInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
+        => new()
         {
-            if (!Invites.TryGetValue(nanoId, out var invite))
-            {
-                throw new KeyNotFoundException();
-            }
-
-            return Task.FromResult(invite);
-        }
-
-        public Task MarkInviteAccepted(string nanoId, long acceptedAt)
-        {
-            MarkInviteAcceptedCalls++;
-
-            if (ThrowOnceOnMarkInviteAccepted != null)
-            {
-                var ex = ThrowOnceOnMarkInviteAccepted;
-                ThrowOnceOnMarkInviteAccepted = null;
-                throw ex;
-            }
-
-            if (!Invites.TryGetValue(nanoId, out var invite))
-            {
-                throw new KeyNotFoundException();
-            }
-
-            invite.AcceptedAt = acceptedAt;
-            return Task.CompletedTask;
-        }
-
-        public Task CreateNewInvite(CaptainOrPlayerInvite invite)
-        {
-            Invites[invite.NanoId] = invite;
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteInvite(string nanoId)
-        {
-            Invites.Remove(nanoId);
-            return Task.CompletedTask;
-        }
-
-        public void Dispose() { }
-    }
+            NanoId = nanoId,
+            InviteeName = "Test User",
+            InviteeEmailId = inviteeEmailId,
+            InviteeRole = Role.CLUB_MANAGER,
+            InviteeClub = "Test Club",
+            ClubLocation = "London",
+            League = "Test League",
+            Season = "2025-2026",
+            InvitedBy = "Test Inviter",
+            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            AcceptedAt = acceptedAt
+        };
 
     private sealed class FakeCognitoClient : AmazonCognitoIdentityProviderClient
     {

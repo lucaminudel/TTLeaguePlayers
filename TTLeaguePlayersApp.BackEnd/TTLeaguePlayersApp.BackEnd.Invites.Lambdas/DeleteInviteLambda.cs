@@ -16,6 +16,8 @@ public class DeleteInviteLambda
 
     public async Task HandleAsync(string nanoId, ILambdaContext context)
     {
+        var parameters = new Dictionary<string, string>() { [nameof(nanoId)] = nanoId };
+
         ValidateRequest(nanoId);
 
         Dictionary<string, string> logSource = new() { ["Class"] = nameof(DeleteInviteLambda), ["Method"] = nameof(HandleAsync) };
@@ -29,7 +31,7 @@ public class DeleteInviteLambda
 
     private static void ValidateRequest(string nanoId)
     {
-        var nanoIdJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(nanoId));
+        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
 
         if (string.IsNullOrWhiteSpace(nanoId))
         {

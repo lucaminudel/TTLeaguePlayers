@@ -1,4 +1,4 @@
-namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
+namespace TTLeaguePlayersApp.BackEnd;
 
 public class SecurityValidationException : ValidationException
 {

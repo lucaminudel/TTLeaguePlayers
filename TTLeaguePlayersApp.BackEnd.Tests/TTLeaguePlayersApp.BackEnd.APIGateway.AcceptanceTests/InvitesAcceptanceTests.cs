@@ -40,7 +40,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     #region POST /invites Tests
 
     [Fact]
-    public async Task POST_Invites_Should_Create_New_Invite_Successfully()
+    public async Task POST_Invites_With_Captain_Should_Create_New_Invite_Successfully()
     {
         // Arrange
         var requestBody = CreateInviteRequestJson(
@@ -71,6 +71,55 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("invitee_role").GetString().Should().Be("CAPTAIN");
         jsonResult.GetProperty("invitee_team").GetString().Should().Be("Morpeth 9");
         jsonResult.GetProperty("team_division").GetString().Should().Be("Division 4");
+        jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
+        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
+        jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
+        jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
+        
+        // Track created IDs for cleanup
+        var createdId = jsonResult.GetProperty("nano_id").GetString();
+        createdId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdId!);
+
+        response.Headers.Location.Should().NotBeNull();
+        response.Headers.Location!.ToString().Should().Be($"/invites/{createdId}");
+    }
+
+    [Fact]
+    public async Task POST_Invites_With_ClubManager_Should_Create_New_Invite_Successfully()
+    {
+        // Arrange
+        var requestBody = CreateInviteRequestJson(
+            name: "Gino Gino",
+            email: "alpha@beta.com",
+            role: "CLUB_MANAGER",
+            club: "Morpeth",
+            location: "London",
+            division: null,
+            teamName: null,
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Luca");
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        // Act
+        var response = await _httpClient.PostAsync("/invites", content);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadAsStringAsync();
+        result.Should().NotBeEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("Gino Gino");
+        jsonResult.GetProperty("invitee_email_id").GetString().Should().Be("alpha@beta.com");
+        jsonResult.GetProperty("invitee_role").GetString().Should().Be("CLUB_MANAGER");
+        jsonResult.GetProperty("invitee_club").GetString().Should().Be("Morpeth");
+        jsonResult.GetProperty("club_location").GetString().Should().Be("London");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
         jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
         jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
@@ -130,6 +179,52 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task POST_Invites_Should_Return_400_For_Captain_With_ClubManager_Field()
+    {
+        // Arrange
+        var requestBody = CreateInviteRequestJson(
+            name: "Gino Gino",
+            email: "alpha@beta.com",
+            role: "CAPTAIN",
+            division: "Division 4",
+            teamName: "Morpeth 9",
+            club: "Morpeth",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Luca");
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        // Act
+        var response = await _httpClient.PostAsync("/invites", content);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task POST_Invites_Should_Return_400_For_ClubManager_With_Captain_Field()
+    {
+        // Arrange
+        var requestBody = CreateInviteRequestJson(
+            name: "Gino Gino",
+            email: "alpha@beta.com",
+            role: "CLUB_MANAGER",
+            division: "Division 4",
+            location: "London",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Luca");
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        // Act
+        var response = await _httpClient.PostAsync("/invites", content);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+
+    [Fact]
     public async Task POST_Invites_Should_Return_400_For_Malformed_JSON()
     {
         // Arrange
@@ -163,7 +258,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     #region GET /invites/{nano_id} Tests
 
     [Fact]
-    public async Task GET_Invite_Should_Return_Invite_Successfully()
+    public async Task GET_Invite_Should_Return_Captain_Invite_Successfully()
     {
         // Arrange - Create an invite first
         var createdInviteId = await CreateInviteAsync(
@@ -193,6 +288,46 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("invitee_role").GetString().Should().Be("CAPTAIN");
         jsonResult.GetProperty("invitee_team").GetString().Should().Be("Morpeth 9");
         jsonResult.GetProperty("team_division").GetString().Should().Be("Division 4");
+        jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
+        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
+        jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
+        jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task GET_Invite_Should_Return_ClubManager_Invite_Successfully()
+    {
+        // Arrange - Create an invite first
+        var createdInviteId = await CreateInviteAsync(
+            name: "Gino Gino",
+            email: "alpha@beta.com",
+            role: "CLUB_MANAGER",
+            teamName: null,
+            division: null,            
+            club: "Morpeth",
+            location: "London",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Luca");
+
+        // Act - Now retrieve the created invite
+        var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        result.Should().NotBeEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+        
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("Gino Gino");
+        jsonResult.GetProperty("invitee_email_id").GetString().Should().Be("alpha@beta.com");
+        jsonResult.GetProperty("invitee_role").GetString().Should().Be("CLUB_MANAGER");
+        jsonResult.GetProperty("invitee_club").GetString().Should().Be("Morpeth");
+        jsonResult.GetProperty("club_location").GetString().Should().Be("London");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
         jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
         jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
@@ -286,7 +421,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
 
     [Fact]
     [Trait("Cognito", "Live")]
-    public async Task PATCH_Invite_Should_Accept_Invite_Successfully()
+    public async Task PATCH_Invite_Should_Accept_Player_Invite_Successfully()
     {
         // Arrange - Create an invite first
         var createdInviteId = await CreateInviteAsync(
@@ -324,6 +459,55 @@ public class InvitesAcceptanceTests : IAsyncLifetime
 
         jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
         jsonResult.GetProperty("invitee_name").GetString().Should().Be("John Smith");
+        jsonResult.GetProperty("invitee_team").GetString().Should().Be("City Strikers");
+        jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Number);
+        jsonResult.GetProperty("accepted_at").GetInt64().Should().Be(acceptedAt);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task PATCH_Invite_Should_Accept_ClubManager_Invite_Successfully()
+    {
+        // Arrange - Create an invite first
+        var createdInviteId = await CreateInviteAsync(
+            name: "John Smith",
+            email: "test_ready_for_accept_invite_api_call@user.test", // setup scrip creates this user in Cognito   
+            role: "CLUB_MANAGER",
+            teamName: null,
+            division: null,
+            club: "Morpeth",
+            location: "London",
+            league: "Regional League",
+            season: "2025-2026",
+            invitedBy: "Emma");
+
+        // Verify invite was created without accepted_at
+        var getBeforeResponse = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+        var getBeforeResult = await getBeforeResponse.Content.ReadAsStringAsync();
+        using var getBeforeJsonDoc = JsonDocument.Parse(getBeforeResult);
+        getBeforeJsonDoc.RootElement.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // Act - Now mark the invite as accepted
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        result.Should().NotBeEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("John Smith");
+        jsonResult.GetProperty("invitee_club").GetString().Should().Be("Morpeth");
+        jsonResult.GetProperty("club_location").GetString().Should().Be("London");
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Number);
         jsonResult.GetProperty("accepted_at").GetInt64().Should().Be(acceptedAt);
     }
@@ -454,7 +638,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
 
     [Fact]
     [Trait("Cognito", "Live")]    
-    public async Task PATCH_Invite_Should_Update_Cognito_User_Attributes()
+    public async Task PATCH_Captain_Invite_Should_Update_Cognito_User_Attributes()
     {
         // Arrange
         var email = "test_ready_for_accept_invite_api_call@user.test"; // setup scrip creates this user in Cognito   
@@ -485,7 +669,62 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         var user = await GetCognitoUserByEmail(email);
         user.Should().NotBeNull();
         
-        var activeSeasonsAttr = user!.Attributes.FirstOrDefault(a => a.Name == "custom:active_seasons");
+        var activeSeasonsAttr = user!.Attributes.LastOrDefault(a => a.Name == "custom:active_seasons");
+        activeSeasonsAttr.Should().NotBeNull();
+        activeSeasonsAttr!.Value.Should().NotBeNullOrEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(activeSeasonsAttr.Value);
+        var seasons = jsonDoc.RootElement;
+        seasons.ValueKind.Should().Be(JsonValueKind.Array);
+        
+        // Or better search for match
+        var match = seasons.EnumerateArray().LastOrDefault(x => 
+            x.GetProperty("league").GetString() == "Super League" &&
+            x.GetProperty("season").GetString() == "Summer 2026" 
+        );
+        
+        match.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        match.GetProperty("team_name").GetString().Should().Be("Some Team");
+        match.GetProperty("team_division").GetString().Should().Be("Division 1");
+        match.GetProperty("role").GetString().Should().Be("CAPTAIN");
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]    
+    public async Task PATCH_ClubManager_Invite_Should_Update_Cognito_User_Attributes()
+    {
+        // Arrange
+        var email = "test_ready_for_accept_invite_api_call@user.test"; // setup scrip creates this user in Cognito   
+        var createdInviteId = await CreateInviteAsync(
+            name: "Some player",
+            email: email, 
+            role: "CLUB_MANAGER",
+            teamName: null,
+            division: null,
+            club: "Some Club",
+            location: "London",
+            league: "Super League",
+            season: "Summer 2026",
+            invitedBy: "Admin");
+
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify Cognito Update
+        var user = await GetCognitoUserByEmail(email);
+        user.Should().NotBeNull();
+        
+        var activeSeasonsAttr = user!.Attributes.FirstOrDefault(a => a.Name == "custom:managed_clubs");
         activeSeasonsAttr.Should().NotBeNull();
         activeSeasonsAttr!.Value.Should().NotBeNullOrEmpty();
 
@@ -500,9 +739,9 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         );
         
         match.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        match.GetProperty("team_name").GetString().Should().Be("Some Team");
-        match.GetProperty("team_division").GetString().Should().Be("Division 1");
-        match.GetProperty("role").GetString().Should().Be("CAPTAIN");
+        match.GetProperty("club_name").GetString().Should().Be("Some Club");
+        match.GetProperty("club_location").GetString().Should().Be("London");
+        match.GetProperty("manager_name").GetString().Should().Be("Some player");
     }
 
     [Fact]
@@ -540,7 +779,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task DELETE_Invite_Should_Delete_Invite_Successfully()
+    public async Task DELETE_Captain_Invite_Should_Delete_Invite_Successfully()
     {
         // Arrange - Create an invite first
         var createdInviteId = await CreateInviteAsync(
@@ -549,6 +788,32 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             role: "PLAYER",
             teamName: "Disposable",
             division: "Division 1",
+            league: "City League",
+            season: "2025-2026",
+            invitedBy: "Tester");
+
+        // Act
+        var response = await _httpClient.DeleteAsync($"/invites/{createdInviteId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // And the resource is gone
+        var getAfter = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+        getAfter.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+    [Fact]
+    public async Task DELETE_ClubManager_Invite_Should_Delete_Invite_Successfully()
+    {
+        // Arrange - Create an invite first
+        var createdInviteId = await CreateInviteAsync(
+            name: "To Delete",
+            email: "delete.me@example.com",
+            role: "CLUB_MANAGER",
+            teamName: null,
+            division: null,
+            club: "Disposable Club",
+            location: "Nowhere",
             league: "City League",
             season: "2025-2026",
             invitedBy: "Tester");
@@ -646,13 +911,15 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         string name = "Test User",
         string email = "test@example.com",
         string role = "PLAYER",
-        string teamName = "Test Team",
-        string division = "Division 1",
+        string? teamName = "Test Team",
+        string? division = "Division 1",
         string league = "Test League",
         string season = "2025-2026",
-        string invitedBy = "Tester")
+        string invitedBy = "Tester",
+        string? club = null,
+        string? location = null)
     {
-        var requestBody = CreateInviteRequestJson(name, email, role, teamName, division, league, season, invitedBy);
+        var requestBody = CreateInviteRequestJson(name, email, role, teamName, division, league, season, invitedBy, club, location);
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
         var response = await _httpClient.PostAsync("/invites", content);
@@ -675,7 +942,9 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         string? division = "Division 1", 
         string? league = "City League", 
         string? season = "Winter 2025",
-        string? invitedBy = "Luca")
+        string? invitedBy = "Luca",
+        string? club = null,
+        string? location = null)
     {
         var invite = new Dictionary<string, string?>
         {
@@ -684,6 +953,8 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             { "invitee_role", role },
             { "invitee_team", teamName },
             { "team_division", division },
+            { "invitee_club", club},
+            { "club_location", location},
             { "league", league },
             { "season", season },
             { "invited_by", invitedBy }

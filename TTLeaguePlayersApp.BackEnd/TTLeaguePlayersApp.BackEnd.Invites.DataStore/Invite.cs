@@ -1,38 +1,33 @@
 using System.Text.Json.Serialization;
-using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
-namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
+namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
-public class CreateInviteRequest
+public abstract class Invite
 {
+    [JsonPropertyName("nano_id")]
+    public required string NanoId { get; set; }
 
     [JsonPropertyName("invitee_name")]
     public required string InviteeName { get; set; }
 
     [JsonPropertyName("invitee_email_id")]
     public required string InviteeEmailId { get; set; }
-    
+
     [JsonPropertyName("invitee_role")]
     public required Role InviteeRole { get; set; }
     
-    [JsonPropertyName("invitee_team")]
-    public string? InviteeTeam { get; set; }
-    
-    [JsonPropertyName("team_division")]
-    public string? TeamDivision { get; set; }
-    
-    [JsonPropertyName("invitee_club")]
-    public string? InviteeClub { get; set; }
-    
-    [JsonPropertyName("club_location")]
-    public string? ClubLocation { get; set; }
-
     [JsonPropertyName("league")]
     public required string League { get; set; }
-    
+
     [JsonPropertyName("season")]
     public required string Season { get; set; }
 
     [JsonPropertyName("invited_by")]
     public required string InvitedBy { get; set; }
+
+    [JsonPropertyName("created_at")]    
+    public long CreatedAt { get; set; }
+
+    [JsonPropertyName("accepted_at")]
+    public long? AcceptedAt { get; set; }
 }
