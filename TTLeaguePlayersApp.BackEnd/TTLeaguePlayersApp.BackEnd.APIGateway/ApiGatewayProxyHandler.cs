@@ -263,7 +263,7 @@ public partial class ApiGatewayProxyHandler
 
             return CreateResponse(HttpStatusCode.OK, invite);
         }
-        catch (NotFoundException ex)
+        catch (KeyNotFoundException ex)
         {
             var responseStatusCode = HttpStatusCode.NotFound;
 
@@ -349,7 +349,7 @@ public partial class ApiGatewayProxyHandler
 
             return CreateResponse(HttpStatusCode.OK, updatedInvite);
         }
-        catch (NotFoundException ex)
+        catch (KeyNotFoundException ex)
         {
             var responseStatusCode = HttpStatusCode.NotFound;
 
@@ -706,7 +706,7 @@ public partial class ApiGatewayProxyHandler
         return new APIGatewayProxyResponse
         {
             StatusCode = (int)statusCode,
-            Body =  body is null ? string.Empty : JsonSerializer.Serialize(body),
+            Body =  body is null ? string.Empty : JsonSerializer.Serialize(body, JsonOptions),
             Headers = headers
         };
     }

@@ -461,6 +461,9 @@ Resources:
               - invitee_name
               - invited_by
               - accepted_at
+              - invitee_role
+              - invitee_club
+              - club_location
 
   KudosTable:
     Type: AWS::DynamoDB::Table

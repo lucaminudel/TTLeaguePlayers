@@ -30,6 +30,11 @@ Resources:
           Mutable: true
           StringAttributeConstraints:
             MaxLength: 2048
+        - Name: managed_clubs
+          AttributeDataType: String
+          Mutable: true
+          StringAttributeConstraints:
+            MaxLength: 2048
       UsernameAttributes:
         - email
       UserPoolAddOns:
@@ -82,10 +87,12 @@ Resources:
         - email_verified
         - name
         - custom:active_seasons
+        - custom:managed_clubs
       WriteAttributes:
         - email
         - name
         - custom:active_seasons
+        - custom:managed_clubs
 
   TTLeagueCognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain

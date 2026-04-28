@@ -90,7 +90,7 @@ public class EmailForwarderLambda
             
             // Extract the recipient email address (who the email was sent to)
             var recipientEmail = message.To.Mailboxes.FirstOrDefault()?.Address ?? _contactUsEmailAddress;
-            var manualFromHeader = $"\"{fromDisplay} (via TTLeague contact form)\" <{recipientEmail}>";
+            var manualFromHeader = $"\"{fromDisplay} (via TTLeaguePlayers)\" <{recipientEmail}>";
 
             // Remove all existing From headers and inject the manual one
             message.Headers.RemoveAll("From");

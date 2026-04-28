@@ -36,7 +36,7 @@ public class CognitoUsers
         return user;
     }
 
-    public async Task UpdateUserAttribute(string username, List<ActiveSeason> activeSeasons)
+    public async Task UpdateActiveSeasonsUserAttribute(string username, List<ActiveSeason> activeSeasons)
     {
         var updateAttributesRequest = new AdminUpdateUserAttributesRequest
         {
@@ -48,7 +48,60 @@ public class CognitoUsers
         await _cognitoClient.AdminUpdateUserAttributesAsync(updateAttributesRequest);
     }
 
-    public static List<ActiveSeason>  ExtractActiveSeasonsWithTargetSeason(Dictionary<string, string> userClaims, 
+    public async Task UpdateManagedClubsUserAttribute(string username, List<ManagedClub> managedClubs)
+    {
+        var updateAttributesRequest = new AdminUpdateUserAttributesRequest
+        {
+            UserPoolId = _cognitoUserPoolId,
+            Username = username,
+            UserAttributes = new() { new() { Name = "custom:managed_clubs", Value = JsonSerializer.Serialize(managedClubs) } }
+        };
+
+        await _cognitoClient.AdminUpdateUserAttributesAsync(updateAttributesRequest);
+    }
+
+    public static List<ManagedClub> AddManagedClub(UserType user,
+        string league, string season, string clubName, string clubLocation, string managerName)
+    {
+        var managedClubsAttr = user.Attributes.FirstOrDefault(a => a.Name == "custom:managed_clubs");
+        var managedClubs = new List<ManagedClub>();
+        if (managedClubsAttr != null && !string.IsNullOrWhiteSpace(managedClubsAttr.Value))
+        {
+            try
+            {
+                managedClubs = JsonSerializer.Deserialize<List<ManagedClub>>(managedClubsAttr.Value) ?? new List<ManagedClub>();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException("The user's managed clubs data is not in a valid format.", ex);
+            }
+        }
+
+        var newManagedClub = new ManagedClub
+        {
+            League = league,
+            Season = season,
+            ClubName = clubName,
+            ClubLocation = clubLocation,
+            ManagerName = managerName
+        };
+
+        var alreadyPresent = managedClubs.Any(c =>
+            c.League == newManagedClub.League &&
+            c.Season == newManagedClub.Season &&
+            c.ClubName == newManagedClub.ClubName &&
+            c.ClubLocation == newManagedClub.ClubLocation &&
+            c.ManagerName == newManagedClub.ManagerName);
+
+        if (!alreadyPresent)
+        {
+            managedClubs.Add(newManagedClub);
+        }
+
+        return managedClubs;
+    }
+
+    public static List<ActiveSeason> ExtractActiveSeasonsWithTargetSeason(Dictionary<string, string> userClaims, 
         string league, string season, string division, string teamName)
     {
         if (!userClaims.TryGetValue("custom:active_seasons", out var activeSeasonsJson) || string.IsNullOrEmpty(activeSeasonsJson))
@@ -71,7 +124,7 @@ public class CognitoUsers
             throw new InvalidOperationException($"Empty custom:active_seasons claim.");
         }
 
-        var targetSeason = activeSeasons.FirstOrDefault(s => 
+        var targetSeason = activeSeasons.LastOrDefault(s => 
             s.League == league &&
             s.Season == season &&
             s.TeamDivision == division &&
@@ -91,7 +144,7 @@ public class CognitoUsers
         List<ActiveSeason>  activeSeasons,
         long matchDateTime)
     {
-        var targetSeason = activeSeasons.FirstOrDefault(s => 
+        var targetSeason = activeSeasons.LastOrDefault(s => 
             s.League == league &&
             s.Season == season &&
             s.TeamDivision == division &&
@@ -117,7 +170,7 @@ public class CognitoUsers
             username = cognitoUsername;
         }
 
-        await UpdateUserAttribute(username, activeSeasons);
+        await UpdateActiveSeasonsUserAttribute(username, activeSeasons);
     }
 
     public static List<ActiveSeason> AddActiveSeason(UserType user, 

@@ -21,12 +21,13 @@ public partial class AccepteInviteLambda
         _cognitoUsers = cognitoUsers;
     }
 
-    public async Task<CaptainOrPlayerInvite> HandleAsync(string nanoId, long acceptedAt, ILambdaContext context)
+    public async Task<Invite> HandleAsync(string nanoId, long acceptedAt, ILambdaContext context)
     {
         var parameters = new Dictionary<string, string>() { [nameof(nanoId)] = nanoId };
+
         ValidateRequest(nanoId, acceptedAt);
 
-        CaptainOrPlayerInvite invite;
+        Invite invite;
         try
         {
             invite = await _invitesDataTable.RetrieveInvite(nanoId);
@@ -36,7 +37,7 @@ public partial class AccepteInviteLambda
             _observer.OnRuntimeRegularEvent("ACCEPT INVITE FAILED",
                _fromHere, context, parameters.With("Found", false.ToString()));
 
-            throw new NotFoundException($"Invite not found for {nameof(nanoId)} {nanoId} ");
+            throw new KeyNotFoundException($"Invite not found for {nameof(nanoId)} {nanoId} ");
         }
 
         var inviteAlreadyAccepted = invite.AcceptedAt.HasValue;
@@ -50,20 +51,46 @@ public partial class AccepteInviteLambda
 
         var user = await _cognitoUsers.RetrieveCognitoUserByEmailId(invite.InviteeEmailId);
 
-        List<ActiveSeason> activeSeasons;
-        try
+        if (invite is CaptainOrPlayerInvite captainOrPlayerInvite)
         {
-            activeSeasons = CognitoUsers.AddActiveSeason(user, invite.League, invite.Season, invite.InviteeTeam,
-                                                          invite.TeamDivision, invite.InviteeName, invite.InviteeRole.ToString());
+            List<ActiveSeason> activeSeasons;
+            try
+            {
+                activeSeasons = CognitoUsers.AddActiveSeason(user, invite.League, invite.Season, captainOrPlayerInvite.InviteeTeam,
+                                                              captainOrPlayerInvite.TeamDivision, invite.InviteeName, invite.InviteeRole.ToString());
+            }
+            catch (InvalidOperationException)
+            {
+                _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters);
+
+                throw;
+            }
+
+            await _cognitoUsers.UpdateActiveSeasonsUserAttribute(user.Username, activeSeasons);
         }
-        catch (JsonException)
+        else if (invite is ClubManagerInvite clubManagerInvite)
         {
-            _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters);
+            List<ManagedClub> managedClubs;
+            try
+            {
+                managedClubs = CognitoUsers.AddManagedClub(user, invite.League, invite.Season, clubManagerInvite.InviteeClub, clubManagerInvite.ClubLocation, invite.InviteeName);
+            }
+            catch (InvalidOperationException)
+            {
+                _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters);
 
-            throw;
+                throw;
+            }
+
+            await _cognitoUsers.UpdateManagedClubsUserAttribute(user.Username, managedClubs);
         }
+        else
+        {
+            _observer.OnRuntimeIrregularEvent("UNKNOWN INVITE FAILED", _fromHere, context, parameters.With("InviteType", invite.GetType().Name));
 
-        await _cognitoUsers.UpdateUserAttribute(user.Username, activeSeasons);
+            throw new InvalidOperationException($"Unknown invite type {invite.GetType().Name} for invite with {nameof(nanoId)} {nanoId}");
+        }
+        
 
         try
         {
@@ -73,7 +100,7 @@ public partial class AccepteInviteLambda
         {
             _observer.OnRuntimeRegularEvent("ACCEPT INVITE FAILED", _fromHere, context, parameters.With("Found", false.ToString()));
 
-            throw new NotFoundException("Invite not found");
+            throw new KeyNotFoundException("Invite not found");
         }
 
         _observer.OnRuntimeRegularEvent("ACCEPT INVITE COMPLETED", _fromHere, context, parameters.With("AcceptedAt", acceptedAt.ToString()));
@@ -86,8 +113,8 @@ public partial class AccepteInviteLambda
 
     private void ValidateRequest(string nanoId, long acceptedAt)
     {
-        var nanoIdJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(nanoId));
-        var acceptedAtJsonName = JsonFieldName.For<CaptainOrPlayerInvite>(nameof(acceptedAt));
+        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
+        var acceptedAtJsonName = JsonFieldName.For<Invite>(nameof(acceptedAt));
 
         if (string.IsNullOrWhiteSpace(nanoId))
         {

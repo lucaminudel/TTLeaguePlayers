@@ -6,5 +6,6 @@ namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 public enum Role
 {
     PLAYER,
-    CAPTAIN
+    CAPTAIN,
+    CLUB_MANAGER
 }
