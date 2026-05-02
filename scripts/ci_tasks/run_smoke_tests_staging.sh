@@ -26,7 +26,18 @@ trap cleanup EXIT
 # ==============================================================================
 cd "$PROJECT_ROOT"
 
-echo "🔹 Setting up Cognito test users..."
+echo "🔹 Remember to:"
+echo "    1) clean-up the Dynamo Db Tabes"
+echo "    2) force delete and re-create the Cognito test users"
+echo "🔹 Also check staging env config file for the CreateInviteAutomaticallySendInviteEmail setting (true vs false)."
+echo "    "
+
+echo "Press Enter to continue..."
+read
+
+echo "    "
+echo "🔹 Setting up Cognito test users... "
+echo "    "
 $PROJECT_ROOT/scripts/cognito/tests_helpers/register-test-users.sh $ENVIRONMENT
 
 # ==============================================================================
