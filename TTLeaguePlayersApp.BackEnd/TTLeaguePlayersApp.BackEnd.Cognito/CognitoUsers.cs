@@ -96,6 +96,8 @@ public class CognitoUsers
         if (!alreadyPresent)
         {
             managedClubs.Add(newManagedClub);
+            managedClubs.RemoveAll(s => s.League == newManagedClub.League && string.Compare(s.Season, newManagedClub.Season) < 0);
+
         }
 
         return managedClubs;
@@ -211,6 +213,7 @@ public class CognitoUsers
         if (!alreadyPresent)
         {
             activeSeasons.Add(newActiveSeason);
+            activeSeasons.RemoveAll(s => s.League == newActiveSeason.League && string.Compare(s.Season, newActiveSeason.Season) < 0);
         }
 
         return activeSeasons;

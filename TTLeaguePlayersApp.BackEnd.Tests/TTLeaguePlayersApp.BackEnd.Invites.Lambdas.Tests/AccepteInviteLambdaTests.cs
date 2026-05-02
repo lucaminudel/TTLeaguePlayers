@@ -85,7 +85,7 @@ public partial class AccepteInviteLambdaTests
     {
         var nanoId = "44332211";
         var acceptedAt = 555;
-        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null);
         _dataTable.Seed(invite);
 
         await _lambda.HandleAsync(nanoId, acceptedAt, _context);
@@ -118,11 +118,60 @@ public partial class AccepteInviteLambdaTests
     }
 
     [Fact]
+    public async Task WhenCaptainInviteSuccefullyAccepted_OlderSeasonsSameLeagueUserActiveSeasonsItemsAreRemoved()
+    {
+        // Setup: Add season BCS, 2025-2026
+        var unrelatedInviteNanoId = "aabbccdd";
+        var unrelatedInvite = CreatePlayerInvite(unrelatedInviteNanoId, acceptedAt: null, 
+                                             league: "BCS", season: "2025-2026");
+        _dataTable.Seed(unrelatedInvite);
+        await _lambda.HandleAsync(unrelatedInviteNanoId, acceptedAt: 111, _context);
+
+        // Setup: Add season CLTTL, 2025-2026
+        var firstInviteNanoId = "44332211";
+        var firstInvite = CreatePlayerInvite(firstInviteNanoId, acceptedAt: null, 
+                                             league: "CLTTL", season: "2025-2026");
+        _dataTable.Seed(firstInvite);
+        await _lambda.HandleAsync(firstInviteNanoId, acceptedAt: 444, _context);
+
+        // Setup: Add season CLTTL, 2026-2027
+        var secondInviteNanoId = "55667788";
+        var secondInvite = CreatePlayerInvite(secondInviteNanoId, acceptedAt: null, 
+                                              league: "CLTTL", season: "2026-2027");
+        _dataTable.Seed(secondInvite);
+        await _lambda.HandleAsync(secondInviteNanoId, acceptedAt: 777, _context);
+
+        // Extract active seasons from user
+        var listUsersResponse = await _cognitoClient.ListUsersAsync(new ListUsersRequest());
+        var user = listUsersResponse.Users.First();
+        var seasonsJson = user.Attributes.Single(a => a.Name == "custom:active_seasons").Value;
+        using var jsonDoc = JsonDocument.Parse(seasonsJson);
+        var seasons = jsonDoc.RootElement;
+
+        // Assert only one season for CLTTL league is present 
+        var duplicates = seasons.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == firstInvite.League);
+        duplicates.Should().Be(1);
+
+        // Assert the only one season for CLTTL league is the last season 
+        var secondInviteSeasonCount = seasons.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == firstInvite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == secondInvite.Season);
+        secondInviteSeasonCount.Should().Be(1);
+
+        // Assert the unrelated BCS season is unaffected
+        var unrelatedInviteSeasonCount = seasons.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == unrelatedInvite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == unrelatedInvite.Season);
+        unrelatedInviteSeasonCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task WhenClubManagerInviteSuccefullyAccepted_UserManagedClubsUpdateIsWellFormed()
     {
         var nanoId = "44332211";
         var acceptedAt = 555;
-        var invite = CreateClubManagerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreateClubManagerInvite(nanoId, acceptedAt: null);
         _dataTable.Seed(invite);
 
         await _lambda.HandleAsync(nanoId, acceptedAt, _context);
@@ -154,11 +203,60 @@ public partial class AccepteInviteLambdaTests
     }
 
     [Fact]
-    public async Task WhenInviteAcceptedAtUpdateFailsThenRetrySucceeds_UserActiveSeasonsDoesNotContainDuplicates()
+    public async Task WhenClubManagerInviteSuccefullyAccepted_OlderSeasonsSameLeagueUserActiveSeasonsItemsAreRemoved()
+    {
+        // Setup: Add season BCS, 2025-2026
+        var unrelatedInviteNanoId = "aabbccdd";
+        var unrelatedInvite = CreateClubManagerInvite(unrelatedInviteNanoId, acceptedAt: null, 
+                                                      league: "BCS", season: "2025-2026");
+        _dataTable.Seed(unrelatedInvite);
+        await _lambda.HandleAsync(unrelatedInviteNanoId, acceptedAt: 111, _context);
+
+        // Setup: Add season CLTTL, 2025-2026
+        var firstInviteNanoId = "44332211";
+        var firstInvite = CreateClubManagerInvite(firstInviteNanoId, acceptedAt: null, 
+                                                  league: "CLTTL", season: "2025-2026");
+        _dataTable.Seed(firstInvite);
+        await _lambda.HandleAsync(firstInviteNanoId, acceptedAt: 444, _context);
+
+        // Setup: Add season CLTTL, 2026-2027
+        var secondInviteNanoId = "55667788";
+        var secondInvite = CreateClubManagerInvite(secondInviteNanoId, acceptedAt: null, 
+                                                   league: "CLTTL", season: "2026-2027");
+        _dataTable.Seed(secondInvite);
+        await _lambda.HandleAsync(secondInviteNanoId, acceptedAt: 777, _context);
+
+        // Extract active seasons from user
+        var listUsersResponse = await _cognitoClient.ListUsersAsync(new ListUsersRequest());
+        var user = listUsersResponse.Users.First();
+        var managedClubsJson = user.Attributes.Single(a => a.Name == "custom:managed_clubs").Value;
+        using var jsonDoc = JsonDocument.Parse(managedClubsJson);
+        var clubs = jsonDoc.RootElement;
+
+        // Assert only one season for CLTTL league is present 
+        var duplicates = clubs.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == firstInvite.League);
+        duplicates.Should().Be(1);
+
+        // Assert the only one season for CLTTL league is the last season 
+        var secondInviteSeasonCount = clubs.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == firstInvite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == secondInvite.Season);
+        secondInviteSeasonCount.Should().Be(1);
+
+        // Assert the unrelated BCS season is unaffected
+        var unrelatedInviteSeasonCount = clubs.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == unrelatedInvite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == unrelatedInvite.Season);
+        unrelatedInviteSeasonCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task WhenPlayerInviteAcceptedAtUpdateFailsThenRetrySucceeds_UserActiveSeasonsDoesNotContainDuplicates()
     {
         var nanoId = "55667788";
         var acceptedAt = 777;
-        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null);
         _dataTable.Seed(invite);
 
         _dataTable.ThrowOnceOnMarkInviteAccepted = new Exception("transient dynamodb failure");
@@ -193,6 +291,44 @@ public partial class AccepteInviteLambdaTests
     }
 
     [Fact]
+    public async Task WhenClubManagerInviteAcceptedAtUpdateFailsThenRetrySucceeds_ManagedClubsDoesNotContainDuplicates()
+    {
+        var nanoId = "55667788";
+        var acceptedAt = 777;
+        var invite = CreateClubManagerInvite(nanoId, acceptedAt: null);
+        _dataTable.Seed(invite);
+
+        _dataTable.ThrowOnceOnMarkInviteAccepted = new Exception("transient dynamodb failure");
+
+        var firstAttempt = () => _lambda.HandleAsync(nanoId, acceptedAt, _context);
+        await firstAttempt.Should().ThrowAsync<Exception>();
+
+        var result = await _lambda.HandleAsync(nanoId, acceptedAt, _context);
+        result.AcceptedAt.Should().Be(acceptedAt);
+
+        _cognitoClient.AdminUpdateUserAttributesRequests.Should().NotBeNull();
+        _cognitoClient.AdminUpdateUserAttributesRequests.Count.Should().BeGreaterThanOrEqualTo(2);
+
+        var listUsersResponse = await _cognitoClient.ListUsersAsync(new ListUsersRequest());
+        var user = listUsersResponse.Users.First();
+        user.Attributes.Should().ContainSingle(a => a.Name == "custom:managed_clubs");
+        var seasonsJson = user.Attributes.Single(a => a.Name == "custom:managed_clubs").Value;
+
+        using var jsonDoc = JsonDocument.Parse(seasonsJson);
+        var seasons = jsonDoc.RootElement;
+        seasons.ValueKind.Should().Be(JsonValueKind.Array);
+
+        var duplicates = seasons.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == invite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == invite.Season &&
+            x.TryGetProperty("club_name", out var club) && club.GetString() == invite.InviteeClub &&
+            x.TryGetProperty("club_location", out var location) && location.GetString() == invite.ClubLocation &&
+            x.TryGetProperty("manager_name", out var manager) && manager.GetString() == invite.InviteeName);
+
+        duplicates.Should().Be(1);
+    }
+
+    [Fact]
     public async Task WhenInviteAlreadyAccepted_DoesNotUpdateUserActiveSeasonsOrInviteAcceptedDate()
     {
         var nanoId = "12345678";
@@ -213,7 +349,7 @@ public partial class AccepteInviteLambdaTests
     public async Task WhenUserActiveSeasonsUpdateFails_InviteAcceptedDateIsNotSet()
     {
         var nanoId = "87654321";
-        var invite = CreatePlayerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com");
+        var invite = CreatePlayerInvite(nanoId, acceptedAt: null);
         _dataTable.Seed(invite);
 
         _cognitoClient.ThrowOnAdminUpdate = new InternalErrorException("boom");
@@ -226,7 +362,7 @@ public partial class AccepteInviteLambdaTests
         _dataTable.Invites[nanoId].AcceptedAt.Should().BeNull();
     }
 
-    private static CaptainOrPlayerInvite CreatePlayerInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
+    private static CaptainOrPlayerInvite CreatePlayerInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com", string league = "Test League", string season = "2025-2026" )
         => new()
         {
             NanoId = nanoId,
@@ -235,14 +371,14 @@ public partial class AccepteInviteLambdaTests
             InviteeRole = Role.PLAYER,
             InviteeTeam = "Test Team",
             TeamDivision = "Test Division",
-            League = "Test League",
-            Season = "2025-2026",
+            League = league,
+            Season = season,
             InvitedBy = "Test Inviter",
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             AcceptedAt = acceptedAt
         };
 
-    private static ClubManagerInvite CreateClubManagerInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com")
+    private static ClubManagerInvite CreateClubManagerInvite(string nanoId, long? acceptedAt, string inviteeEmailId = "test@example.com", string league = "Test League", string season = "2025-2026" )
         => new()
         {
             NanoId = nanoId,
@@ -251,8 +387,8 @@ public partial class AccepteInviteLambdaTests
             InviteeRole = Role.CLUB_MANAGER,
             InviteeClub = "Test Club",
             ClubLocation = "London",
-            League = "Test League",
-            Season = "2025-2026",
+            League = league,
+            Season = season,
             InvitedBy = "Test Inviter",
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             AcceptedAt = acceptedAt
