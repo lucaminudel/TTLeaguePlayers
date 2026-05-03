@@ -20,8 +20,14 @@ matches:
       Read from this file, the TTLeaguePlayersApp architecture and tech stack info:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
 
+  - trigger: /ttlogs # TT Logging and Exceptions summary
+    label: 2. PRJ - Read the Logging and Exceptions guidelines
+    replace: |
+      Read from this file, the TTLeaguePlayersApp guidelines for logging and handling errors:
+      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md
+
   - trigger: /ttws # TT Workflow Staging
-    label: 2. PRJ - End of task Staging/Commit and CI pipeline execution
+    label: 3. PRJ - End of task Staging/Commit and CI pipeline execution
     replace: |
       This is a general rule about what to do after you complete a task: After completing a step of the tasks for which you have made changes to files, and having successfully passed the verification steps, ask me if I want you to
       1) run the basic verification commands (defined by other instructions or rules)
@@ -33,19 +39,19 @@ matches:
   #
 
   - trigger: /ttwfv # TT Workflow Frontend Verification
-    label: 3a. TSK - FrontEnd verification commands
+    label: 4a. TSK - FrontEnd verification commands
     replace: |
       Read from this file, on the commands to run verification commands for the FrontEnd:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/FrontEnd VerificationCommands.md
       
   - trigger: /ttwbv # TT Workflow Backend Verification
-    label: 3b. TSK - Backend verification commands
+    label: 4b. TSK - Backend verification commands
     replace: |
       Read from this file, on the commands to run verification commands for the BackEnd:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/BackEndVerificationCommands.md
 
   - trigger: /ttdebug # TT Workflow Debug local SAM lambdas
-    label: 4 TSK - Start Debugging local SAM lambdas
+    label: 5 TSK - Start Debugging local SAM lambdas
     replace: |
       Read from this file, the debug instructions to debug the Lambdas and Api GatewayC# running on SAM locally:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
@@ -54,18 +60,18 @@ matches:
   # Workflow instructions 
   #
   - trigger: /ttwfwt # TT Workflow, Write Tests 
-    label: 5a. WF - Test writing guidelines
+    label: 6a. WF - Test writing guidelines
     replace: |
       Read from this file, with the guidelines for writing tests:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
   - trigger: /ttftests # TT Workflow, Fix Tests 
-    label: 5b. WF - Broken Test fixing guidelines
+    label: 6b. WF - Broken Test fixing guidelines
     replace: |
       Read from this file, with the guidelines for fixing tests:
       /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
 
   - trigger: /tthandoff # TT Workflow Session Hand-off
-    label: 6 WF - Session Handoff
+    label: 7 WF - Session Handoff
     replace: |
       You're now handing this task off to another software engineer. Write a summary of
       A - what's still to be done, and

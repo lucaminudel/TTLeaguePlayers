@@ -50,7 +50,7 @@ public class RetrieveKudosGivenByPlayerLambda
             throw;
         }
 
-        _observer.OnRuntimeRegularEvent("RETRIEVE KUDOS GIVEN BY PLAYER COMPLETED",
+        _observer.OnRuntimeRegularEvent("GET PLAYER AWARDED KUDOS COMPLETED",
             source: new() { ["Class"] = nameof(RetrieveKudosGivenByPlayerLambda), ["Method"] = nameof(HandleAsync) },
             context,
             parameters: new() { 

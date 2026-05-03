@@ -34,7 +34,7 @@ public partial class AccepteInviteLambda
         }
         catch (KeyNotFoundException)
         {
-            _observer.OnRuntimeRegularEvent("ACCEPT INVITE FAILED",
+            _observer.OnRuntimeRegularEvent("ACCEPT INVITE COMPLETED",
                _fromHere, context, parameters.With("Found", false.ToString()));
 
             throw new KeyNotFoundException($"Invite not found for {nameof(nanoId)} {nanoId} ");
@@ -43,7 +43,7 @@ public partial class AccepteInviteLambda
         var inviteAlreadyAccepted = invite.AcceptedAt.HasValue;
         if (inviteAlreadyAccepted)
         {
-            _observer.OnRuntimeRegularEvent("ACCEPT INVITE IDEMPOTENT",
+            _observer.OnRuntimeRegularEvent("ACCEPT INVITE COMPLETED",
                _fromHere, context, parameters.With("AlreadyAccepted", true.ToString()));
 
             return invite;
@@ -59,9 +59,9 @@ public partial class AccepteInviteLambda
                 activeSeasons = CognitoUsers.AddActiveSeason(user, invite.League, invite.Season, captainOrPlayerInvite.InviteeTeam,
                                                               captainOrPlayerInvite.TeamDivision, invite.InviteeName, invite.InviteeRole.ToString());
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters);
+                _observer.OnRuntimeError(ex, context, parameters);
 
                 throw;
             }
@@ -75,9 +75,9 @@ public partial class AccepteInviteLambda
             {
                 managedClubs = CognitoUsers.AddManagedClub(user, invite.League, invite.Season, clubManagerInvite.InviteeClub, clubManagerInvite.ClubLocation, invite.InviteeName);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                _observer.OnRuntimeIrregularEvent("INVALID CONTENT BODY", _fromHere, context, parameters);
+                _observer.OnRuntimeError(ex, context, parameters);
 
                 throw;
             }
@@ -86,8 +86,6 @@ public partial class AccepteInviteLambda
         }
         else
         {
-            _observer.OnRuntimeIrregularEvent("UNKNOWN INVITE FAILED", _fromHere, context, parameters.With("InviteType", invite.GetType().Name));
-
             throw new InvalidOperationException($"Unknown invite type {invite.GetType().Name} for invite with {nameof(nanoId)} {nanoId}");
         }
         
@@ -98,7 +96,7 @@ public partial class AccepteInviteLambda
         }
         catch (KeyNotFoundException)
         {
-            _observer.OnRuntimeRegularEvent("ACCEPT INVITE FAILED", _fromHere, context, parameters.With("Found", false.ToString()));
+            _observer.OnRuntimeRegularEvent("ACCEPT INVITE COMPLETED", _fromHere, context, parameters.With("Found", false.ToString()));
 
             throw new KeyNotFoundException("Invite not found");
         }

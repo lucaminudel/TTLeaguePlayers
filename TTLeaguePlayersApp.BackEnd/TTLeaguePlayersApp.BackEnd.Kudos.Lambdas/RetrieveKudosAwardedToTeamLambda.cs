@@ -36,7 +36,7 @@ public class RetrieveKudosAwardedToTeamLambda
             throw; // Rethrows to be handled by API Gateway
         }
 
-        _observer.OnRuntimeRegularEvent("RETRIEVE KUDOS AWARDED TO TEAM COMPLETED",
+        _observer.OnRuntimeRegularEvent("GET TEAM RECEIVED KUDOS COMPLETED",
             source: new() { ["Class"] = nameof(RetrieveKudosAwardedToTeamLambda), ["Method"] = nameof(HandleAsync) },
             context,
             parameters: new() { 

@@ -38,16 +38,10 @@ public class CreateInviteLambda
         {
             await SendInviteEmail(invite, _inviteWebsiteUrl, _from, _bccTo);
         } 
-        else 
-        {
-            _observer.OnRuntimeIrregularEvent("CREATE INVITE - NO EMAIL IN LOCAL/TEST", 
-                source: new() { ["Class"] =  nameof(CreateInviteLambda), ["Method"] =  nameof(HandleAsync) },
-                context, parameters: new () { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId, [nameof(invite.NanoId)] = invite.NanoId, [nameof(invite.InviteeRole)] = invite.InviteeRole.ToString() } );
-        }
 
         _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
             source: new() { ["Class"] = nameof(CreateInviteLambda), ["Method"] = nameof(HandleAsync) },
-            context, parameters: new() { [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId ?? "", [nameof(invite.NanoId)] = invite.NanoId, [nameof(invite.InviteeRole)] = invite.InviteeRole.ToString() });
+            context, parameters: new() {  ["SendInviteEmail"] = _sendInviteEmail.ToString(), [nameof(invite.InviteeEmailId)] = invite.InviteeEmailId ?? "", [nameof(invite.NanoId)] = invite.NanoId, [nameof(invite.InviteeRole)] = invite.InviteeRole.ToString() });
 
         return invite;
     }

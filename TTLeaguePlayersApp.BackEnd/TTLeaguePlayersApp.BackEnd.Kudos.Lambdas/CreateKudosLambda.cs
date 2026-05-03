@@ -73,7 +73,7 @@ public class CreateKudosLambda
             throw;
         }
 
-        _observer.OnRuntimeRegularEvent("CREATE KUDOS COMPLETED",
+        _observer.OnRuntimeRegularEvent("GIVE KUDOS COMPLETED",
             source: new() { ["Class"] = nameof(CreateKudosLambda), ["Method"] = nameof(HandleAsync) },
             context, 
             parameters: new() { 

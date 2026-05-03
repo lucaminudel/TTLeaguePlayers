@@ -73,7 +73,7 @@ public class RetrieveKudosStandingsLambda
             NeutralKudosTable = neutralEntries.Where(e => e.Count > 0).OrderByDescending(e => e.Count).ToList()
         };
 
-        _observer.OnRuntimeRegularEvent("RETRIEVE KUDOS STANDINGS COMPLETED",
+        _observer.OnRuntimeRegularEvent("GET KUDOS STANDINGS COMPLETED",
             source: new() { ["Class"] = nameof(RetrieveKudosStandingsLambda), ["Method"] = nameof(HandleAsync) },
             context,
             parameters: new() { 
