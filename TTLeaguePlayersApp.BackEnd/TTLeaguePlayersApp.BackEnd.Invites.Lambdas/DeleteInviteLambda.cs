@@ -31,16 +31,7 @@ public class DeleteInviteLambda
 
     private static void ValidateRequest(string nanoId)
     {
-        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
-
-        if (string.IsNullOrWhiteSpace(nanoId))
-        {
-            throw new ValidationException(new List<string> { $"{nanoIdJsonName} is required" });
-        }
-
-        if (nanoId.Length != 8)
-        {
-            throw new ValidationException(new List<string> { $"{nanoIdJsonName} malformed." });
-        }
+        Invite.ValidateNanoId(nanoId);
     }
+
 }

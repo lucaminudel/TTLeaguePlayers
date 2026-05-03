@@ -111,22 +111,8 @@ public partial class AccepteInviteLambda
 
     private void ValidateRequest(string nanoId, long acceptedAt)
     {
-        var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(nanoId));
-        var acceptedAtJsonName = JsonFieldName.For<Invite>(nameof(acceptedAt));
+        Invite.ValidateNanoId(nanoId);
 
-        if (string.IsNullOrWhiteSpace(nanoId))
-        {
-            throw new ValidationException(new List<string> { $"{nanoIdJsonName} is required" });
-        }
-
-        if (nanoId.Length != 8)
-        {
-            throw new ValidationException(new List<string> { $"{nanoIdJsonName} malformed." });
-        }
-
-        if (acceptedAt <= 0)
-        {
-            throw new ValidationException(new List<string> { $"{acceptedAtJsonName} must be a positive unix timestamp." });
-        }
+        Invite.ValidateAcceptedAt(acceptedAt);
     }
 }
