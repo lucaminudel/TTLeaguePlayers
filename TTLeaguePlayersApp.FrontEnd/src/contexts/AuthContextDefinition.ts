@@ -10,6 +10,14 @@ export interface ActiveSeason {
   latest_kudos: number[];
 }
 
+export interface ManagedClub {
+  league: string;
+  season: string;
+  club_name: string;
+  club_location: string;
+  manager_name: string;
+}
+
 export interface AuthContextType {
   isAuthenticated: boolean;
   /**
@@ -22,6 +30,7 @@ export interface AuthContextType {
   email: string | null;
   userId: string | null;
   activeSeasons: ActiveSeason[];
+  managedClubs: ManagedClub[];
 
   /**
    * Set when AuthProvider initialisation fails (e.g. loadConfig failure or missing Cognito config).

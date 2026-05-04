@@ -7,7 +7,8 @@ import {
   CognitoUserAttribute
 } from 'amazon-cognito-identity-js';
 import { getConfig } from '../config/environment';
-import { AuthContext, type ActiveSeason } from './AuthContextDefinition';
+import { AuthContext, type ActiveSeason, type ManagedClub } from './AuthContextDefinition';
+import { parseActiveSeasonsJson, parseManagedClubsJson } from './AuthContextParsers';
 import { setAuthTokenProvider } from '../api/api';
 
 interface AuthProviderProps {
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [email, setEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
+  const [managedClubs, setManagedClubs] = useState<ManagedClub[]>([]);
 
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -114,55 +116,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     throw new Error(`AuthProvider.initAuth() has failed.${details}${extra}`);
   };
 
-  const parseActiveSeasonsJson = useCallback((value: string | null | undefined): ActiveSeason[] => {
-    if (!value || typeof value !== 'string') {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-
-      return parsed.reduce((acc: ActiveSeason[], item: unknown) => {
-        if (!item || typeof item !== 'object') return acc;
-
-        const record = item as Record<string, unknown>;
-        const isValidBase = typeof record.league === 'string'
-          && typeof record.season === 'string'
-          && typeof record.team_name === 'string'
-          && typeof record.team_division === 'string'
-          && typeof record.person_name === 'string'
-          && typeof record.role === 'string';
-
-        if (isValidBase) {
-          const latestKudos = Array.isArray(record.latest_kudos)
-            ? (record.latest_kudos as unknown[]).filter((k): k is number => typeof k === 'number')
-            : [];
-
-          acc.push({
-            league: record.league as string,
-            season: record.season as string,
-            team_name: record.team_name as string,
-            team_division: record.team_division as string,
-            person_name: record.person_name as string,
-            role: record.role as string,
-            latest_kudos: latestKudos
-          });
-        }
-        return acc;
-      }, []);
-    } catch {
-      return [];
-    }
-  }, []);
-
-  const fetchActiveSeasons = useCallback((cognitoUser: CognitoUser): Promise<ActiveSeason[]> => {
+  const fetchCustomAttributes = useCallback((cognitoUser: CognitoUser): Promise<{ seasons: ActiveSeason[]; clubs: ManagedClub[] }> => {
     return new Promise((resolve) => {
       cognitoUser.getUserAttributes((err, attributes) => {
         if (err || !attributes) {
-          resolve([]);
+          resolve({ seasons: [], clubs: [] });
           return;
         }
 
@@ -171,10 +129,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return name === 'custom:active_seasons' || name === 'active_seasons';
         });
 
-        resolve(parseActiveSeasonsJson(activeSeasonsAttribute?.getValue()));
+        const managedClubsAttribute = attributes.find((attr) => {
+          const name = attr.getName();
+          return name === 'custom:managed_clubs' || name === 'managed_clubs';
+        });
+
+        resolve({
+          seasons: parseActiveSeasonsJson(activeSeasonsAttribute?.getValue()),
+          clubs: parseManagedClubsJson(managedClubsAttribute?.getValue())
+        });
       });
     });
-  }, [parseActiveSeasonsJson]);
+  }, []);
 
   const assertAuthReady = (): CognitoUserPool => {
     if (authInitialisationError) {
@@ -203,6 +169,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setEmail(null);
     setUserId(null);
     setActiveSeasons([]);
+    setManagedClubs([]);
     setAuthError(null);
     setIsLoading(false);
   }, [userPool]);
@@ -241,12 +208,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
           if (!isMounted) return;
 
           let seasons: ActiveSeason[] = [];
+          let clubs: ManagedClub[] = [];
           if (!userErr && attributes) {
             const activeSeasonsAttribute = attributes.find((attr) => {
               const name = attr.getName();
               return name === 'custom:active_seasons' || name === 'active_seasons';
             });
             seasons = parseActiveSeasonsJson(activeSeasonsAttribute?.getValue());
+
+            const managedClubsAttribute = attributes.find((attr) => {
+              const name = attr.getName();
+              return name === 'custom:managed_clubs' || name === 'managed_clubs';
+            });
+            clubs = parseManagedClubsJson(managedClubsAttribute?.getValue());
           }
 
           // Set all state together to avoid re-renders with incomplete data
@@ -255,6 +229,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setEmail(extractedEmail);
           setUserId(extractedUserId);
           setActiveSeasons(seasons);
+          setManagedClubs(clubs);
           setIsLoading(false);
         });
         return;
@@ -266,6 +241,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setEmail(null);
       setUserId(null);
       setActiveSeasons([]);
+      setManagedClubs([]);
       setAuthError(null);
       setIsLoading(false);
     });
@@ -273,7 +249,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [userPool, authInitialisationError, parseActiveSeasonsJson]);
+  }, [userPool, authInitialisationError]);
 
   const signIn = async (emailInput: string, password: string): Promise<void> => {
     if (authInitialisationError) {
@@ -302,12 +278,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const extractedEmail = extractEmailFromToken(idToken);
           const extractedUserId = extractSubFromToken(idToken);
 
-          void fetchActiveSeasons(cognitoUser).then((seasons) => {
+          void fetchCustomAttributes(cognitoUser).then(({ seasons, clubs }) => {
             setIsAuthenticated(true);
             setUsername(extractedUsername);
             setEmail(extractedEmail);
             setUserId(extractedUserId);
             setActiveSeasons(seasons);
+            setManagedClubs(clubs);
             resolve();
           });
         },
@@ -456,6 +433,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (seasons.length > 0) {
               setActiveSeasons(seasons);
             }
+
+            const managedClubsAttribute = attributes.find((attr) => {
+              const name = attr.getName();
+              return name === 'custom:managed_clubs' || name === 'managed_clubs';
+            });
+
+            const clubs = parseManagedClubsJson(managedClubsAttribute?.getValue());
+
+            if (clubs.length > 0) {
+              setManagedClubs(clubs);
+            }
             resolve();
           });
         } catch (error) {
@@ -464,7 +452,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       });
     });
-  }, [userPool, isAuthenticated, parseActiveSeasonsJson]);
+  }, [userPool, isAuthenticated]);
 
   return (
     <AuthContext
@@ -475,6 +463,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email,
         userId,
         activeSeasons,
+        managedClubs,
         authInitialisationError,
         signIn,
         signUp,
