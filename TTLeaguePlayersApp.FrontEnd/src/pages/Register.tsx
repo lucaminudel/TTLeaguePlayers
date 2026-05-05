@@ -64,6 +64,7 @@ export const Register: React.FC = () => {
     if (!role) return '';
     if (role === 'CAPTAIN') return 'Team Captain';
     if (role === 'PLAYER') return 'Player';
+    if (role === 'CLUB_MANAGER') return 'Club Manager';
     return role;
   };
 
@@ -335,7 +336,9 @@ export const Register: React.FC = () => {
           {invite && (
             <div className="mb-3 sm:mb-4" data-testid="register-invite-details">
               <p className="text-base">{invite.invitee_name}, {displayRole(invite.invitee_role)}</p>
-              <p className="text-base">{invite.league} {invite.season}, {invite.invitee_team} - {invite.team_division}</p>
+              <p className="text-base">
+                {invite.league} {invite.season}, {invite.invitee_role === 'CLUB_MANAGER' ? `${invite.invitee_club} - ${invite.club_location}` : `${invite.invitee_team} - ${invite.team_division}`}
+              </p>
             </div>
           )}
 

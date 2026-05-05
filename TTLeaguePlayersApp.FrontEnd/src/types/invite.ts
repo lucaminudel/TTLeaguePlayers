@@ -6,38 +6,55 @@
  */
 export const Role = {
     PLAYER: 'PLAYER',
-    CAPTAIN: 'CAPTAIN'
+    CAPTAIN: 'CAPTAIN',
+    CLUB_MANAGER: 'CLUB_MANAGER'
 } as const;
 
 export type Role = (typeof Role)[keyof typeof Role];
 
-/**
- * Request payload for creating a new invite
- */
-export interface CreateInviteRequest {
+export interface BaseInviteRequest {
     invitee_name: string;
     invitee_email_id: string;
-    invitee_role: Role;
-    invitee_team: string;
-    team_division: string;
     league: string;
     season: string;
     invited_by: string;
 }
 
-/**
- * Response object representing an invite
- */
-export interface Invite {
+export interface CaptainOrPlayerInviteRequest extends BaseInviteRequest {
+    invitee_role: typeof Role.PLAYER | typeof Role.CAPTAIN;
+    invitee_team: string;
+    team_division: string;
+}
+
+export interface ClubManagerInviteRequest extends BaseInviteRequest {
+    invitee_role: typeof Role.CLUB_MANAGER;
+    invitee_club: string;
+    club_location: string;
+}
+
+export type CreateInviteRequest = CaptainOrPlayerInviteRequest | ClubManagerInviteRequest;
+
+export interface BaseInvite {
     nano_id: string;
     invitee_name: string;
     invitee_email_id: string;
-    invitee_role: Role;
-    invitee_team: string;
-    team_division: string;
     league: string;
     season: string;
     invited_by: string;
-    created_at: number; // Unix timestamp in seconds
-    accepted_at: number | null; // Unix timestamp in seconds or null if not yet accepted
+    created_at: number;
+    accepted_at: number | null;
 }
+
+export interface CaptainOrPlayerInvite extends BaseInvite {
+    invitee_role: typeof Role.PLAYER | typeof Role.CAPTAIN;
+    invitee_team: string;
+    team_division: string;
+}
+
+export interface ClubManagerInvite extends BaseInvite {
+    invitee_role: typeof Role.CLUB_MANAGER;
+    invitee_club: string;
+    club_location: string;
+}
+
+export type Invite = CaptainOrPlayerInvite | ClubManagerInvite;

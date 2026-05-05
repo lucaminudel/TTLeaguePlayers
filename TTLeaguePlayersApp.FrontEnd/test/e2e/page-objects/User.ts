@@ -60,10 +60,11 @@ export class User {
     const joinPage = new JoinPage(this.page);
     await this.page.goto(`/#/join/${inviteId}`);
 
-    await expect(this.page.locator('h2')).toHaveText('Join - Personal Invite');
-
     // Wait for the fetch to either succeed or fail.
     await expect(this.page.getByTestId('join-loading-message')).not.toBeVisible({ timeout: 10000 });
+
+    // Verify the header starts with "Join"
+    await expect(this.page.locator('h2')).toHaveText(/^Join/);
 
     if (email) {
       await expect(this.page.getByTestId('join-invite-email')).toContainText(email);

@@ -637,6 +637,60 @@ test.describe('Register with Invite Flow', () => {
       await expect(page.locator('#password')).toBeFocused();
     });
 
+    test('register via club manager invite - displays info and locks email', async ({ page }) => {
+      const invite = {
+        nano_id: 'test-club-invite-id',
+        invited_by: 'Luca',
+        invitee_name: 'Jane Smith',
+        invitee_email_id: 'jane@example.com',
+        invitee_role: 'CLUB_MANAGER',
+        invitee_club: 'Morpeth TTC',
+        club_location: 'London',
+        season: '2025',
+        league: 'Super League',
+        status: 'SENT',
+        created_at: '2025-01-01T00:00:00Z',
+        expires_at: '2025-02-01T00:00:00Z'
+      };
+
+      // 1. Mock the getInvite API call
+      await page.route('**/invites/test-club-invite-id', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(invite)
+        });
+      });
+
+      // 2. Navigate to Join page
+      const user = new User(page);
+      const joinPage = await user.navigateToJoin('test-club-invite-id');
+
+      // 3. Click Register & Verify Register page state
+      await joinPage.redeemInvite();
+
+      // Check invite details display using stable container locators
+      const inviteDetails = page.getByTestId('register-invite-details');
+      await expect(inviteDetails).toContainText(invite.league);
+      await expect(inviteDetails).toContainText(invite.season);
+      await expect(inviteDetails).toContainText(invite.invitee_club);
+      await expect(inviteDetails).toContainText(invite.club_location);
+      await expect(inviteDetails).toContainText(invite.invitee_name);
+      await expect(inviteDetails).toContainText('Club Manager');
+
+      // Check email is pre-filled and disabled
+      const emailInput = page.locator('#email');
+      await expect(emailInput).toHaveValue(invite.invitee_email_id);
+      await expect(emailInput).toBeDisabled();
+
+      // Check style (bg-gray-400 class added when invite is present)
+      await expect(emailInput).toHaveClass(/bg-gray-400/);
+      await expect(emailInput).toHaveClass(/cursor-not-allowed/);
+
+      // Check focus is on password field
+      await expect(page.locator('#password')).toBeFocused();
+    });
+
     test('registration with invite success - happy path', async ({ page }) => {
       test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 

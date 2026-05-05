@@ -16,10 +16,17 @@ export const Join: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<{ message: string; showRetry: boolean } | null>(null);
 
-    const title = "Join - Personal Invite";
+    const title = !invite
+        ? "Join"
+        : invite.invitee_role === 'CLUB_MANAGER'
+            ? "Join - Club Invite"
+            : "Join - Personal Invite";
 
     useEffect(() => {
         document.title = title;
+    }, [title]);
+
+    useEffect(() => {
 
         const fetchInvite = async () => {
             try {
@@ -78,6 +85,7 @@ export const Join: React.FC = () => {
         if (!role) return '';
         if (role === 'CAPTAIN') return 'Team Captain';
         if (role === 'PLAYER') return 'Player';
+        if (role === 'CLUB_MANAGER') return 'Club Manager';
         return role;
     };
 
@@ -166,10 +174,17 @@ export const Join: React.FC = () => {
                         </div>
                     )}
 
-                    <div data-testid="join-invite-team">
-                        <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Team</p>
-                        <p className="text-base sm:text-lg">{invite.invitee_team}, {invite.team_division}</p>
-                    </div>
+                    {invite.invitee_role === 'CLUB_MANAGER' ? (
+                        <div data-testid="join-invite-club">
+                            <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Club</p>
+                            <p className="text-base sm:text-lg">{invite.invitee_club}, {invite.club_location}</p>
+                        </div>
+                    ) : (
+                        <div data-testid="join-invite-team">
+                            <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Team</p>
+                            <p className="text-base sm:text-lg">{invite.invitee_team}, {invite.team_division}</p>
+                        </div>
+                    )}
 
                     <div className="pt-4 mt-2 border-t border-gray-600" data-testid="join-invite-league-season">
                         <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">League/Season</p>

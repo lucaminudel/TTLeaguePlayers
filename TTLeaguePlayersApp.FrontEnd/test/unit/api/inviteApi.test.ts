@@ -108,4 +108,52 @@ describe('inviteApi', () => {
       );
     });
   });
+
+  describe('createInvite (club manager)', () => {
+    it('should post club manager data to /invites', async () => {
+      const request: CreateInviteRequest = {
+        invitee_name: 'Club Manager',
+        invitee_email_id: 'manager@example.com',
+        invitee_role: Role.CLUB_MANAGER,
+        invitee_club: 'London TTC',
+        club_location: 'London',
+        league: 'League A',
+        season: '2024',
+        invited_by: 'Luca'
+      };
+      const mockResponse = { id: 'new-id' };
+      vi.mocked(apiFetch).mockResolvedValue(mockResponse);
+
+      await inviteApi.createInvite(request);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(request),
+        })
+      );
+    });
+  });
+
+  describe('acceptInvite (club manager)', () => {
+    it('should patch data to /invites/{nanoId} for club manager invite', async () => {
+      const nanoId = 'mgr-id01';
+      const acceptedAt = 1234567890;
+      const mockResponse = { id: 'mgr-id01', accepted_at: acceptedAt };
+      vi.mocked(apiFetch).mockResolvedValue(mockResponse);
+
+      await inviteApi.acceptInvite(nanoId, acceptedAt);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites/mgr-id01',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ accepted_at: acceptedAt }),
+        })
+      );
+    });
+  });
 });

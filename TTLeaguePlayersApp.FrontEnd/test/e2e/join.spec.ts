@@ -32,6 +32,7 @@ test.describe('Join Page', () => {
         });
 
         await user.navigateToJoin(testInviteId);
+        await expect(page.locator('h2')).toHaveText('Join - Personal Invite');
 
         // Verify invite details using stable container locators
         const inviteDetails = page.getByTestId('join-invite-details');
@@ -41,6 +42,44 @@ test.describe('Join Page', () => {
         await expect(inviteDetails.getByTestId('join-invite-email')).toContainText('john@example.com');
         await expect(inviteDetails.getByTestId('join-invite-team')).toContainText('The Smashers');
         await expect(inviteDetails.getByTestId('join-invite-team')).toContainText('Premier');
+        await expect(inviteDetails.getByTestId('join-invite-league-season')).toContainText('Local League');
+        await expect(inviteDetails.getByTestId('join-invite-league-season')).toContainText('Winter 2024');
+
+        const registerButton = page.getByTestId('join-register-button');
+        await expect(registerButton).toBeVisible();
+    });
+
+    test('should display club manager invite details when successful (mocked)', async ({ page }) => {
+        const user = new User(page);
+        const inviteData = {
+            nano_id: testInviteId,
+            invitee_name: 'Jane Smith',
+            invitee_email_id: 'jane@example.com',
+            invitee_role: 'CLUB_MANAGER',
+            invitee_club: 'Morpeth TTC',
+            club_location: 'London',
+            league: 'Local League',
+            season: 'Winter 2024',
+            invited_by: 'Luca',
+            accepted_at: null
+        };
+
+        // Mock the API response
+        await page.route('**/invites/*', async (route) => {
+            await route.fulfill({ json: inviteData });
+        });
+
+        await user.navigateToJoin(testInviteId);
+        await expect(page.locator('h2')).toHaveText('Join - Club Invite');
+
+        // Verify invite details using stable container locators
+        const inviteDetails = page.getByTestId('join-invite-details');
+        await expect(inviteDetails.getByTestId('join-invite-from')).toContainText('Luca');
+        await expect(inviteDetails.getByTestId('join-invite-to')).toContainText('Club Manager');
+        await expect(inviteDetails.getByTestId('join-invite-to')).toContainText('Jane Smith');
+        await expect(inviteDetails.getByTestId('join-invite-email')).toContainText('jane@example.com');
+        await expect(inviteDetails.getByTestId('join-invite-club')).toContainText('Morpeth TTC');
+        await expect(inviteDetails.getByTestId('join-invite-club')).toContainText('London');
         await expect(inviteDetails.getByTestId('join-invite-league-season')).toContainText('Local League');
         await expect(inviteDetails.getByTestId('join-invite-league-season')).toContainText('Winter 2024');
 
