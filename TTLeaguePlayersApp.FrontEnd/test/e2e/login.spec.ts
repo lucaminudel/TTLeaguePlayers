@@ -41,6 +41,27 @@ test.describe('Login Flow', () => {
         await expect(page.getByTestId('main-menu-welcome-message')).not.toBeVisible();
         await expect(page.getByTestId('main-menu-login-link')).toBeVisible();
     });
+ 
+    test('successful login flow - Club Manager welcome message and clubs', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    
+        const user = new UserFlow(page);
+        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered3@user.test', 'aA1!56789012');
+ 
+        // Open menu to verify welcome message and managed clubs
+        await user.menu.open();
+        const userInfo = page.getByTestId('main-menu-user-info');
+ 
+        // Verify welcome name (from managed club if no seasons)
+        await expect(userInfo.getByTestId('main-menu-welcome-message')).toContainText('Welcome, Luca Minudel');
+ 
+        // Verify managed club details
+        const managedClubs = userInfo.locator('[data-testid="main-menu-managed-club"]');
+        await expect(managedClubs.nth(0)).toContainText('MANAGER: Morpeth Table Tennis Club, London (CLTTL 2025-2026)');
+ 
+        // Logout
+        await user.menu.logout();
+    });
 
     test('login - non existing user shows expected error message', async ({ page }) => {
         const user = new UserFlow(page);

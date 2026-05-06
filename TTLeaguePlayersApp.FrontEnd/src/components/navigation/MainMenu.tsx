@@ -5,50 +5,71 @@ import { useAuth } from '../../hooks/useAuth';
 interface MenuItem {
     label: string;
     path?: string;
-    visibleToAuthenticated: boolean;
+    visibleToAuthenticatedPlayerOrCaptain: boolean;
+    visibleToAuthenticatedClubManager: boolean;
     visibleToUnauthenticated: boolean;
 }
 
 export const MainMenu: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
-    const { isAuthenticated, username, activeSeasons, signOut } = useAuth();
+    const { isAuthenticated, isPlayerOrCaptain, isClubManager, username, activeSeasons, managedClubs, signOut } = useAuth();
 
     const menuItems: MenuItem[] = [
         {
             label: 'Home',
             path: '/',
-            visibleToAuthenticated: true,
+            visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: true
         },
         {
             label: 'Kudos',
             path: '/kudos',
-            visibleToAuthenticated: true,
+            visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAuthenticatedClubManager: false,
             visibleToUnauthenticated: false
         },
         {
             label: 'Kudos Standings',
             path: '/kudos-standings',
-            visibleToAuthenticated: true,
+            visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAuthenticatedClubManager: false,
+            visibleToUnauthenticated: false
+        },
+        {
+            label: 'Club Kudos Standings',
+            path: '/club-kudos-standings',
+            visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
         {
             label: 'Tournaments & Clubs',
             path: '/tournaments-and-clubs',
-            visibleToAuthenticated: true,
+            visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: true
         },
         {
-            label: 'Forums',
-            path: '/forums',
-            visibleToAuthenticated: true,
+            label: 'List your Club',
+            path: '/club-add-to-the-list',
+            visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAuthenticatedClubManager: true,
+            visibleToUnauthenticated: false
+        },
+        {
+            label: 'Announce a Tournament',
+            path: '/club-tounraments',
+            visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
         {
             label: 'About',
             path: '/about',
-            visibleToAuthenticated: true,
+            visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: true
         }
     ];
@@ -65,7 +86,11 @@ export const MainMenu: React.FC = () => {
 
     const hasActiveSeasons = activeSeasons.length > 0;
     const firstSeason = hasActiveSeasons ? activeSeasons[0] : null;
-    const welcomeName = firstSeason?.person_name ?? username;
+    
+    const hasManagedClubs = managedClubs.length > 0;
+    const firstClub = hasManagedClubs ? managedClubs[0] : null;
+
+    const welcomeName = firstSeason?.person_name ?? firstClub?.manager_name ?? username;
 
     return (
         <>
@@ -110,6 +135,13 @@ export const MainMenu: React.FC = () => {
                                     <div className="text-lg" data-testid="main-menu-welcome-message">
                                         Welcome, {welcomeName}
                                     </div>
+
+                                    {managedClubs.map((club, index) => (
+                                        <div key={`${club.league}-${club.season}-${club.club_name}-${String(index)}`} className="text-base mt-2" data-testid="main-menu-managed-club">
+                                            MANAGER: {club.club_name}, {club.club_location} ({club.league} {club.season})
+                                            {(firstClub?.manager_name && club.manager_name !== firstClub.manager_name) ? ` (${club.manager_name})` : ''}
+                                        </div>
+                                    ))}
                                     {firstSeason && (
                                         <div className="text-base mt-2" data-testid="main-menu-first-season">
                                             {firstSeason.league} {firstSeason.season} - {firstSeason.team_name}, {firstSeason.team_division}
@@ -133,7 +165,7 @@ export const MainMenu: React.FC = () => {
                         )}
                         {menuItems.map((item) => {
                             const isVisible = isAuthenticated
-                                ? item.visibleToAuthenticated
+                                ? (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager)
                                 : item.visibleToUnauthenticated;
 
                             if (!isVisible) return null;

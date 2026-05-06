@@ -63,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
   const [managedClubs, setManagedClubs] = useState<ManagedClub[]>([]);
-
+  
   const [authError, setAuthError] = useState<string | null>(null);
 
   const extractUsernameFromToken = (idToken: string): string => {
@@ -464,6 +464,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         userId,
         activeSeasons,
         managedClubs,
+        isPlayerOrCaptain: activeSeasons.length > 0,
+        isClubManager: managedClubs.length > 0,
         authInitialisationError,
         signIn,
         signUp,

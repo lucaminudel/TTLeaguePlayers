@@ -64,6 +64,21 @@ test.describe('Homepage', () => {
                 const link = page.getByTestId(item.testId);
                 await expect(link).toBeVisible();
             }
+
+            // Verify Logged-in only, Players and Captains only items and Club Manager only items are NOT visible
+            const playerCaptainClubManagerOnlyAndNotLoggedInItems = [
+                { name: 'Log out', testId: 'main-menu-logout-button' },
+                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
+                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
+                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+            ];
+ 
+            for (const item of playerCaptainClubManagerOnlyAndNotLoggedInItems) {
+                await expect(page.getByTestId(item.testId)).not.toBeVisible();
+            }
+            
             // Verify menu items are all centred
             const overlay = page.getByTestId('main-menu-overlay');
             await expect(overlay).toHaveCSS('display', 'flex');
@@ -72,7 +87,7 @@ test.describe('Homepage', () => {
             await expect(overlay).toHaveCSS('align-items', 'center');
         });
 
-        test('when clicking the hamburger menu an authenticated users should see all the menu items for loggedin users', async ({ page }) => {
+        test('when clicking the hamburger menu an authenticated Player/Captain users should see all the menu items for loggedin users', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new User(page);
@@ -86,10 +101,10 @@ test.describe('Homepage', () => {
             const menuItems = [
                 { name: 'Log out', testId: 'main-menu-logout-button' },
                 { name: 'Home', testId: 'main-menu-nav-home' },
+                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
+                { name: 'About', testId: 'main-menu-nav-about' },
                 { name: 'Kudos', testId: 'main-menu-nav-kudos' },
-                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
-                { name: 'Forums', testId: 'main-menu-nav-forums' },
-                { name: 'About', testId: 'main-menu-nav-about' }
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' }
             ];
 
             for (const item of menuItems) {
@@ -97,12 +112,60 @@ test.describe('Homepage', () => {
                 await expect(link).toBeVisible();
             }
 
+            // Verify Logged-in only, Players and Captains only items and Club Manager only items are NOT visible
+            const captainOnlyAndNotLoggedInItems = [
+                { name: 'Log in', testId: 'main-menu-login-link' },
+                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
+                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
+                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+            ];
+ 
+            for (const item of captainOnlyAndNotLoggedInItems) {
+                await expect(page.getByTestId(item.testId)).not.toBeVisible();
+            }
+            
             // Verify menu items are all centred
             const overlay = page.getByTestId('main-menu-overlay');
             await expect(overlay).toHaveCSS('display', 'flex');
             await expect(overlay).toHaveCSS('flex-direction', 'column');
             await expect(overlay).toHaveCSS('justify-content', 'center');
             await expect(overlay).toHaveCSS('align-items', 'center');
+        });
+ 
+        test('when clicking the hamburger menu as a Club Manager, should see club manager items and not player items', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+ 
+            const user = new User(page);
+            // test_already_registered3@user.test is the club manager account
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered3@user.test', 'aA1!56789012');
+ 
+            await user.menu.open();
+ 
+            // that all menu items are present and are visiblised in the whole page
+            const menuItems = [
+                { name: 'Log out', testId: 'main-menu-logout-button' },
+                { name: 'Home', testId: 'main-menu-nav-home' },
+                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
+                { name: 'About', testId: 'main-menu-nav-about' },
+                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
+                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
+                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+            ];
+ 
+            for (const item of menuItems) {
+                await expect(page.getByTestId(item.testId)).toBeVisible();
+            }
+ 
+            // Verify Player and Captains only items and Non logged-in only items are NOT visible
+            const playerCaptainOnlyAndNotLoggedInItems = [
+                { name: 'Log in', testId: 'main-menu-login-link' },
+                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+            ];
+ 
+            for (const item of playerCaptainOnlyAndNotLoggedInItems) {
+                await expect(page.getByTestId(item.testId)).not.toBeVisible();
+            }
         });
 
         test('when clicking the hamburger menu with a logged-in user should show the menu items visible only to logged-in users', async ({ page }) => {
@@ -187,16 +250,6 @@ test.describe('Homepage', () => {
             await user.menu.open();
             await user.menu.navigateToTournamentsAndClubs();
             await expect(page).toHaveURL(/\/tournaments-and-clubs$/);
-        });
-
-        test('when clicking Forums menu item, a loggedin user should navigate to forums page', async ({ page }) => {
-            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-
-            const user = new User(page);
-            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-            await user.menu.open();
-            await user.menu.navigateToForums();
-            await expect(page).toHaveURL(/\/forums$/);
         });
 
         test('when clicking About menu item, a non-loggedin user should navigate to the about page', async ({ page }) => {

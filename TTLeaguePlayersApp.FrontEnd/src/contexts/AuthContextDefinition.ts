@@ -31,6 +31,8 @@ export interface AuthContextType {
   userId: string | null;
   activeSeasons: ActiveSeason[];
   managedClubs: ManagedClub[];
+  isPlayerOrCaptain: boolean;
+  isClubManager: boolean;
 
   /**
    * Set when AuthProvider initialisation fails (e.g. loadConfig failure or missing Cognito config).
