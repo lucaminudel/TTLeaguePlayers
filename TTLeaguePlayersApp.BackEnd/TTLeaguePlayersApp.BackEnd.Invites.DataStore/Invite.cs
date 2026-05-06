@@ -31,6 +31,10 @@ public abstract class Invite
     [JsonPropertyName("accepted_at")]
     public long? AcceptedAt { get; set; }
 
+    [JsonPropertyName("invitee_already_registered")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? InviteeAlreadyRegistered { get; set; }
+
     public static void ValidateNanoId(string nanoId)
     {
         var nanoIdJsonName = JsonFieldName.For<Invite>(nameof(NanoId));

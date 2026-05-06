@@ -36,6 +36,19 @@ public class CognitoUsers
         return user;
     }
 
+    public async Task<bool> IsUserRegisteredByEmail(string email)
+    {
+        var listUsersRequest = new ListUsersRequest
+        {
+            UserPoolId = _cognitoUserPoolId,
+            Filter = $"email = \"{email}\"",
+            Limit = 1
+        };
+
+        var listUsersResponse = await _cognitoClient.ListUsersAsync(listUsersRequest);
+        return listUsersResponse.Users.Count > 0;
+    }
+
     public async Task UpdateActiveSeasonsUserAttribute(string username, List<ActiveSeason> activeSeasons)
     {
         var updateAttributesRequest = new AdminUpdateUserAttributesRequest

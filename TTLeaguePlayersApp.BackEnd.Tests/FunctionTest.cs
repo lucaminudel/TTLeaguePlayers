@@ -1,13 +1,11 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
 using Xunit;
-using Amazon.Lambda.Core;
 using Amazon.Lambda.TestUtilities;
-using TTLeaguePlayersApp.BackEnd;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using Amazon;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests;
 
@@ -76,7 +74,8 @@ public class FunctionTest : IAsyncLifetime
 
         // Invoke the lambda function and confirm the NanoId is echoed back
         var mockObserver = new LoggerObserver();
-        var function = new GetInviteLambda(mockObserver, invitesDataTable);
+        var cognitoUsers = new CognitoUsers(new FakeCognitoClient(), "fake-pool-id");
+        var function = new GetInviteLambda(mockObserver, invitesDataTable, cognitoUsers);
         var invite = await function.HandleAsync(nanoId, _context);
 
         Assert.Equal(nanoId, invite.NanoId);

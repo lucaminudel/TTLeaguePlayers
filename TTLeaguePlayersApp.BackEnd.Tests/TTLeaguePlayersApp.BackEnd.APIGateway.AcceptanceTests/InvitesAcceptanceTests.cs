@@ -373,6 +373,64 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
     }
 
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Invite_Should_Return_InviteeAlreadyRegistered_True_For_Registered_User()
+    {
+        // Arrange - Create an invite with a known registered Cognito user email
+        var createdInviteId = await CreateInviteAsync(
+            name: "Registered User",
+            email: "test_ready_for_accept_invite_api_call@user.test", // setup script creates this user in Cognito
+            role: "PLAYER",
+            teamName: "Test Team",
+            division: "Division 1",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Tester");
+
+        // Act
+        var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
+        jsonResult.GetProperty("invitee_already_registered").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Invite_Should_Return_InviteeAlreadyRegistered_False_For_Unregistered_User()
+    {
+        // Arrange - Create an invite with an email that does NOT exist in Cognito
+        var createdInviteId = await CreateInviteAsync(
+            name: "Unregistered User",
+            email: "definitely_not_registered_user@example.com", // This email must NOT exist in Cognito
+            role: "PLAYER",
+            teamName: "Ghost Team",
+            division: "Division 1",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Tester");
+
+        // Act
+        var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
+        jsonResult.GetProperty("invitee_already_registered").GetBoolean().Should().BeFalse();
+    }
+
     #endregion
 
     #region OPTIONS Tests

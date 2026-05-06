@@ -1,5 +1,6 @@
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
@@ -7,11 +8,13 @@ public class GetInviteLambda
 {
     private readonly ILoggerObserver _observer;
     private readonly IInvitesDataTable _invitesDataTable;
+    private readonly CognitoUsers _cognitoUsers;
 
-    public GetInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable)
+    public GetInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, CognitoUsers cognitoUsers)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
+        _cognitoUsers = cognitoUsers;
     }
 
     public async Task<Invite> HandleAsync(string nanoId, ILambdaContext context)
@@ -21,6 +24,9 @@ public class GetInviteLambda
         try
         {
             var invite = await _invitesDataTable.RetrieveInvite(nanoId);
+
+            var inviteeAlreadyRegistered = await _cognitoUsers.IsUserRegisteredByEmail(invite.InviteeEmailId);
+            invite.InviteeAlreadyRegistered = inviteeAlreadyRegistered;
             
             _observer.OnRuntimeRegularEvent("GET INVITE BY ID COMPLETED",
                 source: new() { ["Class"] =  nameof(GetInviteLambda), ["Method"] = nameof(HandleAsync) }, 
