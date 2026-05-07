@@ -122,7 +122,7 @@ echo "Cognito Test user '$EMAIL3' registered and confirmed successfully with onl
 
 EMAIL4="test_already_registered3@user.test"
 PASSWORD4="aA1!56789012"
-# Create the active_seasons JSON with only BCS league
+# Create the managed_clubs JSON 
 MANAGED_CLUBS_JSON4='[{"league":"CLTTL","season":"2025-2026","club_name":"Morpeth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"}]'
 
 #echo "User Pool ID: $USER_POOL_ID"
@@ -148,23 +148,19 @@ echo "Cognito Test user '$EMAIL4' registered and confirmed successfully with one
 
 
 
-EMAIL5="test_kudos_wt@user.test"
+EMAIL5="test_already_registered4@user.test"
 PASSWORD5="aA1!56789012"
 
 #echo "User Pool ID: $USER_POOL_ID"
 #echo "Registering user: $EMAIL5"
 
-# Create the active_seasons JSON 
-ACTIVE_SEASONS_JSON5='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
-
 # Create user
 aws cognito-idp admin-create-user \
     --user-pool-id "$USER_POOL_ID" \
     --username "$EMAIL5" \
-    --user-attributes "Name=email,Value=$EMAIL5" "Name=email_verified,Value=true" "Name=custom:active_seasons,Value='$ACTIVE_SEASONS_JSON5'" \
+    --user-attributes "Name=email,Value=$EMAIL5" "Name=email_verified,Value=true" \
     --temporary-password "$PASSWORD5" \
     --message-action SUPPRESS > /dev/null
-
 
 # Set permanent password and confirm user
 aws cognito-idp admin-set-user-password \
@@ -173,17 +169,19 @@ aws cognito-idp admin-set-user-password \
     --password $PASSWORD5 \
     --permanent
 
-echo "Cognito Test user '$EMAIL5' registered and confirmed successfully!"
+echo "Cognito Test user '$EMAIL5' registered and confirmed successfully with NO active season and NO managed club!"
 
 
-EMAIL6="test_kudos_f5@user.test"
+
+
+EMAIL6="test_kudos_wt@user.test"
 PASSWORD6="aA1!56789012"
 
 #echo "User Pool ID: $USER_POOL_ID"
 #echo "Registering user: $EMAIL6"
 
 # Create the active_seasons JSON 
-ACTIVE_SEASONS_JSON6='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
+ACTIVE_SEASONS_JSON6='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
 
 # Create user
 aws cognito-idp admin-create-user \
@@ -202,3 +200,31 @@ aws cognito-idp admin-set-user-password \
     --permanent
 
 echo "Cognito Test user '$EMAIL6' registered and confirmed successfully!"
+
+
+EMAIL7="test_kudos_f5@user.test"
+PASSWORD7="aA1!56789012"
+
+#echo "User Pool ID: $USER_POOL_ID"
+#echo "Registering user: $EMAIL7"
+
+# Create the active_seasons JSON 
+ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
+
+# Create user
+aws cognito-idp admin-create-user \
+    --user-pool-id "$USER_POOL_ID" \
+    --username "$EMAIL7" \
+    --user-attributes "Name=email,Value=$EMAIL7" "Name=email_verified,Value=true" "Name=custom:active_seasons,Value='$ACTIVE_SEASONS_JSON7'" \
+    --temporary-password "$PASSWORD7" \
+    --message-action SUPPRESS > /dev/null
+
+
+# Set permanent password and confirm user
+aws cognito-idp admin-set-user-password \
+    --user-pool-id $USER_POOL_ID \
+    --username $EMAIL7 \
+    --password $PASSWORD7 \
+    --permanent
+
+echo "Cognito Test user '$EMAIL7' registered and confirmed successfully!"

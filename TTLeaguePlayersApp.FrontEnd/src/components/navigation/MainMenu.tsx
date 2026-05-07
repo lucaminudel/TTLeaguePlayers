@@ -6,6 +6,7 @@ interface MenuItem {
     label: string;
     path?: string;
     visibleToAuthenticatedPlayerOrCaptain: boolean;
+    visibleToAllAuthenticated: boolean;    
     visibleToAuthenticatedClubManager: boolean;
     visibleToUnauthenticated: boolean;
 }
@@ -21,12 +22,14 @@ export const MainMenu: React.FC = () => {
             path: '/',
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAuthenticatedClubManager: true,
+            visibleToAllAuthenticated: true,
             visibleToUnauthenticated: true
         },
         {
             label: 'Kudos',
             path: '/kudos',
             visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: false,
             visibleToUnauthenticated: false
         },
@@ -34,6 +37,7 @@ export const MainMenu: React.FC = () => {
             label: 'Kudos Standings',
             path: '/kudos-standings',
             visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: false,
             visibleToUnauthenticated: false
         },
@@ -41,6 +45,7 @@ export const MainMenu: React.FC = () => {
             label: 'Club Kudos Standings',
             path: '/club-kudos-standings',
             visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
@@ -48,6 +53,7 @@ export const MainMenu: React.FC = () => {
             label: 'Tournaments & Clubs',
             path: '/tournaments-and-clubs',
             visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAllAuthenticated: true,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: true
         },
@@ -55,6 +61,7 @@ export const MainMenu: React.FC = () => {
             label: 'List your Club',
             path: '/club-add-to-the-list',
             visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
@@ -62,6 +69,7 @@ export const MainMenu: React.FC = () => {
             label: 'Announce a Tournament',
             path: '/club-tounraments',
             visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
@@ -69,6 +77,7 @@ export const MainMenu: React.FC = () => {
             label: 'About',
             path: '/about',
             visibleToAuthenticatedPlayerOrCaptain: true,
+            visibleToAllAuthenticated: true,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: true
         }
@@ -165,7 +174,8 @@ export const MainMenu: React.FC = () => {
                         )}
                         {menuItems.map((item) => {
                             const isVisible = isAuthenticated
-                                ? (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager)
+                                ? item.visibleToAllAuthenticated || (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager) 
+
                                 : item.visibleToUnauthenticated;
 
                             if (!isVisible) return null;

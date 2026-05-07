@@ -87,6 +87,51 @@ test.describe('Homepage', () => {
             await expect(overlay).toHaveCSS('align-items', 'center');
         });
 
+        test('when clicking the hamburger menu an authenticated Player/Captain users with no active sessions  should see all the menu items for loggedin users', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+
+            await user.navigateToLoginAndSuccesfullyLogin('test_already_registered4@user.test', 'aA1!56789012');
+
+            await user.menu.open();
+
+
+            // that all menu items are present and are visiblised in the whole page
+            const menuItems = [
+                { name: 'Log out', testId: 'main-menu-logout-button' },
+                { name: 'Home', testId: 'main-menu-nav-home' },
+                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
+                { name: 'About', testId: 'main-menu-nav-about' }
+            ];
+
+            for (const item of menuItems) {
+                const link = page.getByTestId(item.testId);
+                await expect(link).toBeVisible();
+            }
+
+            // Verify Logged-in only, Players and Captains only items and Club Manager only items are NOT visible
+            const captainOnlyAndNotLoggedInItems = [
+                { name: 'Log in', testId: 'main-menu-login-link' },
+                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
+                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
+                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+            ];
+ 
+            for (const item of captainOnlyAndNotLoggedInItems) {
+                await expect(page.getByTestId(item.testId)).not.toBeVisible();
+            }
+            
+            // Verify menu items are all centred
+            const overlay = page.getByTestId('main-menu-overlay');
+            await expect(overlay).toHaveCSS('display', 'flex');
+            await expect(overlay).toHaveCSS('flex-direction', 'column');
+            await expect(overlay).toHaveCSS('justify-content', 'center');
+            await expect(overlay).toHaveCSS('align-items', 'center');
+        });
+
         test('when clicking the hamburger menu an authenticated Player/Captain users should see all the menu items for loggedin users', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
