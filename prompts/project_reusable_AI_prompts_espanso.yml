@@ -75,5 +75,9 @@ matches:
     replace: |
       You're now handing this task off to another software engineer. Write a summary of
       A - what's still to be done, and
-      B - the things among those just completed and others already available that A will need to build upon.
-      This  has zero context about the task, so include whatever will help them, directly or by pointing at relevant sources with a link
+      B - how to do it 
+      This software engineer, you are handing this taks off, has zero context about the task, so include in your summary 
+      any info, context, references, details, and whatever will help them to execute point A and B.
+      Include in your summary include relevant links to code files and .md files.
+      Finally add a paragraph at the end of the suppari with info and insttructions for the LLM AI assistant that will help
+      the software engineer with the task.
