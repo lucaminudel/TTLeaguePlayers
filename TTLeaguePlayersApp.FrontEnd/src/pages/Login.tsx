@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
@@ -18,6 +18,13 @@ export const Login: React.FC = () => {
   const { signIn, authError, clearAuthError } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const emailParam = searchParams.get('email');
+
+  useEffect(() => {
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [emailParam]);
 
   const getReturnUrl = (): string => {
     const returnUrl = searchParams.get('returnUrl');
@@ -84,6 +91,9 @@ export const Login: React.FC = () => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); }}
               required
+              disabled={!!emailParam}
+              className={emailParam ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100' : ''}
+              style={emailParam ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
               placeholder="Enter your email"
             />
           </FormField>

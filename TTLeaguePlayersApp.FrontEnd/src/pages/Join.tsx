@@ -5,22 +5,36 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { inviteApi } from '../api/inviteApi';
+import { useAuth } from '../hooks/useAuth';
+import { useAcceptInvite } from '../hooks/useAcceptInvite';
 import type { Invite } from '../types/invite';
 
 export const Join: React.FC = () => {
     const { inviteId } = useParams<{ inviteId: string }>();
     const navigate = useNavigate();
     const effectiveInviteId = inviteId ?? '';
+    const { email, isAuthenticated, refreshActiveSeasons } = useAuth();
+    const { status: acceptInviteStatus, error: acceptInviteError, acceptInvite } = useAcceptInvite();
 
     const [invite, setInvite] = useState<Invite | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<{ message: string; showRetry: boolean } | null>(null);
+    const [isAcceptingInvite, setIsAcceptingInvite] = useState(false);
+
+    // Determine if this is an accept invite flow (user already registered and logged in)
+    const isAcceptInviteFlow = isAuthenticated && email === invite?.invitee_email_id;
+
+    const isAcceptFlow = isAcceptInviteFlow || (invite?.invitee_already_registered ?? false);
 
     const title = !invite
-        ? "Join"
-        : invite.invitee_role === 'CLUB_MANAGER'
-            ? "Join - Club Invite"
-            : "Join - Personal Invite";
+        ? "Join / Accept Invite"
+        : isAcceptFlow
+            ? invite.invitee_role === 'CLUB_MANAGER'
+                ? "Accept - Club Invite"
+                : "Accept - Personal Invite"
+            : invite.invitee_role === 'CLUB_MANAGER'
+                ? "Join - Club Invite"
+                : "Join - Personal Invite";
 
     useEffect(() => {
         document.title = title;
@@ -135,27 +149,86 @@ export const Join: React.FC = () => {
 
     const isInviteRedeemed = 'accepted_at' in invite && invite.accepted_at !== null;
 
+    const handleAcceptInvite = async () => {
+        setIsAcceptingInvite(true);
+        try {
+            const success = await acceptInvite(invite.nano_id);
+            if (success) {
+                // Refresh local auth state to get updated custom attributes (clubs/seasons)
+                await refreshActiveSeasons();
+                void navigate('/');
+            }
+        } finally {
+            setIsAcceptingInvite(false);
+        }
+    };
+
+    const getAcceptButtonText = (): string => {
+        if (isAcceptingInvite) return 'Accepting invite...';
+        if (acceptInviteStatus === 'waiting_to_retry') return 'Retrying...';
+        return 'Accept Invite';
+    };
+
     return (
         <MobileLayout>
             <PageContainer
                 title={title}
                 footer={
-                    <Button
-                        fullWidth
-                        data-testid="join-register-button"
-                        disabled={isInviteRedeemed}
-                        onClick={() => {
-                            if (isInviteRedeemed) {
-                                return;
-                            }
-                            void navigate('/register', { state: { invite } });
-                        }}
-                    >
-                        Register
-                    </Button>
+                    isAuthenticated ? (
+                        isAcceptInviteFlow ? (
+                            <Button
+                                fullWidth
+                                data-testid="join-accept-invite-button"
+                                disabled={isInviteRedeemed || isAcceptingInvite || acceptInviteStatus === 'waiting_to_retry'}
+                                onClick={() => {
+                                    void handleAcceptInvite();
+                                }}
+                            >
+                                {getAcceptButtonText()}
+                            </Button>
+                        ) : (
+                            <div className="w-full">
+                                <ErrorMessage testId="join-email-mismatch-error">
+                                    This invite is for {invite.invitee_email_id}. It is not for you: {email}.
+                                </ErrorMessage>
+                            </div>
+                        )
+                    ) : (
+                        <div className="flex flex-col space-y-3 w-full">
+                            {invite.invitee_already_registered ? (
+                                <Button
+                                    fullWidth
+                                    data-testid="join-login-button"
+                                    disabled={isInviteRedeemed}
+                                    onClick={() => {
+                                        if (isInviteRedeemed) {
+                                            return;
+                                        }
+                                        void navigate(`/login?returnUrl=${encodeURIComponent(`/join/${effectiveInviteId}`)}&email=${encodeURIComponent(invite.invitee_email_id)}`);
+                                    }}
+                                >
+                                    Login & Accept
+                                </Button>
+                            ) : (
+                                <Button
+                                    fullWidth
+                                    data-testid="join-register-button"
+                                    disabled={isInviteRedeemed}
+                                    onClick={() => {
+                                        if (isInviteRedeemed) {
+                                            return;
+                                        }
+                                        void navigate('/register', { state: { invite } });
+                                    }}
+                                >
+                                    Register
+                                </Button>
+                            )}
+                        </div>
+                    )
                 }
             >
-                <div className="flex flex-col space-y-3 sm:space-y-4 text-left px-2 max-w-sm mx-auto" data-testid="join-invite-details">
+                <div className="flex flex-col space-y-3 sm:space-y-4 text-left px-2 max-w-sm mx-auto pb-8" data-testid="join-invite-details">
                     <div className="mt-2 sm:mt-3"></div>
                     <div className="border-b border-gray-600 pb-2 mb-2" data-testid="join-invite-from">
                         <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Invite from</p>
@@ -197,8 +270,11 @@ export const Join: React.FC = () => {
                         </div>
                     )}
 
-
-
+                    {acceptInviteError && (
+                        <div className="pt-4 mb-4">
+                            <ErrorMessage testId="join-accept-invite-error">{acceptInviteError}</ErrorMessage>
+                        </div>
+                    )}
                 </div>
             </PageContainer>
         </MobileLayout>

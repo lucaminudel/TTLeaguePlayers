@@ -25,6 +25,8 @@ test.describe('Homepage', () => {
     });
 
     test('when clicking the Ready To Play? button should navigate to the login page for non-loggedin users', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
         const user = new User(page);
         const homePage = await user.navigateToHome();
 
@@ -87,7 +89,7 @@ test.describe('Homepage', () => {
             await expect(overlay).toHaveCSS('align-items', 'center');
         });
 
-        test('when clicking the hamburger menu an authenticated Player/Captain users with no active sessions  should see all the menu items for loggedin users', async ({ page }) => {
+        test('when clicking the hamburger menu an authenticated Player/Captain users with no active sessions should see all the menu items for loggedin users', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new User(page);

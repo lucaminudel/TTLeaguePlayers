@@ -45,6 +45,8 @@ test.describe('Register Flow', () => {
 
   for (const c of passwordPolicyCases) {
     test(`password policy - ${c.name}`, async ({ page }) => {
+      test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
       const email = uniqueTestEmail();
       const registerPage = new RegisterPage(page);
 
@@ -166,6 +168,8 @@ test.describe('Register Flow', () => {
   // --- Server-side (Cognito) registration errors (no mocking) ---
 
   test('server-side validation - invalid email format (.user@example.com)', async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
     // This email passes the app regex (non-empty local part, @, dot, domain),
     // but Cognito may reject it as invalid format.
     const registerPage = new RegisterPage(page);    
@@ -188,6 +192,8 @@ test.describe('Register Flow', () => {
   });
 
   test('server-side validation - email validation error (InvalidParameterException)', async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
     // Use an email that passes our client regex but is likely rejected by Cognito due to size constraints.
     // (Cognito has size constraints for username/email; exceeding them triggers InvalidParameterException)
     const veryLongLocalPart = 'a'.repeat(260);
@@ -613,7 +619,7 @@ test.describe('Register with Invite Flow', () => {
       const joinPage = await user.navigateToJoin('test-invite-id');
 
       // 3. Click Register & Verify Register page state
-      await joinPage.redeemInvite();
+      await joinPage.registerAndRedeemInvite();
 
       // Check invite details display using stable container locators
       const inviteDetails = page.getByTestId('register-invite-details');
@@ -667,7 +673,7 @@ test.describe('Register with Invite Flow', () => {
       const joinPage = await user.navigateToJoin('test-club-invite-id');
 
       // 3. Click Register & Verify Register page state
-      await joinPage.redeemInvite();
+      await joinPage.registerAndRedeemInvite();
 
       // Check invite details display using stable container locators
       const inviteDetails = page.getByTestId('register-invite-details');
@@ -792,7 +798,7 @@ test.describe('Register with Invite Flow', () => {
       const joinPage = await user.navigateToJoin(inviteId, email);
 
       // 2) Navigate to Register
-      const registerPage = await joinPage.redeemInvite();
+      const registerPage = await joinPage.registerAndRedeemInvite();
 
       // 3) Fill password + confirm and register = Cognito + invite acceptance succeed => Verify Email view
       await registerPage.registerNewUserWithInvite(email, validPassword);
@@ -901,7 +907,7 @@ test.describe('Register with Invite Flow', () => {
       const joinPage = await user.navigateToJoin(inviteId, email);
 
       // 2) Navigate to Register
-      const registerPage = await joinPage.redeemInvite();
+      const registerPage = await joinPage.registerAndRedeemInvite();
 
       // 3) Fill password + confirm and register
       await registerPage.tentativelyRegisterNewUserWithInvite(email, validPassword);
@@ -1012,7 +1018,7 @@ test.describe('Register with Invite Flow', () => {
       const joinPage = await user.navigateToJoin(inviteId, email);
 
       // 2) Navigate to Register
-      const registerPage = await joinPage.redeemInvite();
+      const registerPage = await joinPage.registerAndRedeemInvite();
 
       // 3) Fill password + confirm and register
       await registerPage.tentativelyRegisterNewUserWithInvite(email, validPassword);
@@ -1024,7 +1030,7 @@ test.describe('Register with Invite Flow', () => {
       const errorMessage = page.getByTestId('register-error-message');
       await expect(errorMessage).toBeVisible();
       await expect(errorMessage).toHaveText(
-        'Invitation confirmation failed. Please contact support to restore access to your team’s features.'
+        'Operation failed. Please contact support to fix the problem.'
       );
 
       // When inviteStatus === 'failed' and userAlreadyExists === true, Register.tsx renders no footer button.
@@ -1147,7 +1153,7 @@ test.describe('Register with Invite Flow', () => {
       const joinPage = await user.navigateToJoin(params.inviteId, email);
 
       // 2) Navigate to Register
-      const registerPage = await joinPage.redeemInvite();
+      const registerPage = await joinPage.registerAndRedeemInvite();
 
       // 3) Fill password + confirm and register
       await registerPage.tentativelyRegisterNewUserWithInvite(email, validPassword);
@@ -1167,9 +1173,16 @@ test.describe('Register with Invite Flow', () => {
 
       const errorMessage = page.getByTestId('register-error-message');
       await expect(errorMessage).toBeVisible();
-      await expect(errorMessage).toHaveText(
-        'Invitation confirmation failed. Please contact support to restore access to your team’s features.'
-      );
+
+      if (params.acceptInviteStatus !== 503) {
+        await expect(errorMessage).toHaveText(
+          'Operation failed. Please contact support to fix the problem.'
+        ) 
+      } else {
+        await expect(errorMessage).toHaveText(
+          'Service temporarily unavailable. Please try again later.'
+        ) 
+      }
 
       const continueButton = page.getByTestId('register-submit-button');
       await expect(continueButton).toBeVisible();

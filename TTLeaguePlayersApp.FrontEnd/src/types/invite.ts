@@ -43,6 +43,7 @@ export interface BaseInvite {
     invited_by: string;
     created_at: number;
     accepted_at: number | null;
+    invitee_already_registered?: boolean;
 }
 
 export interface CaptainOrPlayerInvite extends BaseInvite {

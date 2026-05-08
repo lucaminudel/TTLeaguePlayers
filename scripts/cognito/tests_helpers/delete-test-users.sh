@@ -52,7 +52,7 @@ else
     E2="test_ready_for_accept_invite_api_call@user.test"
     E3="test_already_registered2@user.test"
     E4="test_already_registered3@user.test"
-    E4="test_already_registered4@user.test"
+    E5="test_already_registered4@user.test"
     E6="test_kudos_wt@user.test"
     E7="test_kudos_f5@user.test"
 fi

@@ -8,7 +8,7 @@ import { Input } from '../components/common/Input';
 import { FormField } from '../components/common/FormField';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { FieldError } from '../components/common/FieldError';
-import { inviteApi } from '../api/inviteApi';
+import { useAcceptInvite } from '../hooks/useAcceptInvite';
 import type { Invite } from '../types/invite';
 
 const AUTH_INIT_FAILED_PREFIX = 'AuthProvider.initAuth() has failed.';
@@ -95,13 +95,10 @@ export const Register: React.FC = () => {
     }
   };
 
-  /* New state variables for invite acceptance flow */
-  const [inviteStatus, setInviteStatus] = useState<'idle' | 'accepting' | 'waiting_to_retry' | 'failed' | 'accepted'>('idle');
   const [userAlreadyExists, setUserAlreadyExists] = useState(false);
+  const { status: acceptInviteStatus, error: acceptInviteError, acceptInvite } = useAcceptInvite();
 
 
-  // Helper to wait for a specified duration
-  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const handleRegister = async () => {
     setLocalError(null);
@@ -119,51 +116,6 @@ export const Register: React.FC = () => {
 
     setIsLoading(true);
 
-    // Recursive function to accept invite with retries
-    const acceptInviteWithRetry = async (currentAttempt: number): Promise<boolean> => {
-      if (!invite) return false;
-
-      setInviteStatus('accepting');
-
-      try {
-        await inviteApi.acceptInvite(invite.nano_id, Math.floor(Date.now() / 1000));
-        setInviteStatus('accepted');
-        return true;
-      } catch (err: unknown) {
-        let isRetryable = false;
-
-        const isApiError = (e: unknown): e is { status?: number; message?: string } => {
-          return typeof e === 'object' && e !== null && ('status' in e || 'message' in e);
-        };
-
-        if (isApiError(err)) {
-          const status = err.status;
-          const errMessage = err.message ?? '';
-
-          // 503 has its own automatic apiFetch retry
-          if ((status !== undefined && (status >= 500 && status != 503) ) || 
-            errMessage === 'Connection error' ||
-            errMessage.includes('NetworkError') ||
-            errMessage.includes('Failed to fetch') ||
-            status === 422) {
-            isRetryable = true;
-          }
-        }
-
-        if (isRetryable && currentAttempt < 3) {
-          setInviteStatus('waiting_to_retry');
-          await wait(10000); // Wait 10 seconds
-          return acceptInviteWithRetry(currentAttempt + 1);
-        } else {
-          // Final failure or non-retryable error
-          setInviteStatus('failed');
-          const message = "Invitation confirmation failed. Please contact support to restore access to your team’s features.";
-          setLocalError(message);
-          return false;
-        }
-      }
-    };
-
     try {
       // Step 1: Register User
       await signUp(email, password);
@@ -171,11 +123,11 @@ export const Register: React.FC = () => {
 
       // Step 2: Accept Invite (if exists)
       if (invite) {
-        const accepted = await acceptInviteWithRetry(1);
+        const accepted = await acceptInvite(invite.nano_id);
         if (accepted) {
           setShowVerification(true);
         }
-        // If not accepted, inviteStatus is 'failed' and localError is set. 
+        // If not accepted, acceptInviteStatus is 'failed' and acceptInviteError is set. 
         // User stays on page with error and "Complete Email Verification" button.
       } else {
         setShowVerification(true);
@@ -193,7 +145,7 @@ export const Register: React.FC = () => {
       // Scenario 2: User Already Exists
       if (errorType === 'UsernameExistsException' && invite) {
         setUserAlreadyExists(true);
-        const accepted = await acceptInviteWithRetry(1);
+        const accepted = await acceptInvite(invite.nano_id);
         if (accepted) {
           void navigate('/login');
         }
@@ -307,7 +259,7 @@ export const Register: React.FC = () => {
         formProps={{
           onSubmit: (e) => {
             e.preventDefault();
-            if (inviteStatus === 'failed') {
+            if (acceptInviteStatus === 'failed') {
               setLocalError(null);
               setShowVerification(true);
             } else {
@@ -316,16 +268,16 @@ export const Register: React.FC = () => {
           }
         }}
         footer={
-          (inviteStatus === 'failed' && userAlreadyExists) ? undefined : (
+          (acceptInviteStatus === 'failed' && userAlreadyExists) ? undefined : (
             <Button
               fullWidth
               type="submit"
-              disabled={isLoading || (password !== confirmPassword && inviteStatus !== 'failed')}
+              disabled={isLoading || (password !== confirmPassword && acceptInviteStatus !== 'failed')}
               data-testid="register-submit-button"
             >
               {isLoading
                 ? 'Creating account...'
-                : inviteStatus === 'failed'
+                : acceptInviteStatus === 'failed'
                   ? 'Continue to Email Verification'
                   : 'Register'}
             </Button>
@@ -353,11 +305,11 @@ export const Register: React.FC = () => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); }}
               required
-              disabled={!!invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
-              className={invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'
+              disabled={!!invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'}
+              className={invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'
                 ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100'
                 : ''}
-              style={invite || inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry' ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
+              style={invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry' ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
               placeholder="Enter your email"
             />
             {email && !isValidEmail(email) && (
@@ -375,7 +327,7 @@ export const Register: React.FC = () => {
               onChange={(e) => { setPassword(e.target.value); }}
               required
               ref={passwordInputRef}
-              disabled={inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
+              disabled={acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'}
               placeholder="Enter your password"
               showPasswordToggle
             />
@@ -390,7 +342,7 @@ export const Register: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => { setConfirmPassword(e.target.value); }}
               required
-              disabled={inviteStatus === 'failed' || inviteStatus === 'waiting_to_retry'}
+              disabled={acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'}
               placeholder="Confirm your password"
               showPasswordToggle
             />
@@ -399,18 +351,16 @@ export const Register: React.FC = () => {
             )}
           </FormField>
 
-          {(inviteStatus === 'waiting_to_retry' || inviteStatus === 'accepting') && (
+          {(acceptInviteStatus === 'waiting_to_retry' || acceptInviteStatus === 'accepting') && (
             <div className="flex flex-col justify-center items-center space-y-4 py-2 sm:py-4">
               <div className="spinner"></div>
               <p className="text-secondary-text text-sm sm:text-base leading-tight animate-pulse">Waiting to confirm the invite ...</p>
             </div>
           )}
 
-
-
-          {localError && (
+          {(localError ?? acceptInviteError) && (
             <ErrorMessage testId="register-error-message">
-              {localError}
+              {localError ?? acceptInviteError}
             </ErrorMessage>
           )}
         </div>

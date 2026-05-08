@@ -92,4 +92,9 @@ export class MenuPage {
         await aboutPage.expectLoaded();
         return aboutPage;
     }
+
+    async UserHeaderContainsManagedClub() : Promise<void> {
+        await expect(this.page.getByTestId('main-menu-managed-club')).toContainText('MANAGER: New Club');
+    }
+    
 }

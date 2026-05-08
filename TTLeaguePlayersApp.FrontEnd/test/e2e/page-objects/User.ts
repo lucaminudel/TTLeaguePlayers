@@ -63,8 +63,8 @@ export class User {
     // Wait for the fetch to either succeed or fail.
     await expect(this.page.getByTestId('join-loading-message')).not.toBeVisible({ timeout: 10000 });
 
-    // Verify the header starts with "Join"
-    await expect(this.page.locator('h2')).toHaveText(/^Join/);
+    // Verify the header starts with "Join" or "Accept"
+    await expect(this.page.locator('h2')).toHaveText(/^(Join|Accept)/);
 
     if (email) {
       await expect(this.page.getByTestId('join-invite-email')).toContainText(email);
