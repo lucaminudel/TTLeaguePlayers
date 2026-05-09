@@ -42,40 +42,40 @@ export const MainMenu: React.FC = () => {
             visibleToUnauthenticated: false
         },
         {
-            label: 'Club Kudos Standings',
-            path: '/club-kudos-standings',
+            label: 'Club Teams',
+            path: '/club-teams',
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
         {
-            label: 'Tournaments & Clubs',
-            path: '/tournaments-and-clubs',
+            label: 'Club Standings',
+            path: '/club-standings',
+            visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAllAuthenticated: false,
+            visibleToAuthenticatedClubManager: true,
+            visibleToUnauthenticated: false
+        },
+        {
+            label: 'Promote Club & Tournaments',
+            path: '/promote-club-and-tournaments',
+            visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAllAuthenticated: false,
+            visibleToAuthenticatedClubManager: true,
+            visibleToUnauthenticated: false
+        },
+         {
+            label: 'Clubs & Tournaments',
+            path: '/clubs-and-tournaments',
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: true,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: true
         },
         {
-            label: 'List your Club',
-            path: '/club-add-to-the-list',
-            visibleToAuthenticatedPlayerOrCaptain: false,
-            visibleToAllAuthenticated: false,
-            visibleToAuthenticatedClubManager: true,
-            visibleToUnauthenticated: false
-        },
-        {
-            label: 'Announce a Tournament',
-            path: '/club-tounraments',
-            visibleToAuthenticatedPlayerOrCaptain: false,
-            visibleToAllAuthenticated: false,
-            visibleToAuthenticatedClubManager: true,
-            visibleToUnauthenticated: false
-        },
-        {
-            label: 'About',
-            path: '/about',
+            label: 'About & Contact Us',
+            path: '/about-and-contact-us',
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: true,
             visibleToAuthenticatedClubManager: true,
@@ -186,7 +186,7 @@ export const MainMenu: React.FC = () => {
                                         to={item.path ?? '#'}
                                         className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2"
                                         onClick={toggleMenu}
-                                        data-testid={`main-menu-nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                                        data-testid={`main-menu-nav-${item.label.toLowerCase().replace(/\s*&\s*/g, '-and-').replace(/\s+/g, '-')}`}
                                     >
                                         {item.label}
                                     </Link>

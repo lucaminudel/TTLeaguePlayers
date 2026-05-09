@@ -1,6 +1,6 @@
 import { type Page, expect } from '@playwright/test';
 
-export class AboutPage {
+export class AboutAndContactUsPage {
     private page: Page;
 
     constructor(page: Page) {
@@ -8,7 +8,7 @@ export class AboutPage {
     }
 
     async expectLoaded(): Promise<void> {
-        await expect(this.page.getByRole('heading', { name: 'About', exact: true })).toBeVisible();
+        await expect(this.page.getByRole('heading', { name: 'About & Contact Us', exact: true })).toBeVisible();
         await expect(this.page.locator('main')).toContainText('Built by Players, for Players');
     }
 

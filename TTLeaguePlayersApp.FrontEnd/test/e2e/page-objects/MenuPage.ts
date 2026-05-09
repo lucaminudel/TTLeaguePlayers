@@ -1,8 +1,8 @@
 import { type Page, expect } from '@playwright/test';
 import { HomePage } from './HomePage';
-import { TournamentsAndClubsPage } from './TournamentsAndClubsPage';
+import { ClubsAndTournamentsPage } from './ClubsAndTournamentsPage';
 import { ForumsPage } from './ForumsPage';
-import { AboutPage } from './AboutPage';
+import { AboutAndContactUsPage } from './AboutAndContactUsPage';
 
 export class MenuPage {
     private page: Page;
@@ -34,7 +34,7 @@ export class MenuPage {
         // Verify overlay is visible and interactive with menu items centered
         await expect(overlay).toHaveCSS('opacity', '1');
         await expect(overlay).toHaveCSS('pointer-events', 'auto');
-        const link = this.page.getByTestId('main-menu-nav-about');
+        const link = this.page.getByTestId('main-menu-nav-about-and-contact-us');
         await expect(link).toBeVisible();
     }
 
@@ -66,13 +66,13 @@ export class MenuPage {
         return new HomePage(this.page);
     }
 
-    async navigateToTournamentsAndClubs(): Promise<TournamentsAndClubsPage> {
-        const link = this.page.getByTestId('main-menu-nav-tournaments-&-clubs');
+    async navigateToClubsAndTournaments(): Promise<ClubsAndTournamentsPage> {
+        const link = this.page.getByTestId('main-menu-nav-clubs-and-tournaments');
         await link.click();
 
-        const tournamentsAndClubsPage = new TournamentsAndClubsPage(this.page);
-        await tournamentsAndClubsPage.expectLoaded();
-        return tournamentsAndClubsPage;
+        const clubsAndTournamentsPage = new ClubsAndTournamentsPage(this.page);
+        await clubsAndTournamentsPage.expectLoaded();
+        return clubsAndTournamentsPage;
     }
 
     async navigateToForums(): Promise<ForumsPage> {
@@ -84,13 +84,13 @@ export class MenuPage {
         return forumsPage;
     }
 
-    async navigateToAbout(): Promise<AboutPage> {
-        const link = this.page.getByTestId('main-menu-nav-about');
+    async navigateToAboutAndContactUs(): Promise<AboutAndContactUsPage> {
+        const link = this.page.getByTestId('main-menu-nav-about-and-contact-us');
         await link.click();
 
-        const aboutPage = new AboutPage(this.page);
-        await aboutPage.expectLoaded();
-        return aboutPage;
+        const aboutAndContactUsPage = new AboutAndContactUsPage(this.page);
+        await aboutAndContactUsPage.expectLoaded();
+        return aboutAndContactUsPage;
     }
 
     async UserHeaderContainsManagedClub() : Promise<void> {

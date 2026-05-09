@@ -2,7 +2,7 @@ import React from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 
-export const About: React.FC = () => {
+export const AboutAndContactUs: React.FC = () => {
     // Simple anti-scraping: build the email address in JavaScript
     const user = 'contact_us';
     const domain = 'ttleagueplayers.uk';
@@ -10,7 +10,7 @@ export const About: React.FC = () => {
 
     return (
         <MobileLayout>
-            <PageContainer title="About">
+            <PageContainer title="About & Contact Us">
                 <div className="space-y-6">
 
                     <section className="mt-8">

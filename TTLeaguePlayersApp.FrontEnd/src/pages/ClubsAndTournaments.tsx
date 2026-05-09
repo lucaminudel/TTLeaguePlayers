@@ -2,10 +2,10 @@ import React from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 
-export const TournamentsAndClubs: React.FC = () => {
+export const ClubsAndTournaments: React.FC = () => {
     return (
         <MobileLayout>
-            <PageContainer title="Tournaments & Clubs">
+            <PageContainer title="Clubs & Tournaments">
                 <div className="space-y-6 sm:space-y-8">
                     <p>
                         Never miss a tournament, stay informed on new venues and clubs

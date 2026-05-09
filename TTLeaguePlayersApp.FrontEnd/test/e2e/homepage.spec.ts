@@ -58,8 +58,8 @@ test.describe('Homepage', () => {
             const menuItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
                 { name: 'Home', testId: 'main-menu-nav-home' },
-                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
-                { name: 'About', testId: 'main-menu-nav-about' }
+                { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
+                { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' }
             ];
 
             for (const item of menuItems) {
@@ -72,9 +72,9 @@ test.describe('Homepage', () => {
                 { name: 'Log out', testId: 'main-menu-logout-button' },
                 { name: 'Kudos', testId: 'main-menu-nav-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
-                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
-                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
-                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+                { name: 'Club Standings', testId: 'main-menu-nav-club-standings' },
+                { name: 'Promote Club & Tournaments', testId: 'main-menu-nav-promote-club-and-tournaments' },
+                { name: 'Club Teams', testId: 'main-menu-nav-club-teams' }
             ];
  
             for (const item of playerCaptainClubManagerOnlyAndNotLoggedInItems) {
@@ -103,8 +103,8 @@ test.describe('Homepage', () => {
             const menuItems = [
                 { name: 'Log out', testId: 'main-menu-logout-button' },
                 { name: 'Home', testId: 'main-menu-nav-home' },
-                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
-                { name: 'About', testId: 'main-menu-nav-about' }
+                { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
+                { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' }
             ];
 
             for (const item of menuItems) {
@@ -117,9 +117,9 @@ test.describe('Homepage', () => {
                 { name: 'Log in', testId: 'main-menu-login-link' },
                 { name: 'Kudos', testId: 'main-menu-nav-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
-                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
-                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
-                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+                { name: 'Club Standings', testId: 'main-menu-nav-club-standings' },
+                { name: 'Promote Club & Tournaments', testId: 'main-menu-nav-promote-club-and-tournaments' },
+                { name: 'Club Teams', testId: 'main-menu-nav-club-teams' }
             ];
  
             for (const item of captainOnlyAndNotLoggedInItems) {
@@ -148,8 +148,8 @@ test.describe('Homepage', () => {
             const menuItems = [
                 { name: 'Log out', testId: 'main-menu-logout-button' },
                 { name: 'Home', testId: 'main-menu-nav-home' },
-                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
-                { name: 'About', testId: 'main-menu-nav-about' },
+                { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
+                { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' },
                 { name: 'Kudos', testId: 'main-menu-nav-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' }
             ];
@@ -162,9 +162,9 @@ test.describe('Homepage', () => {
             // Verify Logged-in only, Players and Captains only items and Club Manager only items are NOT visible
             const captainOnlyAndNotLoggedInItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
-                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
-                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
-                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+                { name: 'Club Standings', testId: 'main-menu-nav-club-standings' },
+                { name: 'Promote Club & Tournaments', testId: 'main-menu-nav-promote-club-and-tournaments' },
+                { name: 'Club Teams', testId: 'main-menu-nav-club-teams' }
             ];
  
             for (const item of captainOnlyAndNotLoggedInItems) {
@@ -192,11 +192,11 @@ test.describe('Homepage', () => {
             const menuItems = [
                 { name: 'Log out', testId: 'main-menu-logout-button' },
                 { name: 'Home', testId: 'main-menu-nav-home' },
-                { name: 'Tournaments & Clubs', testId: 'main-menu-nav-tournaments-&-clubs' },
-                { name: 'About', testId: 'main-menu-nav-about' },
-                { name: 'Club Kudos Standings', testId: 'main-menu-nav-club-kudos-standings' },
-                { name: 'List your Club', testId: 'main-menu-nav-list-your-club' },
-                { name: 'Announce a Tournament', testId: 'main-menu-nav-announce-a-tournament' }
+                { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
+                { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' },
+                { name: 'Club Standings', testId: 'main-menu-nav-club-standings' },
+                { name: 'Promote Club & Tournaments', testId: 'main-menu-nav-promote-club-and-tournaments' },
+                { name: 'Club Teams', testId: 'main-menu-nav-club-teams' }
             ];
  
             for (const item of menuItems) {
@@ -292,18 +292,18 @@ test.describe('Homepage', () => {
             await expect(page).toHaveURL(/\/kudos-standings$/);
         });
 
-        test('when clicking Tournaments and Clubs menu item, a non-loggedin user should navigate to the tournaments and clubs page', async ({ page }) => {
+        test('when clicking Clubs and Tournaments menu item, a non-loggedin user should navigate to the clubs and tournaments page', async ({ page }) => {
             const user = new User(page);
             await user.menu.open();
-            await user.menu.navigateToTournamentsAndClubs();
-            await expect(page).toHaveURL(/\/tournaments-and-clubs$/);
+            await user.menu.navigateToClubsAndTournaments();
+            await expect(page).toHaveURL(/\/clubs-and-tournaments$/);
         });
 
-        test('when clicking About menu item, a non-loggedin user should navigate to the about page', async ({ page }) => {
+        test('when clicking About and Contact Us menu item, a non-loggedin user should navigate to the about page', async ({ page }) => {
             const user = new User(page);
             await user.menu.open();
-            await user.menu.navigateToAbout();
-            await expect(page).toHaveURL(/\/about$/);
+            await user.menu.navigateToAboutAndContactUs();
+            await expect(page).toHaveURL(/\/about-and-contact-us$/);
         });
     });
 

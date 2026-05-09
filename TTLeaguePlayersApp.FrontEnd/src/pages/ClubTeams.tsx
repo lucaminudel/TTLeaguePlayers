@@ -2,13 +2,13 @@ import React from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 
-export const ClubAddToTheList: React.FC = () => {
+export const ClubTeams: React.FC = () => {
     return (
         <MobileLayout>
-            <PageContainer title="List your Club">
+            <PageContainer title="Club Teams">
                 <div className="space-y-6 sm:space-y-8">
                     <p>
-                        Add your club to our directory to help players find your venue and join your community.
+                        Post your upcoming tournaments here to attract more participants and manage entries.
                     </p>
                     <div className="pt-4">
                         <p className="text-base sm:text-lg leading-relaxed text-action-accent font-semibold">

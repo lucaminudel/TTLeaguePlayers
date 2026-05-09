@@ -8,11 +8,11 @@ import { Register } from './pages/Register';
 import { Kudos } from './pages/Kudos';
 import { AwardKudos } from './pages/AwardKudos';
 import { KudosStandings } from './pages/KudosStandings';
-import { TournamentsAndClubs } from './pages/TournamentsAndClubs';
-import { About } from './pages/About';
-import { ClubKudosStandings } from './pages/ClubKudosStandings';
-import { ClubAddToTheList } from './pages/ClubAddToTheList';
-import { ClubTournaments } from './pages/ClubTournaments';
+import { ClubsAndTournaments } from './pages/ClubsAndTournaments';
+import { AboutAndContactUs } from './pages/AboutAndContactUs';
+import { ClubStandings } from './pages/ClubStandings';
+import { PromoteClubAndTournaments } from './pages/PromoteClubAndTournaments';
+import { ClubTeams } from './pages/ClubTeams';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -69,31 +69,31 @@ function InitializationGate() {
         }
       />
       <Route
-        path="/club-kudos-standings"
+        path="/club-standings"
         element={
           <ProtectedRoute>
-            <ClubKudosStandings />
+            <ClubStandings />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/club-add-to-the-list"
+        path="/promote-club-and-tournaments"
         element={
           <ProtectedRoute>
-            <ClubAddToTheList />
+            <PromoteClubAndTournaments />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/club-tounraments"
+        path="/club-teams"
         element={
           <ProtectedRoute>
-            <ClubTournaments />
+            <ClubTeams />
           </ProtectedRoute>
         }
       />
-      <Route path="/tournaments-and-clubs" element={<TournamentsAndClubs />} />
-      <Route path="/about" element={<About />} />
+      <Route path="/clubs-and-tournaments" element={<ClubsAndTournaments />} />
+      <Route path="/about-and-contact-us" element={<AboutAndContactUs />} />
     </Routes>
   );
 }

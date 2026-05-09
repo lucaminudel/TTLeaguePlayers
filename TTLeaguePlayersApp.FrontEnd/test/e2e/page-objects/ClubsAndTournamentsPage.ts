@@ -1,6 +1,6 @@
 import { type Page, expect } from '@playwright/test';
 
-export class TournamentsAndClubsPage {
+export class ClubsAndTournamentsPage {
     private page: Page;
 
     constructor(page: Page) {
@@ -8,6 +8,6 @@ export class TournamentsAndClubsPage {
     }
 
     async expectLoaded(): Promise<void> {
-        await expect(this.page.locator('h2')).toHaveText('Tournaments & Clubs');
+        await expect(this.page.locator('h2')).toHaveText('Clubs & Tournaments');
     }
 }
