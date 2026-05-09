@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
@@ -8,11 +9,14 @@ import logo from "../assets/logo.png";
 export const Home: React.FC = () => {
     const { inviteId } = useParams<{ inviteId?: string }>();
     const navigate = useNavigate();
+    const { managedClubs } = useAuth();
     const hasInviteId = !!inviteId;
 
     const handleEnterClick = () => {
         if (hasInviteId) {
             void navigate(`/join/${inviteId}`);
+        } else if (managedClubs.length > 0) {
+            void navigate(`/promote-club-and-tournaments`);
         } else {
             void navigate(`/kudos`);
         }

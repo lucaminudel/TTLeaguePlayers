@@ -49,6 +49,19 @@ test.describe('Homepage', () => {
         await homePage.readyToPlay();
     });
 
+    test('when clicking the Ready To Play? button an authenticated club manager should navigate to the promote club page', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+        const user = new User(page);
+
+        // test_already_registered3@user.test is the club manager account
+        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered3@user.test', 'aA1!56789012');
+
+        const homePage = await user.navigateToHome();
+
+        await homePage.readyToPlayAsClubManager();
+    });
+
     test.describe('Menu', () => {
         test('when clicking the hamburger menu should show all the menu items for non-loggedin users', async ({ page }) => {
             const user = new User(page);

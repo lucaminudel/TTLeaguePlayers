@@ -49,6 +49,20 @@ export class HomePage {
         return new KudosAndAwardPages(this.page);
     }
 
+    async readyToPlayAsClubManager(): Promise<void> {
+        if (this.inviteId) {
+            throw new Error('ID provided, can only proceed to redeem().');
+        }
+
+        const enterButton = this.page.getByTestId('home-enter-button');
+        await expect(enterButton).toContainText('Ready to play?');
+        await enterButton.click();
+
+        // Verify navigation to Promote Club page
+        await expect(this.page).toHaveURL(/\/#\/promote-club-and-tournaments$/);
+        await expect(this.page.locator('h2')).toHaveText('Promote Club & Tournaments');
+    }
+
     async tentativeReadyToPlay(): Promise<void> {
         if (this.inviteId) {
             throw new Error('ID provided, can only proceed to redeem().');
