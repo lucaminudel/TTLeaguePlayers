@@ -217,6 +217,8 @@ Resources:
                 - !Sub "${InvitesTable.Arn}/index/*"
                 - !GetAtt KudosTable.Arn
                 - !Sub "${KudosTable.Arn}/index/*"
+                - !GetAtt ClubsAndTournamentsTable.Arn
+                - !Sub "${ClubsAndTournamentsTable.Arn}/index/*"
             - Effect: Allow
               Action:
                 - ses:SendEmail
@@ -516,6 +518,56 @@ Resources:
               - positive_kudos_count
               - neutral_kudos_count
               - negative_kudos_count
+
+  # ClubsAndTournamentsTable — key design
+  #
+  # Base table  (CRUD by location + club name, or + tournament name)
+  # -----------------------------------------------------------------------
+  # Item type  | PK                               | SK
+  # Club       | LOC#<location>                   | CLUB#<clubName>
+  # Tournament | LOC#<location>#CLUB#<clubName>   | TOURN#<tournamentName>
+  #
+  # GSI1  (read-heavy: list clubs+tournaments ordered by location, club, start date)
+  # -----------------------------------------------------------------------
+  # Item type  | GSI1PK    | GSI1SK
+  # Club       | ALL_CLUBS | LOC#<location>#CLUB#<clubName>
+  # Tournament | ALL_CLUBS | LOC#<location>#CLUB#<clubName>#<startDateEpoch 10-digit zero-padded>
+  #
+  # Query patterns:
+  #   All locations  — GSI1, GSI1PK = "ALL_CLUBS", results sorted by GSI1SK
+  #   One location   — GSI1, GSI1PK = "ALL_CLUBS", begins_with(GSI1SK, "LOC#<location>#")
+  #   Active tourns  — FilterExpression: tournament_end_date <= :now  (fine at this cardinality)
+  #   CRUD club      — base table PK = "LOC#<location>",              SK = "CLUB#<clubName>"
+  #   CRUD tournament— base table PK = "LOC#<location>#CLUB#<clubName>", SK = "TOURN#<tournamentName>"
+  ClubsAndTournamentsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: IsProdOrStaging
+    Properties:
+      TableName: !Sub "ttleague-clubs-tournaments-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
 Conditions:
   HasDomain: !Not [!Equals [!Ref DomainName, ""]]
