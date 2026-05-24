@@ -112,8 +112,9 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         var act = async () => await _db.RetrieveClubAsync("", "");
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*location is required*");
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("location is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("club_name is required"));
     }
 
     [Fact]
@@ -439,7 +440,6 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        /*
         foreach (var (pk, sk) in _createdKeys)
         {
             try
@@ -463,7 +463,7 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
             }
             catch { }
         }
-        */
+
         _db.Dispose();
     }
 }

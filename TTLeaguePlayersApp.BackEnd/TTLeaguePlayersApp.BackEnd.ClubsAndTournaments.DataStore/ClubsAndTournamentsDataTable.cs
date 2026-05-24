@@ -318,7 +318,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         var errors = new List<string>();
         if (string.IsNullOrWhiteSpace(location)) errors.Add("location is required");
         if (string.IsNullOrWhiteSpace(clubName)) errors.Add("club_name is required");
-        if (errors.Count > 0) throw new ArgumentException(string.Join("; ", errors));
+        if (errors.Count > 0) throw new ValidationException(errors);
     }
 
     private static void ValidateLocationClubNameAndTournamentName(string location, string clubName, string tournamentName)
@@ -327,7 +327,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         if (string.IsNullOrWhiteSpace(location))       errors.Add("location is required");
         if (string.IsNullOrWhiteSpace(clubName))       errors.Add("club_name is required");
         if (string.IsNullOrWhiteSpace(tournamentName)) errors.Add("tournament_name is required");
-        if (errors.Count > 0) throw new ArgumentException(string.Join("; ", errors));
+        if (errors.Count > 0) throw new ValidationException(errors);
     }
 
     public void Dispose() => _client?.Dispose();

@@ -12,6 +12,8 @@ using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
 using TTLeaguePlayersApp.BackEnd.Cognito;
+using TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
+using TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -28,6 +30,13 @@ public partial class ApiGatewayProxyHandler
     private readonly RetrieveKudosGivenByPlayerLambda _retrieveKudosGivenByPlayerLambda;
     private readonly RetrieveKudosAwardedToTeamLambda _retrieveKudosAwardedToTeamLambda;
     private readonly RetrieveKudosStandingsLambda _retrieveKudosStandingsLambda;
+    private readonly UpsertClubLambda _upsertClubLambda;
+    private readonly DeleteClubLambda _deleteClubLambda;
+    private readonly RetrieveAllClubsWithTournamentsLambda _retrieveAllClubsWithTournamentsLambda;
+    private readonly RetrieveClubsWithTournamentsByLocationLambda _retrieveClubsWithTournamentsByLocationLambda;
+    private readonly UpsertTournamentLambda _upsertTournamentLambda;
+    private readonly RetrieveTournamentLambda _retrieveTournamentLambda;
+    private readonly DeleteTournamentLambda _deleteTournamentLambda;
     private readonly string _allowedOrigin; 
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
@@ -56,12 +65,21 @@ public partial class ApiGatewayProxyHandler
         _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, cognitoUsers);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);
 
-         var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+        var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable, cognitoUsers);
         _deleteKudosLambda = new DeleteKudosLambda(_observer, kudosDataTable);
         _retrieveKudosGivenByPlayerLambda = new RetrieveKudosGivenByPlayerLambda(_observer, kudosDataTable);
         _retrieveKudosAwardedToTeamLambda = new RetrieveKudosAwardedToTeamLambda(_observer, kudosDataTable);
         _retrieveKudosStandingsLambda = new RetrieveKudosStandingsLambda(_observer, kudosDataTable);
+
+        var clubsAndTournamentsDataTable = new ClubsAndTournamentsDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+        _upsertClubLambda = new UpsertClubLambda(_observer, clubsAndTournamentsDataTable);
+        _deleteClubLambda = new DeleteClubLambda(_observer, clubsAndTournamentsDataTable);
+        _retrieveAllClubsWithTournamentsLambda = new RetrieveAllClubsWithTournamentsLambda(_observer, clubsAndTournamentsDataTable);
+        _retrieveClubsWithTournamentsByLocationLambda = new RetrieveClubsWithTournamentsByLocationLambda(_observer, clubsAndTournamentsDataTable);
+        _upsertTournamentLambda = new UpsertTournamentLambda(_observer, clubsAndTournamentsDataTable);
+        _retrieveTournamentLambda = new RetrieveTournamentLambda(_observer, clubsAndTournamentsDataTable);
+        _deleteTournamentLambda = new DeleteTournamentLambda(_observer, clubsAndTournamentsDataTable);
 
         _allowedOrigin = "*"; // Environment.GetEnvironmentVariable("ALLOWED_ORIGIN") ?? "*"; replace with DataStore.Configuration
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
@@ -78,6 +96,13 @@ public partial class ApiGatewayProxyHandler
         _retrieveKudosGivenByPlayerLambda = retrieveKudosGivenByPlayerLambda;
         _retrieveKudosAwardedToTeamLambda = retrieveKudosAwardedToTeamLambda;
         _retrieveKudosStandingsLambda = retrieveKudosStandingsLambda;
+        _upsertClubLambda = new UpsertClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
+        _deleteClubLambda = new DeleteClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
+        _retrieveAllClubsWithTournamentsLambda = new RetrieveAllClubsWithTournamentsLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
+        _retrieveClubsWithTournamentsByLocationLambda = new RetrieveClubsWithTournamentsByLocationLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
+        _upsertTournamentLambda = new UpsertTournamentLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
+        _retrieveTournamentLambda = new RetrieveTournamentLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
+        _deleteTournamentLambda = new DeleteTournamentLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         _observer = new LoggerObserver();
@@ -152,6 +177,61 @@ public partial class ApiGatewayProxyHandler
 
                  // Method not allowed for /kudos/standings
                 (var m, "/kudos/standings") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+
+                //
+                // CLUBS ENDPOINTS
+                //
+
+                // Preflight for /clubs/{location}/{clubName}
+                ("OPTIONS", var p) when IsClubPath(p) => CreatePreflightResponse("OPTIONS,PUT,DELETE", request),
+
+                // PUT upsert club
+                ("PUT", var p) when IsClubPath(p) => await HandleUpsertClub(request, context),
+
+                // DELETE club
+                ("DELETE", var p) when IsClubPath(p) => await HandleDeleteClub(request, context),
+
+                // Method not allowed for /clubs/{location}/{clubName}
+                (var m, var p) when IsClubPath(p) && m != "PUT" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+                // Preflight for /clubs/{location}/{clubName}/tournaments/{tournamentName}
+                ("OPTIONS", var p) when IsTournamentPath(p) => CreatePreflightResponse("OPTIONS,PUT,GET,DELETE", request),
+
+                // PUT upsert tournament
+                ("PUT", var p) when IsTournamentPath(p) => await HandleUpsertTournament(request, context),
+
+                // GET single tournament
+                ("GET", var p) when IsTournamentPath(p) => await HandleGetTournament(request, context),
+
+                // DELETE tournament
+                ("DELETE", var p) when IsTournamentPath(p) => await HandleDeleteTournament(request, context),
+
+                // Method not allowed for /clubs/{location}/{clubName}/tournaments/{tournamentName}
+                (var m, var p) when IsTournamentPath(p) && m != "PUT" && m != "GET" && m != "DELETE" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+                // Preflight for /clubs
+                ("OPTIONS", "/clubs") => CreatePreflightResponse("OPTIONS,GET", request),
+
+                // GET all clubs and tournaments
+                ("GET", "/clubs") => await HandleGetAllClubsWithTournaments(request, context),
+
+                // Method not allowed for /clubs
+                (var m, "/clubs") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+
+                // ENDPOINTS CURRENTLY NOT USED BY THE FRONTEND
+
+
+                // Preflight for /clubs/{location}
+                ("OPTIONS", var p) when IsClubLocationPath(p) => CreatePreflightResponse("OPTIONS,GET", request),
+
+                // GET clubs and tournaments by location
+                ("GET", var p) when IsClubLocationPath(p) => await HandleGetClubsWithTournamentsByLocation(request, context),
+
+                // Method not allowed for /clubs/{location}
+                (var m, var p) when IsClubLocationPath(p) && m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
 
 
                 //
@@ -860,6 +940,195 @@ public partial class ApiGatewayProxyHandler
         {
             return potentiallyUrlEncodedString;
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Clubs and Tournaments handlers
+    // -------------------------------------------------------------------------
+
+    private async Task<APIGatewayProxyResponse> HandleGetAllClubsWithTournaments(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetAllClubsWithTournaments));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GET ALL CLUBS WITH TOURNAMENTS", context, inParameters);
+
+        var result = await _retrieveAllClubsWithTournamentsLambda.HandleAsync(context);
+
+        _observer.OnRuntimeRegularEvent("GET ALL CLUBS WITH TOURNAMENTS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+        return CreateResponse(HttpStatusCode.OK, result);
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetClubsWithTournamentsByLocation(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetClubsWithTournamentsByLocation));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GET CLUBS WITH TOURNAMENTS BY LOCATION", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location = SafeUrlDecode(segments[1]);
+
+        var result = await _retrieveClubsWithTournamentsByLocationLambda.HandleAsync(location, context);
+
+        _observer.OnRuntimeRegularEvent("GET CLUBS WITH TOURNAMENTS BY LOCATION COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+        return CreateResponse(HttpStatusCode.OK, result);
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleUpsertClub(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleUpsertClub));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("CREATE/UPDATE CLUB", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location = SafeUrlDecode(segments[1]);
+        var clubName = SafeUrlDecode(segments[2]);
+
+        ExtractBodyOrCreateResponseAndNotifyObserver("CREATE/UPDATE CLUB COMPLETED", context, request.Headers, request.Body, fromHere, inParameters,
+            out UpsertClubRequest? upsertRequest, out APIGatewayProxyResponse? bodyErrorResponse);
+        if (upsertRequest is null)
+            return bodyErrorResponse!;
+
+        var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+        try
+        {
+            await _upsertClubLambda.HandleAsync(location, clubName, upsertRequest, userClaims, context);
+
+            _observer.OnRuntimeRegularEvent("CREATE/UPDATE CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+            return CreateResponse(HttpStatusCode.OK);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("CREATE/UPDATE CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleDeleteClub(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleDeleteClub));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("DELETE CLUB", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location = SafeUrlDecode(segments[1]);
+        var clubName = SafeUrlDecode(segments[2]);
+
+        var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+        await _deleteClubLambda.HandleAsync(location, clubName, userClaims, context);
+
+        _observer.OnRuntimeRegularEvent("DELETE CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
+        return CreateResponse(HttpStatusCode.NoContent);
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleUpsertTournament(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleUpsertTournament));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("CREATE/UPDATE TOURNAMENT", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location       = SafeUrlDecode(segments[1]);
+        var clubName       = SafeUrlDecode(segments[2]);
+        var tournamentName = SafeUrlDecode(segments[4]);
+
+        ExtractBodyOrCreateResponseAndNotifyObserver("CREATE/UPDATE TOURNAMENT COMPLETED", context, request.Headers, request.Body, fromHere, inParameters,
+            out UpsertTournamentRequest? upsertRequest, out APIGatewayProxyResponse? bodyErrorResponse);
+        if (upsertRequest is null)
+            return bodyErrorResponse!;
+
+        var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+        try
+        {
+            await _upsertTournamentLambda.HandleAsync(location, clubName, tournamentName, upsertRequest, userClaims, context);
+
+            _observer.OnRuntimeRegularEvent("CREATE/UPDATE TOURNAMENT COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+            return CreateResponse(HttpStatusCode.OK);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("CREATE/UPDATE TOURNAMENT COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetTournament(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetTournament));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GET TOURNAMENT", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location       = SafeUrlDecode(segments[1]);
+        var clubName       = SafeUrlDecode(segments[2]);
+        var tournamentName = SafeUrlDecode(segments[4]);
+
+        try
+        {
+            var tournament = await _retrieveTournamentLambda.HandleAsync(location, clubName, tournamentName, context);
+
+            _observer.OnRuntimeRegularEvent("GET TOURNAMENT COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+            return CreateResponse(HttpStatusCode.OK, tournament);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            var responseStatusCode = HttpStatusCode.NotFound;
+            _observer.OnRuntimeRegularEvent("GET TOURNAMENT COMPLETED", fromHere, context, inParameters.With(responseStatusCode));
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleDeleteTournament(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleDeleteTournament));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("DELETE TOURNAMENT", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location       = SafeUrlDecode(segments[1]);
+        var clubName       = SafeUrlDecode(segments[2]);
+        var tournamentName = SafeUrlDecode(segments[4]);
+
+        var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+        await _deleteTournamentLambda.HandleAsync(location, clubName, tournamentName, userClaims, context);
+
+        _observer.OnRuntimeRegularEvent("DELETE TOURNAMENT COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
+        return CreateResponse(HttpStatusCode.NoContent);
+    }
+
+    // Path shape helpers
+    // /clubs/{location}                                    -> 2 segments, starts with clubs
+    // /clubs/{location}/{clubName}                         -> 3 segments, starts with clubs
+    // /clubs/{location}/{clubName}/tournaments/{name}      -> 5 segments, segment[3] == tournaments
+    private static bool IsClubLocationPath(string p)
+    {
+        var s = p.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return s.Length == 2 && s[0].Equals("clubs", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsClubPath(string p)
+    {
+        var s = p.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return s.Length == 3 && s[0].Equals("clubs", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTournamentPath(string p)
+    {
+        var s = p.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return s.Length == 5 && s[0].Equals("clubs", StringComparison.OrdinalIgnoreCase)
+                             && s[3].Equals("tournaments", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizePath(string? path)

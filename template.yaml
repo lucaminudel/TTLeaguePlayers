@@ -287,7 +287,38 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
-
+        ClubsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /clubs
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+        ClubsByLocationOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /clubs/{location}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+        ClubOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /clubs/{location}/{clubName}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+        ClubTournamentsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /clubs/{location}/{clubName}/tournaments/{tournamentName}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
   EmailForwarderLambda:
     Type: AWS::Serverless::Function
     Condition: IsProdOrStaging
