@@ -12,8 +12,8 @@ Logging calls:
 - API Gateway's API calls logs `OnBusinessEvent`. Logs as INFO, a client/user operation. 
 - API Gateway and Lambdas when needed logs `OnRuntimeCriticalError`. Logs as CRITICAL Cognito, SES, S3, AWS and runtime failures.
 - Bad HTTP shape: API Gateway logs `OnRuntimeIrregularEvent`. Logs as WARNING, a client code error or something unexpected.
-- Lambdas unexpected DataStore runtime failure log `OnRuntimeError`, then API Gateway logs fallback error/critical. Logs as ERROR, code error or or something unexpected.
-- Lambdas unexpected Cognito runtime failure log `OnRuntimeError`, then API Gateway logs fallback error/critical. Logs as ERROR, code error or or something unexpected.
+- Lambdas unexpected DataStore runtime failure log `OnRuntimeError` when there is a Request Body (where POST data lives) or Query String parameters that get logged as requestParameters, then API Gateway logs fallback error/critical. Logs as ERROR, a client code error or something unexpected.
+- Lambdas unexpected Cognito runtime failure log `OnRuntimeError`, then API Gateway logs fallback error/critical. Logs as ERROR, a client code error or something unexpected.
 - Successful Lambda completion, then API Gateway completion also log `OnRuntimeRegularEvent`. Logs as INFO, domain operation. 
 - Expected 4xx domain outcome: API Gateway logs `OnRuntimeRegularEvent`. Logs as INFO, failed input validation or business logic.
 - Lambda security anomaly logs `OnSecurityError` and continues. Logs as ERROR, security info unavailable or does not match the operation.
@@ -93,7 +93,7 @@ At the end of every handled request:
 - Input
   - Required command/query fields that express the operation.
   - Field combinations that make the command meaningful.
-  - Operation-specific ranges, such as positive timestamps or allowed values.
+  - Operation-specific ranges, such as positive timestamps or allowed values or valid uri, etc.
 - Business rules
   - rules that need workflow knowledge.
   - rules that need another service.
@@ -120,7 +120,7 @@ Do not catch just to rethrow unchanged.
 ### Exceptions To Throw
 
 Throw:
-- `ValidationException` for command validation or business-rule rejection that should return `400`.
+- `ValidationException` for command validation or business-rule rejection and for complex validations potentially involving multiple errors, that should return `400`.
 - `KeyNotFoundException` when a required entity is missing and should return `404`.
 - `InvalidOperationException` for impossible workflow state, unsupported domain subtype, or corrupted Cognito custom attributes.
 - A security exception only when the check is enforcing authorization and should stop the request.
@@ -191,7 +191,7 @@ Do not catch AWS exceptions just to wrap them generically.
 Throw:
 
 - Expected
-  - `ValidationException` for invalid persisted entity data or persistence invariants.
+  - `ValidationException` for invalid persisted entity data or persistence invariants, for complex validations potentially involving multiple errors.
   - `KeyNotFoundException` when required data is missing.
 - Unexpected
   - `ArgumentException` or `ArgumentNullException` for invalid internal method arguments.

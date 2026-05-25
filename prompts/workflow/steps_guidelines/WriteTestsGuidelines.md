@@ -2,14 +2,14 @@
 
 
 ## Core Principles
-*  **No Implementation Changes:** Never modify the implementation code of the system under test (SUT). Only write or modify test code.
+*  **No Implementation Changes:** Never modify the implementation code of the system under test (SUT). Only write or modify test code. This includes not increasing the visibility of implementation code private methods.
 *  **DRY Test Data:** Use the **Builder Pattern** for test data creation to avoid duplication and keep tests readable.
 *  **State Cleanup:** When integration testing involves stateful systems (Files, Databases, Auth Services), ensure the state is reverted or cleaned up in the **teardown/cleanup** phase of the test fixture.
 
 ## Mocking and Stubbing
 *  **Choose your test style:**
-	* Use **Stubs** for **State Testing** (verifying the final state or return value).
-	* Use **Mocks** for **Interaction Testing** (verifying that specific methods were called).
+	* Use **Stubs** and if needed **Spyes** for **State Testing** (verifying the final state or return value).
+	* Use **Mocks** for **Interaction Testing** (verifying that specific methods were invoked).
 	* Avoid mixing state and interaction assertions in a single test case.
 *  **Contract Verification:** For every mocked interface/API, there must be a corresponding integration test to ensure the mock's behaviour aligns with the real-world system.
 *  **Dependency Injection:** Prefer injecting mocks and stubs via the **Constructor**. Avoid framework-specific "magic" or reflection-based overrides unless the SUT architecture strictly requires it.
