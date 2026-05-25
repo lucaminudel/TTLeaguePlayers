@@ -62,6 +62,7 @@ nunit-*.xml
 
 # VS Code settings
 .vscode/*
+*/.nuget/*
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/tasks.json
@@ -75,3 +76,4 @@ sam_local_test.log
 build.toml
 DynamoDbData
 sam_local_apitests.log
+Library/Application Support
