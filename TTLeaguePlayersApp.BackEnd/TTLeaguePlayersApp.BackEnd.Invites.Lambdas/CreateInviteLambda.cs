@@ -1,4 +1,5 @@
 using Amazon.Lambda.Core;
+using System.Text.Json;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
 using NanoidDotNet;
@@ -32,12 +33,22 @@ public class CreateInviteLambda
         // Create appropriate invite type based on role
         var invite = CreateInviteFromRequest(request);
 
-        await _invitesDataTable.CreateNewInvite(invite);
-
-        if (_sendInviteEmail) 
+        try
         {
-            await SendInviteEmail(invite, _inviteWebsiteUrl, _from, _bccTo);
-        } 
+            await _invitesDataTable.CreateNewInvite(invite);
+
+            if (_sendInviteEmail) 
+            {
+                await SendInviteEmail(invite, _inviteWebsiteUrl, _from, _bccTo);
+            } 
+        }
+        catch (Exception ex)
+        {
+            _observer.OnRuntimeError(ex, context, new() {
+                ["RequestBody"] = JsonSerializer.Serialize(request)
+            });
+            throw;
+        }
 
         _observer.OnRuntimeRegularEvent("CREATE INVITE COMPLETED",
             source: new() { ["Class"] = nameof(CreateInviteLambda), ["Method"] = nameof(HandleAsync) },
