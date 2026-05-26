@@ -1,9 +1,7 @@
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using TTLeaguePlayersApp.BackEnd.Cognito;
 using Xunit;
+using TTLeaguePlayersApp.BackEnd.Tests;
 
 namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas.Tests;
 

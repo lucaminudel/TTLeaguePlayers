@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Amazon.Lambda.Core;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas; 
 using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
 
@@ -22,7 +21,14 @@ public class CreateKudosLambda
     public async Task<DataStore.Kudos> HandleAsync(CreateKudosRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         try {
-            ValidateRequestSecurity(request, userClaims);
+            ActiveSessionSecurityCheck.Validate(
+                request.League,
+                request.Season,
+                request.Division,
+                request.GiverTeam,
+                request.GiverPersonName,
+                request.GiverPersonSub,
+                userClaims);
         }
         catch (SecurityValidationException ex)
         {
@@ -83,65 +89,4 @@ public class CreateKudosLambda
 
         return await Task.FromResult(kudos);
     }
-
-
-
-    private void ValidateRequestSecurity(CreateKudosRequest request, Dictionary<string, string> userClaims)
-    {
-        var errors = new List<string>();
-
-        if (userClaims.TryGetValue("custom:active_seasons", out var activeSeasonsJson) && !string.IsNullOrEmpty(activeSeasonsJson))
-        {
-            try 
-            {
-                var activeSeasons = JsonSerializer.Deserialize<List<ActiveSeason>>(activeSeasonsJson);
-                if (activeSeasons != null)
-                {
-                    bool matchFound = activeSeasons.Any(s => 
-                        s.League == request.League &&
-                        s.Season == request.Season &&
-                        s.TeamDivision == request.Division &&
-                        s.TeamName == request.GiverTeam &&
-                        s.PersonName == request.GiverPersonName
-                    );
-
-                    if (!matchFound)
-                    {
-                        errors.Add($"The Kodos giver details ({nameof(request.League)}, {nameof(request.Season)}, " 
-                            + $"{nameof(request.Division)}, {nameof(request.GiverTeam)}, {nameof(request.GiverPersonName)})" + 
-                            $" were not found in the user's {nameof(activeSeasonsJson)}.");
-                    }
-                }
-                else
-                {
-                        errors.Add($"{nameof(userClaims)} has no active seasons (failed to deserialize).");
-                }
-            }
-            catch(JsonException ex)
-            {
-                errors.Add($"{nameof(activeSeasonsJson)} is malformed: {ex.Message}.");
-            }
-        } else {       
-            errors.Add($"{nameof(userClaims)} has no active seasons.");
-        }
-
-        // 2. Check User Id Sub from the token
-        if (!userClaims.TryGetValue("sub", out var tokenSub))
-        {
-            // Fallback: sometimes "sub" is not in dict if not mapped, check "username" or similar if needed?
-            // Usually "sub" is standard. If missing, we can't validate identity.
-            errors.Add($"{nameof(userClaims)}  does not contain User Id Sub.");
-        }
-        else if (tokenSub != request.GiverPersonSub) 
-        {
-            errors.Add($"{nameof(request.GiverPersonSub)}: '{request.GiverPersonSub}' does not match token's User Id Sub: '{tokenSub}'.");
-        }
-
-        
-        if (errors.Count > 0)
-        {
-            throw new SecurityValidationException(errors);
-        }
-    }
-
 }

@@ -58,6 +58,27 @@ public class RetrieveKudosStandingsLambdaTests
         result.NeutralKudosTable[0].Count.Should().Be(1);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenNoSummariesReturned_ReturnsEmptyStandingsTables()
+    {
+        // Arrange
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+
+        var fakeDataTable = new FakeKudosDataTable { SummariesToReturn = new List<KudosSummary>() };
+        var lambda = new RetrieveKudosStandingsLambda(new LoggerObserver(), fakeDataTable);
+        var request = new RetrieveKudosStandingsRequest { League = league, Season = season, TeamDivision = division };
+
+        // Act
+        var result = await lambda.HandleAsync(request, _context);
+
+        // Assert
+        result.PositiveKudosTable.Should().BeEmpty();
+        result.NegativeKudosTable.Should().BeEmpty();
+        result.NeutralKudosTable.Should().BeEmpty();
+    }
+
     private sealed class FakeKudosDataTable : IKudosDataTable
     {
         public List<KudosSummary> SummariesToReturn { get; set; } = new();

@@ -40,6 +40,80 @@ public class KudosAcceptanceTests: IAsyncLifetime
         };
     }
 
+    #region OPTIONS Tests
+
+    [Fact]
+    public async Task OPTIONS_Kudos_Should_Return_200_For_CORS_Preflight()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Options, "/kudos");
+        request.Headers.Add("Origin", "http://localhost:3000");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
+        response.Headers.Should().ContainKey("Access-Control-Allow-Headers");
+        response.Headers.Should().ContainKey("Access-Control-Allow-Methods");
+    }
+
+    [Fact]
+    public async Task OPTIONS_KudosStandings_Should_Return_200_For_CORS_Preflight()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Options, "/kudos/standings");
+        request.Headers.Add("Origin", "http://localhost:3000");
+        request.Headers.Add("Access-Control-Request-Method", "GET");
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
+        response.Headers.Should().ContainKey("Access-Control-Allow-Headers");
+        response.Headers.Should().ContainKey("Access-Control-Allow-Methods");
+    }
+
+    #endregion
+
+    #region Method Not Allowed Tests
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task PUT_Kudos_Should_Return_405_MethodNotAllowed()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // Act
+        var response = await _httpClient.PutAsync("/kudos", new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task POST_KudosStandings_Should_Return_405_MethodNotAllowed()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // Act
+        var response = await _httpClient.PostAsync("/kudos/standings", new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+    }
+
+    #endregion
+
     #region POST /kudos Tests
 
     [Fact]
@@ -151,6 +225,109 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    #endregion
+
+    #region DELETE /kudos Tests
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task DELETE_Kudos_Should_Delete_Kudos_Successfully()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var giverTeam = "Morpeth 10";
+        var receivingTeam = $"Acceptance Delete Target {Guid.NewGuid():N}"[..33];
+
+        var requestBody = CreateKudosRequestJson(
+            league: league,
+            season: season,
+            division: division,
+            receivingTeam: receivingTeam,
+            homeTeam: giverTeam,
+            awayTeam: receivingTeam,
+            giverTeam: giverTeam,
+            giverName: "Luca Minudel",
+            giverSub: sub,
+            kudosValue: 1
+        );
+
+        var createResponse = await _httpClient.PostAsync("/kudos", new StringContent(requestBody, Encoding.UTF8, "application/json"));
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        _createdKudosJsonInfos.Add(requestBody);
+
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/kudos")
+        {
+            Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var deleteResponse = await _httpClient.SendAsync(deleteRequest);
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        _createdKudosJsonInfos.Remove(requestBody);
+
+        var queryParams = $"?given_by={WebUtility.UrlEncode(sub)}&league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}&team_name={WebUtility.UrlEncode(giverTeam)}";
+        var getResponse = await _httpClient.GetAsync("/kudos" + queryParams);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await getResponse.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        var deletedKudos = jsonDoc.RootElement.EnumerateArray().FirstOrDefault(k =>
+            k.GetProperty("league").GetString() == league &&
+            k.GetProperty("season").GetString() == season &&
+            k.GetProperty("receiving_team").GetString() == receivingTeam &&
+            k.GetProperty("home_team").GetString() == giverTeam &&
+            k.GetProperty("away_team").GetString() == receivingTeam &&
+            k.GetProperty("giver_person_sub").GetString() == sub);
+
+        deletedKudos.ValueKind.Should().Be(JsonValueKind.Undefined);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task DELETE_Kudos_Should_Be_Idempotent_When_Called_Twice()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+        var receivingTeam = $"Idempotent Delete Target {Guid.NewGuid():N}"[..33];
+
+        var requestBody = CreateKudosRequestJson(
+            receivingTeam: receivingTeam,
+            homeTeam: "Morpeth 10",
+            awayTeam: receivingTeam,
+            giverTeam: "Morpeth 10",
+            giverName: "Luca Minudel",
+            giverSub: sub,
+            kudosValue: 1
+        );
+
+        var createResponse = await _httpClient.PostAsync("/kudos", new StringContent(requestBody, Encoding.UTF8, "application/json"));
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        _createdKudosJsonInfos.Add(requestBody);
+
+        // Act
+        var firstDeleteResponse = await _httpClient.SendAsync(CreateDeleteKudosRequest(requestBody));
+        if (firstDeleteResponse.StatusCode == HttpStatusCode.NoContent)
+        {
+            _createdKudosJsonInfos.Remove(requestBody);
+        }
+
+        var secondDeleteResponse = await _httpClient.SendAsync(CreateDeleteKudosRequest(requestBody));
+
+        // Assert
+        firstDeleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        secondDeleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     #endregion
@@ -300,6 +477,21 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
     [Fact]
     [Trait("Cognito", "Live")]
+    public async Task GET_KudosStandings_Should_Return_400_When_Parameters_Are_Missing()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        // Act
+        var response = await _httpClient.GetAsync("/kudos/standings");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Kudos_Should_Return_400_When_Parameters_Are_Missing()
     {
         // Arrange
@@ -308,6 +500,24 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // Act - Missing all parameters
         var response = await _httpClient.GetAsync("/kudos");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_KudosGivenByPlayer_Should_Return_400_When_Parameters_Are_Incomplete()
+    {
+        // Arrange
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        var sub = await GetUserSubByEmail(TestUserEmail);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+        var queryParams = $"?given_by={WebUtility.UrlEncode(sub)}";
+
+        // Act
+        var response = await _httpClient.GetAsync("/kudos" + queryParams);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -435,6 +645,14 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         var response = await _cognitoClient.ListUsersAsync(request);
         return response.Users.FirstOrDefault();
+    }
+
+    private static HttpRequestMessage CreateDeleteKudosRequest(string kudosJson)
+    {
+        return new HttpRequestMessage(HttpMethod.Delete, "/kudos")
+        {
+            Content = new StringContent(kudosJson, Encoding.UTF8, "application/json")
+        };
     }
 
     #endregion

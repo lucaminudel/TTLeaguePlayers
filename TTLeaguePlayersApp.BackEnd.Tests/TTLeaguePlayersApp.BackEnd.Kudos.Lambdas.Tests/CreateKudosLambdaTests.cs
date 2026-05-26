@@ -1,18 +1,13 @@
-using Amazon;
-using Amazon.CognitoIdentityProvider;
-using Amazon.CognitoIdentityProvider.Model;
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Cognito;
-using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
-using TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Tests;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.Lambdas.Tests;
 
-public class CreateKudosLambdaTests
+public partial class CreateKudosLambdaTests
 {
     private readonly TestLambdaContext _context = new();
 
@@ -160,64 +155,415 @@ public class CreateKudosLambdaTests
         targetSeason.LatestKudos[1].Should().Be(3000L);
     }
 
-    private sealed class FakeKudosDataTable : IKudosDataTable
+    [Fact]
+    public async Task HandleAsync_WhenActiveSeasonsDoNotMatchGiverDetails_LogsSecurityValidationExceptionAndContinues()
     {
-        public List<DataStore.Kudos> SavedKudos { get; } = new();
+        // Arrange
+        var giverSub = "user-123";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var requestPersonName = "Luca Minudel";
+        var claimsPersonName = "Some Other Player";
 
-        public Task SaveKudosAsync(DataStore.Kudos kudos)
+        var initialActiveSeasons = new List<ActiveSeason>
         {
-            SavedKudos.Add(kudos);
-            return Task.CompletedTask;
-        }
+            new ActiveSeason
+            {
+                League = league,
+                Season = season,
+                TeamDivision = division,
+                TeamName = teamName,
+                PersonName = claimsPersonName,
+                Role = "PLAYER",
+                LatestKudos = new List<long>()
+            }
+        };
 
-        public Task<DataStore.Kudos> RetrieveKudosAsync(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam, string giverPersonSub)
+        var userClaims = new Dictionary<string, string>
         {
-            return Task.FromResult(SavedKudos.First());
-        }
+            { "sub", giverSub },
+            { "custom:active_seasons", JsonSerializer.Serialize(initialActiveSeasons) }
+        };
 
-        public Task<KudosSummary> RetrieveSummaryAsync(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam)
+        var request = new CreateKudosRequest
         {
-            throw new NotImplementedException();
-        }
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = requestPersonName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
 
-        public Task DeleteKudosAsync(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam, string giverPersonSub)
-        {
-            throw new NotImplementedException();
-        }
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable();
+        var fakeCognito = new FakeCognitoClient();
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
 
-        public Task<List<DataStore.Kudos>> RetrieveKudosGivenByPlayerAsync(string league, string season, string giverPersonSub, string division, string giverTeam)
-        {
-             throw new NotImplementedException();
-        }
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
 
-        public Task<List<KudosSummary>> RetrieveKudosAwardedToTeamAsync(string league, string season, string division, string teamName)
-        {
-             throw new NotImplementedException();
-        }
-
-        public Task<List<KudosSummary>> RetrieveKudosAwardedToAllDivisionTeams(string league, string season, string division)
-        {
-             throw new NotImplementedException();
-        }
-
-        public void Dispose() { }
+        // Assert
+        await act.Should().NotThrowAsync<SecurityValidationException>();
+        observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
+        fakeDataTable.SavedKudos.Should().HaveCount(1);
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(1);
     }
 
-    private sealed class FakeCognitoClient : AmazonCognitoIdentityProviderClient
+    [Fact]
+    public async Task HandleAsync_WhenUserSubDoesNotMatchGiverPersonSub_LogsSecurityValidationExceptionAndContinues()
     {
-        public int AdminUpdateUserAttributesCalls { get; private set; }
-        public AdminUpdateUserAttributesRequest? LastAdminUpdateUserAttributesRequest { get; private set; }
+        // Arrange
+        var giverSub = "user-123";
+        var tokenSub = "different-user-456";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var personName = "Luca Minudel";
 
-        public FakeCognitoClient()
-            : base(new Amazon.Runtime.AnonymousAWSCredentials(), new AmazonCognitoIdentityProviderConfig { RegionEndpoint = RegionEndpoint.USEast1 })
+        var initialActiveSeasons = new List<ActiveSeason>
         {
-        }
+            new ActiveSeason
+            {
+                League = league,
+                Season = season,
+                TeamDivision = division,
+                TeamName = teamName,
+                PersonName = personName,
+                Role = "PLAYER",
+                LatestKudos = new List<long>()
+            }
+        };
 
-        public override Task<AdminUpdateUserAttributesResponse> AdminUpdateUserAttributesAsync(AdminUpdateUserAttributesRequest request, System.Threading.CancellationToken cancellationToken = default)
+        var userClaims = new Dictionary<string, string>
         {
-            AdminUpdateUserAttributesCalls++;
-            LastAdminUpdateUserAttributesRequest = request;
-            return Task.FromResult(new AdminUpdateUserAttributesResponse());
-        }
+            { "sub", tokenSub },
+            { "custom:active_seasons", JsonSerializer.Serialize(initialActiveSeasons) }
+        };
+
+        var request = new CreateKudosRequest
+        {
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = personName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
+
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable();
+        var fakeCognito = new FakeCognitoClient();
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
+
+        // Assert
+        await act.Should().NotThrowAsync<SecurityValidationException>();
+        observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
+        fakeDataTable.SavedKudos.Should().HaveCount(1);
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenCustomActiveSeasonsClaimIsMissing_LogsSecurityValidationExceptionAndThenThrowInvalidOperationException()
+    {
+        // Arrange
+        var giverSub = "user-123";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var personName = "Luca Minudel";
+
+        var userClaims = new Dictionary<string, string>
+        {
+            { "sub", giverSub }
+        };
+
+        var request = new CreateKudosRequest
+        {
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = personName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
+
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable();
+        var fakeCognito = new FakeCognitoClient();
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*custom:active_seasons*");
+        observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
+        observer.RuntimeErrors.Should().ContainSingle().Which.Should().BeOfType<InvalidOperationException>();
+        fakeDataTable.SavedKudos.Should().HaveCount(0);
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenCustomActiveSeasonsClaimIsMalformed_LogsSecurityValidationExceptionAndThenThrowInvalidOperationException()
+    {
+        // Arrange
+        var giverSub = "user-123";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var personName = "Luca Minudel";
+
+        var userClaims = new Dictionary<string, string>
+        {
+            { "sub", giverSub },
+            { "custom:active_seasons", "INVALID_JSON" }
+        };
+
+        var request = new CreateKudosRequest
+        {
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = personName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
+
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable();
+        var fakeCognito = new FakeCognitoClient();
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Failed to deserialize custom:active_seasons claim.*");
+        observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
+        observer.RuntimeErrors.Should().ContainSingle().Which.Should().BeOfType<InvalidOperationException>();
+        fakeDataTable.SavedKudos.Should().HaveCount(0);
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenUserSubIsMissing_LogsSecurityValidationExceptionAndContinues()
+    {
+        // Arrange
+        var giverSub = "user-123";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var personName = "Luca Minudel";
+
+        var initialActiveSeasons = new List<ActiveSeason>
+        {
+            new ActiveSeason
+            {
+                League = league,
+                Season = season,
+                TeamDivision = division,
+                TeamName = teamName,
+                PersonName = personName,
+                Role = "PLAYER",
+                LatestKudos = new List<long>()
+            }
+        };
+
+        var userClaims = new Dictionary<string, string>
+        {
+            { "custom:active_seasons", JsonSerializer.Serialize(initialActiveSeasons) }
+        };
+
+        var request = new CreateKudosRequest
+        {
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = personName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
+
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable();
+        var fakeCognito = new FakeCognitoClient();
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
+
+        // Assert
+        await act.Should().NotThrowAsync<SecurityValidationException>();
+        observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
+        observer.RuntimeErrors.Should().BeEmpty();
+        fakeDataTable.SavedKudos.Should().HaveCount(1);
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSaveKudosFails_LogsRuntimeErrorAndThrows()
+    {
+        // Arrange
+        var giverSub = "user-123";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var personName = "Luca Minudel";
+
+        var initialActiveSeasons = new List<ActiveSeason>
+        {
+            new ActiveSeason
+            {
+                League = league,
+                Season = season,
+                TeamDivision = division,
+                TeamName = teamName,
+                PersonName = personName,
+                Role = "PLAYER",
+                LatestKudos = new List<long>()
+            }
+        };
+
+        var userClaims = new Dictionary<string, string>
+        {
+            { "sub", giverSub },
+            { "custom:active_seasons", JsonSerializer.Serialize(initialActiveSeasons) }
+        };
+
+        var request = new CreateKudosRequest
+        {
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = personName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
+
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable { ThrowOnSaveKudos = true };
+        var fakeCognito = new FakeCognitoClient();
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<System.Exception>();
+        exception.WithMessage("Simulated data store failure for kudos save");
+        observer.RuntimeErrors.Should().ContainSingle().Which.Message.Should().Be("Simulated data store failure for kudos save");
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenCognitoUpdateFails_LogsRuntimeErrorAndThrows()
+    {
+        // Arrange
+        var giverSub = "user-123";
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        var personName = "Luca Minudel";
+
+        var initialActiveSeasons = new List<ActiveSeason>
+        {
+            new ActiveSeason
+            {
+                League = league,
+                Season = season,
+                TeamDivision = division,
+                TeamName = teamName,
+                PersonName = personName,
+                Role = "PLAYER",
+                LatestKudos = new List<long>()
+            }
+        };
+
+        var userClaims = new Dictionary<string, string>
+        {
+            { "sub", giverSub },
+            { "custom:active_seasons", JsonSerializer.Serialize(initialActiveSeasons) }
+        };
+
+        var request = new CreateKudosRequest
+        {
+            League = league,
+            Season = season,
+            Division = division,
+            ReceivingTeam = "Morpeth 9",
+            HomeTeam = teamName,
+            AwayTeam = "Morpeth 9",
+            MatchDateTime = 2000L,
+            GiverTeam = teamName,
+            GiverPersonName = personName,
+            GiverPersonSub = giverSub,
+            KudosValue = 1
+        };
+
+        var observer = new SpyLoggerObserver();
+        var fakeDataTable = new FakeKudosDataTable();
+        var fakeCognito = new FakeCognitoClient { ThrowOnAdminUpdateUserAttributes = true };
+        var cognitoUsers = new CognitoUsers(fakeCognito, "pool-id");
+        var lambda = new CreateKudosLambda(observer, fakeDataTable, cognitoUsers);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(request, userClaims, _context);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<System.Exception>();
+        exception.WithMessage("Simulated Cognito update failure");
+        observer.RuntimeErrors.Should().ContainSingle().Which.Message.Should().Be("Simulated Cognito update failure");
+        fakeDataTable.SavedKudos.Should().HaveCount(1);
+        fakeCognito.AdminUpdateUserAttributesCalls.Should().Be(1);
     }
 }

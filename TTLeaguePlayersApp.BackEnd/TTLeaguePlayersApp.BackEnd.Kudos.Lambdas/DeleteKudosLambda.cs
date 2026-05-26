@@ -1,9 +1,7 @@
 using System.Text.Json;
 using Amazon.Lambda.Core;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas; 
 using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
-using TTLeaguePlayersApp.BackEnd;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 
@@ -21,7 +19,14 @@ public class DeleteKudosLambda
     public async Task HandleAsync(DeleteKudosRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         try {
-            ValidateRequestSecurity(request, userClaims);
+            ActiveSessionSecurityCheck.Validate(
+                request.League,
+                request.Season,
+                request.Division,
+                null,
+                null,
+                request.GiverPersonSub,
+                userClaims);            
         }
         catch (SecurityValidationException ex)
         {
@@ -47,23 +52,4 @@ public class DeleteKudosLambda
             });
     }
 
-    private void ValidateRequestSecurity(DeleteKudosRequest request, Dictionary<string, string> userClaims)
-    {
-        var errors = new List<string>();
-
-        // Check User Id Sub from the token
-        if (!userClaims.TryGetValue("sub", out var tokenSub))
-        {
-            errors.Add($"{nameof(userClaims)} does not contain User Id Sub.");
-        }
-        else if (tokenSub != request.GiverPersonSub) 
-        {
-            errors.Add($"{nameof(request.GiverPersonSub)}: '{request.GiverPersonSub}' does not match token's User Id Sub: '{tokenSub}'.");
-        }
-        
-        if (errors.Count > 0)
-        {
-            throw new SecurityValidationException(errors);
-        }
-    }
 }

@@ -1,6 +1,7 @@
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
 using Xunit;
+using TTLeaguePlayersApp.BackEnd.Tests;
 
 namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas.Tests;
 

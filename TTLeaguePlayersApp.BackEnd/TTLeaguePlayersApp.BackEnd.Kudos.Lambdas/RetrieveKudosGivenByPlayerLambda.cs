@@ -21,7 +21,14 @@ public class RetrieveKudosGivenByPlayerLambda
     {
         try
         {
-            ValidateRequestSecurity(request, userClaims);
+            ActiveSessionSecurityCheck.Validate(
+                request.League,
+                request.Season,
+                request.TeamDivision,
+                request.TeamName,
+                null,
+                request.GiverPersonSub,
+                userClaims);
         }
         catch (SecurityValidationException ex)
         {
@@ -59,63 +66,5 @@ public class RetrieveKudosGivenByPlayerLambda
             });
 
         return kudosList;
-    }
-
-    private void ValidateRequestSecurity(RetrieveKudosGivenByPlayerRequest request, Dictionary<string, string> userClaims)
-    {
-        var errors = new List<string>();
-
-        // 1. Check User Id Sub from the token
-        if (!userClaims.TryGetValue("sub", out var tokenSub))
-        {
-            errors.Add($"{nameof(userClaims)} does not contain User Id Sub.");
-        }
-        else if (tokenSub != request.GiverPersonSub)
-        {
-            errors.Add($"{nameof(request.GiverPersonSub)}: '{request.GiverPersonSub}' does not match token's User Id Sub: '{tokenSub}'.");
-        }
-
-        // 2. Check Active Seasons
-        if (userClaims.TryGetValue("custom:active_seasons", out var activeSeasonsJson) && !string.IsNullOrEmpty(activeSeasonsJson))
-        {
-            try
-            {
-                var activeSeasons = JsonSerializer.Deserialize<List<ActiveSeason>>(activeSeasonsJson);
-                if (activeSeasons != null)
-                {
-                    bool matchFound = activeSeasons.Any(s =>
-                        s.League == request.League &&
-                        s.Season == request.Season &&
-                        s.TeamDivision == request.TeamDivision &&
-                        s.TeamName == request.TeamName
-                        // Note: PersonName is not in the request, so we skip it or we could assume the token matches the person if we had name
-                    );
-
-                    if (!matchFound)
-                    {
-                        errors.Add($"The Kudos giver details ({nameof(request.League)}, {nameof(request.Season)}, "
-                            + $"{nameof(request.TeamDivision)}, {nameof(request.TeamName)})"
-                            + $" were not found in the user's {nameof(activeSeasonsJson)}.");
-                    }
-                }
-                else
-                {
-                    errors.Add($"{nameof(userClaims)} has no active seasons (failed to deserialize).");
-                }
-            }
-            catch (JsonException ex)
-            {
-                errors.Add($"{nameof(activeSeasonsJson)} is malformed: {ex.Message}.");
-            }
-        }
-        else
-        {
-            errors.Add($"{nameof(userClaims)} has no active seasons.");
-        }
-
-        if (errors.Count > 0)
-        {
-            throw new SecurityValidationException(errors);
-        }
     }
 }

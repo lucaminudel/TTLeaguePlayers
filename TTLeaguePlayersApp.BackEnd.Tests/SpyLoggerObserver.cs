@@ -1,6 +1,6 @@
 using Amazon.Lambda.Core;
 
-namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas.Tests;
+namespace TTLeaguePlayersApp.BackEnd.Tests;
 
 public sealed class SpyLoggerObserver : ILoggerObserver
 {
