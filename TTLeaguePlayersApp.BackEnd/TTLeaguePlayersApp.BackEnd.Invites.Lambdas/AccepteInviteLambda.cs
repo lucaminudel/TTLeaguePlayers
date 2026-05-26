@@ -1,11 +1,10 @@
-using System.Text.Json;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Cognito;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
-public partial class AccepteInviteLambda
+public class AccepteInviteLambda
 {
     private readonly ILoggerObserver _observer;
     private readonly IInvitesDataTable _invitesDataTable;

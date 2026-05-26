@@ -1,7 +1,5 @@
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
 using Xunit;
 

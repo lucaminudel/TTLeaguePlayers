@@ -1,4 +1,3 @@
-using System;
 
 namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 

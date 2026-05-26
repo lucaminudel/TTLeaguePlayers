@@ -1,8 +1,5 @@
-using System.Text.Json;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
-using TTLeaguePlayersApp.BackEnd.Cognito;
-using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 

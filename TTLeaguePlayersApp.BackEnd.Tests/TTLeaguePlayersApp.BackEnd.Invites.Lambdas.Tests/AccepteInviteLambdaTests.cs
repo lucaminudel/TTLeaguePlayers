@@ -8,7 +8,7 @@ using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests;
 
-public partial class AccepteInviteLambdaTests
+public class AccepteInviteLambdaTests
 {
     private readonly TestLambdaContext _context;
     private readonly FakeCognitoClient _cognitoClient;

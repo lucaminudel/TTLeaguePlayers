@@ -7,7 +7,7 @@ using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Kudos.Lambdas.Tests;
 
-public partial class CreateKudosLambdaTests
+public class CreateKudosLambdaTests
 {
     private readonly TestLambdaContext _context = new();
 

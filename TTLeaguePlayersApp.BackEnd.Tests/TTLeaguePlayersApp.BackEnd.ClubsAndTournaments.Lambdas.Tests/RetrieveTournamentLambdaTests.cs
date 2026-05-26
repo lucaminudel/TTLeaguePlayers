@@ -4,7 +4,7 @@ using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas.Tests;
 
-public partial class RetrieveTournamentLambdaTests
+public class RetrieveTournamentLambdaTests
 {
     private readonly TestLambdaContext _context = new();
 
