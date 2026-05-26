@@ -1,7 +1,5 @@
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
 using Xunit;
 
@@ -68,5 +66,37 @@ public class RetrieveAllClubsWithTournamentsLambdaTests
         tResponse.Facebook.Should().Be(new System.Uri("https://facebook.com/fulltournament"));
         tResponse.StartDate.Should().Be(1000);
         tResponse.EndDate.Should().Be(2000);
+    }
+
+    [Fact]
+    public async Task WhenNoClubsWithActiveTournaments_ReturnsEmptyList()
+    {
+        // Arrange
+        var dataTable = new FakeClubsAndTournamentsDataTable();
+        var lambda = new RetrieveAllClubsWithTournamentsLambda(new LoggerObserver(), dataTable);
+
+        // Act
+        var results = await lambda.HandleAsync(_context);
+
+        // Assert
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task WhenDataStoreFails_ExceptionIsRethrown()
+    {
+        // Arrange
+        var dataTable = new FakeClubsAndTournamentsDataTable
+        {
+            ThrowOnRetrieveAllClubsWithTournaments = true
+        };
+        var lambda = new RetrieveAllClubsWithTournamentsLambda(new LoggerObserver(), dataTable);
+
+        // Act
+        var act = async () => await lambda.HandleAsync(_context);
+
+        // Assert
+        await act.Should().ThrowAsync<System.Exception>()
+            .WithMessage("Simulated data store failure for clubs with tournaments retrieval");
     }
 }

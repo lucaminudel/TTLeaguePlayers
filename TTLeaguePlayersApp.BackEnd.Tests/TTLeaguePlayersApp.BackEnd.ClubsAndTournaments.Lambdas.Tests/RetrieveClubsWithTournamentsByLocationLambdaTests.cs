@@ -71,4 +71,38 @@ public class RetrieveClubsWithTournamentsByLocationLambdaTests
         tResponse.StartDate.Should().Be(1000);
         tResponse.EndDate.Should().Be(2000);
     }
+
+    [Fact]
+    public async Task WhenNoClubsFoundForLocation_ReturnsEmptyList()
+    {
+        // Arrange
+        var dataTable = new FakeClubsAndTournamentsDataTable();
+        var lambda = new RetrieveClubsWithTournamentsByLocationLambda(new LoggerObserver(), dataTable);
+
+        // Act
+        var results = await lambda.HandleAsync("Unknown Location", _context);
+
+        // Assert
+        dataTable.LastRetrieveLocation.Should().Be("Unknown Location");
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task WhenDataStoreFails_ExceptionIsRethrown()
+    {
+        // Arrange
+        var dataTable = new FakeClubsAndTournamentsDataTable
+        {
+            ThrowOnRetrieveClubsWithTournamentsByLocation = true
+        };
+        var lambda = new RetrieveClubsWithTournamentsByLocationLambda(new LoggerObserver(), dataTable);
+
+        // Act
+        var act = async () => await lambda.HandleAsync("Expected Location", _context);
+
+        // Assert
+        await act.Should().ThrowAsync<System.Exception>()
+            .WithMessage("Simulated data store failure for clubs with tournaments by location retrieval");
+        dataTable.LastRetrieveLocation.Should().Be("Expected Location");
+    }
 }

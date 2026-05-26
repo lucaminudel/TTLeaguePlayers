@@ -5,7 +5,7 @@ using TTLeaguePlayersApp.BackEnd.Tests;
 
 namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas.Tests;
 
-public partial class DeleteClubLambdaTests
+public class DeleteClubLambdaTests
 {
     private readonly TestLambdaContext _context = new();
 
