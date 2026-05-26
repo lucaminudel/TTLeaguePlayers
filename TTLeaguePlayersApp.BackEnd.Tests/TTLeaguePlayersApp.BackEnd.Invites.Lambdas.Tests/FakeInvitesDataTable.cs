@@ -42,8 +42,17 @@ class FakeInvitesDataTable : IInvitesDataTable
         return Task.CompletedTask;
     }
 
+    public Exception? ThrowOnceOnCreateNewInvite { get; set; }
+
     public Task CreateNewInvite(Invite invite)
     {
+        if (ThrowOnceOnCreateNewInvite != null)
+        {
+            var ex = ThrowOnceOnCreateNewInvite;
+            ThrowOnceOnCreateNewInvite = null;
+            throw ex;
+        }
+
         Invites[invite.NanoId] = invite;
         return Task.CompletedTask;
     }

@@ -46,6 +46,30 @@ public partial class AccepteInviteLambdaTests
     }
 
     [Fact]
+    public async Task WhenNanoIdIsInvalid_Throws_ValidationException()
+    {
+        var act = () => _lambda.HandleAsync("short", acceptedAt: 444, _context);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task WhenAcceptedAtIsInvalid_Throws_ValidationException()
+    {
+        var act = () => _lambda.HandleAsync("11223344", acceptedAt: 0, _context);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task WhenInviteNotFound_Throws_KeyNotFoundException()
+    {
+        var act = () => _lambda.HandleAsync("99887766", acceptedAt: 444, _context);
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
     public async Task WhenInviteNotYetAccepted_UpdatesUserActiveSeasons_And_SetsInviteAcceptedDate()
     {
         var nanoId = "11223344";

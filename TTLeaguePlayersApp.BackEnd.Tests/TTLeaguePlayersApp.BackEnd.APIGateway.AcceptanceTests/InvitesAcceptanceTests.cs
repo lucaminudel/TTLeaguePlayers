@@ -334,6 +334,48 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task GET_Invite_Should_Return_AlreadyAccepted_Invite_Successfully()
+    {
+        // Arrange - Create and accept an invite first using a registered Cognito user
+        var createdInviteId = await CreateInviteAsync(
+            name: "Accepted User",
+            email: "test_ready_for_accept_invite_api_call@user.test",
+            role: "PLAYER",
+            teamName: "Accepted Team",
+            division: "Division 1",
+            league: "CLTTL",
+            season: "2025-2026",
+            invitedBy: "Luca");
+
+        var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var patchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", acceptedAt } });
+        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        var patchResponse = await _httpClient.SendAsync(patchRequest);
+        patchResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Act - Retrieve the already-accepted invite
+        var response = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        result.Should().NotBeEmpty();
+
+        using var jsonDoc = JsonDocument.Parse(result);
+        var jsonResult = jsonDoc.RootElement;
+
+        jsonResult.GetProperty("nano_id").GetString().Should().Be(createdInviteId);
+        jsonResult.GetProperty("accepted_at").GetInt64().Should().Be(acceptedAt);
+        jsonResult.GetProperty("invitee_name").GetString().Should().Be("Accepted User");
+        jsonResult.GetProperty("invitee_email_id").GetString().Should().Be("test_ready_for_accept_invite_api_call@user.test");
+    }
+
+    [Fact]
     public async Task GET_Invite_Should_Return_404_For_NonExistent_Id()
     {
         // Arrange
@@ -657,6 +699,56 @@ public class InvitesAcceptanceTests : IAsyncLifetime
 
     [Fact]
     [Trait("Cognito", "Live")]
+    public async Task PATCH_Invite_Should_Return_AlreadyAccepted_Invite_Without_Updating_AcceptedAt()
+    {
+        // Arrange - Create an invite first
+        var createdInviteId = await CreateInviteAsync(
+            name: "Already Accepted",
+            email: "test_ready_for_accept_invite_api_call@user.test", // setup script creates this user in Cognito   
+            role: "PLAYER",
+            teamName: "Retry Club",
+            division: "Division 3",
+            league: "Regional League",
+            season: "2025-2026",
+            invitedBy: "Client");
+
+        var firstAcceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var firstPatchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", firstAcceptedAt } });
+        var firstPatchRequest = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(firstPatchBody, Encoding.UTF8, "application/json")
+        };
+
+        var firstAcceptResponse = await _httpClient.SendAsync(firstPatchRequest);
+        firstAcceptResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Act - Patch again with a different timestamp
+        var secondAcceptedAt = firstAcceptedAt + 1000;
+        var secondPatchBody = JsonSerializer.Serialize(new Dictionary<string, long> { { "accepted_at", secondAcceptedAt } });
+        var secondPatchRequest = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(secondPatchBody, Encoding.UTF8, "application/json")
+        };
+
+        var secondAcceptResponse = await _httpClient.SendAsync(secondPatchRequest);
+
+        // Assert
+        secondAcceptResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondAcceptBody = await secondAcceptResponse.Content.ReadAsStringAsync();
+        using var secondAcceptJsonDoc = JsonDocument.Parse(secondAcceptBody);
+
+        secondAcceptJsonDoc.RootElement.GetProperty("accepted_at").GetInt64().Should().Be(firstAcceptedAt);
+
+        // Confirm the stored invite still preserves the original accepted_at
+        var getResponse = await _httpClient.GetAsync($"/invites/{createdInviteId}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var getBody = await getResponse.Content.ReadAsStringAsync();
+        using var getJsonDoc = JsonDocument.Parse(getBody);
+        getJsonDoc.RootElement.GetProperty("accepted_at").GetInt64().Should().Be(firstAcceptedAt);
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PATCH_Invite_Should_Return_422_For_Unregistered_User()
     {
         // Arrange
@@ -801,6 +893,84 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PATCH_Invite_Should_Return_400_For_Empty_Body()
+    {
+        // Arrange
+        var createdInviteId = await CreateInviteAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(string.Empty, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        errorMessage.Should().Contain("Empty request body");
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Return_400_For_Missing_AcceptedAt_In_Body()
+    {
+        // Arrange
+        var createdInviteId = await CreateInviteAsync(
+            name: "Test User",
+            email: "test@example.com",
+            role: "PLAYER",
+            teamName: "Test Team",
+            division: "Division 1",
+            league: "Test League",
+            season: "2025-2026",
+            invitedBy: "Tester");
+
+        var patchBody = JsonSerializer.Serialize(new { });
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        errorMessage.Should().Contain("accepted_at");
+    }
+
+    [Fact]
+    public async Task PATCH_Invite_Should_Return_400_For_Invalid_AcceptedAt_Format()
+    {
+        // Arrange
+        var createdInviteId = await CreateInviteAsync(
+            name: "Test User",
+            email: "test@example.com",
+            role: "PLAYER",
+            teamName: "Test Team",
+            division: "Division 1",
+            league: "Test League",
+            season: "2025-2026",
+            invitedBy: "Tester");
+
+        var patchBody = "{ \"accepted_at\": \"not-a-timestamp\" }";
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/invites/{createdInviteId}")
+        {
+            Content = new StringContent(patchBody, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        var response = await _httpClient.SendAsync(request);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        errorMessage.Should().Contain("Invalid request body");
+    }
+
+    [Fact]
     public async Task PATCH_Invite_Should_Return_400_For_Missing_InviteId()
     {
         // Act
@@ -910,6 +1080,19 @@ public class InvitesAcceptanceTests : IAsyncLifetime
 
         // Assert - still NoContent
         secondDelete.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task DELETE_Invite_Should_Return_204_For_NonExistent_ValidNanoId()
+    {
+        // Arrange
+        var nonExistentId = "99887766"; // Valid nano_id format, but not present in storage
+
+        // Act
+        var response = await _httpClient.DeleteAsync($"/invites/{nonExistentId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]

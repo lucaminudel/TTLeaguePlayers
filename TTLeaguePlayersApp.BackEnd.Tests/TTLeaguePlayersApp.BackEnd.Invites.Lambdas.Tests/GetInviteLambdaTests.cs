@@ -73,6 +73,16 @@ public class GetInviteLambdaTests
     }
 
     [Fact]
+    public async Task WhenNanoIdIsInvalid_Throws_ValidationException()
+    {
+        var lambda = CreateLambda();
+
+        var act = () => lambda.HandleAsync("short", _context);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
     public async Task WhenInviteNotFound_ThrowsKeyNotFoundException()
     {
         // Arrange — no invite seeded
