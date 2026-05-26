@@ -291,6 +291,8 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
 
     private static void ValidateClub(Club club)
     {
+        if (club == null) throw new ArgumentNullException(nameof(club));
+
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(club.Location)) errors.Add($"{JsonFieldName.For<Club>(nameof(club.Location))} is required");
@@ -301,6 +303,8 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
 
     private static void ValidateTournament(Tournament tournament)
     {
+        if (tournament == null) throw new ArgumentNullException(nameof(tournament));
+
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(tournament.Location))       errors.Add($"{JsonFieldName.For<Tournament>(nameof(tournament.Location))} is required");

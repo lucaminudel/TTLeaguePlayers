@@ -95,6 +95,8 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
 
     private static void ValidateInvite(Invite invite)
     {
+        if (invite == null) throw new ArgumentNullException(nameof(invite));
+
         var errors = new List<string>();
 
         // Common validation
