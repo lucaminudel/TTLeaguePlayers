@@ -71,7 +71,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: dotnet8
+    Runtime: dotnet10
     Timeout: 30
     MemorySize: 512
     Environment:
@@ -325,7 +325,7 @@ Resources:
     Properties:
       CodeUri: TTLeaguePlayersApp.BackEnd/
       Handler: TTLeaguePlayersApp.BackEnd::TTLeaguePlayersApp.BackEnd.Utilities.EmailForwarderLambda::HandleAsync
-      Runtime: dotnet8
+      Runtime: dotnet10
       Architectures:
         - !Ref LambdaArchitecture
       Policies:
