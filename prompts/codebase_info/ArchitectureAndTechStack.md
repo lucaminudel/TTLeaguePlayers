@@ -1,14 +1,14 @@
 # App Architecture & Tech-stack
-This is a high level description of the Architecture and the Tech-stack of the application named TTLeaguePlayers
+This is a high-level description of the Architecture and the Tech-stack of the application named TTLeaguePlayers
 
 ## Architectural components
 This is the list of key AWS cloud services used as key components of this cloud native serverless application:
 
 1. **AWS S3**: hosting a Client-Side Rendered (CSR) Single Page App (SPA) 
-2. **AWS CloudFront CDN**: serving the HTTP/HTTPS the web app pages hosted in S3
+2. **AWS CloudFront CDN**: serving the HTTP/HTTPS web app pages hosted in S3
 3. **AWS Lambda**: serverless microservices backend logic
 4. **AWS API Gateway**: HTTPS API access to the lambdas 
-5. **AWS Cognito**: sign-in, login, authorisation and basic users info
+5. **AWS Cognito**: sign-in, login, authorisation and basic user info
 6. **AWS DynamoDB**: for persisting invitations and kudos
 7. **AWS SES**: for emailing sign-in invites and notifications
 
@@ -25,7 +25,7 @@ The Client-Side Rendered (CSR) Single Page App (SPA)  web application to be host
 - E2e test framework: Playwright
 
 This FrontEnd project is: TTLeaguePlayersApp.FrontEnd
-These config files contains additional info on the implememntation details of the FrontEnd:
+These config files contain additional info on the implementation details of the FrontEnd:
 - /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
 - /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/vite.config.ts
 - /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/tailwind.config.js
@@ -38,8 +38,8 @@ The consistent style and design of the pages is defined here:
 
 
 ### BackEnd
-The cloud native serverless microservices using AWS Lambda, AWS API Gateway, AWS Cognito, AWS DynamoDB, and AWS SES is developed using:
-- Development and run-time Framework: .NET 8
+The cloud native serverless microservices using AWS Lambda, AWS API Gateway, AWS Cognito, AWS DynamoDB, and AWS SES are developed using:
+- Development and run-time Framework: .NET 10
 - Language: C#
  
  The whole backend is implemented as a single .NET project containing 
@@ -49,7 +49,7 @@ The cloud native serverless microservices using AWS Lambda, AWS API Gateway, AWS
 
 This single-project backend can be built with SAM without incurring in multi-projects .NET solutions not fully supported by the SAM build.
 This BackEnd project is: TTLeaguePlayersApp.BackEnd
-These config files contains additional info on the implememntation details of the BackEnd:
+These config files contain additional info on the implementation details of the BackEnd:
 - /Users/lucaminudel/Code/TTLeaguePlayers/template.yaml
 - /Users/lucaminudel/Code/TTLeaguePlayers/cognito-template.yaml
 - /Users/lucaminudel/Code/TTLeaguePlayers/samconfig.toml
@@ -57,15 +57,16 @@ These config files contains additional info on the implememntation details of th
 - /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj
 
 ### Email Architecture
-The application handles incoming and outgoing emails (e.g., via `contact_us@ttleagueplayers.uk`) using AWS SES and Route 53:
-- **DNS & Route 53**: MX and SPF records are configured in Route 53 to authorize AWS SES to handle email for the apex domain (`ttleagueplayers.uk`).
-- **Incoming Emails**: AWS SES uses a Receipt Rule to save incoming emails for `contact_us@ttleagueplayers.uk` into an S3 bucket (`ttleague-incoming-emails`).
-- **Email Forwarding**: An AWS Lambda function (`EmailForwarderLambda`) is triggered by S3 `ObjectCreated` events. It parses the raw email from S3, strips SES-specific routing headers, sets the `Reply-To` to the original sender, and forwards the email to an administration address (e.g., `luca.minudel@gmail.com`) using AWS SES.
+The application handles incoming and outgoing emails (e.g., via `contact_us@ttleagueplayers.uk`) using AWS SES and Route 53: 
+- **DNS & Route 53**: MX and SPF DNS records are configured in Route 53 independently for prod and staging.
+- **SES Authorization for sending Emails**: the authorisation for SES to send emails is set one time only for the apex/prod domain "ttleagueplayers.uk", doing so automatically authorises the staging subdomain.
+- **Shared SES Receipt Rule Set for incoming Emails**: there is a unique rule set per AWS account/region, which makes SES listen for the incoming email addresses, for both prod and staging, store them into an S3 bucket, and then trigger the email forwarding lambda (see below).
+- **S3 & Email Forwarding**: An AWS Lambda function (`EmailForwarderLambda`), deployed independently to prod and staging, is triggered by S3 `ObjectCreated` events from the prod and staging independent S3 buckets. It parses the raw email from S3, strips SES-specific routing headers, sets the `Reply-To` to the original sender, and forwards the email to an administration address (e.g., `luca.minudel@gmail.com`) using AWS SES.
 
 ### Environments
 There are four different environments for this application.
 Two are mainly local environment:
-* Dev: to run and debug locally the whole application, it uses
+* Dev: to run and debug the whole application locally, it uses
 	* AWS Cognito online: a dev instance 
 	* Local SAM: to deploy the backend and its HTTPS API
 	* Local DynamoDB: to access a local instance of the DynamoDB
@@ -76,20 +77,23 @@ Two are mainly local environment:
 	* Local DynamoDB: to access a local instance of the DynamoDB
 	* Local Webserver: to run the e2e automated tests.
 
-And there are two are fully online environment:
+And there are two  fully online environments:
 * Staging: all the backend and frontend and the services are deployed and run online on Amazon,  on a nested subdomain
 * Prod: all the backend and frontend and the services are deployed and run online on Amazon,  on the main domain.
 
-### Techical debt
+### Technical debt
 
 #### IoC and email forwarding
 The yalm templates need two improvements:
 - verify that all the one settings in AWS are included in the yalm templates (there is no manual setting missing in the templates)
 
 #### EmailForwarderLambda
-This lambda that implements email forwarding, preventing the need for a full fledged email server, is currently implemented in the application assembly even if it is unrelated.
-On top, having it there hits a limitation of the local SAM environment, preventing to run the tests in fast mode with the warm-containers EAGER parameter.
+This lambda that implements email forwarding, preventing the need for a full-fledged email server, is currently implemented in the application assembly, even if it is unrelated.
+On top, having it there hits a limitation of the local SAM environment, preventing to run the tests in fast mode with the warm-containers EAGER parameter. Nonetheless, it can be run with the warm-containers LAZY parameter that keeps the container alive between calls, but unlike EAGER start with a cold call.
+To completely solve this bug and use EAGER, there are two options to be tested:
+- Moving EmailForwarderLambda to its own SAM template
+- Extract from template.yalm the inline Python script for SsmParameterWriterFunction into an external file and specify a static CodeUri value (like scripts/ssm_writer/), placing the extracted intex.py there
 
 #### Test users creation
-- The scripts that create and clean-up all Cognito test users do skip the creation of the static test users as they can be reused multiple times. But this currently requires to run the creation script with a force paramiter to create them the 1st time
+- The scripts that create and clean-up all Cognito test users do skip the creation of the static test users as they can be reused multiple times. But this currently requires running the creation script with a `force` parameter to create them the 1st time
 
