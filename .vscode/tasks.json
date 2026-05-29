@@ -17,7 +17,7 @@
       "label": "sam-start dev-env",
       "type": "shell",
       "dependsOn": "sam-refresh-build dev-env",
-      "command": "sam local start-api --config-env dev --port 3000",
+      "command": "sam local start-api --warm-containers LAZY --config-env dev --port 3000",
       "group": "test"
     },
     {
@@ -33,7 +33,7 @@
       "label": "sam-start test-env",
       "type": "shell",
       "dependsOn": "sam-refresh-build test-env",
-      "command": "sam local start-api --config-env test --port 3003",
+      "command": "sam local start-api --warm-containers LAZY --config-env test --port 3003",
       "group": "test"
     },
     {
