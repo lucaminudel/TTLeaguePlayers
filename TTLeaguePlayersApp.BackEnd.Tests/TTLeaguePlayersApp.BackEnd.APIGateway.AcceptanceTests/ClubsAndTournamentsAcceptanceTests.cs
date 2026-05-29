@@ -4,22 +4,35 @@ using System.Text.Json;
 using FluentAssertions;
 using Xunit;
 
+using Amazon.CognitoIdentityProvider;
+using Amazon.CognitoIdentityProvider.Model;
+
 namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 
 [Trait("Environment", "Staging")]
 public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 {
     private readonly HttpClient _httpClient;
+    private readonly IAmazonCognitoIdentityProvider _cognitoClient;
+    private readonly string _userPoolId;
+    private readonly string _clientId;
     private readonly List<(string location, string clubName)> _createdClubs = new();
     private readonly List<(string location, string clubName, string tournamentName)> _createdTournaments = new();
 
     private const string TestLocation = "London";
     private const string TestClubName = "Acceptance Test Club";
     private const string TestTournamentName = "Acceptance Test Tournament";
+    private const string TestUserEmail = "test_already_registered@user.test";
+    private const string TestUserPassword = "aA1!56789012";
 
     public ClubsAndTournamentsAcceptanceTests()
     {
         var config = new Configuration.DataStore.Loader().GetEnvironmentVariables();
+        _userPoolId = config.Cognito.UserPoolId;
+        _clientId = config.Cognito.ClientId;
+        
+        _cognitoClient = new AmazonCognitoIdentityProviderClient(); // Uses default credentials
+
         _httpClient = new HttpClient
         {
             BaseAddress = config.ApiGateWay.ApiBaseUrl,
@@ -449,9 +462,31 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         _createdTournaments.Add((location, clubName, tournamentName));
     }
 
+    private async Task<string> LoginAndGetIdTokenAsync(string email, string password)
+    {
+        var authRequest = new AdminInitiateAuthRequest
+        {
+            UserPoolId = _userPoolId,
+            ClientId = _clientId,
+            AuthFlow = AuthFlowType.ADMIN_NO_SRP_AUTH,
+            AuthParameters = new Dictionary<string, string>
+            {
+                { "USERNAME", email },
+                { "PASSWORD", password }
+            }
+        };
+
+        var response = await _cognitoClient.AdminInitiateAuthAsync(authRequest);
+        return response.AuthenticationResult.IdToken;
+    }
+
     #endregion
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public async Task InitializeAsync()
+    {
+        var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+    }
 
     public async Task DisposeAsync()
     {
