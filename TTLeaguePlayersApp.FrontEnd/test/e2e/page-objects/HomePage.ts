@@ -59,8 +59,8 @@ export class HomePage {
         await enterButton.click();
 
         // Verify navigation to Promote Club page
-        await expect(this.page).toHaveURL(/\/#\/promote-club-and-tournaments$/);
-        await expect(this.page.locator('h2')).toHaveText('Promote Club & Tournaments');
+        await expect(this.page).toHaveURL(/\/#\/promote-my-club-and-tournaments$/);
+        await expect(this.page.locator('h2')).toHaveText('Promote My Club & Tournaments');
     }
 
     async tentativeReadyToPlay(): Promise<void> {

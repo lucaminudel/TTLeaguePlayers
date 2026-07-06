@@ -2,13 +2,13 @@ import React from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 
-export const PromoteClubAndTournaments: React.FC = () => {
+export const MyClubStandings: React.FC = () => {
     return (
         <MobileLayout>
-            <PageContainer title="Promote Club & Tournaments">
+            <PageContainer title="My Club Standings">
                 <div className="space-y-6 sm:space-y-8">
                     <p>
-                        Add your club to our directory to help players find your venue and join your community.
+                        View your Club's Teams Kudos standings.
                     </p>
                     <div className="pt-4">
                         <p className="text-base sm:text-lg leading-relaxed text-action-accent font-semibold">

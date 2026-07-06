@@ -42,24 +42,24 @@ export const MainMenu: React.FC = () => {
             visibleToUnauthenticated: false
         },
         {
-            label: 'Club Teams',
-            path: '/club-teams',
+            label: 'My Club Teams',
+            path: '/my-club-teams',
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
         {
-            label: 'Club Standings',
-            path: '/club-standings',
+            label: 'My Club Standings',
+            path: '/my-club-standings',
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
             visibleToUnauthenticated: false
         },
         {
-            label: 'Promote Club & Tournaments',
-            path: '/promote-club-and-tournaments',
+            label: 'Promote My Club & Tournaments',
+            path: '/promote-my-club-and-tournaments',
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,

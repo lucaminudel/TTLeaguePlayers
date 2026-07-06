@@ -10,9 +10,9 @@ import { AwardKudos } from './pages/AwardKudos';
 import { KudosStandings } from './pages/KudosStandings';
 import { ClubsAndTournaments } from './pages/ClubsAndTournaments';
 import { AboutAndContactUs } from './pages/AboutAndContactUs';
-import { ClubStandings } from './pages/ClubStandings';
-import { PromoteClubAndTournaments } from './pages/PromoteClubAndTournaments';
-import { ClubTeams } from './pages/ClubTeams';
+import { MyClubStandings } from './pages/MyClubStandings';
+import { PromoteMyClubAndTournaments } from './pages/PromoteMyClubAndTournaments';
+import { MyClubTeams } from './pages/MyClubTeams';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -69,26 +69,26 @@ function InitializationGate() {
         }
       />
       <Route
-        path="/club-standings"
+        path="/my-club-standings"
         element={
           <ProtectedRoute>
-            <ClubStandings />
+            <MyClubStandings />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/promote-club-and-tournaments"
+        path="/promote-my-club-and-tournaments"
         element={
           <ProtectedRoute>
-            <PromoteClubAndTournaments />
+            <PromoteMyClubAndTournaments />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/club-teams"
+        path="/my-club-teams"
         element={
           <ProtectedRoute>
-            <ClubTeams />
+            <MyClubTeams />
           </ProtectedRoute>
         }
       />
