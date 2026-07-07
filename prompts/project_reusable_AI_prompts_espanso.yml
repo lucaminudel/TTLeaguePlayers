@@ -15,10 +15,16 @@ matches:
   # Codebase/Project prompts
   #
   - trigger: /ttarch # TT Architecture
-    label: 1. PRJ - Read the Architecture & Tech-Stack summary file
+    label: 1a. PRJ - Read the Architecture & Tech-Stack summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp architecture and tech stack info:
       ~/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
+
+  - trigger: /ttinseason # TT Architecture
+    label: 1b. PRJ - Read the In-season Domain Logic summary file
+    replace: |
+      Read from this file, the TTLeaguePlayersApp In-season Domain Logic From Cognito Users & Configuration Files
+      ~/Code/TTLeaguePlayers/prompts/codebase_info/FrontendInSeasonDomainLogic.md
 
   - trigger: /ttlogs # TT Logging and Exceptions summary
     label: 2. PRJ - Read the Logging and Exceptions guidelines
