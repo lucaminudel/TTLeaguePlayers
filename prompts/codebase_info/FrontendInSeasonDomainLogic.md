@@ -16,6 +16,12 @@ The `ActiveSeason` represents a user registration for a specific league and seas
 - `team_division` (e.g., "Division 1"), 
 - etc.
 
+In practice, a user can only be registered to one team per division during a single season of a league. Throughout the season, a user may move up to a higher division or, in rare cases, move down. Occasionally, a user might play for another team within the same club and division, but this typically does not result in a formal registration for that second team.
+
+Therefore, a user will generally have a maximum of one registration for the same league + season + team_division. However, it is common for a user to play for the same team and division across multiple seasons and therefore to have multiple registrations for the same league + team_division (but not season).
+
+Note: While these real-world rules are generally valid, they are not strictly enforced in the codebase, and the system's logic does not rely on them.
+
 ### Data Source and Retrieval
 1. **Cognito Custom Attribute**: The user's active seasons are stored in **Cognito** under the custom user attribute `custom:active_seasons` (or fallback `active_seasons`).
 2. **Parsing**: 
@@ -43,6 +49,10 @@ The global configuration contains a list of supported data sources under `active
 - `registrations_start_date` (epoch timestamp in seconds when user registration & match rating starts),
 - `ratings_end_date` (epoch timestamp in seconds when the season match rating ends),
 - etc.
+
+In the configuration file, an active_seasons_data_source should contain only one entry per unique league and season combination, without duplicates. However, a league can span multiple seasons, resulting in multiple entries across different seasons. The starts and end dates of different seasons should not overlap.
+
+Note: While this constraint is not strictly enforced in the codebase, the Kudos page assumes it to be true and will only fetch the first entry found for any given league and season, ignoring any duplicates where it exists.
 
 ### Data Source and Retrieval
 * The configuration is build-time environment-dependent (prod, staging, test, dev). The configuration file is injected directly into the bundle.
