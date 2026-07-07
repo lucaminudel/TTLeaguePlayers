@@ -50,7 +50,7 @@ The global configuration contains a list of supported data sources under `active
 - `ratings_end_date` (epoch timestamp in seconds when the season match rating ends),
 - etc.
 
-In the configuration file, an active_seasons_data_source should contain only one entry per unique league and season combination, without duplicates. However, a league can span multiple seasons, resulting in multiple entries across different seasons. The starts and end dates of different seasons should not overlap.
+In the configuration file, an active_seasons_data_source should contain only one entry per unique league and season combination, without duplicates. However, a league can span multiple seasons, resulting in multiple entries across different seasons. The start and end dates of different seasons should not overlap.
 
 Note: While this constraint is not strictly enforced in the codebase, the Kudos page assumes it to be true and will only fetch the first entry found for any given league and season, ignoring any duplicates where it exists.
 
