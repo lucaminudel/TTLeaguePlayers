@@ -44,7 +44,7 @@ For the test environment:
 `sam build --config-env test`
 This is defined as VS Code Terminal task: sam-refresh-build test-env
 
-All these commands are defined here: /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/tasks.json
+All these commands are defined here: TTLeaguePlayers/.vscode/tasks.json
 
 ### 2) Commands to run backend tests 
 Via command line, after ensuring the prerequisites:
@@ -67,4 +67,4 @@ Via a batch file that ensures all the prerequisites, but excludes the live Cogni
 ```
 This is defined as VS Code Terminal task: api-tests test-env
 
-All these commands are defined here: /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/tasks.json
+All these commands are defined here: TTLeaguePlayers/.vscode/tasks.json

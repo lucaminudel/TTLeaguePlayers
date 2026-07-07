@@ -26,15 +26,15 @@ The Client-Side Rendered (CSR) Single Page App (SPA)  web application to be host
 
 This FrontEnd project is: TTLeaguePlayersApp.FrontEnd
 These config files contain additional info on the implementation details of the FrontEnd:
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/vite.config.ts
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/tailwind.config.js
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/vite.config.ts
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/tailwind.config.js
 The consistent style and design of the pages is defined here: 
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/components/layout
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/components/navigation
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/components/common
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/index.css
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/App.css
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/components/layout
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/components/navigation
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/components/common
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/index.css
+- TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/src/App.css
 
 
 ### BackEnd
@@ -50,11 +50,11 @@ The cloud native serverless microservices using AWS Lambda, AWS API Gateway, AWS
 This single-project backend can be built with SAM without incurring in multi-projects .NET solutions not fully supported by the SAM build.
 This BackEnd project is: TTLeaguePlayersApp.BackEnd
 These config files contain additional info on the implementation details of the BackEnd:
-- /Users/lucaminudel/Code/TTLeaguePlayers/template.yaml
-- /Users/lucaminudel/Code/TTLeaguePlayers/cognito-template.yaml
-- /Users/lucaminudel/Code/TTLeaguePlayers/samconfig.toml
-- /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/*
-- /Users/lucaminudel/Code/TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj
+- TTLeaguePlayers/template.yaml
+- TTLeaguePlayers/cognito-template.yaml
+- TTLeaguePlayers/samconfig.toml
+- TTLeaguePlayers/.vscode/*
+- TTLeaguePlayers/TTLeaguePlayersApp.BackEnd/TTLeaguePlayersApp.BackEnd.csproj
 
 ### Email Architecture
 The application handles incoming and outgoing emails (e.g., via `contact_us@ttleagueplayers.uk`) using AWS SES and Route 53: 

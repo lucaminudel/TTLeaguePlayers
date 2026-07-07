@@ -63,7 +63,7 @@ for the staging environment:
 `npm run "C+ e2e-tests-web:run staging-env"`
 
 Run these commands from the frontend project directly.
-They are defined here: /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/tasks.json
+They are defined here: TTLeaguePlayers/.vscode/tasks.json
 
 
 
@@ -76,5 +76,5 @@ This pipeline runs on the test environment, including the tests involving Cognit
 `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`
 This is defined as VS Code Terminal task: C+ full-stack-builds-tests-pipeline test-env
 
-They are defined here: /Users/lucaminudel/Code/TTLeaguePlayers/.vscode/tasks.json
+They are defined here: TTLeaguePlayers/.vscode/tasks.json
 

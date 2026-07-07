@@ -18,13 +18,13 @@ matches:
     label: 1. PRJ - Read the Architecture & Tech-Stack summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp architecture and tech stack info:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
+      ~/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
 
   - trigger: /ttlogs # TT Logging and Exceptions summary
     label: 2. PRJ - Read the Logging and Exceptions guidelines
     replace: |
       Read from this file, the TTLeaguePlayersApp guidelines for logging and handling errors:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md
+      ~/Code/TTLeaguePlayers/prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md
 
   - trigger: /ttws # TT Workflow Staging
     label: 3. PRJ - End of task Staging/Commit and CI pipeline execution
@@ -42,19 +42,19 @@ matches:
     label: 4a. TSK - FrontEnd verification commands
     replace: |
       Read from this file, on the commands to run verification commands for the FrontEnd:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/FrontEnd VerificationCommands.md
+      ~/Code/TTLeaguePlayers/prompts/workflow/instructions/FrontEnd VerificationCommands.md
       
   - trigger: /ttwbv # TT Workflow Backend Verification
     label: 4b. TSK - Backend verification commands
     replace: |
       Read from this file, on the commands to run verification commands for the BackEnd:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/BackEndVerificationCommands.md
+      ~/Code/TTLeaguePlayers/prompts/workflow/instructions/BackEndVerificationCommands.md
 
   - trigger: /ttdebug # TT Workflow Debug local SAM lambdas
     label: 5 TSK - Start Debugging local SAM lambdas
     replace: |
       Read from this file, the debug instructions to debug the Lambdas and Api GatewayC# running on SAM locally:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
+      ~/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
 
   #
   # Workflow instructions 
@@ -63,12 +63,12 @@ matches:
     label: 6a. WF - Test writing guidelines
     replace: |
       Read from this file, with the guidelines for writing tests:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
+      ~/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
   - trigger: /ttftests # TT Workflow, Fix Tests 
     label: 6b. WF - Broken Test fixing guidelines
     replace: |
       Read from this file, with the guidelines for fixing tests:
-      /Users/lucaminudel/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
+      ~/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
 
   - trigger: /tthandoff # TT Workflow Session Hand-off
     label: 7 WF - Session Handoff
