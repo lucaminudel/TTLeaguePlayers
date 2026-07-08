@@ -27,7 +27,7 @@ matches:
       ~/Code/TTLeaguePlayers/prompts/codebase_info/FrontendInSeasonDomainLogic.md
 
   - trigger: /ttmanagedclubs # TT Actively Managed Clubs Domain Logic summary
-    label: 1c. PRJ - Read the In-season Domain Logic summary file
+    label: 1c. PRJ - Read the Actively Managed Clubs Logic summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp Actively Managed Clubs Domain Logic From Cognito Users & Configuration Files
       ~/Code/TTLeaguePlayers/prompts/codebase_info/FrontendActivelyManagedClubsDomainLogic.md
