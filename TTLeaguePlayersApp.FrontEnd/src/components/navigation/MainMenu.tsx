@@ -126,7 +126,7 @@ export const MainMenu: React.FC = () => {
             `}
             >
                 <nav className="w-full">
-                    <ul className="flex flex-col space-y-6 text-center">
+                    <ul className="flex flex-col space-y-0 text-center">
                         {!isAuthenticated ? (
                             <li>
                                 <Link
@@ -140,7 +140,7 @@ export const MainMenu: React.FC = () => {
                             </li>
                         ) : (
                             <li className="text-center">
-                                <div className="text-red-600 mb-8" data-testid="main-menu-user-info">
+                                <div className="text-red-600 mb-4" data-testid="main-menu-user-info">
                                     <div className="text-lg" data-testid="main-menu-welcome-message">
                                         Welcome, {welcomeName}
                                     </div>
