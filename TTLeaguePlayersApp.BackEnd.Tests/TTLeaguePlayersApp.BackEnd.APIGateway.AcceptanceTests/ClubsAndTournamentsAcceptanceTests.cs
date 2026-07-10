@@ -236,7 +236,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
-        response.Headers.Should().ContainKey("Access-Control-Allow-Methods");
+        response.Headers.GetValues("Access-Control-Allow-Methods").First().Should().Contain("PUT").And.Contain("DELETE");
     }
 
     #endregion
@@ -356,7 +356,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
-        response.Headers.Should().ContainKey("Access-Control-Allow-Methods");
+        response.Headers.GetValues("Access-Control-Allow-Methods").First().Should().Contain("PUT").And.Contain("GET").And.Contain("DELETE");
     }
 
     #endregion
