@@ -126,12 +126,12 @@ export const MainMenu: React.FC = () => {
             `}
             >
                 <nav className="w-full">
-                    <ul className="flex flex-col space-y-0 text-center">
+                    <ul className="flex flex-col space-y-1 text-center">
                         {!isAuthenticated ? (
                             <li>
                                 <Link
                                     to="/login"
-                                    className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2"
+                                    className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-0.5"
                                     onClick={toggleMenu}
                                     data-testid="main-menu-login-link"
                                 >
@@ -146,18 +146,18 @@ export const MainMenu: React.FC = () => {
                                     </div>
 
                                     {managedClubs.map((club, index) => (
-                                        <div key={`${club.league}-${club.season}-${club.club_name}-${String(index)}`} className="text-base mt-2" data-testid="main-menu-managed-club">
+                                        <div key={`${club.league}-${club.season}-${club.club_name}-${String(index)}`} className="text-base mt-1" data-testid="main-menu-managed-club">
                                             MANAGER: {club.club_name}, {club.club_location} ({club.league} {club.season})
                                             {(firstClub?.manager_name && club.manager_name !== firstClub.manager_name) ? ` (${club.manager_name})` : ''}
                                         </div>
                                     ))}
                                     {firstSeason && (
-                                        <div className="text-base mt-2" data-testid="main-menu-first-season">
+                                        <div className="text-base mt-1" data-testid="main-menu-first-season">
                                             {firstSeason.league} {firstSeason.season} - {firstSeason.team_name}, {firstSeason.team_division}
                                         </div>
                                     )}
                                     {activeSeasons.slice(1).map((season, index) => (
-                                        <div key={`${season.league}-${season.season}-${season.team_name}-${season.person_name}-${String(index)}`} className="text-base mt-1" data-testid="main-menu-additional-season">
+                                        <div key={`${season.league}-${season.season}-${season.team_name}-${season.person_name}-${String(index)}`} className="text-base mt-0.5" data-testid="main-menu-additional-season">
                                             {season.league} {season.season} - {season.team_name}, {season.team_division}
                                             {(firstSeason?.person_name && season.person_name !== firstSeason.person_name) ? ` (${season.person_name})` : ''}
                                         </div>
@@ -165,7 +165,7 @@ export const MainMenu: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={handleLogout}
-                                    className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2 mx-auto"
+                                    className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-0.5 mx-auto"
                                     data-testid="main-menu-logout-button"
                                 >
                                     Log out
@@ -184,7 +184,7 @@ export const MainMenu: React.FC = () => {
                                 <li key={item.label}>
                                     <Link
                                         to={item.path ?? '#'}
-                                        className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-2"
+                                        className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-0.5"
                                         onClick={toggleMenu}
                                         data-testid={`main-menu-nav-${item.label.toLowerCase().replace(/\s*&\s*/g, '-and-').replace(/\s+/g, '-')}`}
                                     >
