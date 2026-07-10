@@ -27,8 +27,13 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
         return Task.CompletedTask;
     }
 
+    public bool ThrowOnRetrieveClub { get; set; }
+    public bool ThrowRuntimeErrorOnRetrieveClub { get; set; }
+
     public Task<Club> RetrieveClubAsync(string location, string clubName)
     {
+        if (ThrowOnRetrieveClub) throw new KeyNotFoundException("Club not found");
+        if (ThrowRuntimeErrorOnRetrieveClub) throw new System.Exception("Simulated data store failure for club retrieval");
         return Task.FromResult(ClubToReturn!);
     }
 

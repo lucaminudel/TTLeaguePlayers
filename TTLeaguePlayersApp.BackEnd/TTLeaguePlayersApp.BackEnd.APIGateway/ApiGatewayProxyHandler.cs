@@ -30,6 +30,7 @@ public partial class ApiGatewayProxyHandler
     private readonly RetrieveKudosGivenByPlayerLambda _retrieveKudosGivenByPlayerLambda;
     private readonly RetrieveKudosAwardedToTeamLambda _retrieveKudosAwardedToTeamLambda;
     private readonly RetrieveKudosStandingsLambda _retrieveKudosStandingsLambda;
+    private readonly RetrieveClubLambda _retrieveClubLambda;
     private readonly UpsertClubLambda _upsertClubLambda;
     private readonly DeleteClubLambda _deleteClubLambda;
     private readonly RetrieveAllClubsWithTournamentsLambda _retrieveAllClubsWithTournamentsLambda;
@@ -73,6 +74,7 @@ public partial class ApiGatewayProxyHandler
         _retrieveKudosStandingsLambda = new RetrieveKudosStandingsLambda(_observer, kudosDataTable);
 
         var clubsAndTournamentsDataTable = new ClubsAndTournamentsDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
+        _retrieveClubLambda = new RetrieveClubLambda(_observer, clubsAndTournamentsDataTable);
         _upsertClubLambda = new UpsertClubLambda(_observer, clubsAndTournamentsDataTable);
         _deleteClubLambda = new DeleteClubLambda(_observer, clubsAndTournamentsDataTable);
         _retrieveAllClubsWithTournamentsLambda = new RetrieveAllClubsWithTournamentsLambda(_observer, clubsAndTournamentsDataTable);
@@ -96,6 +98,7 @@ public partial class ApiGatewayProxyHandler
         _retrieveKudosGivenByPlayerLambda = retrieveKudosGivenByPlayerLambda;
         _retrieveKudosAwardedToTeamLambda = retrieveKudosAwardedToTeamLambda;
         _retrieveKudosStandingsLambda = retrieveKudosStandingsLambda;
+        _retrieveClubLambda = new RetrieveClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _upsertClubLambda = new UpsertClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _deleteClubLambda = new DeleteClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _retrieveAllClubsWithTournamentsLambda = new RetrieveAllClubsWithTournamentsLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
@@ -184,7 +187,10 @@ public partial class ApiGatewayProxyHandler
                 //
 
                 // Preflight for /clubs/{location}/{clubName}
-                ("OPTIONS", var p) when IsClubPath(p) => CreatePreflightResponse("OPTIONS,PUT,DELETE", request),
+                ("OPTIONS", var p) when IsClubPath(p) => CreatePreflightResponse("OPTIONS,GET,PUT,DELETE", request),
+
+                // GET club
+                ("GET", var p) when IsClubPath(p) => await HandleGetClub(request, context),
 
                 // PUT upsert club
                 ("PUT", var p) when IsClubPath(p) => await HandleUpsertClub(request, context),
@@ -1005,6 +1011,32 @@ public partial class ApiGatewayProxyHandler
             var responseStatusCode = HttpStatusCode.BadRequest;
             _observer.OnRuntimeRegularEvent("CREATE/UPDATE CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
             return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetClub(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetClub));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GET CLUB", context, inParameters);
+
+        var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var location = SafeUrlDecode(segments[1]);
+        var clubName = SafeUrlDecode(segments[2]);
+
+        try
+        {
+            var club = await _retrieveClubLambda.HandleAsync(location, clubName, context);
+
+            _observer.OnRuntimeRegularEvent("GET CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+            return CreateResponse(HttpStatusCode.OK, club);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            var responseStatusCode = HttpStatusCode.NotFound;
+            _observer.OnRuntimeRegularEvent("GET CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode));
+            return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
     }
 

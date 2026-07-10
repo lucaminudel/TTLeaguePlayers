@@ -218,11 +218,30 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GET_Club_Should_Return_405_MethodNotAllowed()
+    public async Task GET_Club_Should_Return_200_With_Club_Details()
     {
-        var response = await _httpClient.GetAsync(ClubPath(TestLocation, TestClubName));
+        var clubName = "Club To Retrieve";
+        var homepage = "https://retrieval.example.com";
+        await UpsertClubAsync(TestLocation, clubName, homepage);
+        _createdClubs.Add((TestLocation, clubName));
 
-        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        var response = await _httpClient.GetAsync(ClubPath(TestLocation, clubName));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.GetProperty("location").GetString().Should().Be(TestLocation);
+        jsonDoc.RootElement.GetProperty("club_name").GetString().Should().Be(clubName);
+        jsonDoc.RootElement.GetProperty("homepage").GetString().Should().Be(homepage + "/");
+
+    }
+
+    [Fact]
+    public async Task GET_Club_Should_Return_404_When_Club_Not_Found()
+    {
+        var response = await _httpClient.GetAsync(ClubPath(TestLocation, "NonExistent Club"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -236,7 +255,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
-        response.Headers.GetValues("Access-Control-Allow-Methods").First().Should().Contain("PUT").And.Contain("DELETE");
+        response.Headers.GetValues("Access-Control-Allow-Methods").First().Should().Contain("GET").And.Contain("PUT").And.Contain("DELETE");
     }
 
     #endregion
