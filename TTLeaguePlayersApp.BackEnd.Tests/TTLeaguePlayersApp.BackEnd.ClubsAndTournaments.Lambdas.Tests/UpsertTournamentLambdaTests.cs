@@ -19,11 +19,12 @@ public class UpsertTournamentLambdaTests
         var request = new UpsertTournamentRequest { TournamentInfo = "https://example.com" };
         var claims = new Dictionary<string, string>();
 
-        var act = async () => await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
+        var result = await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
 
-        await act.Should().NotThrowAsync<SecurityValidationException>();
         observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
         dataTable.UpsertedTournaments.Should().HaveCount(1);
+        result.Should().NotBeNull();
+        result.TournamentName.Should().Be("Test Tournament");
     }
 
     [Fact]
@@ -39,11 +40,12 @@ public class UpsertTournamentLambdaTests
             { "custom:managed_clubs", "INVALID_JSON" }
         };
 
-        var act = async () => await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
+        var result = await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
 
-        await act.Should().NotThrowAsync<SecurityValidationException>();
         observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
         dataTable.UpsertedTournaments.Should().HaveCount(1);
+        result.Should().NotBeNull();
+        result.TournamentName.Should().Be("Test Tournament");
     }
 
     [Fact]
@@ -59,11 +61,12 @@ public class UpsertTournamentLambdaTests
             { "custom:managed_clubs", "[{\"ClubLocation\":\"Other Location\",\"ClubName\":\"Other Club\"}]" }
         };
 
-        var act = async () => await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
+        var result = await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
 
-        await act.Should().NotThrowAsync<SecurityValidationException>();
         observer.SecurityErrors.Should().ContainSingle().Which.Should().BeOfType<SecurityValidationException>();
         dataTable.UpsertedTournaments.Should().HaveCount(1);
+        result.Should().NotBeNull();
+        result.TournamentName.Should().Be("Test Tournament");
     }
 
     [Theory]
@@ -105,16 +108,18 @@ public class UpsertTournamentLambdaTests
             { "custom:managed_clubs", "[{\"ClubLocation\":\"Test Location\",\"ClubName\":\"Test Club\"}]" }
         };
 
-        await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
+        var result = await lambda.HandleAsync("Test Location", "Test Club", "Test Tournament", request, claims, _context);
 
-        dataTable.UpsertedTournaments.Should().ContainSingle(t => 
-            t.Location == "Test Location" && 
-            t.ClubName == "Test Club" && 
-            t.TournamentName == "Test Tournament" && 
-            t.TournamentInfo != null && t.TournamentInfo.ToString() == "https://example.com/" && 
-            t.Facebook != null && t.Facebook.ToString() == "https://facebook.com/tournament" &&
-            t.StartDate == 1735689600 &&
-            t.EndDate == 1735776000);
+        result.Should().NotBeNull();
+        result.Location.Should().Be("Test Location");
+        result.ClubName.Should().Be("Test Club");
+        result.TournamentName.Should().Be("Test Tournament");
+        result.TournamentInfo.Should().NotBeNull();
+        result.TournamentInfo.ToString().Should().Be("https://example.com/");
+        result.Facebook.Should().NotBeNull();
+        result.Facebook.ToString().Should().Be("https://facebook.com/tournament");
+        result.StartDate.Should().Be(1735689600);
+        result.EndDate.Should().Be(1735776000);
     }
 
     [Fact]
