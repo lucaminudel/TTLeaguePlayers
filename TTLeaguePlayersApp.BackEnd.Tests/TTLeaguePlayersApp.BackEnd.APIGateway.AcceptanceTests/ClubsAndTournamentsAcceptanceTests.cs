@@ -137,6 +137,13 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         var response = await _httpClient.PutAsync(ClubPath(TestLocation, TestClubName), content);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.GetProperty("location").GetString().Should().Be(TestLocation);
+        jsonDoc.RootElement.GetProperty("club_name").GetString().Should().Be(TestClubName);
+        jsonDoc.RootElement.GetProperty("homepage").GetString().Should().Be("https://testclub.example.com");
+        
         _createdClubs.Add((TestLocation, TestClubName));
     }
 
@@ -153,6 +160,19 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 
         first.StatusCode.Should().Be(HttpStatusCode.OK);
         second.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var firstResult = await first.Content.ReadAsStringAsync();
+        using var firstJsonDoc = JsonDocument.Parse(firstResult);
+        firstJsonDoc.RootElement.GetProperty("location").GetString().Should().Be(TestLocation);
+        firstJsonDoc.RootElement.GetProperty("club_name").GetString().Should().Be(clubName);
+        firstJsonDoc.RootElement.GetProperty("homepage").GetString().Should().Be("https://idempotent.example.com");
+        
+        var secondResult = await second.Content.ReadAsStringAsync();
+        using var secondJsonDoc = JsonDocument.Parse(secondResult);
+        secondJsonDoc.RootElement.GetProperty("location").GetString().Should().Be(TestLocation);
+        secondJsonDoc.RootElement.GetProperty("club_name").GetString().Should().Be(clubName);
+        secondJsonDoc.RootElement.GetProperty("homepage").GetString().Should().Be("https://idempotent.example.com");
+        
         _createdClubs.Add((TestLocation, clubName));
     }
 
@@ -214,6 +234,13 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         var response = await _httpClient.PutAsync(ClubPath(locationWithSpace, clubNameWithSpace), content);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.GetProperty("location").GetString().Should().Be(locationWithSpace);
+        jsonDoc.RootElement.GetProperty("club_name").GetString().Should().Be(clubNameWithSpace);
+        jsonDoc.RootElement.GetProperty("homepage").GetString().Should().Be("https://spaceclub.example.com");
+        
         _createdClubs.Add((locationWithSpace, clubNameWithSpace));
     }
 
@@ -223,7 +250,6 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         var clubName = "Club To Retrieve";
         var homepage = "https://retrieval.example.com";
         await UpsertClubAsync(TestLocation, clubName, homepage);
-        _createdClubs.Add((TestLocation, clubName));
 
         var response = await _httpClient.GetAsync(ClubPath(TestLocation, clubName));
 
@@ -470,6 +496,13 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         var content = new StringContent(CreateUpsertClubJson(homepage), Encoding.UTF8, "application/json");
         var response = await _httpClient.PutAsync(ClubPath(location, clubName), content);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.GetProperty("location").GetString().Should().Be(location);
+        jsonDoc.RootElement.GetProperty("club_name").GetString().Should().Be(clubName);
+        jsonDoc.RootElement.GetProperty("homepage").GetString().Should().Be(homepage);
+        
         _createdClubs.Add((location, clubName));
     }
 

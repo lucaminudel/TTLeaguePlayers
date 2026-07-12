@@ -15,7 +15,7 @@ public class UpsertClubLambda
         _dataTable = dataTable;
     }
 
-    public async Task HandleAsync(string location, string clubName, UpsertClubRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
+    public async Task<Club> HandleAsync(string location, string clubName, UpsertClubRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         try
         {
@@ -56,6 +56,8 @@ public class UpsertClubLambda
             source: new() { ["Class"] = nameof(UpsertClubLambda), ["Method"] = nameof(HandleAsync) },
             context,
             parameters: new() { ["location"] = location, ["club_name"] = clubName });
+
+        return club;
     }
 
     private static void ValidateRequest(UpsertClubRequest request)

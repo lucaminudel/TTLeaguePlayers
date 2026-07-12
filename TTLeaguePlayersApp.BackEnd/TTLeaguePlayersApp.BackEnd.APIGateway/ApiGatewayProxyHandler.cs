@@ -1001,10 +1001,10 @@ public partial class ApiGatewayProxyHandler
 
         try
         {
-            await _upsertClubLambda.HandleAsync(location, clubName, upsertRequest, userClaims, context);
+            var upsertedClub = await _upsertClubLambda.HandleAsync(location, clubName, upsertRequest, userClaims, context);
 
             _observer.OnRuntimeRegularEvent("CREATE/UPDATE CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
-            return CreateResponse(HttpStatusCode.OK);
+            return CreateResponse(HttpStatusCode.OK, upsertedClub);
         }
         catch (ValidationException ex)
         {
