@@ -129,6 +129,33 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region PUT /clubs/{location}/{clubName} Tests
 
     [Fact]
+    public async Task PUT_Club_Should_Be_Protected()
+    {
+        if (RunningAgainst.ALocalEnvironmentIsTrue())
+            return;
+
+        var unauthenticatedClient = new HttpClient { BaseAddress = _httpClient.BaseAddress };
+        var content = new StringContent(CreateUpsertClubJson("https://testclub.example.com"), Encoding.UTF8, "application/json");
+
+        var response = await unauthenticatedClient.PutAsync(ClubPath(TestLocation, TestClubName), content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task DELETE_Club_Should_Be_Protected()
+    {
+        if (RunningAgainst.ALocalEnvironmentIsTrue())
+            return;
+
+        var unauthenticatedClient = new HttpClient { BaseAddress = _httpClient.BaseAddress };
+
+        var response = await unauthenticatedClient.DeleteAsync(ClubPath(TestLocation, TestClubName));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task PUT_Club_Should_Create_Club_Successfully()
     {
         var body = CreateUpsertClubJson("https://testclub.example.com");
