@@ -32,6 +32,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
 
         var pk = ClubPk(club.Location);
         var sk = ClubSk(club.ClubName);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         var item = new Dictionary<string, AttributeValue>
         {
@@ -42,6 +43,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
             ["location"]  = Str(club.Location),
             ["club_name"] = Str(club.ClubName),
             ["homepage"]  = Str(club.Homepage.ToString()),
+            ["last_updated_at"] = Num(now),
         };
 
         SetOptional(item, "instagram", club.Instagram?.ToString());
@@ -96,6 +98,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
 
         var pk = TournamentPk(tournament.Location, tournament.ClubName);
         var sk = TournamentSk(tournament.TournamentName);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         var item = new Dictionary<string, AttributeValue>
         {
@@ -109,6 +112,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
             ["tournament_info"] = Str(tournament.TournamentInfo.ToString()),
             ["start_date"]      = Num(tournament.StartDate),
             ["end_date"]        = Num(tournament.EndDate),
+            ["last_updated_at"] = Num(now),
         };
 
         SetOptional(item, "instagram", tournament.Instagram?.ToString());
@@ -251,6 +255,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         Instagram = GetOptionalUri(item, "instagram"),
         Facebook  = GetOptionalUri(item, "facebook"),
         Youtube   = GetOptionalUri(item, "youtube"),
+        LastUpdatedAt = item.ContainsKey("last_updated_at") ? long.Parse(item["last_updated_at"].N) : 0,
     };
 
     private static Tournament MapTournament(Dictionary<string, AttributeValue> item) => new Tournament
@@ -263,6 +268,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         EndDate        = long.Parse(item["end_date"].N),
         Instagram      = GetOptionalUri(item, "instagram"),
         Facebook       = GetOptionalUri(item, "facebook"),
+        LastUpdatedAt  = item.ContainsKey("last_updated_at") ? long.Parse(item["last_updated_at"].N) : 0,
     };
 
     // Key helpers — single source of truth for key construction

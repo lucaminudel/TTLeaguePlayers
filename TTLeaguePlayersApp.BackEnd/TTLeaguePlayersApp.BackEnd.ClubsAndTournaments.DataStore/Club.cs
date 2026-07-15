@@ -24,4 +24,7 @@ public class Club
     [JsonPropertyName("youtube")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? Youtube { get; set; }
+
+    [JsonPropertyName("last_updated_at")]
+    public long LastUpdatedAt { get; set; }
 }

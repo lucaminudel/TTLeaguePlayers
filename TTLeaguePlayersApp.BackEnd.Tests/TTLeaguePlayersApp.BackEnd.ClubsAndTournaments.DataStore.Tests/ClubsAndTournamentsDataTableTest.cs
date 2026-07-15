@@ -38,6 +38,10 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
 
         // Assert
         var retrieved = await _db.RetrieveClubAsync(club.Location, club.ClubName);
+
+        retrieved.LastUpdatedAt.Should().BeGreaterThan(0); // LastUpdatedAt should be set
+        retrieved.LastUpdatedAt = 0; // Ignore LastUpdatedAt initialised serverside with now, for equivalence check
+
         retrieved.Should().BeEquivalentTo(club);
     }
 
@@ -149,6 +153,10 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
 
         // Assert
         var retrieved = await _db.RetrieveTournamentAsync(tournament.Location, tournament.ClubName, tournament.TournamentName);
+        
+        retrieved.LastUpdatedAt.Should().BeGreaterThan(0); // LastUpdatedAt should be set
+        retrieved.LastUpdatedAt = 0; // Ignore LastUpdatedAt initialised serverside with now, for equivalence check
+        
         retrieved.Should().BeEquivalentTo(tournament);
     }
 

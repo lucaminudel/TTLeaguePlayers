@@ -29,4 +29,7 @@ public class Tournament
 
     [JsonPropertyName("end_date")]
     public long EndDate { get; set; }
+
+    [JsonPropertyName("last_updated_at")]
+    public long LastUpdatedAt { get; set; }
 }
