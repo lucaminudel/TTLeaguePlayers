@@ -158,6 +158,73 @@ public class KudosAcceptanceTests: IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    #endregion
+
+    #region GET /kudos Tests
+
+    [Fact]
+    public async Task GET_Kudos_Should_Be_Protected()
+    {
+        if (RunningAgainst.ALocalEnvironmentIsTrue())
+        {
+            // Test is skipped in local/dev/test environments
+            return;
+        }
+
+        // Arrange
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        var teamName = "Morpeth 10";
+        
+        var queryParams = $"?league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}&team_name={WebUtility.UrlEncode(teamName)}";
+        
+        // Ensure no auth header is present
+        _httpClient.DefaultRequestHeaders.Authorization = null;
+
+        // Act
+        var response = await _httpClient.GetAsync("/kudos" + queryParams);
+
+        // Assert
+        // 401: Blocked by API Gateway Authorizer (Cloud environment)
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region GET /kudos/standings Tests
+
+    [Fact]
+    public async Task GET_KudosStandings_Should_Be_Protected()
+    {
+        if (RunningAgainst.ALocalEnvironmentIsTrue())
+        {
+            // Test is skipped in local/dev/test environments
+            return;
+        }
+
+        // Arrange
+        var league = "CLTTL";
+        var season = "2025-2026";
+        var division = "Division 4";
+        
+        var queryParams = $"?league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}";
+        
+        // Ensure no auth header is present
+        _httpClient.DefaultRequestHeaders.Authorization = null;
+
+        // Act
+        var response = await _httpClient.GetAsync("/kudos/standings" + queryParams);
+
+        // Assert
+        // 401: Blocked by API Gateway Authorizer (Cloud environment)
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region POST /kudos Tests (Authenticated)
+
     [Fact]
     [Trait("Cognito", "Live")]
     public async Task POST_Kudos_Should_Create_Kudos_Successfully()
@@ -331,8 +398,8 @@ public class KudosAcceptanceTests: IAsyncLifetime
     }
 
     #endregion
-    
-    #region GET /kudos Tests
+
+    #region GET /kudos Tests (Authenticated)
 
     [Fact]
     [Trait("Cognito", "Live")]
@@ -447,6 +514,10 @@ public class KudosAcceptanceTests: IAsyncLifetime
         summary.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         summary.GetProperty("positive_kudos_count").GetInt32().Should().BeGreaterThanOrEqualTo(1);
     }
+
+    #endregion
+
+    #region GET /kudos/standings Tests (Authenticated)
 
     [Fact]
     [Trait("Cognito", "Live")]
