@@ -16,7 +16,7 @@ export const Home: React.FC = () => {
         if (hasInviteId) {
             void navigate(`/join/${inviteId}`);
         } else if (managedClubs.length > 0) {
-            void navigate(`/promote-my-club-and-tournaments`);
+            void navigate(`/promote-my-club`);
         } else {
             void navigate(`/kudos`);
         }

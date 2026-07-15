@@ -8,8 +8,9 @@ import { KudosStandingsPage } from './KudosStandingsPage';
 import { ClubsAndTournamentsPage } from './ClubsAndTournamentsPage';
 import { ForumsPage } from './ForumsPage';
 import { MenuPage } from './MenuPage';
+import { PromoteMyClubPage } from './PromoteMyClubPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage };
+export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage };
 
 export class User {
   private page: Page;
@@ -99,6 +100,13 @@ export class User {
     await this.page.goto('/#/kudos');
     await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
     return kudosPage;
+  }
+
+  async navigateToPromoteMyClub(): Promise<PromoteMyClubPage> {
+    const promoteMyCLubPage = new PromoteMyClubPage(this.page);
+    await this.page.goto('/#/promote-my-club');
+    await expect(this.page.locator('h2')).toHaveText('Promote My Club');
+    return promoteMyCLubPage;
   }
 
   async tentativelyNavigateToKudos(): Promise<KudosAndAwardPages> {

@@ -193,7 +193,17 @@ export async function apiFetch<T>(
                 throw new GeneralApiError(errorMessage, response.status, errorText);
             }
 
-            const data = (await response.json()) as T;
+            const text = await response.text();
+            let data: T;
+            if (text) {
+                try {
+                    data = JSON.parse(text) as T;
+                } catch (e) {
+                    throw new GeneralApiError(`Invalid JSON response: ${(e as Error).message}`, response.status, text);
+                }
+            } else {
+                data = {} as T;
+            }
 
             telemetry.log({ endpoint, method, status: response.status, durationMs, attempt });
             return data;

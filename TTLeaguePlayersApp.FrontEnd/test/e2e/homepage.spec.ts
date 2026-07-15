@@ -86,7 +86,7 @@ test.describe('Homepage', () => {
                 { name: 'Kudos', testId: 'main-menu-nav-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
-                { name: 'Promote My Club & Tournaments', testId: 'main-menu-nav-promote-my-club-and-tournaments' },
+                { name: 'Promote My Club', testId: 'main-menu-nav-promote-my-club' },
                 { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' }
             ];
  
@@ -176,7 +176,7 @@ test.describe('Homepage', () => {
             const captainOnlyAndNotLoggedInItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
-                { name: 'Promote My Club & Tournaments', testId: 'main-menu-nav-promote-my-club-and-tournaments' },
+                { name: 'Promote My Club', testId: 'main-menu-nav-promote-my-club' },
                 { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' }
             ];
  
@@ -208,7 +208,7 @@ test.describe('Homepage', () => {
                 { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
                 { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
-                { name: 'Promote My Club & Tournaments', testId: 'main-menu-nav-promote-my-club-and-tournaments' },
+                { name: 'Promote My Club', testId: 'main-menu-nav-promote-my-club' },
                 { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' }
             ];
  

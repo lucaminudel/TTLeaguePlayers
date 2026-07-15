@@ -1,6 +1,8 @@
 import { type Page, expect } from '@playwright/test';
 import { JoinPage } from './JoinPage';
 import { KudosAndAwardPages } from './KudosAndAwardPages';
+import { PromoteMyClubPage } from './PromoteMyClubPage';
+
 
 export class HomePage {
     private page: Page;
@@ -49,7 +51,7 @@ export class HomePage {
         return new KudosAndAwardPages(this.page);
     }
 
-    async readyToPlayAsClubManager(): Promise<void> {
+    async readyToPlayAsClubManager(): Promise<PromoteMyClubPage> {
         if (this.inviteId) {
             throw new Error('ID provided, can only proceed to redeem().');
         }
@@ -59,8 +61,10 @@ export class HomePage {
         await enterButton.click();
 
         // Verify navigation to Promote Club page
-        await expect(this.page).toHaveURL(/\/#\/promote-my-club-and-tournaments$/);
-        await expect(this.page.locator('h2')).toHaveText('Promote My Club & Tournaments');
+        await expect(this.page).toHaveURL(/\/#\/promote-my-club$/);
+        await expect(this.page.locator('h2')).toHaveText('Promote My Club');
+
+        return new PromoteMyClubPage(this.page);
     }
 
     async tentativeReadyToPlay(): Promise<void> {

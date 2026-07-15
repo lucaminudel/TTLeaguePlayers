@@ -8,6 +8,7 @@ import { formatFixtureDate } from '../utils/DateUtils';
 import { awardKudos } from '../api/kudosApi';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { useAuth } from '../hooks/useAuth';
+import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 
 type KudosType = 'Positive' | 'Neutral' | 'Negative';
 
@@ -103,30 +104,7 @@ export const AwardKudos: React.FC = () => {
                 }
             });
         } catch (err) {
-            let userFriendlyMessage = 'Something went wrong while awarding kudos. Please try again.';
-
-            if (err instanceof Error) {
-                const msg = err.message.toLowerCase();
-                if (msg.includes('connection error')) {
-                    userFriendlyMessage = 'Network error. Please check your internet connection.';
-                } else if (msg.includes('timed out')) {
-                    userFriendlyMessage = 'The request took too long. Please check your connection and try again.';
-                } else if (
-                    msg.includes('failed to fetch') ||
-                    msg.includes('500') ||
-                    msg.includes('404') ||
-                    msg.includes('invalid request body') ||
-                    msg.includes('json') ||
-                    msg.includes('deserialization')
-                ) {
-                    userFriendlyMessage = 'The server is having trouble right now. Please try again in a few minutes.';
-                } else {
-                    // If it's a specific message from the API (not technical), use it
-                    userFriendlyMessage = err.message;
-                }
-            }
-
-            setError(userFriendlyMessage);
+            setError(toUserFriendlyApiError(err, 'Something went wrong while awarding kudos. Please try again.'));
             setIsSubmitting(false);
         }
     };

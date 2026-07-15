@@ -26,6 +26,7 @@ export class LoginPage {
         return new HomePage(this.page);
     };
 
+
     async loginnAndWaitForJoin(email: string, validPassword: string, inviteId: string): Promise<JoinPage>  {
         await expect(this.page).toHaveURL(new RegExp(`/login\\?returnUrl=.*&email=${encodeURIComponent(email)}`));
         

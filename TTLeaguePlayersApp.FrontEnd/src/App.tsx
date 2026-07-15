@@ -11,7 +11,7 @@ import { KudosStandings } from './pages/KudosStandings';
 import { ClubsAndTournaments } from './pages/ClubsAndTournaments';
 import { AboutAndContactUs } from './pages/AboutAndContactUs';
 import { MyClubStandings } from './pages/MyClubStandings';
-import { PromoteMyClubAndTournaments } from './pages/PromoteMyClubAndTournaments';
+import { PromoteMyClub } from './pages/PromoteMyClub';
 import { MyClubTeams } from './pages/MyClubTeams';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -77,10 +77,10 @@ function InitializationGate() {
         }
       />
       <Route
-        path="/promote-my-club-and-tournaments"
+        path="/promote-my-club"
         element={
           <ProtectedRoute>
-            <PromoteMyClubAndTournaments />
+            <PromoteMyClub />
           </ProtectedRoute>
         }
       />

@@ -103,19 +103,24 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     register_user "$EMAIL5" "$COMMON_PASSWORD" "true"
     echo "Cognito Test user '$EMAIL5' registered and confirmed successfully with NO active season and NO managed club!"
 
+    # 6. User with multiple managed club
+    EMAIL6="test_already_registered5@user.test"
+    MANAGED_CLUBS_JSON6='[{"league": "CLTTL","season": "2025-2026","club_name": "Morpeth","club_location": "London","manager_name": "Luca Minudel"},{"league": "BCS","season": "2025-2026","club_name": "Morpeth","club_location": "London","manager_name": "Luca Minudel"},{"league": "FLICK","season": "2025-Nov","club_name": "Morpeth M","club_location": "Manchester","manager_name": "Luca Minudel"}]'
+    register_user "$EMAIL6" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON6"
+    echo "Cognito Test user '$EMAIL6' registered and confirmed successfully with multiple Managed Clubs!"
 
-    # 6. User Salvatore Bollito
-    EMAIL6="test_kudos_wt@user.test"
-    ACTIVE_SEASONS_JSON6='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
-    register_user "$EMAIL6" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON6"
-    echo "Cognito Test user '$EMAIL6' registered and confirmed successfully!"
-
-
-    # 7. User Charlie Boom
-    EMAIL7="test_kudos_f5@user.test"
-    ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
+    # 7. User Salvatore Bollito
+    EMAIL7="test_kudos_wt@user.test"
+    ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
     register_user "$EMAIL7" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON7"
     echo "Cognito Test user '$EMAIL7' registered and confirmed successfully!"
+
+
+    # 8. User Charlie Boom
+    EMAIL8="test_kudos_f5@user.test"
+    ACTIVE_SEASONS_JSON8='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
+    register_user "$EMAIL8" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON8"
+    echo "Cognito Test user '$EMAIL8' registered and confirmed successfully!"
 
 fi
 

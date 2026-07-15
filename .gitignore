@@ -77,3 +77,4 @@ build.toml
 DynamoDbData
 sam_local_apitests.log
 Library/Application Support
+.playwright-mcp

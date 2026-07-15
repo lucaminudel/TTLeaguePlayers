@@ -58,8 +58,8 @@ export const MainMenu: React.FC = () => {
             visibleToUnauthenticated: false
         },
         {
-            label: 'Promote My Club & Tournaments',
-            path: '/promote-my-club-and-tournaments',
+            label: 'Promote My Club',
+            path: '/promote-my-club',
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
