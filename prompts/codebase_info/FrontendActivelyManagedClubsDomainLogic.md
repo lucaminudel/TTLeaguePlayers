@@ -76,8 +76,14 @@ The club management and promotion logic resolves and merges the user’s managed
 3. **Time Window Check (Relaxed Period)**:
    * Unlike player-focused ratings (which must strictly fall between `registrations_start_date` and `ratings_end_date`), the promotion window for club managers is more relaxed.
    * The current system epoch time (`now`) can fall inside the active start date and end dates extended to the last day of the season's end date calendar year (i.e., `registrations_start_date` <= `now` <= December 31st of the season's end date year). This allows managers to continue promoting their clubs and upcoming tournaments even after active match play has concluded for the season.
-4. **Processor/Component Instantiation**:
-   * If both the Matching Configuration and the relaxed Time Window checks succeed, the managed club card is rendered with features and actions made available by the page.
+4. **Managed CLub selection**:
+   * If both the Matching Configuration and the relaxed Time Window checks succeed, the managed club card is rendered with the matching Managed Clubs, and the features are made available by the page once a club is selected.
+   *  Matching Configuration Check is done also for the features that are specific only to the club (Club Name + Location) because the club manager is assigned at every league's season, not indefently.
+5. **Group By Club Name + Location**:
+   *  For features that are specific to the club (Club Name + Location), like publishing the club info or a clem's tournament, matches with the same Club Name and Location are collapsed into one button. 
+   *  For features that are specific to the club (Club Name + Location) and the league's season, like showing the club's teams registration status and kudos standings, one button per club and league's season is visualised.
+
+ 
 
 This graph represents such logic:
 
@@ -95,13 +101,13 @@ This graph represents such logic:
                                             /                  \
                                          [No]                  [Yes]
                                           /                      \
-                                    Ignore club           Create ActiveSeasonProcessor
-                                                          & Render ManagedClubCard
+                                    Ignore club         Render ManagedClubsCard
 ```
 
 ### Files Involved
 The implementation file of this logic will be located in:
-* [PromoteMyClubAndTournaments Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyClubAndTournaments.tsx)
+* [PromoteMyClub Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyClub.tsx)
+* [PromoteMyTournaments Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyTournaments.tsx)
 * [MyClubTeams Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubTeams.tsx)
 * [MyClubStandings Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubStandings.tsx)
 
@@ -119,11 +125,11 @@ Since a user can manage multiple clubs (e.g. managing different clubs in differe
 
 ### Files Involved
 The component will be implemented in:
-* [ManagedClubCard.tsx](TTLeaguePlayersApp.FrontEnd/src/components/ui/ManagedClubCard.tsx) (Planned)
+* [ManagedClubsCard.tsx](TTLeaguePlayersApp.FrontEnd/src/components/ui/ManagedClubsCard.tsx) (Planned)
 
 ---
 
-## Promote My Club & Tournaments Page: Example Of The Data Flow Of This Logic
+## Promote My Club Page: Example Of The Data Flow Of This Logic
 
 The diagram below outlines how the user context, build-time configurations, pages, and components will interact to render actively managed clubs and promotion capabilities:
 
@@ -147,7 +153,7 @@ graph TD
         V1 -->|Yes| V2
         V2 -->|Yes| P[Create ManagedClubProcessor]
         
-        P -->|Render| MCC[ManagedClubCard.tsx]
+        P -->|Render| MCC[ManagedClubsCard.tsx]
         MCC -->|Manage Details| MD[Update Club Info / Promote Tournaments]
     end
 ```
