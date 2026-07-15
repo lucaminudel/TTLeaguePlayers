@@ -18,6 +18,11 @@ export interface ManagedClub {
   manager_name: string;
 }
 
+export interface SignInProfile {
+  seasons: ActiveSeason[];
+  clubs: ManagedClub[];
+}
+
 export interface AuthContextType {
   isAuthenticated: boolean;
   /**
@@ -40,7 +45,7 @@ export interface AuthContextType {
    */
   authInitialisationError: string | null;
 
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<SignInProfile>;
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   resendConfirmationCode: (email: string) => Promise<void>;

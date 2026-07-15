@@ -251,7 +251,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [userPool, authInitialisationError]);
 
-  const signIn = async (emailInput: string, password: string): Promise<void> => {
+  const signIn = async (emailInput: string, password: string): Promise<{ seasons: ActiveSeason[]; clubs: ManagedClub[] }> => {
     if (authInitialisationError) {
       throwInitAuthFailed();
     }
@@ -285,7 +285,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserId(extractedUserId);
             setActiveSeasons(seasons);
             setManagedClubs(clubs);
-            resolve();
+            resolve({ seasons, clubs });
           });
         },
         onFailure: (err: Error) => {

@@ -46,9 +46,14 @@ export const Login: React.FC = () => {
     clearAuthError();
 
     try {
-      await signIn(email, password);
+      const { seasons, clubs } = await signIn(email, password);
       const returnUrl = getReturnUrl();
-      void navigate(returnUrl);
+
+      if (returnUrl === '/kudos' && seasons.length === 0 && clubs.length > 0) {
+        void navigate('/promote-my-club');
+      } else {
+        void navigate(returnUrl);
+      }
     } catch (error: unknown) {
       const message = (typeof error === 'object' && error !== null && 'message' in error)
         ? (error as { message?: unknown }).message

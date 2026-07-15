@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { User } from './page-objects/User';
+import { User, LoginPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
@@ -60,6 +60,64 @@ test.describe('Homepage', () => {
         const homePage = await user.navigateToHome();
 
         await homePage.readyToPlayAsClubManager();
+    });
+
+    test.describe('Ready to play login redirect flows', () => {
+        test('when a guest clicks Ready to play?, logs in with no active season and no managed club, lands on kudos', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            const homePage = await user.navigateToHome();
+
+            await homePage.tentativeReadyToPlay();
+
+            await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
+            await expect(page.locator('h2')).toHaveText('Log In');
+
+            const loginPage = new LoginPage(page);
+            await loginPage.tryToLogin('test_already_registered4@user.test', 'aA1!56789012');
+
+            await expect(page).toHaveURL('/#/kudos');
+            await expect(page.locator('h2')).toHaveText('Fair play Kudos');
+            await expect(page.locator('main')).toContainText('You are not currently registered to a league, a season, and a team.');
+        });
+
+        test('when a guest clicks Ready to play?, logs in with one active season and no managed club, lands on kudos', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            const homePage = await user.navigateToHome();
+
+            await homePage.tentativeReadyToPlay();
+
+            await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
+            await expect(page.locator('h2')).toHaveText('Log In');
+
+            const loginPage = new LoginPage(page);
+            await loginPage.tryToLogin('test_already_registered@user.test', 'aA1!56789012');
+
+            await expect(page).toHaveURL('/#/kudos');
+            await expect(page.locator('h2')).toHaveText('Fair play Kudos');
+            await expect(page.getByTestId('active-seasons-list')).toBeVisible();
+        });
+
+        test('when a guest clicks Ready to play?, logs in as club manager with no active season, lands on promote-my-club', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            const user = new User(page);
+            const homePage = await user.navigateToHome();
+
+            await homePage.tentativeReadyToPlay();
+
+            await expect(page).toHaveURL('/#/login?returnUrl=%2Fkudos');
+            await expect(page.locator('h2')).toHaveText('Log In');
+
+            const loginPage = new LoginPage(page);
+            await loginPage.tryToLogin('test_already_registered5@user.test', 'aA1!56789012');
+
+            await expect(page).toHaveURL('/#/promote-my-club');
+            await expect(page.locator('h2')).toHaveText('Promote My Club');
+        });
     });
 
     test.describe('Menu', () => {
