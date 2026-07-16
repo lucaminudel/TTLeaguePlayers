@@ -543,7 +543,7 @@ export const PromoteMyClub: React.FC = () => {
                 >
                     <div className="space-y-6 sm:space-y-8">
                         <p>
-                            Add your club to our directory to help players find your venue and join your club. Promote the tournaments your club organises.
+                            Add your club to our directory to help players find your venue and join your club.
                         </p>
 
                         {managedClubs.length === 0 ? (

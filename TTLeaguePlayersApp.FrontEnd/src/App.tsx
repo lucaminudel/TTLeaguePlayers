@@ -12,6 +12,7 @@ import { ClubsAndTournaments } from './pages/ClubsAndTournaments';
 import { AboutAndContactUs } from './pages/AboutAndContactUs';
 import { MyClubStandings } from './pages/MyClubStandings';
 import { PromoteMyClub } from './pages/PromoteMyClub';
+import { PromoteMyTournaments } from './pages/PromoteMyTournaments';
 import { MyClubTeams } from './pages/MyClubTeams';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -81,6 +82,14 @@ function InitializationGate() {
         element={
           <ProtectedRoute>
             <PromoteMyClub />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/promote-my-tournaments"
+        element={
+          <ProtectedRoute>
+            <PromoteMyTournaments />
           </ProtectedRoute>
         }
       />
