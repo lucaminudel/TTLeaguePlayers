@@ -3,6 +3,7 @@ import { HomePage } from './HomePage';
 import { ClubsAndTournamentsPage } from './ClubsAndTournamentsPage';
 import { ForumsPage } from './ForumsPage';
 import { AboutAndContactUsPage } from './AboutAndContactUsPage';
+import { PromoteMyTournamentsPage } from './PromoteMyTournamentsPage';
 
 export class MenuPage {
     private page: Page;
@@ -73,6 +74,14 @@ export class MenuPage {
         const clubsAndTournamentsPage = new ClubsAndTournamentsPage(this.page);
         await clubsAndTournamentsPage.expectLoaded();
         return clubsAndTournamentsPage;
+    }
+
+    async navigateToPromoteMyTournaments(): Promise<PromoteMyTournamentsPage> {
+        const link = this.page.getByTestId('main-menu-nav-promote-my-tournaments');
+        await link.click();
+
+        await expect(this.page.locator('h2')).toHaveText('Promote My Tournament');
+        return new PromoteMyTournamentsPage(this.page);
     }
 
     async navigateToForums(): Promise<ForumsPage> {

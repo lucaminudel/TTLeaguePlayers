@@ -9,8 +9,9 @@ import { ClubsAndTournamentsPage } from './ClubsAndTournamentsPage';
 import { ForumsPage } from './ForumsPage';
 import { MenuPage } from './MenuPage';
 import { PromoteMyClubPage } from './PromoteMyClubPage';
+import { PromoteMyTournamentsPage } from './PromoteMyTournamentsPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage };
+export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage, PromoteMyTournamentsPage };
 
 export class User {
   private page: Page;

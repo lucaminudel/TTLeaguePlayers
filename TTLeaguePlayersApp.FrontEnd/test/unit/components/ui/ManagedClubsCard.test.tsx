@@ -102,12 +102,28 @@ describe('ManagedClubsCard – groupByLocation, single club name per location', 
 
     beforeEach(() => { vi.clearAllMocks(); });
 
-    it('de-duplicates clubs with the same location and club name into one button', () => {
+    it('de-duplicates clubs per league with the same location and club name into one button', () => {
         render(
             <ManagedClubsCard
                 managedClubs={[
                     club('London', 'London TTC', 'League A', '2025'),
                     club('London', 'London TTC', 'League B', '2025'),
+                ]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+                groupByLocation
+            />
+        );
+
+        expect(screen.getAllByRole('button')).toHaveLength(1);
+    });
+
+    it('de-duplicates clubs per season with the same location and club name into one button', () => {
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC', 'League A', '2024'),
+                    club('London', 'London TTC', 'League A', '2025'),
                 ]}
                 selectedClubKey={null}
                 onSelectClub={onSelectClub}

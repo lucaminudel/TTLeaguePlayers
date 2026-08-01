@@ -302,6 +302,70 @@ describe('clubsApi', () => {
       );
     });
 
+    it('gets all tournaments for a club by location and club name', async () => {
+      const tournaments = [
+        {
+          tournament_name: 'Spring Open',
+          tournament_info: 'https://tournament.example.com',
+          start_date: 1234567890,
+          end_date: 1234567900,
+        },
+      ];
+
+      vi.mocked(apiFetch).mockResolvedValue(tournaments);
+
+      const result = await clubsApi.getTournamentsForClub('London', 'London TTC');
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/clubs/London/London%20TTC/tournaments',
+        expect.objectContaining({ method: 'GET' })
+      );
+      expect(result).toEqual(tournaments);
+    });
+
+    it('returns an empty list when a club has no tournaments', async () => {
+      vi.mocked(apiFetch).mockResolvedValue([]);
+
+      const result = await clubsApi.getTournamentsForClub('London', 'London TTC');
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns an empty list when the club endpoint responds with 404 (club info not created)', async () => {
+      vi.mocked(apiFetch).mockRejectedValue(new GeneralApiError('Not found', 404));
+
+      const result = await clubsApi.getTournamentsForClub('London', 'London TTC');
+
+      expect(result).toEqual([]);
+    });
+
+    it('re-throws non-404 GeneralApiError from getTournamentsForClub', async () => {
+      const serverError = new GeneralApiError('Internal server error', 500);
+      vi.mocked(apiFetch).mockRejectedValue(serverError);
+
+      await expect(clubsApi.getTournamentsForClub('London', 'London TTC')).rejects.toThrow(serverError);
+    });
+
+    it('re-throws non-GeneralApiError errors from getTournamentsForClub', async () => {
+      const networkError = new Error('Network failure');
+      vi.mocked(apiFetch).mockRejectedValue(networkError);
+
+      await expect(clubsApi.getTournamentsForClub('London', 'London TTC')).rejects.toThrow(networkError);
+    });
+
+    it('encodes special characters in location and club name for getTournamentsForClub', async () => {
+      vi.mocked(apiFetch).mockResolvedValue([]);
+
+      await clubsApi.getTournamentsForClub('San Francisco', 'SF/TT Club');
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/clubs/San%20Francisco/SF%2FTT%20Club/tournaments',
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
     it('gets a tournament by location, club name, and tournament name', async () => {
       const tournament = {
         tournament_name: 'Spring Open',

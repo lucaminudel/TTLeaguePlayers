@@ -22,6 +22,14 @@ export interface FormFieldProps {
   hint?: React.ReactNode;
 
   /**
+   * Optional validation error rendered below the control.
+   * Use this instead of `hint` when the control sits in a shared row with
+   * others (e.g. a two-column grid), so the message does not push the control
+   * down and break the alignment with its neighbours.
+   */
+  error?: React.ReactNode;
+
+  /**
    * Optional wrapper className.
    */
   className?: string;
@@ -32,6 +40,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   label,
   children,
   hint,
+  error,
   className = '',
 }) => (
   <div className={className}>
@@ -40,5 +49,6 @@ export const FormField: React.FC<FormFieldProps> = ({
     </label>
     {hint && <div className="text-sm text-secondary-text mb-2">{hint}</div>}
     {children}
+    {error}
   </div>
 );

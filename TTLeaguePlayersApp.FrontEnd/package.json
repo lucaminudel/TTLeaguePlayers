@@ -8,31 +8,28 @@
     "lint": "eslint .",
     "build:steps": "npm run copy-config && npm run lint && tsc -b && vite build",
     "build-web": "npm run build:dev",
-
     "run-web:dev-env": "npm run copy-config && cross-env ENVIRONMENT=dev vite --port 5173",
     "run-web:test-env": "npm run copy-config && cross-env ENVIRONMENT=test vite --port 4173",
-
     "build-web:dev-env": "cross-env ENVIRONMENT=dev npm run build:steps",
     "build-web:test-env": "cross-env ENVIRONMENT=test npm run build:steps",
     "build-web:staging-env": "cross-env ENVIRONMENT=staging npm run build:steps",
     "build-web:prod-env": "cross-env ENVIRONMENT=prod npm run build:steps",
-
     "unit-tests-web:run": "vitest run",
     "unit-tests-web:browser-run": "vitest --ui --open",
-
     "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright dev",
     "e2e-tests-web:run test-env": "cross-env PORT=4173 playwright test",
     "C+ e2e-tests-web:run staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
     "C+ e2e-tests-web:run dev-env": "cross-env PORT=5173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
     "C+ e2e-tests-web:run test-env": "cross-env PORT=4173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
-
     "e2e-tests-web:report": "playwright show-report",
-    
     "e2e-tests-web:run-browser test-env": "cross-env PORT=4173 ENVIRONMENT=test playwright test --ui",
     "C+ e2e-tests-web:run-browser dev-env": "cross-env PORT=5173 ENVIRONMENT=dev EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui",
     "C+ e2e-tests-web:run-browser staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.3.1",
+    "@fortawesome/free-brands-svg-icons": "^7.3.1",
+    "@fortawesome/react-fontawesome": "^3.4.0",
     "amazon-cognito-identity-js": "^6.3.16",
     "react": "^19.2.0",
     "react-compiler-runtime": "^1.0.0",
