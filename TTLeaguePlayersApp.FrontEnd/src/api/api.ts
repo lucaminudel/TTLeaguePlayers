@@ -4,7 +4,7 @@
 export interface ApiError {
     message?: string;
     error?: string;
-    errors?: Record<string, string[]>; // For validation errors
+    errors?: string[]; // For validation errors
 }
 
 /**
@@ -13,15 +13,18 @@ export interface ApiError {
 export class GeneralApiError extends Error {
     public status?: number;
     public response?: unknown;
+    public errors?: string[];
 
     constructor(
         message: string,
         status?: number,
-        response?: unknown
+        response?: unknown,
+        errors?: string[]
     ) {
         super(message);
         this.status = status;
         this.response = response;
+        this.errors = errors;
         this.name = 'ApiError';
     }
 }
@@ -181,16 +184,18 @@ export async function apiFetch<T>(
                 const errorText = await response.text();
                 const responseStatus = response.status;
                 let errorMessage = `Failed to fetch ${endpoint}: ${String(responseStatus)} ${response.statusText}`;
+                let errorsArray: string[] | undefined = undefined;
 
                 try {
                     const errorData = JSON.parse(errorText) as ApiError;
                     errorMessage = errorData.message ?? errorData.error ?? errorMessage;
+                    errorsArray = errorData.errors;
                 } catch {
                     errorMessage = errorText || errorMessage;
                 }
 
                 telemetry.log({ endpoint, method, status: response.status, durationMs, attempt, error: errorMessage });
-                throw new GeneralApiError(errorMessage, response.status, errorText);
+                throw new GeneralApiError(errorMessage, response.status, errorText, errorsArray);
             }
 
             const text = await response.text();
