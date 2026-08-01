@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PromoteMyClub } from '../../../src/pages/PromoteMyClub';
+import { GeneralApiError } from '../../../src/api/api';
 import { setUnitFixedClockTime } from '../TestClockUtils';
 import type { EnvironmentConfig } from '../../../src/config/environment';
 
@@ -229,7 +230,43 @@ describe('PromoteMyClub', () => {
             expect(await screen.findByText(message)).toBeInTheDocument();
             expect(clubsApiMocks.upsertClub).not.toHaveBeenCalled();
         });
+
+        it('rejects a homepage URL with a backslash and suggests the normalised form', async () => {
+            await renderPage();
+
+            typeIntoField('Homepage Link', 'http://morpeth.example.com\\info');
+            clickSave();
+
+            const errorEl = await screen.findByText(/Please enter a valid homepage URL/);
+            expect(errorEl).toHaveTextContent('Did you mean: http://morpeth.example.com/info?');
+            expect(clubsApiMocks.upsertClub).not.toHaveBeenCalled();
+        });
+
+        it('rejects a facebook URL with a backslash and suggests the normalised form', async () => {
+            await renderPage();
+
+            typeIntoField('Homepage Link', 'https://morpeth.example.com');
+            typeIntoField('Facebook Link', 'http://facebook.com\\morpeth');
+            clickSave();
+
+            const errorEl = await screen.findByText(/Please enter a valid Facebook link/);
+            expect(errorEl).toHaveTextContent('Did you mean: http://facebook.com/morpeth?');
+            expect(clubsApiMocks.upsertClub).not.toHaveBeenCalled();
+        });
+
+        it('rejects a youtube URL with a backslash and suggests the normalised form', async () => {
+            await renderPage();
+
+            typeIntoField('Homepage Link', 'https://morpeth.example.com');
+            typeIntoField('YouTube', 'http://youtube.com\\morpethttc');
+            clickSave();
+
+            const errorEl = await screen.findByText(/Please enter a valid YouTube URL or handle/);
+            expect(errorEl).toHaveTextContent('Did you mean: http://youtube.com/morpethttc?');
+            expect(clubsApiMocks.upsertClub).not.toHaveBeenCalled();
+        });
     });
+
 
     describe('page validation', () => {
         it('shows all field errors and does not save when submitted with invalid fields', async () => {
@@ -458,12 +495,21 @@ describe('PromoteMyClub', () => {
     describe('eligibility filtering', () => {
         const makeClub = (overrides: Partial<typeof managedClub> = {}) => ({ ...managedClub, ...overrides });
 
-        const makeConfig = (overrides: Partial<typeof defaultConfig.active_seasons_data_source[0]> = {}) => ({
+        // A manager cannot manage two clubs in the same league + season, so tests with
+        // multiple managed clubs put each club under its own league (see
+        // FrontendActivelyManagedClubsDomainLogic.md), matched here by one data source per league.
+        const makeConfigWithLeagues = (leagues: string[]) => ({
             ...defaultConfig,
-            active_seasons_data_source: [{ ...defaultConfig.active_seasons_data_source[0], ...overrides }],
+            active_seasons_data_source: leagues.map((league) => ({ ...defaultConfig.active_seasons_data_source[0], league })),
         });
 
         describe('no match – manager message shown, no buttons', () => {
+            let consoleInfoSpy: ReturnType<typeof vi.spyOn>;
+
+            beforeEach(() => {
+                consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+            });
+
             it('shows not-registered message when managed club league does not match any config', async () => {
                 mockUseAuth.mockReturnValue({
                     ...mockUseAuth(),
@@ -474,6 +520,10 @@ describe('PromoteMyClub', () => {
 
                 expect(await screen.findByText('⚠️ You are not currently registered as a club manager.')).toBeInTheDocument();
                 expect(screen.queryByLabelText('Homepage Link')).not.toBeInTheDocument();
+                expect(consoleInfoSpy).toHaveBeenCalledWith(
+                    '❌ Page event log processing managed club:',
+                    expect.objectContaining({ message: expect.stringContaining('Data source not found') as string })
+                );
             });
 
             it('shows not-registered message when managed club season does not match config season', async () => {
@@ -486,6 +536,10 @@ describe('PromoteMyClub', () => {
 
                 expect(await screen.findByText('⚠️ You are not currently registered as a club manager.')).toBeInTheDocument();
                 expect(screen.queryByLabelText('Homepage Link')).not.toBeInTheDocument();
+                expect(consoleInfoSpy).toHaveBeenCalledWith(
+                    '❌ Page event log processing managed club:',
+                    expect.objectContaining({ message: expect.stringContaining('Data source not found') as string })
+                );
             });
 
             it('shows not-registered message when managed club league does not match config league (season matches)', async () => {
@@ -498,6 +552,10 @@ describe('PromoteMyClub', () => {
 
                 expect(await screen.findByText('⚠️ You are not currently registered as a club manager.')).toBeInTheDocument();
                 expect(screen.queryByLabelText('Homepage Link')).not.toBeInTheDocument();
+                expect(consoleInfoSpy).toHaveBeenCalledWith(
+                    '❌ Page event log processing managed club:',
+                    expect.objectContaining({ message: expect.stringContaining('Data source not found') as string })
+                );
             });
 
             it('shows not-registered message when now is 1 day before registrations_start_date', async () => {
@@ -554,10 +612,10 @@ describe('PromoteMyClub', () => {
                     ...mockUseAuth(),
                     managedClubs: [
                         makeClub({ club_location: 'London' }),
-                        makeClub({ club_location: 'Manchester' }),
+                        makeClub({ club_location: 'Manchester', league: 'CLTTL2' }),
                     ],
                 });
-                mockGetConfig.mockReturnValue(makeConfig());
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
 
                 renderPageShell();
 
@@ -574,10 +632,10 @@ describe('PromoteMyClub', () => {
                     ...mockUseAuth(),
                     managedClubs: [
                         makeClub({ club_location: 'London', club_name: 'Morpeth TTC' }),
-                        makeClub({ club_location: 'London', club_name: 'London Stars' }),
+                        makeClub({ club_location: 'London', club_name: 'London Stars', league: 'CLTTL2' }),
                     ],
                 });
-                mockGetConfig.mockReturnValue(makeConfig());
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
 
                 renderPageShell();
 
@@ -592,13 +650,13 @@ describe('PromoteMyClub', () => {
             it('reloads club info when clicking a different location button', async () => {
                 // Two clubs in different locations
                 const londonClub = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
-                const manchesterClub = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC' });
+                const manchesterClub = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
 
                 mockUseAuth.mockReturnValue({
                     ...mockUseAuth(),
                     managedClubs: [londonClub, manchesterClub],
                 });
-                mockGetConfig.mockReturnValue(makeConfig());
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
 
                 // First club (London) loads successfully when clicked
                 clubsApiMocks.getClub.mockResolvedValueOnce({
@@ -761,6 +819,21 @@ describe('PromoteMyClub', () => {
             expect(await screen.findByText('Save failed')).toBeInTheDocument();
             expect(getSaveButton()).toBeEnabled();
             expect(getRemoveButton()).toBeEnabled();
+            expect(mockNavigate).not.toHaveBeenCalled();
+        });
+
+        it('appends the validation errors array from GeneralApiError to the error message', async () => {
+            const apiError = new GeneralApiError('Validation failed', 400, undefined, ['facebook must be a valid absolute URI']);
+            clubsApiMocks.upsertClub.mockRejectedValue(apiError);
+
+            await renderPage();
+
+            typeIntoField('Homepage Link', 'https://new-morpeth.example.com');
+            clickSave();
+
+            const errorElement = await screen.findByText(/facebook must be a valid absolute URI/i);
+            expect(errorElement).toBeInTheDocument();
+            expect(getSaveButton()).toBeEnabled();
             expect(mockNavigate).not.toHaveBeenCalled();
         });
 

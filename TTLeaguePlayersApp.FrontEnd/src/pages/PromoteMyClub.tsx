@@ -16,6 +16,7 @@ import { getConfig } from '../config/environment';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 
+
 type ClubFieldName = 'homepage' | 'instagram' | 'facebook' | 'youtube';
 
 type ClubFormValues = Record<ClubFieldName, string>;
@@ -31,38 +32,62 @@ const emptyFormValues: ClubFormValues = {
 
 function isValidHttpUrl(value: string): boolean {
     try {
-        const url = new URL(value);
-        
+        const parsedUrl = new URL(value);
+
         // Must be http or https
-        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
             return false;
         }
-        
-        const hostname = url.hostname.toLowerCase();
-        
+
+        // Round-trip canonical form check: if the WHATWG parser had to normalise
+        // anything (e.g. backslash → slash, space encoding, etc.) the input was
+        // not well-formed. Bare-authority URLs get a trailing slash added — allow that.
+        if (parsedUrl.href !== value && parsedUrl.href !== `${value}/`) {
+            return false;
+        }
+
+        const hostname = parsedUrl.hostname.toLowerCase();
+
         // Reject localhost and .local domains
         if (hostname === 'localhost' || hostname.endsWith('.local')) {
             return false;
         }
-        
+
         // Reject single-word domains (must contain at least one dot for TLD)
         if (!hostname.includes('.')) {
             return false;
         }
-        
+
         // Reject IPv4 addresses (e.g., 192.168.1.1)
         if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
             return false;
         }
-        
+
         // Reject IPv6 addresses (contain colons)
         if (hostname.includes(':')) {
             return false;
         }
-        
+
         return true;
     } catch {
         return false;
+    }
+}
+
+// Returns the WHATWG-normalised URL when the input is a parseable URL that fails
+// the canonical form check (e.g. contains backslashes). Returns null when the
+// input is already canonical, unparseable, or when the normalised form is itself invalid.
+function getNormalizedUrl(value: string): string | null {
+    const trimmed = value.trim();
+    try {
+        const url = new URL(trimmed);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+        const normalized = url.href;
+        if (normalized === trimmed || normalized === `${trimmed}/`) return null;
+        if (!isValidHttpUrl(normalized)) return null;
+        return normalized;
+    } catch {
+        return null;
     }
 }
 
@@ -203,7 +228,9 @@ function validateField(field: ClubFieldName, value: string): string | null {
         }
 
         if (!isValidHttpUrl(trimmed)) {
-            return 'Please enter a valid homepage URL.';
+            const suggestion = getNormalizedUrl(trimmed);
+            const base = 'Please enter a valid homepage URL.';
+            return suggestion ? `${base} Did you mean: ${suggestion}?` : base;
         }
 
         return null;
@@ -248,7 +275,9 @@ function validateField(field: ClubFieldName, value: string): string | null {
             return null;
         }
 
-        return 'Please enter a valid Facebook link.';
+        const suggestion = getNormalizedUrl(trimmed);
+        const base = 'Please enter a valid Facebook link.';
+        return suggestion ? `${base} Did you mean: ${suggestion}?` : base;
     }
 
     if (isValidHttpUrl(trimmed)) {
@@ -266,7 +295,9 @@ function validateField(field: ClubFieldName, value: string): string | null {
         return null;
     }
 
-    return 'Please enter a valid YouTube URL or handle.';
+    const suggestion = getNormalizedUrl(trimmed);
+    const base = 'Please enter a valid YouTube URL or handle.';
+    return suggestion ? `${base} Did you mean: ${suggestion}?` : base;
 }
 
 export const PromoteMyClub: React.FC = () => {
@@ -433,7 +464,16 @@ export const PromoteMyClub: React.FC = () => {
             void navigate('/clubs-and-tournaments');
             setFormErrors({});
         } catch (err) {
-            setError(toUserFriendlyApiError(err, 'The club could not be saved. Please try again.'));
+            let userMessage = toUserFriendlyApiError(err, 'The club could not be saved. Please try again.');
+            if (err && typeof err === 'object' && 'errors' in err) {
+                const errObj = err as { errors?: string[] };
+                if (Array.isArray(errObj.errors) && errObj.errors.length > 0) {
+                    userMessage += " ( ";
+                    userMessage += errObj.errors.join(', ');
+                    userMessage += " )";
+                }
+            }
+            setError(userMessage);
         } finally {
             setIsSaving(false);
         }
@@ -466,7 +506,14 @@ export const PromoteMyClub: React.FC = () => {
             void navigate('/clubs-and-tournaments');
         } catch (err) {
             setShowRemoveConfirmModal(false);
-            setError(toUserFriendlyApiError(err, 'The club could not be removed. Please try again.'));
+            let userMessage = toUserFriendlyApiError(err, 'The club could not be removed. Please try again.');
+            if (err && typeof err === 'object' && 'errors' in err) {
+                const errObj = err as { errors?: string[] };
+                if (Array.isArray(errObj.errors) && errObj.errors.length > 0) {
+                    userMessage += errObj.errors.map(e => ` [ ${e} ]`).join('');
+                }
+            }
+            setError(userMessage);
         } finally {
             setIsSaving(false);
         }
@@ -552,7 +599,7 @@ export const PromoteMyClub: React.FC = () => {
                                     ⚠️ You are not currently registered as a club manager.
                                 </p>
                                 <p className="mt-2 text-sm text-secondary-text">
-                                    Ask the league team for manager access so you can promote your club here.
+                                    Ask the league team for manager access so you can promote your club here
                                 </p>
                             </div>
                         ) : (
