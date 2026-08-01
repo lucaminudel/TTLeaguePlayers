@@ -167,7 +167,7 @@ describe('ManagedClubsCard – groupByLocation, multiple club names at same loca
             <ManagedClubsCard
                 managedClubs={[
                     club('London', 'London TTC'),
-                    club('London', 'London Stars'),
+                    club('London', 'London Stars', 'League B'),
                 ]}
                 selectedClubKey={null}
                 onSelectClub={onSelectClub}
@@ -183,7 +183,7 @@ describe('ManagedClubsCard – groupByLocation, multiple club names at same loca
             <ManagedClubsCard
                 managedClubs={[
                     club('London', 'London TTC'),
-                    club('London', 'London Stars'),
+                    club('London', 'London Stars', 'League B'),
                 ]}
                 selectedClubKey={null}
                 onSelectClub={onSelectClub}
@@ -197,13 +197,13 @@ describe('ManagedClubsCard – groupByLocation, multiple club names at same loca
 
     it('clicking a "location / club_name" button calls onSelectClub with the correct key', () => {
         // Clubs in two distinct locations, with multiple club names at London
-        const londonStarsKey = key('League A', '2025', 'London Stars');
+        const londonStarsKey = key('League B', '2025', 'London Stars');
 
         render(
             <ManagedClubsCard
                 managedClubs={[
                     club('London', 'London TTC'),
-                    club('London', 'London Stars'),
+                    club('London', 'London Stars', 'League B'),
                     club('Berlin', 'Berlin TTC', 'League B'),
                 ]}
                 selectedClubKey={null}

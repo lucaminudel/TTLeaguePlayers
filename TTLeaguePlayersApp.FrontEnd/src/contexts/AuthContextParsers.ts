@@ -44,6 +44,51 @@ export function parseActiveSeasonsJson(value: string | null | undefined): Active
   }
 }
 
+const MANAGED_CLUB_FIELDS = ['league', 'season', 'club_name', 'club_location', 'manager_name'] as const;
+
+function logManagedClubIntegrityIssue(message: string): void {
+  console.error('❌ Page event log processing managed club:', new Error(message));
+}
+
+// Integrity issues are only logged, not filtered out: parseManagedClubsJson keeps returning
+// every structurally-valid entry as before, so this is purely observability for malformed
+// Cognito data (see FrontendActivelyManagedClubsDomainLogic.md for the underlying business rules).
+function validateManagedClubsIntegrity(managedClubs: ManagedClub[]): void {
+  managedClubs.forEach((club) => {
+    MANAGED_CLUB_FIELDS.forEach((field) => {
+      if (club[field].trim() === '') {
+        logManagedClubIntegrityIssue(
+          `Managed club has an empty "${field}" value. league="${club.league}", season="${club.season}", club_name="${club.club_name}", club_location="${club.club_location}".`
+        );
+      }
+    });
+  });
+
+  const seenExactEntries = new Set<string>();
+  managedClubs.forEach((club) => {
+    const exactKey = `${club.league}|${club.season}|${club.club_name}|${club.club_location}`;
+    if (seenExactEntries.has(exactKey)) {
+      logManagedClubIntegrityIssue(
+        `Duplicate managed club entry for league "${club.league}", season "${club.season}", club "${club.club_name}" at "${club.club_location}".`
+      );
+    } else {
+      seenExactEntries.add(exactKey);
+    }
+  });
+
+  const seenLeagueSeasons = new Set<string>();
+  managedClubs.forEach((club) => {
+    const leagueSeasonKey = `${club.league}|${club.season}`;
+    if (seenLeagueSeasons.has(leagueSeasonKey)) {
+      logManagedClubIntegrityIssue(
+        `Multiple managed clubs found for the same league "${club.league}" and season "${club.season}".`
+      );
+    } else {
+      seenLeagueSeasons.add(leagueSeasonKey);
+    }
+  });
+}
+
 export function parseManagedClubsJson(value: string | null | undefined): ManagedClub[] {
   if (!value || typeof value !== 'string') {
     return [];
@@ -55,7 +100,7 @@ export function parseManagedClubsJson(value: string | null | undefined): Managed
       return [];
     }
 
-    return parsed.reduce((acc: ManagedClub[], item: unknown) => {
+    const managedClubs = parsed.reduce((acc: ManagedClub[], item: unknown) => {
       if (!item || typeof item !== 'object') return acc;
 
       const record = item as Record<string, unknown>;
@@ -76,6 +121,10 @@ export function parseManagedClubsJson(value: string | null | undefined): Managed
       }
       return acc;
     }, []);
+
+    validateManagedClubsIntegrity(managedClubs);
+
+    return managedClubs;
   } catch {
     return [];
   }
