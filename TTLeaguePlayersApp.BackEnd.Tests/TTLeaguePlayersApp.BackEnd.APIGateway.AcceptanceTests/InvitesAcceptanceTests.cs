@@ -893,6 +893,81 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task POST_Invites_With_ClubManager_Should_Return_400_When_Invitee_Already_Manages_A_Different_Club_For_Same_League_And_Season()
+    {
+        // Arrange - test_already_registered5@user.test is a static Cognito user (register-test-users.sh)
+        // permanently seeded with custom:managed_clubs including CLTTL/2025-2026 -> "Morpeth"/"London".
+        // No setup write is needed: the precondition already exists in the pool, and nothing this test
+        // does ever writes to Cognito (POST-time conflict check is read-only), so no per-run uniqueness
+        // is needed either - a fixed, pre-existing league+season is exactly what's being verified.
+        var email = "test_already_registered5@user.test"; // setup script registers and confirms this user with managed clubs baked in
+        var league = "CLTTL";
+        var season = "2025-2026";
+
+        // Act - attempt to invite the same person to manage a different club for the same league+season
+        var requestBody = CreateInviteRequestJson(
+            name: "Gino Gino",
+            email: email,
+            role: "CLUB_MANAGER",
+            club: "Different Club",
+            location: "Manchester",
+            division: null,
+            teamName: null,
+            league: league,
+            season: season,
+            invitedBy: "Luca");
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync("/invites", content);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var errorMessage = await response.Content.ReadAsStringAsync();
+        errorMessage.Should().Contain("already manages a different club");
+        errorMessage.Should().Contain("Morpeth");
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task POST_Invites_With_ClubManager_Should_Succeed_When_Invitee_Already_Manages_The_Same_Club_For_Same_League_And_Season()
+    {
+        // Arrange - test_already_registered5@user.test is permanently seeded with custom:managed_clubs
+        // including BCS/2025-2026 -> "Morpeth"/"London" (register-test-users.sh). Re-inviting for the
+        // exact same club+location must not be treated as a conflict (idempotent re-invite path).
+        // Uses a different league (BCS, not CLTTL) than the 400 test above purely so each test targets a
+        // distinct, self-descriptive fixture entry - neither test writes to Cognito, so this isn't required
+        // for isolation, only for readability.
+        var email = "test_already_registered5@user.test"; // setup script registers and confirms this user with managed clubs baked in
+        var league = "BCS";
+        var season = "2025-2026";
+
+        // Act - re-invite the same person to manage the identical club for the same league+season
+        var requestBody = CreateInviteRequestJson(
+            name: "Gino Gino",
+            email: email,
+            role: "CLUB_MANAGER",
+            club: "Morpeth",
+            location: "London",
+            division: null,
+            teamName: null,
+            league: league,
+            season: season,
+            invitedBy: "Luca");
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync("/invites", content);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        var createdId = jsonDoc.RootElement.GetProperty("nano_id").GetString();
+        createdId.Should().NotBeNullOrEmpty();
+        _createdInviteIds.Add(createdId!);
+    }
+
+    [Fact]
     public async Task PATCH_Invite_Should_Return_400_For_Empty_Body()
     {
         // Arrange

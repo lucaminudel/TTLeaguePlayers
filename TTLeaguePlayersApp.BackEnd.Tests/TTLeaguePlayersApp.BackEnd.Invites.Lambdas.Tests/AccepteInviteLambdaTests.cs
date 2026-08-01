@@ -353,6 +353,121 @@ public class AccepteInviteLambdaTests
     }
 
     [Fact]
+    public async Task WhenClubManagerInviteAcceptedConflictsWithAnExistingDifferentManagedClub_Throws_InvalidOperationException_And_DoesNotUpdateCognito()
+    {
+        var existingManagedClubs = new List<ManagedClub>
+        {
+            new()
+            {
+                League = "Test League",
+                Season = "2025-2026",
+                ClubName = "Existing Club",
+                ClubLocation = "Manchester",
+                ManagerName = "Test User"
+            }
+        };
+
+        var cognitoClient = new FakeCognitoClient
+        {
+            ListUsersResult = new ListUsersResponse
+            {
+                Users = new()
+                {
+                    new UserType
+                    {
+                        Username = "user-1",
+                        Attributes = new()
+                        {
+                            new AttributeType { Name = "email", Value = "user@example.com" },
+                            new AttributeType { Name = "custom:managed_clubs", Value = JsonSerializer.Serialize(existingManagedClubs) }
+                        }
+                    }
+                }
+            }
+        };
+
+        var lambda = new AccepteInviteLambda(
+            observer: new LoggerObserver(),
+            invitesDataTable: _dataTable,
+            new CognitoUsers(cognitoClient: cognitoClient, cognitoUserPoolId: "pool"));
+
+        var nanoId = "11223344";
+        var acceptedAt = 444;
+        var invite = CreateClubManagerInvite(nanoId, acceptedAt: null, inviteeEmailId: "user@example.com",
+            league: "Test League", season: "2025-2026");
+        _dataTable.Seed(invite);
+
+        var act = () => lambda.HandleAsync(nanoId, acceptedAt, _context);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+
+        cognitoClient.AdminUpdateUserAttributesCalls.Should().Be(0);
+        _dataTable.MarkInviteAcceptedCalls.Should().Be(0);
+        _dataTable.Invites[nanoId].AcceptedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task WhenClubManagerInviteAcceptedForAClubAlreadyManagedByThatUser_Succeeds_WithoutDuplicatingTheEntry()
+    {
+        // A second, separate invite for the exact same league+season+club+location as one already
+        // accepted (e.g. a re-invite after the original email was lost) must not be treated as a conflict.
+        var firstInviteNanoId = "44332211";
+        var firstInvite = CreateClubManagerInvite(firstInviteNanoId, acceptedAt: null);
+        _dataTable.Seed(firstInvite);
+        await _lambda.HandleAsync(firstInviteNanoId, acceptedAt: 111, _context);
+
+        var secondInviteNanoId = "55667788";
+        var secondInvite = CreateClubManagerInvite(secondInviteNanoId, acceptedAt: null);
+        _dataTable.Seed(secondInvite);
+
+        var act = () => _lambda.HandleAsync(secondInviteNanoId, acceptedAt: 222, _context);
+
+        await act.Should().NotThrowAsync();
+
+        var listUsersResponse = await _cognitoClient.ListUsersAsync(new ListUsersRequest());
+        var user = listUsersResponse.Users.First();
+        var managedClubsJson = user.Attributes.Single(a => a.Name == "custom:managed_clubs").Value;
+        using var jsonDoc = JsonDocument.Parse(managedClubsJson);
+
+        var matches = jsonDoc.RootElement.EnumerateArray().Count(x =>
+            x.TryGetProperty("league", out var league) && league.GetString() == firstInvite.League &&
+            x.TryGetProperty("season", out var season) && season.GetString() == firstInvite.Season &&
+            x.TryGetProperty("club_name", out var club) && club.GetString() == firstInvite.InviteeClub &&
+            x.TryGetProperty("club_location", out var location) && location.GetString() == firstInvite.ClubLocation);
+
+        matches.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task WhenClubManagerInviteAcceptedForADifferentLeagueOrSeasonThanExistingManagedClub_Succeeds_DoesNotFalselyConflict()
+    {
+        var firstInviteNanoId = "44332211";
+        var firstInvite = CreateClubManagerInvite(firstInviteNanoId, acceptedAt: null, league: "CLTTL", season: "2025-2026");
+        _dataTable.Seed(firstInvite);
+        await _lambda.HandleAsync(firstInviteNanoId, acceptedAt: 111, _context);
+
+        // Different league, same season - and a different club - must not be flagged as a conflict.
+        var secondInviteNanoId = "55667788";
+        var secondInvite = CreateClubManagerInvite(secondInviteNanoId, acceptedAt: null, league: "BLTTL", season: "2025-2026");
+        _dataTable.Seed(secondInvite);
+
+        var act = () => _lambda.HandleAsync(secondInviteNanoId, acceptedAt: 222, _context);
+
+        await act.Should().NotThrowAsync();
+
+        var listUsersResponse = await _cognitoClient.ListUsersAsync(new ListUsersRequest());
+        var user = listUsersResponse.Users.First();
+        var managedClubsJson = user.Attributes.Single(a => a.Name == "custom:managed_clubs").Value;
+        using var jsonDoc = JsonDocument.Parse(managedClubsJson);
+
+        var leagues = jsonDoc.RootElement.EnumerateArray()
+            .Select(x => x.GetProperty("league").GetString())
+            .ToList();
+
+        leagues.Should().Contain(new[] { "CLTTL", "BLTTL" });
+    }
+
+    [Fact]
     public async Task WhenInviteAlreadyAccepted_DoesNotUpdateUserActiveSeasonsOrInviteAcceptedDate()
     {
         var nanoId = "12345678";

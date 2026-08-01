@@ -1,5 +1,8 @@
+using Amazon.CognitoIdentityProvider.Model;
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
+using System.Text.Json;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using Xunit;
 
@@ -9,6 +12,10 @@ public class CreateInviteLambdaTests
 {
     private readonly TestLambdaContext _context = new();
     private readonly FakeInvitesDataTable _dataTable = new();
+    private readonly FakeCognitoClient _cognitoClient = new()
+    {
+        ListUsersResult = new ListUsersResponse { Users = new() }
+    };
     private readonly CreateInviteLambda _lambda;
 
     public CreateInviteLambdaTests()
@@ -16,6 +23,7 @@ public class CreateInviteLambdaTests
         _lambda = new CreateInviteLambda(
             observer: new LoggerObserver(),
             invitesDataTable: _dataTable,
+            cognitoUsers: new CognitoUsers(cognitoClient: _cognitoClient, cognitoUserPoolId: "pool"),
             new Uri("http://example.com/invite"),
             sendInviteImail: false, inviteEmailAddress: "any@email_address.com");
     }
@@ -200,6 +208,137 @@ public class CreateInviteLambdaTests
        exception = await actWithTeamDivision.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().HaveCount(1);
         exception.Which.Errors.Should().Contain(e => e.Contains("team_division is unexpected for CLUB_MANAGER invites"));
+    }
+
+    [Fact]
+    public async Task WhenCreateClubManagerInviteRequestConflictsWithAnExistingDifferentManagedClub_Throws_ValidationException()
+    {
+        SeedExistingManagedClub(email: "manager@email.com", league: "Test League", season: "2024",
+            clubName: "Existing Club", clubLocation: "Manchester");
+
+        var request = new CreateInviteRequest
+        {
+            InvitedBy = "Pino Gino",
+            InviteeEmailId = "manager@email.com",
+            InviteeName = "Test Manager",
+            InviteeRole = Role.CLUB_MANAGER,
+            League = "Test League",
+            Season = "2024",
+            InviteeClub = "Test Club",
+            ClubLocation = "London"
+        };
+
+        var act = () => _lambda.HandleAsync(request, _context);
+
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e =>
+            e.Contains("manager@email.com") &&
+            e.Contains("Test League") &&
+            e.Contains("2024") &&
+            e.Contains("Existing Club"));
+
+        _dataTable.Invites.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task WhenCreateClubManagerInviteRequestMatchesAnExistingIdenticalManagedClub_CreatesInviteInDataTable()
+    {
+        SeedExistingManagedClub(email: "manager@email.com", league: "Test League", season: "2024",
+            clubName: "Test Club", clubLocation: "London");
+
+        var request = new CreateInviteRequest
+        {
+            InvitedBy = "Pino Gino",
+            InviteeEmailId = "manager@email.com",
+            InviteeName = "Test Manager",
+            InviteeRole = Role.CLUB_MANAGER,
+            League = "Test League",
+            Season = "2024",
+            InviteeClub = "Test Club",
+            ClubLocation = "London"
+        };
+
+        var result = await _lambda.HandleAsync(request, _context);
+
+        result.Should().BeOfType<ClubManagerInvite>();
+        _dataTable.Invites.Should().ContainKey(result.NanoId);
+    }
+
+    [Fact]
+    public async Task WhenCreateClubManagerInviteRequestIsForAnUnregisteredInvitee_CreatesInviteInDataTable()
+    {
+        // No user seeded in Cognito: _cognitoClient.ListUsersResult.Users stays empty.
+        var request = new CreateInviteRequest
+        {
+            InvitedBy = "Pino Gino",
+            InviteeEmailId = "brand.new.manager@email.com",
+            InviteeName = "Test Manager",
+            InviteeRole = Role.CLUB_MANAGER,
+            League = "Test League",
+            Season = "2024",
+            InviteeClub = "Test Club",
+            ClubLocation = "London"
+        };
+
+        var result = await _lambda.HandleAsync(request, _context);
+
+        result.Should().BeOfType<ClubManagerInvite>();
+        _dataTable.Invites.Should().ContainKey(result.NanoId);
+    }
+
+    [Fact]
+    public async Task WhenCreateClubManagerInviteRequestIsForADifferentLeagueOrSeasonThanExistingManagedClub_CreatesInviteInDataTable()
+    {
+        SeedExistingManagedClub(email: "manager@email.com", league: "Test League", season: "2024",
+            clubName: "Existing Club", clubLocation: "Manchester");
+
+        var request = new CreateInviteRequest
+        {
+            InvitedBy = "Pino Gino",
+            InviteeEmailId = "manager@email.com",
+            InviteeName = "Test Manager",
+            InviteeRole = Role.CLUB_MANAGER,
+            League = "Test League",
+            Season = "2025",
+            InviteeClub = "Test Club",
+            ClubLocation = "London"
+        };
+
+        var result = await _lambda.HandleAsync(request, _context);
+
+        result.Should().BeOfType<ClubManagerInvite>();
+        _dataTable.Invites.Should().ContainKey(result.NanoId);
+    }
+
+    private void SeedExistingManagedClub(string email, string league, string season, string clubName, string clubLocation)
+    {
+        var existingManagedClubs = new List<ManagedClub>
+        {
+            new()
+            {
+                League = league,
+                Season = season,
+                ClubName = clubName,
+                ClubLocation = clubLocation,
+                ManagerName = "Existing Manager"
+            }
+        };
+
+        _cognitoClient.ListUsersResult = new ListUsersResponse
+        {
+            Users = new()
+            {
+                new UserType
+                {
+                    Username = "existing-user",
+                    Attributes = new()
+                    {
+                        new AttributeType { Name = "email", Value = email },
+                        new AttributeType { Name = "custom:managed_clubs", Value = JsonSerializer.Serialize(existingManagedClubs) }
+                    }
+                }
+            }
+        };
     }
 
 }

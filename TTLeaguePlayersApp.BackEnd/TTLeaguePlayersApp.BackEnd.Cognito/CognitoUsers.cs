@@ -73,8 +73,7 @@ public class CognitoUsers
         await _cognitoClient.AdminUpdateUserAttributesAsync(updateAttributesRequest);
     }
 
-    public static List<ManagedClub> AddManagedClub(UserType user,
-        string league, string season, string clubName, string clubLocation, string managerName)
+    public static List<ManagedClub> ExtractManagedClubs(UserType user)
     {
         var managedClubsAttr = user.Attributes.FirstOrDefault(a => a.Name == "custom:managed_clubs");
         var managedClubs = new List<ManagedClub>();
@@ -88,6 +87,34 @@ public class CognitoUsers
             {
                 throw new InvalidOperationException("The user's managed clubs data is not in a valid format.", ex);
             }
+        }
+
+        return managedClubs;
+    }
+
+    // A user can only manage one club during a single season of a league: find an existing entry for the
+    // same league+season that represents a *different* club (different name and/or location), if any.
+    public static ManagedClub? FindConflictingLeagueSeasonEntry(List<ManagedClub> managedClubs,
+        string league, string season, string clubName, string clubLocation)
+    {
+        return managedClubs.FirstOrDefault(c =>
+            c.League == league &&
+            c.Season == season &&
+            (c.ClubName != clubName || c.ClubLocation != clubLocation));
+    }
+
+    public static List<ManagedClub> AddManagedClub(UserType user,
+        string league, string season, string clubName, string clubLocation, string managerName)
+    {
+        var managedClubs = ExtractManagedClubs(user);
+
+        var conflictingEntry = FindConflictingLeagueSeasonEntry(managedClubs, league, season, clubName, clubLocation);
+        if (conflictingEntry != null)
+        {
+            throw new InvalidOperationException(
+                $"The user already manages a different club ('{conflictingEntry.ClubName}', '{conflictingEntry.ClubLocation}') " +
+                $"for league '{league}' season '{season}'. Cannot also add club ('{clubName}', '{clubLocation}') " +
+                "for the same league and season.");
         }
 
         var newManagedClub = new ManagedClub

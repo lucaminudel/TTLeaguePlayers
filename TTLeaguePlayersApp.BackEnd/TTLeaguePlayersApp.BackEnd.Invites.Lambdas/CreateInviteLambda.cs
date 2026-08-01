@@ -2,8 +2,10 @@ using Amazon.Lambda.Core;
 using System.Text.Json;
 using Amazon.SimpleEmailV2;
 using Amazon.SimpleEmailV2.Model;
+using Amazon.CognitoIdentityProvider.Model;
 using NanoidDotNet;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
@@ -11,16 +13,18 @@ public class CreateInviteLambda
 {
     private readonly ILoggerObserver _observer;
     private readonly IInvitesDataTable _invitesDataTable;
+    private readonly CognitoUsers _cognitoUsers;
     private readonly Uri _inviteWebsiteUrl;
     private readonly bool _sendInviteEmail;
 
     private readonly string _bccTo = "luca.minudel@gmail.com";
     private readonly string _from;
 
-    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, Uri inviteWebsiteUrl, bool sendInviteImail, string inviteEmailAddress)
+    public CreateInviteLambda(ILoggerObserver observer, IInvitesDataTable invitesDataTable, CognitoUsers cognitoUsers, Uri inviteWebsiteUrl, bool sendInviteImail, string inviteEmailAddress)
     {
         _observer = observer;
         _invitesDataTable = invitesDataTable;
+        _cognitoUsers = cognitoUsers;
         _inviteWebsiteUrl = inviteWebsiteUrl;
         _sendInviteEmail = sendInviteImail;
         _from = inviteEmailAddress;
@@ -29,6 +33,11 @@ public class CreateInviteLambda
     public async Task<Invite> HandleAsync(CreateInviteRequest request, ILambdaContext context)
     {
         ValidateRequestStructure(request);
+
+        if (request.InviteeRole == Role.CLUB_MANAGER)
+        {
+            await ValidateNoConflictingManagedClub(request);
+        }
 
         // Create appropriate invite type based on role
         var invite = CreateInviteFromRequest(request);
@@ -219,6 +228,37 @@ Luca Minudel
         }
 
         throw new InvalidOperationException($"Unknown {nameof(invite)} type {invite.GetType().Name}");
+    }
+
+    // A user can only manage one club during a single season of a league. At invite-creation time the
+    // invitee is very often not yet a registered Cognito user (that's the normal case for a new manager),
+    // so an unregistered invitee must NOT block invite creation - only an existing conflicting entry does.
+    private async Task ValidateNoConflictingManagedClub(CreateInviteRequest request)
+    {
+        UserType user;
+        try
+        {
+            user = await _cognitoUsers.RetrieveCognitoUserByEmailId(request.InviteeEmailId);
+        }
+        catch (UserNotFoundException)
+        {
+            return;
+        }
+
+        var managedClubs = CognitoUsers.ExtractManagedClubs(user);
+        var conflictingEntry = CognitoUsers.FindConflictingLeagueSeasonEntry(
+            managedClubs, request.League, request.Season, request.InviteeClub!, request.ClubLocation!);
+
+        if (conflictingEntry != null)
+        {
+            throw new ValidationException(new List<string>
+            {
+                $"{request.InviteeEmailId} already manages a different club ('{conflictingEntry.ClubName}', '{conflictingEntry.ClubLocation}') " +
+                $"for {JsonFieldName.For<CreateInviteRequest>(nameof(request.League))} '{request.League}' " +
+                $"{JsonFieldName.For<CreateInviteRequest>(nameof(request.Season))} '{request.Season}'. " +
+                $"Cannot also invite them to manage club ('{request.InviteeClub}', '{request.ClubLocation}') for the same league and season."
+            });
+        }
     }
 
     private static void ValidateRequestStructure(CreateInviteRequest request)
