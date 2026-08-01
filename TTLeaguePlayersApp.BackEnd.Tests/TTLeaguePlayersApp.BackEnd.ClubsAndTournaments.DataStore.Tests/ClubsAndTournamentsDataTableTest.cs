@@ -267,6 +267,131 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
     }
 
     // -------------------------------------------------------------------------
+    // Tournaments for a club (main-table query, independent of the Club item)
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_ReturnsAllTournamentsForTheClub()
+    {
+        // Arrange
+        var club = CreateTestClub();
+        await TrackedUpsertClub(club);
+        var tournament1 = CreateTestTournament(club);
+        var tournament2 = CreateTestTournament(club);
+        await TrackedUpsertTournament(tournament1);
+        await TrackedUpsertTournament(tournament2);
+
+        // Act
+        var result = await _db.RetrieveTournamentsForClubAsync(club.Location, club.ClubName);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(t => t.TournamentName == tournament1.TournamentName);
+        result.Should().Contain(t => t.TournamentName == tournament2.TournamentName);
+    }
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_ReturnsTournaments_WhenClubItemDoesNotExist()
+    {
+        // Arrange — tournament is upserted without ever creating the Club item
+        var club = CreateTestClub();
+        var tournament = CreateTestTournament(club);
+        await TrackedUpsertTournament(tournament);
+
+        // Act
+        var result = await _db.RetrieveTournamentsForClubAsync(club.Location, club.ClubName);
+
+        // Assert
+        result.Should().ContainSingle(t => t.TournamentName == tournament.TournamentName);
+
+        var clubStillMissing = async () => await _db.RetrieveClubAsync(club.Location, club.ClubName);
+        await clubStillMissing.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_ReturnsEmpty_WhenClubHasNoTournaments()
+    {
+        // Arrange
+        var club = CreateTestClub();
+        await TrackedUpsertClub(club);
+
+        // Act
+        var result = await _db.RetrieveTournamentsForClubAsync(club.Location, club.ClubName);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_DoesNotReturnTournamentsOfOtherClubsAtSameLocation()
+    {
+        // Arrange — two clubs sharing the same location
+        var id = UniqueId();
+        var location = $"SharedLocation_{id}";
+        var clubA = CreateTestClub(location: location, clubName: $"ClubA_{id}");
+        var clubB = CreateTestClub(location: location, clubName: $"ClubB_{id}");
+        await TrackedUpsertClub(clubA);
+        await TrackedUpsertClub(clubB);
+
+        var tournamentA = CreateTestTournament(clubA);
+        var tournamentB = CreateTestTournament(clubB);
+        await TrackedUpsertTournament(tournamentA);
+        await TrackedUpsertTournament(tournamentB);
+
+        // Act
+        var result = await _db.RetrieveTournamentsForClubAsync(clubA.Location, clubA.ClubName);
+
+        // Assert
+        result.Should().ContainSingle(t => t.TournamentName == tournamentA.TournamentName);
+        result.Should().NotContain(t => t.TournamentName == tournamentB.TournamentName);
+    }
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_DoesNotReturnTheClubItem()
+    {
+        // Arrange
+        var club = CreateTestClub();
+        await TrackedUpsertClub(club);
+        var tournament = CreateTestTournament(club);
+        await TrackedUpsertTournament(tournament);
+
+        // Act
+        var result = await _db.RetrieveTournamentsForClubAsync(club.Location, club.ClubName);
+
+        // Assert — only the tournament comes back, never the Club item itself
+        result.Should().ContainSingle();
+        result.Should().OnlyContain(t => t.TournamentName == tournament.TournamentName);
+    }
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_ReturnsExpiredTournaments()
+    {
+        // Arrange — an already-ended tournament must still be retrievable (e.g. so it can be edited/deleted)
+        var club = CreateTestClub();
+        await TrackedUpsertClub(club);
+        var expiredTournament = CreateTestTournament(club, startOffset: -30, endOffset: -1);
+        await TrackedUpsertTournament(expiredTournament);
+
+        // Act
+        var result = await _db.RetrieveTournamentsForClubAsync(club.Location, club.ClubName);
+
+        // Assert
+        result.Should().ContainSingle(t => t.TournamentName == expiredTournament.TournamentName);
+    }
+
+    [Fact]
+    public async Task RetrieveTournamentsForClubAsync_Throws_WhenParametersMissing()
+    {
+        // Act
+        var act = async () => await _db.RetrieveTournamentsForClubAsync("", "");
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("location is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("club_name is required"));
+    }
+
+    // -------------------------------------------------------------------------
     // Read-heavy queries
     // -------------------------------------------------------------------------
 

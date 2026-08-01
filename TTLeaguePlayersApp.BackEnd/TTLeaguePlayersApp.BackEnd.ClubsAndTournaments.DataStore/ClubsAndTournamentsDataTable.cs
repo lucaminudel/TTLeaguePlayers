@@ -156,6 +156,18 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         });
     }
 
+    // Tournaments live under their own partition (LOC#{location}#CLUB#{clubName}), separate from
+    // the Club item's partition (LOC#{location}). This returns a club's tournaments even when no
+    // Club item was ever created — e.g. a manager who hasn't submitted the club profile yet.
+    public async Task<List<Tournament>> RetrieveTournamentsForClubAsync(string location, string clubName)
+    {
+        ValidateLocationAndClubName(location, clubName);
+
+        var items = await QueryMainTableByPkAsync(TournamentPk(location, clubName), skPrefix: "TOURN#");
+
+        return items.Select(MapTournament).ToList();
+    }
+
     // -------------------------------------------------------------------------
     // Read-heavy queries via GSI1
     // -------------------------------------------------------------------------
@@ -206,6 +218,44 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
                 IndexName = GsiName,
                 KeyConditionExpression = keyCondition,
                 ExpressionAttributeValues = expressionValues,
+                ScanIndexForward = true,
+                ExclusiveStartKey = lastKey
+            };
+
+            var response = await _client.QueryAsync(request);
+            results.AddRange(response.Items);
+            lastKey = response.LastEvaluatedKey?.Count > 0 ? response.LastEvaluatedKey : null;
+        }
+        while (lastKey != null);
+
+        return results;
+    }
+
+    private async Task<List<Dictionary<string, AttributeValue>>> QueryMainTableByPkAsync(string pk, string? skPrefix)
+    {
+        var expressionValues = new Dictionary<string, AttributeValue>
+        {
+            [":pk"] = Str(pk)
+        };
+
+        var keyCondition = "PK = :pk";
+        if (skPrefix != null)
+        {
+            keyCondition += " AND begins_with(SK, :skPrefix)";
+            expressionValues[":skPrefix"] = Str(skPrefix);
+        }
+
+        var results = new List<Dictionary<string, AttributeValue>>();
+        Dictionary<string, AttributeValue>? lastKey = null;
+
+        do
+        {
+            var request = new QueryRequest
+            {
+                TableName = _tableName,
+                KeyConditionExpression = keyCondition,
+                ExpressionAttributeValues = expressionValues,
+                ConsistentRead = true,
                 ScanIndexForward = true,
                 ExclusiveStartKey = lastKey
             };

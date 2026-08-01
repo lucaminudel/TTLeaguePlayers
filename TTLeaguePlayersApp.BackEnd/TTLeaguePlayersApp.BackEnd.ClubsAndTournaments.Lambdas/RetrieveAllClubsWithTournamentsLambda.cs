@@ -37,14 +37,17 @@ public class RetrieveAllClubsWithTournamentsLambda
             Instagram  = entry.Club.Instagram,
             Facebook   = entry.Club.Facebook,
             Youtube    = entry.Club.Youtube,
-            Tournaments = entry.Tournaments.Select(t => new TournamentResponse
-            {
-                TournamentName = t.TournamentName,
-                TournamentInfo = t.TournamentInfo,
-                Instagram      = t.Instagram,
-                Facebook       = t.Facebook,
-                StartDate      = t.StartDate,
-                EndDate        = t.EndDate,
-            }).ToList()
+            Tournaments = entry.Tournaments.Select(MapTournament).ToList()
+        };
+
+    internal static TournamentResponse MapTournament(Tournament t) =>
+        new()
+        {
+            TournamentName = t.TournamentName,
+            TournamentInfo = t.TournamentInfo,
+            Instagram      = t.Instagram,
+            Facebook       = t.Facebook,
+            StartDate      = t.StartDate,
+            EndDate        = t.EndDate,
         };
 }

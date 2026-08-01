@@ -66,6 +66,17 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
         return Task.CompletedTask;
     }
 
+    public List<Tournament> TournamentsForClubToReturn { get; set; } = new();
+    public bool ThrowOnRetrieveTournamentsForClub { get; set; }
+    public (string location, string clubName)? LastRetrieveTournamentsForClubArgs { get; private set; }
+
+    public Task<List<Tournament>> RetrieveTournamentsForClubAsync(string location, string clubName)
+    {
+        LastRetrieveTournamentsForClubArgs = (location, clubName);
+        if (ThrowOnRetrieveTournamentsForClub) throw new System.Exception("Simulated data store failure for tournaments for club retrieval");
+        return Task.FromResult(TournamentsForClubToReturn);
+    }
+
     public Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now)
     {
         if (ThrowOnRetrieveAllClubsWithTournaments) throw new System.Exception("Simulated data store failure for clubs with tournaments retrieval");

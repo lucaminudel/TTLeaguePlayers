@@ -311,6 +311,14 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+        ClubTournamentsListOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /clubs/{location}/{clubName}/tournaments
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         ClubTournamentsOptions:
           Type: Api
           Properties:

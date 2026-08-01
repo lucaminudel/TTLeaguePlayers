@@ -341,6 +341,96 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 
     #endregion
 
+    #region GET /clubs/{location}/{clubName}/tournaments Tests
+
+    [Fact]
+    public async Task GET_TournamentsForClub_Should_Return_200_With_List()
+    {
+        var clubName = "Tournaments List Club";
+        await UpsertClubAsync(TestLocation, clubName, "https://tournaments-list.example.com");
+        await UpsertTournamentAsync(TestLocation, clubName, "Listed Tournament", "https://listed-tournament.example.com");
+
+        var response = await _httpClient.GetAsync(ClubTournamentsPath(TestLocation, clubName));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.ValueKind.Should().Be(JsonValueKind.Array);
+        jsonDoc.RootElement.GetArrayLength().Should().Be(1);
+        jsonDoc.RootElement[0].GetProperty("tournament_name").GetString().Should().Be("Listed Tournament");
+    }
+
+    [Fact]
+    public async Task GET_TournamentsForClub_Should_Return_Tournaments_When_Club_Info_Not_Created()
+    {
+        // No UpsertClubAsync call — the club profile itself was never created, only its tournament.
+        var clubName = "Never Promoted Club";
+        var tournamentName = "Orphan Tournament";
+        await UpsertTournamentAsync(TestLocation, clubName, tournamentName, "https://orphan-tournament.example.com");
+
+        var getClubResponse = await _httpClient.GetAsync(ClubPath(TestLocation, clubName));
+        getClubResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var response = await _httpClient.GetAsync(ClubTournamentsPath(TestLocation, clubName));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.GetArrayLength().Should().Be(1);
+        jsonDoc.RootElement[0].GetProperty("tournament_name").GetString().Should().Be(tournamentName);
+    }
+
+    [Fact]
+    public async Task GET_TournamentsForClub_Should_Return_Empty_List_For_Unknown_Club()
+    {
+        var response = await _httpClient.GetAsync(ClubTournamentsPath(TestLocation, "Unknown Club For Tournaments 99"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.ValueKind.Should().Be(JsonValueKind.Array);
+        jsonDoc.RootElement.GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GET_TournamentsForClub_Should_Handle_UrlEncoded_Location_And_ClubName()
+    {
+        var locationWithSpace = "North East";
+        var clubNameWithSpace = "Flick M";
+        await UpsertTournamentAsync(locationWithSpace, clubNameWithSpace, "Space Tournament", "https://space-tournament.example.com");
+
+        var response = await _httpClient.GetAsync(ClubTournamentsPath(locationWithSpace, clubNameWithSpace));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+        jsonDoc.RootElement.GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task POST_TournamentsForClub_Should_Return_405_MethodNotAllowed()
+    {
+        var response = await _httpClient.PostAsync(ClubTournamentsPath(TestLocation, TestClubName), new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+    }
+
+    [Fact]
+    public async Task OPTIONS_TournamentsForClub_Should_Return_200_For_CORS_Preflight()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Options, ClubTournamentsPath(TestLocation, TestClubName));
+        request.Headers.Add("Origin", "http://localhost:3000");
+        request.Headers.Add("Access-Control-Request-Method", "GET");
+
+        var response = await _httpClient.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
+        response.Headers.Should().ContainKey("Access-Control-Allow-Methods");
+    }
+
+    #endregion
+
     #region PUT /clubs/{location}/{clubName}/tournaments/{tournamentName} Tests
 
     [Fact]
@@ -496,6 +586,9 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
 
     private static string ClubPath(string location, string clubName)
         => $"/clubs/{Uri.EscapeDataString(location)}/{Uri.EscapeDataString(clubName)}";
+
+    private static string ClubTournamentsPath(string location, string clubName)
+        => $"/clubs/{Uri.EscapeDataString(location)}/{Uri.EscapeDataString(clubName)}/tournaments";
 
     private static string TournamentPath(string location, string clubName, string tournamentName)
         => $"/clubs/{Uri.EscapeDataString(location)}/{Uri.EscapeDataString(clubName)}/tournaments/{Uri.EscapeDataString(tournamentName)}";

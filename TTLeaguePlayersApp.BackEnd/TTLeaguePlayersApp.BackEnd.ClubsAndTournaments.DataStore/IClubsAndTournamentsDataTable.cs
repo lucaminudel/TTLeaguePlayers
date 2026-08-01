@@ -8,6 +8,7 @@ public interface IClubsAndTournamentsDataTable
 
     Task UpsertTournamentAsync(Tournament tournament);
     Task<Tournament> RetrieveTournamentAsync(string location, string clubName, string tournamentName);
+    Task<List<Tournament>> RetrieveTournamentsForClubAsync(string location, string clubName);
     Task DeleteTournamentAsync(string location, string clubName, string tournamentName);
 
     Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now);
