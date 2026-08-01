@@ -520,7 +520,7 @@ export const PromoteMyTournaments: React.FC = () => {
                                                         <tr>
                                                             <th className="w-16 pl-0 pr-2 py-3"></th>
                                                             <th className="pl-2 pr-1 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                                                Tournament
+                                                                Tournament Link
                                                             </th>
                                                             <th className="w-16 pl-[10px] pr-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                                                                 Social

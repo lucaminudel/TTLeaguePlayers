@@ -402,7 +402,7 @@ describe('PromoteMyTournaments', () => {
             });
 
             const headers = screen.getAllByRole('columnheader');
-            expect(headers.map((header) => header.textContent)).toEqual(['', 'Tournament', 'Social']);
+            expect(headers.map((header) => header.textContent)).toEqual(['', 'Tournament Link', 'Social']);
         });
 
         it('does not render separate Link or Date Range columns', async () => {
