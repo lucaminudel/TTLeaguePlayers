@@ -6,6 +6,8 @@
 *  **DRY Test Data:** Use the **Builder Pattern** for test data creation to avoid duplication and keep tests readable.
 *  **State Cleanup:** When integration testing involves stateful systems (Files, Databases, Auth Services), ensure the state is reverted or cleaned up in the **teardown/cleanup** phase of the test fixture.
 
+Use data-testid to quickly identify the html elements.
+
 ## Mocking and Stubbing
 *  **Choose your test style:**
 	* Use **Stubs** and if needed **Spyes** for **State Testing** (verifying the final state or return value).
