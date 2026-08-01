@@ -8,7 +8,6 @@ export interface ClubInfo {
   instagram?: string | null;
   facebook?: string | null;
   youtube?: string | null;
-  tournaments: unknown[];
 }
 
 export interface ClubInfoRequest {
@@ -113,6 +112,21 @@ export const clubsApi = {
     return await apiFetch<ClubWithTournaments[]>(baseUrl, `/clubs/${encodePathSegment(location)}`, {
       method: 'GET',
     });
+  },
+
+  async getTournamentsForClub(location: string, clubName: string): Promise<TournamentInfo[]> {
+    const config = getConfig();
+    const baseUrl = config.ApiGateWay.ApiBaseUrl;
+    try {
+      return await apiFetch<TournamentInfo[]>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}/tournaments`, {
+        method: 'GET',
+      });
+    } catch (err) {
+      if (err instanceof GeneralApiError && err.status === 404) {
+        return [];
+      }
+      throw err;
+    }
   },
 
   async getTournament(location: string, clubName: string, tournamentName: string): Promise<TournamentInfo | null> {
