@@ -11,6 +11,7 @@ export default {
         'main-text': '#FFFFFF',      // Readability White
         'secondary-text': '#C8C9C7', // Pantone Cool Gray 3 C
         'action-accent': '#E4002B',  // Pantone 185 C
+        'club-manager-accent': '#7DD3FC', // Club Manager only menu items
       },
       fontFamily: {
         // Using system sans-serif stack as default for now, can be updated if fonts are specified later

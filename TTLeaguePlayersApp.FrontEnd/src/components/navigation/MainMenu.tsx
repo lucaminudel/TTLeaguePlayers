@@ -182,17 +182,22 @@ export const MainMenu: React.FC = () => {
                         )}
                         {menuItems.map((item) => {
                             const isVisible = isAuthenticated
-                                ? item.visibleToAllAuthenticated || (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager) 
+                                ? item.visibleToAllAuthenticated || (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager)
 
                                 : item.visibleToUnauthenticated;
 
                             if (!isVisible) return null;
 
+                            const isClubManagerOnly = item.visibleToAuthenticatedClubManager
+                                && !item.visibleToAuthenticatedPlayerOrCaptain
+                                && !item.visibleToAllAuthenticated
+                                && !item.visibleToUnauthenticated;
+
                             return (
                                 <li key={item.label}>
                                     <Link
                                         to={item.path ?? '#'}
-                                        className="text-2xl font-bold text-main-text hover:text-action-accent transition-colors block py-0.5"
+                                        className={`text-2xl font-bold transition-colors block py-0.5 ${isClubManagerOnly ? 'text-club-manager-accent hover:text-action-accent' : 'text-main-text hover:text-action-accent'}`}
                                         onClick={toggleMenu}
                                         data-testid={`main-menu-nav-${item.label.toLowerCase().replace(/\s*&\s*/g, '-and-').replace(/\s+/g, '-')}`}
                                     >
