@@ -78,10 +78,10 @@ The club management and promotion logic resolves and merges the user’s managed
    * The current system epoch time (`now`) can fall inside the active start date and end dates extended to the last day of the season's end date calendar year (i.e., `registrations_start_date` <= `now` <= December 31st of the season's end date year). This allows managers to continue promoting their clubs and upcoming tournaments even after active match play has concluded for the season.
 4. **Managed CLub selection**:
    * If both the Matching Configuration and the relaxed Time Window checks succeed, the managed club card is rendered with the matching Managed Clubs, and the features are made available by the page once a club is selected.
-   *  Matching Configuration Check is done also for the features that are specific only to the club (Club Name + Location) because the club manager is assigned at every league's season, not indefently.
+   *  Matching Configuration Check is done for the features related to the club's league season (League + Season + Club Name + Location), such as listing the club's teams registratins and standings, and also for featrures that are specific to the club (Club Name + Location) as promoting the team and its tournament, because the club manager is assigned at every league's season, not indefently.
 5. **Group By Club Name + Location**:
-   *  For features that are specific to the club (Club Name + Location), like publishing the club info or a clem's tournament, matches with the same Club Name and Location are collapsed into one button. 
-   *  For features that are specific to the club (Club Name + Location) and the league's season, like showing the club's teams registration status and kudos standings, one button per club and league's season is visualised.
+   *  For features that are specific to the club (Club Name + Location), like publishing the club info or a club's organised tournament, matches with the same Club Name and Location are collapsed into one button (Group By Club Name is set to true). 
+   *  Instead, for features that are specific to the club and the league's season (League + Season + Club Name + Location), like showing the club's teams registration status and kudos standings, one button per club and league's season is visualised (Group By Club Name is set to false).
 
  
 
