@@ -207,6 +207,8 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     });
 
     it('should return stale cache when background refresh fails', async () => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
         // 1. Seed Cache with old data
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
@@ -233,5 +235,9 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         // Background refresh should have been attempted - wait for it to complete
         await new Promise(resolve => setTimeout(resolve, 10));
         expect(mockGetTeamFixtures).toHaveBeenCalledTimes(1);
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Background cache refresh failed'),
+            expect.any(Error)
+        );
     });
 });
