@@ -106,8 +106,8 @@ describe('ManagedClubsCard – groupByLocation, single club name per location', 
         render(
             <ManagedClubsCard
                 managedClubs={[
-                    club('London', 'London TTC', 'League A', '2024'),
                     club('London', 'London TTC', 'League A', '2025'),
+                    club('London', 'London TTC', 'League B', '2025'),
                 ]}
                 selectedClubKey={null}
                 onSelectClub={onSelectClub}
