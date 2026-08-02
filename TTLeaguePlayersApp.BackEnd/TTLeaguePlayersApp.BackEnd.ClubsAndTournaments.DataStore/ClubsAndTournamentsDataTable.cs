@@ -182,7 +182,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
 
     public async Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now)
     {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("location is required.", nameof(location));
+        ValidateLocation(location);
         if (now <= 0) throw new ArgumentException("now must be a positive unix timestamp.", nameof(now));
 
         var items = await QueryGsi1Async(AllClubsPartitionKey, skPrefix: $"LOC#{location}#");
@@ -370,6 +370,13 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         if (tournament.EndDate   <= 0) errors.Add($"{JsonFieldName.For<Tournament>(nameof(tournament.EndDate))} must be a positive unix timestamp");
         if (tournament.EndDate < tournament.StartDate) errors.Add($"{JsonFieldName.For<Tournament>(nameof(tournament.EndDate))} must be >= {JsonFieldName.For<Tournament>(nameof(tournament.StartDate))}");
 
+        if (errors.Count > 0) throw new ValidationException(errors);
+    }
+
+    private static void ValidateLocation(string location)
+    {
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(location)) errors.Add("location is required");
         if (errors.Count > 0) throw new ValidationException(errors);
     }
 

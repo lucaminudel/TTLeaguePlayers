@@ -987,10 +987,19 @@ public partial class ApiGatewayProxyHandler
         var segments = NormalizePath(request.Path).Split('/', StringSplitOptions.RemoveEmptyEntries);
         var location = SafeUrlDecode(segments[1]);
 
-        var result = await _retrieveClubsWithTournamentsByLocationLambda.HandleAsync(location, context);
+        try
+        {
+            var result = await _retrieveClubsWithTournamentsByLocationLambda.HandleAsync(location, context);
 
-        _observer.OnRuntimeRegularEvent("GET CLUBS WITH TOURNAMENTS BY LOCATION COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
-        return CreateResponse(HttpStatusCode.OK, result);
+            _observer.OnRuntimeRegularEvent("GET CLUBS WITH TOURNAMENTS BY LOCATION COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+            return CreateResponse(HttpStatusCode.OK, result);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("GET CLUBS WITH TOURNAMENTS BY LOCATION COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
     }
 
     private async Task<APIGatewayProxyResponse> HandleUpsertClub(APIGatewayProxyRequest request, ILambdaContext context)
@@ -1050,6 +1059,12 @@ public partial class ApiGatewayProxyHandler
             _observer.OnRuntimeRegularEvent("GET CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("GET CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
     }
 
     private async Task<APIGatewayProxyResponse> HandleDeleteClub(APIGatewayProxyRequest request, ILambdaContext context)
@@ -1065,10 +1080,19 @@ public partial class ApiGatewayProxyHandler
 
         var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
 
-        await _deleteClubLambda.HandleAsync(location, clubName, userClaims, context);
+        try
+        {
+            await _deleteClubLambda.HandleAsync(location, clubName, userClaims, context);
 
-        _observer.OnRuntimeRegularEvent("DELETE CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
-        return CreateResponse(HttpStatusCode.NoContent);
+            _observer.OnRuntimeRegularEvent("DELETE CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
+            return CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("DELETE CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
     }
 
     private async Task<APIGatewayProxyResponse> HandleUpsertTournament(APIGatewayProxyRequest request, ILambdaContext context)
@@ -1116,10 +1140,19 @@ public partial class ApiGatewayProxyHandler
         var location = SafeUrlDecode(segments[1]);
         var clubName = SafeUrlDecode(segments[2]);
 
-        var result = await _retrieveTournamentsForClubLambda.HandleAsync(location, clubName, context);
+        try
+        {
+            var result = await _retrieveTournamentsForClubLambda.HandleAsync(location, clubName, context);
 
-        _observer.OnRuntimeRegularEvent("GET TOURNAMENTS FOR CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
-        return CreateResponse(HttpStatusCode.OK, result);
+            _observer.OnRuntimeRegularEvent("GET TOURNAMENTS FOR CLUB COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+            return CreateResponse(HttpStatusCode.OK, result);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("GET TOURNAMENTS FOR CLUB COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
     }
 
     private async Task<APIGatewayProxyResponse> HandleGetTournament(APIGatewayProxyRequest request, ILambdaContext context)
@@ -1147,6 +1180,12 @@ public partial class ApiGatewayProxyHandler
             _observer.OnRuntimeRegularEvent("GET TOURNAMENT COMPLETED", fromHere, context, inParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = ex.Message });
         }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("GET TOURNAMENT COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
     }
 
     private async Task<APIGatewayProxyResponse> HandleDeleteTournament(APIGatewayProxyRequest request, ILambdaContext context)
@@ -1163,10 +1202,19 @@ public partial class ApiGatewayProxyHandler
 
         var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
 
-        await _deleteTournamentLambda.HandleAsync(location, clubName, tournamentName, userClaims, context);
+        try
+        {
+            await _deleteTournamentLambda.HandleAsync(location, clubName, tournamentName, userClaims, context);
 
-        _observer.OnRuntimeRegularEvent("DELETE TOURNAMENT COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
-        return CreateResponse(HttpStatusCode.NoContent);
+            _observer.OnRuntimeRegularEvent("DELETE TOURNAMENT COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.NoContent));
+            return CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            _observer.OnRuntimeRegularEvent("DELETE TOURNAMENT COMPLETED", fromHere, context, inParameters.With(responseStatusCode, "Validation failed"));
+            return CreateResponse(responseStatusCode, new { message = "Validation failed", errors = ex.Errors });
+        }
     }
 
     // Path shape helpers

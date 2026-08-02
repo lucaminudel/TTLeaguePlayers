@@ -116,6 +116,7 @@ public class UpsertClubLambdaTests
         result.Location.Should().Be("Test Location");
         result.ClubName.Should().Be("Test Club");
         result.Homepage.ToString().Should().Be("https://example.com/");
+        result.Facebook.Should().NotBeNull();
         result.Facebook.ToString().Should().Be("https://facebook.com/club");
     }
 

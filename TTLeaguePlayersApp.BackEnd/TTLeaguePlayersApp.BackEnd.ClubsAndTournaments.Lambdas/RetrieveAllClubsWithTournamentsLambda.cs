@@ -17,7 +17,18 @@ public class RetrieveAllClubsWithTournamentsLambda
     public async Task<List<ClubWithTournamentsResponse>> HandleAsync(ILambdaContext context)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var results = await _dataTable.RetrieveAllClubsWithActiveTournamentsAsync(now);
+
+        List<(Club Club, List<Tournament> Tournaments)> results;
+        try
+        {
+            results = await _dataTable.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        }
+        catch (Exception ex)
+        {
+            _observer.OnRuntimeError(ex, context);
+            throw;
+        }
+
         var response = results.Select(MapToResponse).ToList();
 
         _observer.OnRuntimeRegularEvent("RETRIEVE ALL CLUBS WITH TOURNAMENTS COMPLETED",

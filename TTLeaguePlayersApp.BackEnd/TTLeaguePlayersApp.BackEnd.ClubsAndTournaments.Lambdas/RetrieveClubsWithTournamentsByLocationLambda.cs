@@ -17,7 +17,18 @@ public class RetrieveClubsWithTournamentsByLocationLambda
     public async Task<List<ClubWithTournamentsResponse>> HandleAsync(string location, ILambdaContext context)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var results = await _dataTable.RetrieveClubsWithActiveTournamentsByLocationAsync(location, now);
+
+        List<(Club Club, List<Tournament> Tournaments)> results;
+        try
+        {
+            results = await _dataTable.RetrieveClubsWithActiveTournamentsByLocationAsync(location, now);
+        }
+        catch (Exception ex)
+        {
+            _observer.OnRuntimeError(ex, context, new() { ["location"] = location });
+            throw;
+        }
+
         var response = results.Select(RetrieveAllClubsWithTournamentsLambda.MapToResponse).ToList();
 
         _observer.OnRuntimeRegularEvent("RETRIEVE CLUBS WITH TOURNAMENTS BY LOCATION COMPLETED",

@@ -508,8 +508,8 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         var act = async () => await _db.RetrieveClubsWithActiveTournamentsByLocationAsync("", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*location is required*");
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("location is required"));
     }
 
     [Fact]
