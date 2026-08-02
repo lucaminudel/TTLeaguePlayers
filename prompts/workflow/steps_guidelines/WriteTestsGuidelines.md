@@ -4,7 +4,7 @@
 ## Core Principles
 *  **No Implementation Changes:** Never modify the implementation code of the system under test (SUT). Only write or modify test code. This includes not increasing the visibility of implementation code private methods.
 *  **DRY Test Data:** Use the **Builder Pattern** for test data creation to avoid duplication and keep tests readable.
-*  **State Cleanup:** When integration testing involves stateful systems (Files, Databases, Auth Services), ensure the state is reverted or cleaned up in the **teardown/cleanup** phase of the test fixture.
+*  **State Cleanup:** When integration testing involves stateful systems (Files, Databases, Auth Services), ensure the state is reverted or cleaned up in the **teardown/cleanup** phase of the test fixture. See [Test Data Cleanup](#test-data-cleanup) for the patterns to follow in each test type.
 
 Use data-testid to quickly identify the html elements.
 
@@ -16,7 +16,6 @@ Use data-testid to quickly identify the html elements.
 *  **Contract Verification:** For every mocked interface/API, there must be a corresponding integration test to ensure the mock's behaviour aligns with the real-world system.
 *  **Dependency Injection:** Prefer injecting mocks and stubs via the **Constructor**. Avoid framework-specific "magic" or reflection-based overrides unless the SUT architecture strictly requires it.
 
-  
 ## E2E Testing DRY code
 **Action Encapsulation:** To prevent code duplication in the e2e tests for actions repeated in multiple test cases (Login,  NavigateTo..., registerNewUser, etc), organise those actions with a **Fluent Interface** and reuse that code.
 
@@ -49,7 +48,35 @@ Look at examples the [e2e test file Registration](file://~/TTLeaguePlayers/TTLea
 		* `App.NewInvoice.RememberInvoiceNumber(newInvoice.Number)` 
 	*  accessed later like this: `App.NewInvoice.InvoiceNumber`
 
+## Test Data Cleanup
 
+Any test that writes to a real store (DynamoDB, the HTTP API, Cognito, files, environment variables) must leave the environment as it found it, **whether the test passes or fails**.
+
+*  **Cleanup belongs in the teardown hook, never in a final test step.** A cleanup written as the last step of the test is skipped the moment any earlier assertion fails — which is exactly when data is most likely to have been left behind. Teardown hooks run regardless of outcome.
+*  **Tests that only use fakes or stubs need no cleanup** — this is all the frontend unit tests and the backend Lambda unit tests, which inject a `Fake...DataTable`.
+*  **Verify the teardown actually fires** when you write it: temporarily inject a failure before the test's own removal steps, confirm the cleanup runs and the store is clean, then revert the injected failure.
+
+### BackEnd (C#, xUnit)
+
+The same shape is used by the **DataStore integration tests** (`ClubsAndTournamentsDataTableTest`, `InvitesDataTableTest`, `KudosDataTableTest`) and by the **API acceptance tests** (`ClubsAndTournamentsAcceptanceTests`, `InvitesAcceptanceTests`, `KudosAcceptanceTests`):
+
+*  **Teardown hook:** the test class implements `IAsyncLifetime`; `InitializeAsync` does any setup (or `=> Task.CompletedTask`), and `DisposeAsync` performs the cleanup. xUnit runs `DisposeAsync` after every test class run, pass or fail.
+*  **Track what you create:** hold a `ConcurrentBag`/`List` field of the created keys, appended by a small `Tracked...` helper that wraps the write — e.g. `TrackedUpsertClub` / `TrackedCreate` / `TrackedSave`. Tests call the helper rather than the store directly, so nothing can be created without being registered for deletion.
+*  **Best-effort deletes:** wrap each delete in `try { ... } catch { /* ignore */ }` so one failure (or an item a test already deleted) does not abort the cleanup of everything else.
+*  **Delete children before parents:** e.g. tournaments before clubs, so no orphan rows are left if a delete fails part-way.
+*  **Re-authenticate in teardown when the cleanup needs it:** acceptance tests that delete through the API re-acquire the Cognito id token in `DisposeAsync` when their `HttpClient` may no longer carry a valid one.
+*  **Dispose owned resources last**, after the data cleanup: `_db.Dispose()`, `_httpClient?.Dispose()`.
+*  **Process-level state counts too:** `LoaderTest` implements `IDisposable` purely to restore the `ENVIRONMENT` environment variable it changed, including restoring it to null when it was previously unset.
+
+### FrontEnd e2e (Playwright)
+
+Follow `PromoteMyClub.spec.ts`, `PromoteMyTournaments.spec.ts`, `KudosAwardAndStanding.spec.ts` and `ClubsAndTournaments.spec.ts`:
+
+*  **Teardown hook:** `test.afterAll(async ({ request }) => { ... })` on the `describe`, deleting through the API with Playwright's `request` fixture. It runs whether the tests passed or failed.
+*  **Track what you create:** declare a describe-scope variable (`let addedClub: { url: string; auth: string } | null = null`) and record the **URL and the `Authorization` header** of the upsert request the UI issues, by listening to `page.on('request', ...)` (or `page.once` immediately before the action) and filtering on method and URL. The captured token is what lets the teardown delete the item.
+*  **Clear the tracker when the test itself removes the item** (`addedClub = null;`), so the teardown only has work to do when the test did not get that far. Removing through the UI can stay a meaningful test step — the teardown is the safety net, not a replacement for it.
+*  **Log the outcome** of each delete (`🧹 [Cleanup] ...`, `✅`, `❌`) and catch errors per item, so a failed cleanup is visible in the run output without failing the suite. Retry when the API is flaky, as the Kudos cleanup does.
+*  **Do not share mutable fixtures between spec files.** Playwright runs spec files in **parallel workers**, so two specs that add and remove the *same* club, user or record will race and fail intermittently — and may appear to pass for a while depending on scheduling. Pick a Cognito test user and club that the spec owns; check which specs already use a given static user before reusing it.
 
 
 # Cognito test users creation and use
