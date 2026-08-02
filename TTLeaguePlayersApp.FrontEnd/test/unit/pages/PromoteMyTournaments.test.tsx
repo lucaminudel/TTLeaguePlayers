@@ -531,7 +531,10 @@ describe('PromoteMyTournaments', () => {
             const editButton = screen.getByTitle('Edit');
             fireEvent.click(editButton);
 
-            expect(screen.getByLabelText('Tournament Name')).toBeDisabled();
+            const nameField = screen.getByLabelText('Tournament Name');
+            expect(nameField).toBeDisabled();
+            // Same greyed-out locked styling as the invite-bound email field on Login and Register
+            expect(nameField).toHaveClass('!bg-gray-400', '!text-gray-800', 'cursor-not-allowed', '!opacity-100');
         });
 
         it('keeps the Tournament Name field enabled when adding a new tournament', async () => {
@@ -544,7 +547,76 @@ describe('PromoteMyTournaments', () => {
             const addButton = screen.getByText('ADD TOURNAMENT');
             fireEvent.click(addButton);
 
-            expect(screen.getByLabelText('Tournament Name')).toBeEnabled();
+            const nameField = screen.getByLabelText('Tournament Name');
+            expect(nameField).toBeEnabled();
+            expect(nameField).not.toHaveClass('!bg-gray-400');
+        });
+
+        it('moves focus to the Tournament Info URL field when editing, since the name is locked', async () => {
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByText(/London Open 2025/)).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByTitle('Edit'));
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Tournament Info URL')).toHaveFocus();
+            });
+        });
+
+        it('does not pull focus back to Tournament Info URL while typing in another field', async () => {
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByText(/London Open 2025/)).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByTitle('Edit'));
+            await waitFor(() => {
+                expect(screen.getByLabelText('Tournament Info URL')).toHaveFocus();
+            });
+
+            const instagramField = screen.getByLabelText('Instagram Post');
+            instagramField.focus();
+            fireEvent.change(instagramField, { target: { value: 'https://instagram.com/p/abc' } });
+
+            expect(instagramField).toHaveFocus();
+        });
+
+        it('moves focus to the Tournament Name field when adding, where the name is editable', async () => {
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByText(/London Open 2025/)).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByText('ADD TOURNAMENT'));
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Tournament Name')).toHaveFocus();
+            });
+            expect(screen.getByLabelText('Tournament Info URL')).not.toHaveFocus();
+        });
+
+        it('does not pull focus back to Tournament Name while typing in another field when adding', async () => {
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByText(/London Open 2025/)).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByText('ADD TOURNAMENT'));
+            await waitFor(() => {
+                expect(screen.getByLabelText('Tournament Name')).toHaveFocus();
+            });
+
+            const infoField = screen.getByLabelText('Tournament Info URL');
+            infoField.focus();
+            fireEvent.change(infoField, { target: { value: 'https://example.com/new' } });
+
+            expect(infoField).toHaveFocus();
         });
 
         it('saves an edited tournament and reflects the change in the grid without duplicating rows', async () => {

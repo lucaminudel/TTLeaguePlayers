@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
@@ -269,9 +269,27 @@ export const PromoteMyTournaments: React.FC = () => {
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
     const [deletingTournament, setDeletingTournament] = useState<TournamentInfo | null>(null);
     const [formErrors, setFormErrors] = useState<Partial<Record<keyof TournamentInfo, string>>>({});
+    const tournamentNameInputRef = useRef<HTMLInputElement>(null);
+    const tournamentInfoInputRef = useRef<HTMLInputElement>(null);
 
     const selectedManagedClub = managedClubs.find((club) => createManagedClubKey(club) === selectedClubKey) ?? null;
     const effectiveManagedClub = selectedManagedClub;
+
+    // When the modal opens, put the cursor on the first field the user can actually change: the
+    // Tournament Name when adding, or the Tournament Info URL when editing, where the name is locked
+    // because it is part of the API key. Keyed on whether the modal is open rather than on the
+    // editingTournament object, which is replaced on every keystroke and would otherwise pull focus
+    // back here while the user is typing in another field.
+    const isTournamentModalOpen = editingTournament !== null;
+    useEffect(() => {
+        if (!isTournamentModalOpen) return;
+
+        if (isNewTournament) {
+            tournamentNameInputRef.current?.focus();
+        } else {
+            tournamentInfoInputRef.current?.focus();
+        }
+    }, [isTournamentModalOpen, isNewTournament]);
 
     useEffect(() => {
         if (managedClubs.length === 0) {
@@ -577,11 +595,17 @@ export const PromoteMyTournaments: React.FC = () => {
                                     <Input
                                         id="tournament_name"
                                         type="text"
+                                        ref={tournamentNameInputRef}
                                         value={editingTournament.tournament_name}
                                         onChange={(e) => { handleFieldChange('tournament_name', e.target.value); }}
                                         placeholder="Enter tournament name"
                                         disabled={!isNewTournament}
-                                        className={formErrors.tournament_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}
+                                        className={[
+                                            // Same locked-field styling as the invite-bound email on Login and Register
+                                            !isNewTournament ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100' : '',
+                                            formErrors.tournament_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : '',
+                                        ].filter(Boolean).join(' ')}
+                                        style={!isNewTournament ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
                                     />
                                 </FormField>
 
@@ -594,6 +618,7 @@ export const PromoteMyTournaments: React.FC = () => {
                                         <Input
                                             id="tournament_info"
                                             type="url"
+                                            ref={tournamentInfoInputRef}
                                             value={editingTournament.tournament_info}
                                             onChange={(e) => { handleFieldChange('tournament_info', e.target.value); }}
                                             placeholder="https://club.com/tournament_info.html"
