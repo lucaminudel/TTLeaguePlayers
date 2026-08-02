@@ -18,7 +18,7 @@ public class RetrieveClubsWithTournamentsByLocationLambda
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        List<(Club Club, List<Tournament> Tournaments)> results;
+        List<(ClubListing Club, List<Tournament> Tournaments)> results;
         try
         {
             results = await _dataTable.RetrieveClubsWithActiveTournamentsByLocationAsync(location, now);

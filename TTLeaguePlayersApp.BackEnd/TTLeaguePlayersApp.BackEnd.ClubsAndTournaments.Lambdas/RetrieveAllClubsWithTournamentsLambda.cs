@@ -18,7 +18,7 @@ public class RetrieveAllClubsWithTournamentsLambda
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        List<(Club Club, List<Tournament> Tournaments)> results;
+        List<(ClubListing Club, List<Tournament> Tournaments)> results;
         try
         {
             results = await _dataTable.RetrieveAllClubsWithActiveTournamentsAsync(now);
@@ -39,7 +39,7 @@ public class RetrieveAllClubsWithTournamentsLambda
         return response;
     }
 
-    internal static ClubWithTournamentsResponse MapToResponse((Club Club, List<Tournament> Tournaments) entry) =>
+    internal static ClubWithTournamentsResponse MapToResponse((ClubListing Club, List<Tournament> Tournaments) entry) =>
         new()
         {
             Location   = entry.Club.Location,

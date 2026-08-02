@@ -37,7 +37,8 @@ export interface TournamentRequest {
 export interface ClubWithTournaments {
   location: string;
   club_name: string;
-  homepage: string;
+  // Absent for a club that has tournaments but has never submitted a club profile.
+  homepage?: string | null;
   instagram?: string | null;
   facebook?: string | null;
   youtube?: string | null;

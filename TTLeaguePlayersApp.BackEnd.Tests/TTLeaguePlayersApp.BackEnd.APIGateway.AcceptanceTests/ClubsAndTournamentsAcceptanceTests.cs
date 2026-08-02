@@ -54,6 +54,31 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GET_Clubs_Should_Omit_Homepage_And_List_Tournaments_When_Club_Info_Not_Created()
+    {
+        // No UpsertClubAsync call — the club profile itself was never created, only its tournament.
+        var clubName = "Never Promoted Listed Club";
+        var tournamentName = "Listed Orphan Tournament";
+        await UpsertActiveTournamentAsync(TestLocation, clubName, tournamentName, "https://listed-orphan.example.com");
+
+        var response = await _httpClient.GetAsync("/clubs");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(result);
+
+        var clubEntry = jsonDoc.RootElement.EnumerateArray()
+            .SingleOrDefault(e => e.GetProperty("club_name").GetString() == clubName);
+
+        clubEntry.ValueKind.Should().Be(JsonValueKind.Object, "the club is listed even though it has no profile");
+        clubEntry.GetProperty("location").GetString().Should().Be(TestLocation);
+        clubEntry.TryGetProperty("homepage", out _).Should().BeFalse("an unpromoted club has no homepage to expose");
+
+        clubEntry.GetProperty("tournaments").EnumerateArray()
+            .Should().ContainSingle(t => t.GetProperty("tournament_name").GetString() == tournamentName);
+    }
+
+    [Fact]
     public async Task POST_Clubs_Should_Return_405_MethodNotAllowed()
     {
         var response = await _httpClient.PostAsync("/clubs", new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -626,9 +651,17 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         _createdClubs.Add((location, clubName));
     }
 
-    private async Task UpsertTournamentAsync(string location, string clubName, string tournamentName, string tournamentInfo)
+    private async Task UpsertActiveTournamentAsync(string location, string clubName, string tournamentName, string tournamentInfo)
     {
-        var content = new StringContent(CreateUpsertTournamentJson(tournamentInfo), Encoding.UTF8, "application/json");
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await UpsertTournamentAsync(location, clubName, tournamentName, tournamentInfo,
+            startDate: now + 86400, endDate: now + (7 * 86400));
+    }
+
+    private async Task UpsertTournamentAsync(string location, string clubName, string tournamentName, string tournamentInfo,
+        long startDate = 1735689600, long endDate = 1735776000)
+    {
+        var content = new StringContent(CreateUpsertTournamentJson(tournamentInfo, startDate, endDate), Encoding.UTF8, "application/json");
         var response = await _httpClient.PutAsync(TournamentPath(location, clubName, tournamentName), content);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         _createdTournaments.Add((location, clubName, tournamentName));

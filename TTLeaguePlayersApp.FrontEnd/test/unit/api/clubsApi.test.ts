@@ -268,6 +268,31 @@ describe('clubsApi', () => {
       expect(result).toEqual(clubsWithTournaments);
     });
 
+    it('gets clubs with tournaments when a club has no homepage because it was never promoted', async () => {
+      const clubsWithTournaments = [
+        {
+          location: 'London',
+          club_name: 'Never Promoted TTC',
+          tournaments: [
+            {
+              tournament_name: 'Orphan Cup',
+              tournament_info: 'https://orphan.example.com',
+              start_date: 1767225600,
+              end_date: 1767312000,
+            },
+          ],
+        },
+      ];
+
+      vi.mocked(apiFetch).mockResolvedValue(clubsWithTournaments);
+
+      const result = await clubsApi.getAllClubsWithTournaments();
+
+      expect(result).toEqual(clubsWithTournaments);
+      expect(result[0].homepage).toBeUndefined();
+      expect(result[0].tournaments).toHaveLength(1);
+    });
+
     it('gets clubs with tournaments by location', async () => {
       const clubsWithTournaments = [
         {

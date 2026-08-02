@@ -476,6 +476,88 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RetrieveAllClubsWithActiveTournamentsAsync_ReturnsPromotionProfile_WhenClubIsPromoted()
+    {
+        // Arrange
+        var club = CreateTestClub();
+        club.Instagram = new Uri("https://instagram.com/testclub");
+        club.Facebook  = new Uri("https://facebook.com/testclub");
+        club.Youtube   = new Uri("https://youtube.com/testclub");
+        await TrackedUpsertClub(club);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // Act
+        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+
+        // Assert
+        var entry = result.FirstOrDefault(e => e.Club.ClubName == club.ClubName);
+        entry.Should().NotBeNull();
+        entry!.Club.Homepage.Should().Be(club.Homepage);
+        entry.Club.Instagram.Should().Be(club.Instagram);
+        entry.Club.Facebook.Should().Be(club.Facebook);
+        entry.Club.Youtube.Should().Be(club.Youtube);
+    }
+
+    [Fact]
+    public async Task RetrieveAllClubsWithActiveTournamentsAsync_ReturnsTournaments_WhenClubItemDoesNotExist()
+    {
+        // Arrange — a club manager who added a tournament before ever submitting the club profile,
+        // so there is no CLUB# item for this club
+        var unpromotedClub = CreateTestClub();
+        var tournament = CreateTestTournament(unpromotedClub, startOffset: -1, endOffset: +7);
+        await TrackedUpsertTournament(tournament);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // Act
+        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+
+        // Assert
+        var entry = result.FirstOrDefault(e => e.Club.ClubName == unpromotedClub.ClubName);
+        entry.Should().NotBeNull();
+        entry!.Club.Location.Should().Be(unpromotedClub.Location);
+        entry.Club.Homepage.Should().BeNull();
+        entry.Tournaments.Should().ContainSingle(t => t.TournamentName == tournament.TournamentName);
+    }
+
+    [Fact]
+    public async Task RetrieveAllClubsWithActiveTournamentsAsync_DoesNotMisattributeTournaments_WhenOneClubNameIsAPrefixOfAnother()
+    {
+        // Arrange — GSI1SK sorts by byte order and ' ' (0x20) < '#' (0x23), so within one location the
+        // items come back as: club "Rally", club "Rally Point", "Rally Point"'s tournament, then
+        // "Rally"'s tournament. Grouping by adjacency would credit the last one to "Rally Point".
+        var id = UniqueId();
+        var location = $"PrefixLoc_{id}";
+        var shorterNamedClub = CreateTestClub(location: location, clubName: $"Rally_{id}");
+        var longerNamedClub  = CreateTestClub(location: location, clubName: $"Rally_{id} Point");
+        await TrackedUpsertClub(shorterNamedClub);
+        await TrackedUpsertClub(longerNamedClub);
+
+        var shorterNamedClubTournament = CreateTestTournament(shorterNamedClub, startOffset: -1, endOffset: +7);
+        var longerNamedClubTournament  = CreateTestTournament(longerNamedClub,  startOffset: -1, endOffset: +7);
+        await TrackedUpsertTournament(shorterNamedClubTournament);
+        await TrackedUpsertTournament(longerNamedClubTournament);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // Act
+        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+
+        // Assert — each tournament stays with the club that owns it
+        var shorterNamedEntry = result.FirstOrDefault(e => e.Club.ClubName == shorterNamedClub.ClubName);
+        var longerNamedEntry  = result.FirstOrDefault(e => e.Club.ClubName == longerNamedClub.ClubName);
+
+        shorterNamedEntry.Should().NotBeNull();
+        longerNamedEntry.Should().NotBeNull();
+
+        shorterNamedEntry!.Tournaments.Should().ContainSingle()
+            .Which.TournamentName.Should().Be(shorterNamedClubTournament.TournamentName);
+        longerNamedEntry!.Tournaments.Should().ContainSingle()
+            .Which.TournamentName.Should().Be(longerNamedClubTournament.TournamentName);
+    }
+
+    [Fact]
     public async Task RetrieveClubsWithActiveTournamentsByLocationAsync_ReturnsOnlyClubsInGivenLocation()
     {
         // Arrange

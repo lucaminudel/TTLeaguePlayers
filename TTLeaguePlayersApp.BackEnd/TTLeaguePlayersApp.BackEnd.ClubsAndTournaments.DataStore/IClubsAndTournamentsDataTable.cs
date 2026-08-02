@@ -11,8 +11,8 @@ public interface IClubsAndTournamentsDataTable
     Task<List<Tournament>> RetrieveTournamentsForClubAsync(string location, string clubName);
     Task DeleteTournamentAsync(string location, string clubName, string tournamentName);
 
-    Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now);
-    Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now);
+    Task<List<(ClubListing Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now);
+    Task<List<(ClubListing Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now);
 
     void Dispose();
 }

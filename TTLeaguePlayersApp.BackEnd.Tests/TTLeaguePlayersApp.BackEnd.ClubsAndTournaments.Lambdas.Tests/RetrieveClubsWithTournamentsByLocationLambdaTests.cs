@@ -16,10 +16,10 @@ public class RetrieveClubsWithTournamentsByLocationLambdaTests
         var dataTable = new FakeClubsAndTournamentsDataTable();
         
         dataTable.ClubsWithTournamentsToReturn.Add((
-            new Club 
-            { 
-                ClubName = "Full Club", 
-                Location = "Expected Location", 
+            new ClubListing
+            {
+                ClubName = "Full Club",
+                Location = "Expected Location",
                 Homepage = new System.Uri("https://fullclub.com"),
                 Instagram = new System.Uri("https://instagram.com/fullclub"),
                 Facebook = new System.Uri("https://facebook.com/fullclub"),

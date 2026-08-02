@@ -13,7 +13,7 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
     public Club? ClubToReturn { get; set; }
     public Tournament? TournamentToReturn { get; set; }
     
-    public List<(Club Club, List<Tournament> Tournaments)> ClubsWithTournamentsToReturn { get; set; } = new();
+    public List<(ClubListing Club, List<Tournament> Tournaments)> ClubsWithTournamentsToReturn { get; set; } = new();
 
     public bool ThrowOnUpsertClub { get; set; }
     public bool ThrowOnUpsertTournament { get; set; }
@@ -77,7 +77,7 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
         return Task.FromResult(TournamentsForClubToReturn);
     }
 
-    public Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now)
+    public Task<List<(ClubListing Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now)
     {
         if (ThrowOnRetrieveAllClubsWithTournaments) throw new System.Exception("Simulated data store failure for clubs with tournaments retrieval");
         return Task.FromResult(ClubsWithTournamentsToReturn);
@@ -85,7 +85,7 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
 
     public string? LastRetrieveLocation { get; private set; }
 
-    public Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now)
+    public Task<List<(ClubListing Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now)
     {
         LastRetrieveLocation = location;
         if (ThrowOnRetrieveClubsWithTournamentsByLocation) throw new System.Exception("Simulated data store failure for clubs with tournaments by location retrieval");

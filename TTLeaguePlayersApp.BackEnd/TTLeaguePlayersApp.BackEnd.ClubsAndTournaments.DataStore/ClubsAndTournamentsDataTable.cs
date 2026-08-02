@@ -172,7 +172,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
     // Read-heavy queries via GSI1
     // -------------------------------------------------------------------------
 
-    public async Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now)
+    public async Task<List<(ClubListing Club, List<Tournament> Tournaments)>> RetrieveAllClubsWithActiveTournamentsAsync(long now)
     {
         if (now <= 0) throw new ArgumentException("now must be a positive unix timestamp.", nameof(now));
 
@@ -180,7 +180,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         return GroupClubsWithActiveTournaments(items, now);
     }
 
-    public async Task<List<(Club Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now)
+    public async Task<List<(ClubListing Club, List<Tournament> Tournaments)>> RetrieveClubsWithActiveTournamentsByLocationAsync(string location, long now)
     {
         ValidateLocation(location);
         if (now <= 0) throw new ArgumentException("now must be a positive unix timestamp.", nameof(now));
@@ -269,32 +269,60 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         return results;
     }
 
-    private static List<(Club, List<Tournament>)> GroupClubsWithActiveTournaments(
+    // Groups by the location and club_name attributes carried by every item rather than by the order
+    // items come back in. Index order cannot be relied on for this: a club with no CLUB# item (a manager
+    // who added tournaments before submitting the club profile) has no entry to attach its tournaments
+    // to, and GSI1SK sorts by byte order, where ' ' (0x20) < '#' (0x23), so the tournaments of a club
+    // named "Rally" sort after the whole of "Rally Point".
+    private static List<(ClubListing, List<Tournament>)> GroupClubsWithActiveTournaments(
         List<Dictionary<string, AttributeValue>> items, long now)
     {
-        var result = new List<(Club, List<Tournament>)>();
-        Club? currentClub = null;
-        List<Tournament>? currentTournaments = null;
+        var groupsByClub = new Dictionary<(string Location, string ClubName), (ClubListing Club, List<Tournament> Tournaments)>();
 
         foreach (var item in items)
         {
+            var key = (Location: item["location"].S, ClubName: item["club_name"].S);
+
+            if (!groupsByClub.TryGetValue(key, out var group))
+            {
+                group = (new ClubListing { Location = key.Location, ClubName = key.ClubName }, new List<Tournament>());
+                groupsByClub[key] = group;
+            }
+
             var sk = item["SK"].S;
 
             if (sk.StartsWith("CLUB#"))
             {
-                currentClub = MapClub(item);
-                currentTournaments = new List<Tournament>();
-                result.Add((currentClub, currentTournaments));
+                SetPromotionProfile(group.Club, item);
             }
-            else if (sk.StartsWith("TOURN#") && currentTournaments != null)
+            else if (sk.StartsWith("TOURN#"))
             {
                 var tournament = MapTournament(item);
                 if (tournament.EndDate >= now)
-                    currentTournaments.Add(tournament);
+                    group.Tournaments.Add(tournament);
             }
         }
 
-        return result;
+        // Grouping no longer depends on the order the items arrive in, so the ordering of the result is
+        // stated here instead of being inherited from the index.
+        foreach (var (_, tournaments) in groupsByClub.Values)
+        {
+            tournaments.Sort((left, right) => left.StartDate.CompareTo(right.StartDate));
+        }
+
+        return groupsByClub.Values
+            .OrderBy(group => group.Club.Location, StringComparer.Ordinal)
+            .ThenBy(group => group.Club.ClubName, StringComparer.Ordinal)
+            .Select(group => (group.Club, group.Tournaments))
+            .ToList();
+    }
+
+    private static void SetPromotionProfile(ClubListing club, Dictionary<string, AttributeValue> item)
+    {
+        club.Homepage  = GetOptionalUri(item, "homepage");
+        club.Instagram = GetOptionalUri(item, "instagram");
+        club.Facebook  = GetOptionalUri(item, "facebook");
+        club.Youtube   = GetOptionalUri(item, "youtube");
     }
 
     private static Club MapClub(Dictionary<string, AttributeValue> item) => new Club

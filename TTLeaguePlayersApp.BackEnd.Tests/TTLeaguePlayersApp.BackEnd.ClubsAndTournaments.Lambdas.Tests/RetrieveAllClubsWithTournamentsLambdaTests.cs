@@ -16,10 +16,10 @@ public class RetrieveAllClubsWithTournamentsLambdaTests
         var dataTable = new FakeClubsAndTournamentsDataTable();
         
         dataTable.ClubsWithTournamentsToReturn.Add((
-            new Club 
-            { 
-                ClubName = "Full Club", 
-                Location = "Full Location", 
+            new ClubListing
+            {
+                ClubName = "Full Club",
+                Location = "Full Location",
                 Homepage = new System.Uri("https://fullclub.com"),
                 Instagram = new System.Uri("https://instagram.com/fullclub"),
                 Facebook = new System.Uri("https://facebook.com/fullclub"),
@@ -66,6 +66,49 @@ public class RetrieveAllClubsWithTournamentsLambdaTests
         tResponse.Facebook.Should().Be(new System.Uri("https://facebook.com/fulltournament"));
         tResponse.StartDate.Should().Be(1000);
         tResponse.EndDate.Should().Be(2000);
+    }
+
+    [Fact]
+    public async Task WhenClubHasNoPromotionProfile_ReturnsClubWithoutHomepageAndItsTournaments()
+    {
+        // Arrange — a club that has tournaments but never submitted its club profile
+        var dataTable = new FakeClubsAndTournamentsDataTable();
+
+        dataTable.ClubsWithTournamentsToReturn.Add((
+            new ClubListing
+            {
+                ClubName = "Unpromoted Club",
+                Location = "Some Location"
+            },
+            new List<Tournament>
+            {
+                new Tournament
+                {
+                    TournamentName = "Orphan Tournament",
+                    Location = "Some Location",
+                    ClubName = "Unpromoted Club",
+                    TournamentInfo = new System.Uri("https://info.example.com/flyer.pdf"),
+                    StartDate = 1000,
+                    EndDate = 2000
+                }
+            }
+        ));
+
+        var lambda = new RetrieveAllClubsWithTournamentsLambda(new LoggerObserver(), dataTable);
+
+        // Act
+        var results = await lambda.HandleAsync(_context);
+
+        // Assert
+        var clubResult = results.Should().ContainSingle().Subject;
+        clubResult.ClubName.Should().Be("Unpromoted Club");
+        clubResult.Location.Should().Be("Some Location");
+        clubResult.Homepage.Should().BeNull();
+        clubResult.Instagram.Should().BeNull();
+        clubResult.Facebook.Should().BeNull();
+        clubResult.Youtube.Should().BeNull();
+
+        clubResult.Tournaments.Should().ContainSingle(t => t.TournamentName == "Orphan Tournament");
     }
 
     [Fact]

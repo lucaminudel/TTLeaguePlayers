@@ -1,8 +1,13 @@
 using System.Text.Json.Serialization;
 
-namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas;
+namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
 
-public class ClubWithTournamentsResponse
+// A club as it appears in the read-only listings (all clubs, clubs by location).
+// Location and ClubName are carried by every item in the table, club and tournament alike, so a
+// club's identity is always known. The promotion profile (Homepage and the socials) only exists
+// once the club manager has submitted it, so a null Homepage means: this club has tournaments but
+// has never been promoted. Distinct from Club, the write model, where Homepage is required.
+public class ClubListing
 {
     [JsonPropertyName("location")]
     public required string Location { get; set; }
@@ -10,7 +15,6 @@ public class ClubWithTournamentsResponse
     [JsonPropertyName("club_name")]
     public required string ClubName { get; set; }
 
-    // Absent for a club that has tournaments but has never submitted a club profile.
     [JsonPropertyName("homepage")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? Homepage { get; set; }
@@ -26,7 +30,4 @@ public class ClubWithTournamentsResponse
     [JsonPropertyName("youtube")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? Youtube { get; set; }
-
-    [JsonPropertyName("tournaments")]
-    public required List<TournamentResponse> Tournaments { get; set; }
 }
