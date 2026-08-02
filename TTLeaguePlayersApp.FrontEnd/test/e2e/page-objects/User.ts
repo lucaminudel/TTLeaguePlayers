@@ -110,6 +110,20 @@ export class User {
     return promoteMyCLubPage;
   }
 
+  async navigateToClubsAndTournaments(): Promise<ClubsAndTournamentsPage> {
+    const clubsAndTournamentsPage = new ClubsAndTournamentsPage(this.page);
+    await this.page.goto('/#/clubs-and-tournaments');
+    await clubsAndTournamentsPage.expectLoaded();
+    return clubsAndTournamentsPage;
+  }
+
+  async tentativelyNavigateToClubsAndTournaments(): Promise<ClubsAndTournamentsPage> {
+    const clubsAndTournamentsPage = new ClubsAndTournamentsPage(this.page);
+    await this.page.goto('/#/clubs-and-tournaments');
+
+    return clubsAndTournamentsPage;
+  }
+
   async tentativelyNavigateToKudos(): Promise<KudosAndAwardPages> {
     const kudosPage = new KudosAndAwardPages(this.page);
     await this.page.goto('/#/kudos');

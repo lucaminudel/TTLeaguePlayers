@@ -263,6 +263,16 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+        # Read-only listing of clubs and their active tournaments, shown on the public
+        # Clubs & Tournaments page to visitors who are not logged in.
+        ClubsGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /clubs
+            Method: GET
+            Auth:
+              Authorizer: NONE
         # Protected Endpoints (Uses Default Authorizer)
         CatchAllProxy:
           Type: Api

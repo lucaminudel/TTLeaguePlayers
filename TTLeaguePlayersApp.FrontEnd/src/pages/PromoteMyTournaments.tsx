@@ -13,52 +13,11 @@ import { clubsApi } from '../api/clubsApi';
 import type { TournamentInfo, TournamentRequest } from '../api/clubsApi';
 import { createManagedClubKey } from '../utils/clubUtils';
 import { getConfig } from '../config/environment';
-import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
+import { getClockTimeInEpochSeconds, formatTournamentDateRange } from '../utils/DateUtils';
 import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebookSquare, faInstagram } from '@fortawesome/free-brands-svg-icons';
-
-function formatTournamentDateRange(startDate: number, endDate: number): string {
-    const start = new Date(startDate * 1000);
-    const end = new Date(endDate * 1000);
-    const now = new Date();
-    const currentYear = now.getFullYear();
-
-    const startYear = start.getFullYear();
-    const endYear = end.getFullYear();
-    const startMonth = start.toLocaleString('default', { month: 'short' });
-    const endMonth = end.toLocaleString('default', { month: 'short' });
-    const startDay = start.getDate();
-    const endDay = end.getDate();
-
-    // If both start and end are in the current year, don't show the year at all.
-    const showYear = !(startYear === currentYear && endYear === currentYear);
-
-    // Otherwise, if start and end share the same year, only show it once (on the end date).
-    const showStartYear = showYear && startYear !== endYear;
-
-    // If start and end share the same month, only show it once (on the end date).
-    const showStartMonth = startMonth !== endMonth;
-
-    // If start and end share the same day, only show it once (on the end date).
-    const showStartDay = startDay !== endDay;
-
-    const startDayMonth = [
-        showStartDay ? String(startDay) : null,
-        showStartMonth ? startMonth : null,
-    ].filter((part): part is string => part !== null).join(' ');
-
-    const startResult = showStartYear
-        ? (startDayMonth ? `${startDayMonth}, ${String(startYear)}` : String(startYear))
-        : startDayMonth;
-
-    const endResult = showYear
-        ? `${String(endDay)} ${endMonth}, ${String(endYear)}`
-        : `${String(endDay)} ${endMonth}`;
-
-    return startResult ? `${startResult} - ${endResult}` : endResult;
-}
 
 function isValidHttpUrl(value: string): boolean {
     try {

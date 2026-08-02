@@ -84,3 +84,51 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 export function getClockTimeInEpochSeconds(): number {
     return Math.floor(getClockTime().getTime() / 1000);
 }
+
+/**
+ * Formats a tournament's start/end epoch seconds as a compact range
+ * (e.g. "9 Sept - 12 Sept, 2026", or just "5 Oct, 2026" for a single day).
+ *
+ * Note: unlike the rest of this module this deliberately uses the real local wall-clock
+ * and local date parts, not getClockTime(), so it is not affected by __FIXED_CLOCK_TIME__.
+ */
+export function formatTournamentDateRange(startDate: number, endDate: number): string {
+    const start = new Date(startDate * 1000);
+    const end = new Date(endDate * 1000);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    const startMonth = start.toLocaleString('default', { month: 'short' });
+    const endMonth = end.toLocaleString('default', { month: 'short' });
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+
+    // If both start and end are in the current year, don't show the year at all.
+    const showYear = !(startYear === currentYear && endYear === currentYear);
+
+    // Otherwise, if start and end share the same year, only show it once (on the end date).
+    const showStartYear = showYear && startYear !== endYear;
+
+    // If start and end share the same month, only show it once (on the end date).
+    const showStartMonth = startMonth !== endMonth;
+
+    // If start and end share the same day, only show it once (on the end date).
+    const showStartDay = startDay !== endDay;
+
+    const startDayMonth = [
+        showStartDay ? String(startDay) : null,
+        showStartMonth ? startMonth : null,
+    ].filter((part): part is string => part !== null).join(' ');
+
+    const startResult = showStartYear
+        ? (startDayMonth ? `${startDayMonth}, ${String(startYear)}` : String(startYear))
+        : startDayMonth;
+
+    const endResult = showYear
+        ? `${String(endDay)} ${endMonth}, ${String(endYear)}`
+        : `${String(endDay)} ${endMonth}`;
+
+    return startResult ? `${startResult} - ${endResult}` : endResult;
+}
