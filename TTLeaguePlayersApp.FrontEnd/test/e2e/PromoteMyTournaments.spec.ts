@@ -116,14 +116,14 @@ test.describe('Promote My Tournaments Page', () => {
             });
 
             await test.step('Exercise all the validation errors and see the Test links disabled', async () => {
-                await page.getByLabel('Tournament Name').fill('');
-                await page.getByLabel('Tournament Info URL').fill('not a link');
-                await page.getByLabel('Instagram Post').fill('not a link');
-                await page.getByLabel('Facebook Post').fill('invalid fb link!');
-                await page.getByLabel('Start Date').fill('');
-                await page.getByLabel('End Date').fill('');
-
-                await page.getByRole('button', { name: 'ADD', exact: true }).click();
+                await promoteMyTournamentsPage.tentativelyAddTournament({
+                    tournament_name: '',
+                    tournament_info: 'not a link',
+                    instagram: 'not a link',
+                    facebook: 'invalid fb link!',
+                    start_date: '',
+                    end_date: '',
+                });
 
                 await expect(page.getByText('Tournament name is required.')).toBeVisible();
                 await expect(page.getByText('Please enter a valid tournament info URL.')).toBeVisible();
@@ -141,12 +141,7 @@ test.describe('Promote My Tournaments Page', () => {
             });
 
             await test.step('Fix the validation errors and see the Test links become enabled', async () => {
-                await page.getByLabel('Tournament Name').fill(validTournament.tournament_name);
-                await page.getByLabel('Tournament Info URL').fill(validTournament.tournament_info);
-                await page.getByLabel('Instagram Post').fill(validTournament.instagram);
-                await page.getByLabel('Facebook Post').fill(validTournament.facebook);
-                await page.getByLabel('Start Date').fill(validTournament.start_date);
-                await page.getByLabel('End Date').fill(validTournament.end_date);
+                await promoteMyTournamentsPage.fillTournamentFieldsNoClick(validTournament);
 
                 // Verify all 3 Test link buttons are now enabled and open the correct links
                 const testLinks = page.getByRole('link', { name: 'Test' });
@@ -340,7 +335,7 @@ test.describe('Promote My Tournaments Page', () => {
         });
 
         await test.step('When GET fails, the error message is displayed on the page', async () => {
-            await page.getByRole('button', { name: /^London$/ }).click();
+            await promoteMyTournamentsPage.tentativelySelectClub('London');
 
             await expect(page.getByTestId('main-error')).toContainText('Tournaments service is temporarily unavailable.');
         });
@@ -358,12 +353,12 @@ test.describe('Promote My Tournaments Page', () => {
             await routeTournamentUpsertOrDelete('PUT');
 
             await promoteMyTournamentsPage.openAddTournamentForm();
-            await page.getByLabel('Tournament Name').fill('Broken Tournament');
-            await page.getByLabel('Tournament Info URL').fill('https://example.com/broken');
-            await page.getByLabel('Start Date').fill(futureDateString(30));
-            await page.getByLabel('End Date').fill(futureDateString(32));
-
-            await page.getByRole('button', { name: 'ADD', exact: true }).click();
+            await promoteMyTournamentsPage.tentativelyAddTournament({
+                tournament_name: 'Broken Tournament',
+                tournament_info: 'https://example.com/broken',
+                start_date: futureDateString(30),
+                end_date: futureDateString(32),
+            });
 
             await expect(page.getByText('The server is having trouble right now. Please try again in a few minutes.')).toBeVisible();
             await expect(page.getByRole('heading', { name: 'Add Tournament' })).toBeVisible();
@@ -382,9 +377,7 @@ test.describe('Promote My Tournaments Page', () => {
             await routeTournamentUpsertOrDelete('PUT');
 
             await promoteMyTournamentsPage.openEditTournamentForm(existingTournament.tournament_name);
-            await page.getByLabel('Tournament Info URL').fill('https://example.com/existing-updated');
-
-            await page.getByRole('button', { name: 'UPDATE', exact: true }).click();
+            await promoteMyTournamentsPage.tentativelyUpdateTournament({ tournament_info: 'https://example.com/existing-updated' });
 
             await expect(page.getByText('The server is having trouble right now. Please try again in a few minutes.')).toBeVisible();
             await expect(page.getByRole('heading', { name: 'Edit Tournament' })).toBeVisible();
@@ -403,7 +396,7 @@ test.describe('Promote My Tournaments Page', () => {
             await routeTournamentUpsertOrDelete('DELETE');
 
             await promoteMyTournamentsPage.openDeleteTournamentForm(existingTournament.tournament_name);
-            await page.getByRole('button', { name: 'Confirm Remove' }).click();
+            await promoteMyTournamentsPage.tentativelyConfirmDeleteTournament();
 
             await expect(page.getByText('The server is having trouble right now. Please try again in a few minutes.')).toBeVisible();
             await expect(page.getByTestId('delete-confirm-title')).toBeVisible();

@@ -16,10 +16,15 @@ export class PromoteMyTournamentsPage {
         this.page = page;
     }
 
-    async selectClub(location: string, clubName: string, hasTournaments = false): Promise<void> {
+    async tentativelySelectClub(location: string): Promise<void> {
         const locationButton = this.page.getByRole('button', { name: new RegExp(`^${location}$`) });
         await locationButton.click();
+    }
 
+    async selectClub(location: string, clubName: string, hasTournaments = false): Promise<void> {
+        await this.tentativelySelectClub(location);
+
+        const locationButton = this.page.getByRole('button', { name: new RegExp(`^${location}$`) });
         await expect(locationButton).toHaveClass(/bg-action-accent/);
         await expect(this.page.getByText(`Now you can promote tournaments for ${clubName} in ${location}.`)).toBeVisible();
 
@@ -37,9 +42,17 @@ export class PromoteMyTournamentsPage {
         await expect(this.page.getByRole('heading', { name: 'Add Tournament' })).toBeVisible();
     }
 
-    async addTournament(fields: TournamentFields): Promise<void> {
+    async fillTournamentFieldsNoClick(fields: TournamentFields): Promise<void> {
+        await this.fillFields(fields);
+    }
+
+    async tentativelyAddTournament(fields: TournamentFields): Promise<void> {
         await this.fillFields(fields);
         await this.page.getByRole('button', { name: 'ADD', exact: true }).click();
+    }
+
+    async addTournament(fields: TournamentFields): Promise<void> {
+        await this.tentativelyAddTournament(fields);
         await expect(this.page.getByRole('heading', { name: 'Add Tournament' })).not.toBeVisible();
     }
 
@@ -49,9 +62,13 @@ export class PromoteMyTournamentsPage {
         await expect(this.page.getByRole('heading', { name: 'Edit Tournament' })).toBeVisible();
     }
 
-    async updateTournament(fields: TournamentFields): Promise<void> {
+    async tentativelyUpdateTournament(fields: TournamentFields): Promise<void> {
         await this.fillFields(fields);
         await this.page.getByRole('button', { name: 'UPDATE', exact: true }).click();
+    }
+
+    async updateTournament(fields: TournamentFields): Promise<void> {
+        await this.tentativelyUpdateTournament(fields);
         await expect(this.page.getByRole('heading', { name: 'Edit Tournament' })).not.toBeVisible();
     }
 
@@ -64,8 +81,12 @@ export class PromoteMyTournamentsPage {
         await expect(title).toContainText(tournamentName);
     }
 
-    async confirmDeleteTournament(): Promise<void> {
+    async tentativelyConfirmDeleteTournament(): Promise<void> {
         await this.page.getByRole('button', { name: 'Confirm Remove' }).click();
+    }
+
+    async confirmDeleteTournament(): Promise<void> {
+        await this.tentativelyConfirmDeleteTournament();
         await expect(this.page.getByTestId('delete-confirm-title')).not.toBeVisible();
     }
 
