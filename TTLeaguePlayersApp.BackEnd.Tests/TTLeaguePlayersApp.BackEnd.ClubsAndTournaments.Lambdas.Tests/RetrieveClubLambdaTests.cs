@@ -12,7 +12,7 @@ public class RetrieveClubLambdaTests
     public async Task WhenRetrieveClub_ReturnsClub()
     {
         var dataTable = new FakeClubsAndTournamentsDataTable();
-        dataTable.ClubToReturn = new DataStore.Club
+        dataTable.ClubToReturn = new DataStore.PromotableClub
         {
             Location = "Test Location",
             ClubName = "Test Club",

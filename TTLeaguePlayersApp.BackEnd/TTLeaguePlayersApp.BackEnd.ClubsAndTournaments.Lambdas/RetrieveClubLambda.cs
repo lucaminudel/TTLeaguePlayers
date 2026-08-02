@@ -14,7 +14,7 @@ public class RetrieveClubLambda
         _dataTable = dataTable;
     }
 
-    public async Task<Club> HandleAsync(string location, string clubName, ILambdaContext context)
+    public async Task<PromotableClub> HandleAsync(string location, string clubName, ILambdaContext context)
     {
         try
         {

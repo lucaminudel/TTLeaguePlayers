@@ -1,7 +1,7 @@
 import { apiFetch, GeneralApiError } from './api';
 import { getConfig } from '../config/environment';
 
-export interface ClubInfo {
+export interface PromotableClub {
   location: string;
   club_name: string;
   homepage: string;
@@ -10,7 +10,7 @@ export interface ClubInfo {
   youtube?: string | null;
 }
 
-export interface ClubInfoRequest {
+export interface PromotableClubRequest {
   homepage: string;
   instagram?: string;
   facebook?: string;
@@ -50,11 +50,11 @@ function encodePathSegment(value: string): string {
 }
 
 export const clubsApi = {
-  async getClub(location: string, clubName: string): Promise<ClubInfo | null> {
+  async getClub(location: string, clubName: string): Promise<PromotableClub | null> {
     const config = getConfig();
     const baseUrl = config.ApiGateWay.ApiBaseUrl;
     try {
-      return await apiFetch<ClubInfo>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
+      return await apiFetch<PromotableClub>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
         method: 'GET',
       });
     } catch (err) {
@@ -65,7 +65,7 @@ export const clubsApi = {
     }
   },
 
-  async upsertClub(location: string, clubName: string, request: ClubInfoRequest): Promise<ClubInfo> {
+  async upsertClub(location: string, clubName: string, request: PromotableClubRequest): Promise<PromotableClub> {
     const config = getConfig();
     const baseUrl = config.ApiGateWay.ApiBaseUrl;
     const payload: Record<string, string> = {
@@ -82,7 +82,7 @@ export const clubsApi = {
       payload.youtube = request.youtube;
     }
 
-    return await apiFetch<ClubInfo>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
+    return await apiFetch<PromotableClub>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });

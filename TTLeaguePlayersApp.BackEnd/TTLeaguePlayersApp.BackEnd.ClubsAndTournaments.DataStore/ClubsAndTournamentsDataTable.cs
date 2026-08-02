@@ -26,7 +26,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
     // Club operations
     // -------------------------------------------------------------------------
 
-    public async Task UpsertClubAsync(Club club)
+    public async Task UpsertClubAsync(PromotableClub club)
     {
         ValidateClub(club);
 
@@ -53,7 +53,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         await _client.PutItemAsync(new PutItemRequest { TableName = _tableName, Item = item });
     }
 
-    public async Task<Club> RetrieveClubAsync(string location, string clubName)
+    public async Task<PromotableClub> RetrieveClubAsync(string location, string clubName)
     {
         ValidateLocationAndClubName(location, clubName);
 
@@ -325,7 +325,7 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
         club.Youtube   = GetOptionalUri(item, "youtube");
     }
 
-    private static Club MapClub(Dictionary<string, AttributeValue> item) => new Club
+    private static PromotableClub MapClub(Dictionary<string, AttributeValue> item) => new PromotableClub
     {
         Location  = item["location"].S,
         ClubName  = item["club_name"].S,
@@ -373,14 +373,14 @@ public class ClubsAndTournamentsDataTable : IDisposable, IClubsAndTournamentsDat
     // Validation
     // -------------------------------------------------------------------------
 
-    private static void ValidateClub(Club club)
+    private static void ValidateClub(PromotableClub club)
     {
         if (club == null) throw new ArgumentNullException(nameof(club));
 
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(club.Location)) errors.Add($"{JsonFieldName.For<Club>(nameof(club.Location))} is required");
-        if (string.IsNullOrWhiteSpace(club.ClubName)) errors.Add($"{JsonFieldName.For<Club>(nameof(club.ClubName))} is required");
+        if (string.IsNullOrWhiteSpace(club.Location)) errors.Add($"{JsonFieldName.For<PromotableClub>(nameof(club.Location))} is required");
+        if (string.IsNullOrWhiteSpace(club.ClubName)) errors.Add($"{JsonFieldName.For<PromotableClub>(nameof(club.ClubName))} is required");
 
         if (errors.Count > 0) throw new ValidationException(errors);
     }

@@ -10,7 +10,7 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { FieldError } from '../components/common/FieldError';
 import { ManagedClubsCard } from '../components/ui/ManagedClubsCard';
 import { useAuth } from '../hooks/useAuth';
-import { clubsApi, type ClubInfoRequest } from '../api/clubsApi';
+import { clubsApi, type PromotableClubRequest } from '../api/clubsApi';
 import { createManagedClubKey } from '../utils/clubUtils';
 import { getConfig } from '../config/environment';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
@@ -438,7 +438,7 @@ export const PromoteMyClub: React.FC = () => {
             return;
         }
 
-        const request: ClubInfoRequest = {
+        const request: PromotableClubRequest = {
             homepage: normalizeFieldValue('homepage', formValues.homepage) ?? formValues.homepage.trim(),
             instagram: normalizeFieldValue('instagram', formValues.instagram) ?? undefined,
             facebook: normalizeFieldValue('facebook', formValues.facebook) ?? undefined,

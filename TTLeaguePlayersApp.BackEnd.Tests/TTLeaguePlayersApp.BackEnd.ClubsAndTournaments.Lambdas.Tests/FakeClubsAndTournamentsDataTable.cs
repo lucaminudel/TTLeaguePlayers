@@ -4,13 +4,13 @@ namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas.Tests;
 
 public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
 {
-    public List<Club> UpsertedClubs { get; } = new();
+    public List<PromotableClub> UpsertedClubs { get; } = new();
     public List<Tournament> UpsertedTournaments { get; } = new();
     
     public List<(string location, string clubName)> DeletedClubs { get; } = new();
     public List<(string location, string clubName, string tournamentName)> DeletedTournaments { get; } = new();
 
-    public Club? ClubToReturn { get; set; }
+    public PromotableClub? ClubToReturn { get; set; }
     public Tournament? TournamentToReturn { get; set; }
     
     public List<(ClubListing Club, List<Tournament> Tournaments)> ClubsWithTournamentsToReturn { get; set; } = new();
@@ -20,7 +20,7 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
     public bool ThrowOnRetrieveAllClubsWithTournaments { get; set; }
     public bool ThrowOnRetrieveClubsWithTournamentsByLocation { get; set; }
 
-    public Task UpsertClubAsync(Club club)
+    public Task UpsertClubAsync(PromotableClub club)
     {
         if (ThrowOnUpsertClub) throw new System.Exception("Simulated data store failure for club");
         UpsertedClubs.Add(club);
@@ -30,7 +30,7 @@ public class FakeClubsAndTournamentsDataTable : IClubsAndTournamentsDataTable
     public bool ThrowOnRetrieveClub { get; set; }
     public bool ThrowRuntimeErrorOnRetrieveClub { get; set; }
 
-    public Task<Club> RetrieveClubAsync(string location, string clubName)
+    public Task<PromotableClub> RetrieveClubAsync(string location, string clubName)
     {
         if (ThrowOnRetrieveClub) throw new KeyNotFoundException("Club not found");
         if (ThrowRuntimeErrorOnRetrieveClub) throw new System.Exception("Simulated data store failure for club retrieval");

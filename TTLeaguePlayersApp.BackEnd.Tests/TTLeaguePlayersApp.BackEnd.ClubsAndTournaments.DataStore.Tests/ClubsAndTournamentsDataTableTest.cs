@@ -609,10 +609,10 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
     // Builders
     // -------------------------------------------------------------------------
 
-    private static Club CreateTestClub(string? location = null, string? clubName = null)
+    private static PromotableClub CreateTestClub(string? location = null, string? clubName = null)
     {
         var id = UniqueId();
-        return new Club
+        return new PromotableClub
         {
             Location = location ?? $"London_{id}",
             ClubName = clubName ?? $"TestClub_{id}",
@@ -620,7 +620,7 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         };
     }
 
-    private static Tournament CreateTestTournament(Club club, int startOffset = -3, int endOffset = +7)
+    private static Tournament CreateTestTournament(PromotableClub club, int startOffset = -3, int endOffset = +7)
     {
         var id = UniqueId();
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -641,7 +641,7 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
     // Tracked helpers and teardown
     // -------------------------------------------------------------------------
 
-    private async Task TrackedUpsertClub(Club club)
+    private async Task TrackedUpsertClub(PromotableClub club)
     {
         await _db.UpsertClubAsync(club);
         _createdKeys.Add(($"LOC#{club.Location}", $"CLUB#{club.ClubName}"));

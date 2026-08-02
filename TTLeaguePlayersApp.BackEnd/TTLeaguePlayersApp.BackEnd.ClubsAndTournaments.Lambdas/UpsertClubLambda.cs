@@ -15,7 +15,7 @@ public class UpsertClubLambda
         _dataTable = dataTable;
     }
 
-    public async Task<Club> HandleAsync(string location, string clubName, UpsertClubRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
+    public async Task<PromotableClub> HandleAsync(string location, string clubName, UpsertClubRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         try
         {
@@ -28,7 +28,7 @@ public class UpsertClubLambda
 
         ValidateRequest(request);
 
-        var club = new Club
+        var club = new PromotableClub
         {
             Location  = location,
             ClubName  = clubName,

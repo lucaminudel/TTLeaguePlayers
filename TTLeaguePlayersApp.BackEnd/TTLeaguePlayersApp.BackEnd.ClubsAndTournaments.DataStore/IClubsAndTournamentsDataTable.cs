@@ -2,8 +2,8 @@ namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
 
 public interface IClubsAndTournamentsDataTable
 {
-    Task UpsertClubAsync(Club club);
-    Task<Club> RetrieveClubAsync(string location, string clubName);
+    Task UpsertClubAsync(PromotableClub club);
+    Task<PromotableClub> RetrieveClubAsync(string location, string clubName);
     Task DeleteClubAsync(string location, string clubName);
 
     Task UpsertTournamentAsync(Tournament tournament);

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
 
-public class Club
+public class PromotableClub
 {
     [JsonPropertyName("location")]
     public required string Location { get; set; }
