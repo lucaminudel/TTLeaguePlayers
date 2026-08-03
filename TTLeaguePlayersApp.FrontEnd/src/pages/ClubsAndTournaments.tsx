@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { ErrorMessage } from '../components/common/ErrorMessage';
-import { clubsApi } from '../api/clubsApi';
+import { getCachedAllClubsWithTournaments } from '../api/cachedClubsApi';
 import type { ClubWithTournaments, TournamentInfo } from '../api/clubsApi';
 import { formatTournamentDateRange } from '../utils/DateUtils';
 import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
@@ -121,7 +121,7 @@ export const ClubsAndTournaments: React.FC = () => {
             setIsLoading(true);
             setLoadError(null);
             try {
-                const result = await clubsApi.getAllClubsWithTournaments();
+                const result = await getCachedAllClubsWithTournaments((freshData) => { setClubs(freshData); });
                 setClubs(result);
             } catch (err) {
                 let userMessage = toUserFriendlyApiError(err, 'The clubs and tournaments could not be loaded. Please try again.');

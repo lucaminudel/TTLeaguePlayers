@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ClubsAndTournaments } from '../../../src/pages/ClubsAndTournaments';
 import { GeneralApiError } from '../../../src/api/api';
@@ -8,8 +8,8 @@ import type { ClubWithTournaments } from '../../../src/api/clubsApi';
 import type { EnvironmentConfig } from '../../../src/config/environment';
 
 const mockNavigate = vi.fn();
-const clubsApiMocks = vi.hoisted(() => ({
-    getAllClubsWithTournaments: vi.fn(),
+const cachedClubsApiMocks = vi.hoisted(() => ({
+    getCachedAllClubsWithTournaments: vi.fn(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -30,10 +30,8 @@ vi.mock('../../../src/config/environment', () => ({
     getConfig: () => mockGetConfig() as EnvironmentConfig,
 }));
 
-vi.mock('../../../src/api/clubsApi', () => ({
-    clubsApi: {
-        getAllClubsWithTournaments: clubsApiMocks.getAllClubsWithTournaments,
-    },
+vi.mock('../../../src/api/cachedClubsApi', () => ({
+    getCachedAllClubsWithTournaments: cachedClubsApiMocks.getCachedAllClubsWithTournaments,
 }));
 
 describe('ClubsAndTournaments', () => {
@@ -110,12 +108,12 @@ describe('ClubsAndTournaments', () => {
         });
 
         mockGetConfig.mockReturnValue(defaultConfig);
-        clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([]);
+        cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([]);
     });
 
     describe('page states', () => {
         it('shows the loading state while fetching', () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockImplementation(() => new Promise(() => { /* never resolves */ }));
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockImplementation(() => new Promise(() => { /* never resolves */ }));
 
             renderPage();
 
@@ -123,7 +121,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('shows an error message when the fetch fails', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockRejectedValue(new Error('API Error'));
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockRejectedValue(new Error('API Error'));
 
             renderPage();
 
@@ -133,7 +131,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('shows a server error message when the API returns a 500', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockRejectedValue(
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockRejectedValue(
                 new GeneralApiError('Failed to fetch /clubs: 500 Internal Server Error', 500)
             );
 
@@ -147,7 +145,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('appends validation errors to the error message when the API returns them', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockRejectedValue(
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockRejectedValue(
                 new GeneralApiError('Validation failed', 400, undefined, ['location is required'])
             );
 
@@ -159,7 +157,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('shows empty-state messages in both sections when there is no data', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([]);
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([]);
 
             renderPage();
 
@@ -172,7 +170,7 @@ describe('ClubsAndTournaments', () => {
 
     describe('tournaments section', () => {
         it('flattens tournaments across clubs and groups them by location', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({
                     location: 'Birmingham',
                     club_name: 'Rally Point',
@@ -211,7 +209,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('renders each tournament as a link to its info page with the formatted date range', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({
                     tournaments: [buildTournament({
                         tournament_name: 'Midlands Masters',
@@ -234,7 +232,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('shows only the social links a tournament actually has', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({
                     tournaments: [buildTournament({ instagram: 'https://instagram.com/cup', facebook: null })],
                 }),
@@ -251,7 +249,7 @@ describe('ClubsAndTournaments', () => {
 
     describe('clubs section', () => {
         it('groups clubs by location and links each one to its homepage', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({ location: 'Birmingham', club_name: 'Rally Point', homepage: 'https://rally.example.com' }),
                 buildClub({ location: 'London', club_name: 'Battersea TTC', homepage: 'https://battersea.example.com' }),
                 buildClub({ location: 'London', club_name: 'Crystal Palace TT', homepage: 'https://palace.example.com' }),
@@ -272,7 +270,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('shows the club social links, including youtube', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({
                     instagram: 'https://instagram.com/battersea',
                     facebook: 'https://facebook.com/battersea',
@@ -290,7 +288,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('omits a club with no homepage from the Clubs section but still lists its tournaments', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({
                     location: 'Manchester',
                     club_name: 'Never Promoted TTC',
@@ -316,7 +314,7 @@ describe('ClubsAndTournaments', () => {
         });
 
         it('shows the clubs empty state when every club is unpromoted', async () => {
-            clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([
                 buildClub({ club_name: 'Never Promoted TTC', homepage: null, tournaments: [buildTournament()] }),
             ]);
 
@@ -326,6 +324,46 @@ describe('ClubsAndTournaments', () => {
                 expect(screen.getByText('No clubs found.')).toBeInTheDocument();
             });
             expect(screen.getAllByTestId('tournament-row')).toHaveLength(1);
+        });
+    });
+
+    describe('caching', () => {
+        it('fetches through the cached clubs API rather than calling clubsApi directly', async () => {
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockResolvedValue([buildClub()]);
+
+            renderPage();
+
+            await waitFor(() => {
+                expect(cachedClubsApiMocks.getCachedAllClubsWithTournaments).toHaveBeenCalledTimes(1);
+            });
+        });
+
+        it('re-renders with the fresh data when the stale-while-revalidate background refresh completes', async () => {
+            let onDataUpdate: ((data: ClubWithTournaments[]) => void) | undefined;
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockImplementation(
+                (callback?: (data: ClubWithTournaments[]) => void) => {
+                    onDataUpdate = callback;
+                    // Simulates a stale cache hit: stale data is returned immediately...
+                    return Promise.resolve([buildClub({ club_name: 'Stale Club' })]);
+                }
+            );
+
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByText('Stale Club')).toBeInTheDocument();
+            });
+
+            // ...and the background refresh later delivers fresh data through the callback.
+            expect(onDataUpdate).toBeDefined();
+            act(() => {
+                onDataUpdate?.([buildClub({ club_name: 'Fresh Club' })]);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('Fresh Club')).toBeInTheDocument();
+            });
+            expect(screen.queryByText('Stale Club')).not.toBeInTheDocument();
         });
     });
 });

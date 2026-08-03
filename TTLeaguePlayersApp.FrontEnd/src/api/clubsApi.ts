@@ -1,5 +1,7 @@
 import { apiFetch, GeneralApiError } from './api';
 import { getConfig } from '../config/environment';
+import { invalidateCacheByPrefix } from '../utils/CacheUtils';
+import { CLUBS_CACHE_PREFIX } from './cachedClubsApi';
 
 export interface PromotableClub {
   location: string;
@@ -82,10 +84,15 @@ export const clubsApi = {
       payload.youtube = request.youtube;
     }
 
-    return await apiFetch<PromotableClub>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
+    const result = await apiFetch<PromotableClub>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
+
+    // Invalidate the public listing cache so the next GET /clubs picks up this change.
+    invalidateCacheByPrefix(CLUBS_CACHE_PREFIX);
+
+    return result;
   },
 
   async deleteClub(location: string, clubName: string): Promise<void> {
@@ -95,6 +102,8 @@ export const clubsApi = {
     await apiFetch<unknown>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}`, {
       method: 'DELETE',
     });
+
+    invalidateCacheByPrefix(CLUBS_CACHE_PREFIX);
   },
 
   async getAllClubsWithTournaments(): Promise<ClubWithTournaments[]> {
@@ -161,10 +170,14 @@ export const clubsApi = {
       payload.facebook = request.facebook;
     }
 
-    return await apiFetch<TournamentInfo>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}/tournaments/${encodePathSegment(tournamentName)}`, {
+    const result = await apiFetch<TournamentInfo>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}/tournaments/${encodePathSegment(tournamentName)}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
+
+    invalidateCacheByPrefix(CLUBS_CACHE_PREFIX);
+
+    return result;
   },
 
   async deleteTournament(location: string, clubName: string, tournamentName: string): Promise<void> {
@@ -174,5 +187,7 @@ export const clubsApi = {
     await apiFetch<unknown>(baseUrl, `/clubs/${encodePathSegment(location)}/${encodePathSegment(clubName)}/tournaments/${encodePathSegment(tournamentName)}`, {
       method: 'DELETE',
     });
+
+    invalidateCacheByPrefix(CLUBS_CACHE_PREFIX);
   },
 };

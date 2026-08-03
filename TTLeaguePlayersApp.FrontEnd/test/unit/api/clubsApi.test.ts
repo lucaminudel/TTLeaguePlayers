@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { clubsApi } from '../../../src/api/clubsApi';
+import { CLUBS_CACHE_PREFIX } from '../../../src/api/cachedClubsApi';
 import { apiFetch, GeneralApiError } from '../../../src/api/api';
 import { getConfig, type EnvironmentConfig } from '../../../src/config/environment';
+import { invalidateCacheByPrefix } from '../../../src/utils/CacheUtils';
 
 vi.mock('../../../src/api/api', () => ({
   apiFetch: vi.fn(),
@@ -19,6 +21,10 @@ vi.mock('../../../src/api/api', () => ({
 
 vi.mock('../../../src/config/environment', () => ({
   getConfig: vi.fn(),
+}));
+
+vi.mock('../../../src/utils/CacheUtils', () => ({
+  invalidateCacheByPrefix: vi.fn(),
 }));
 
 describe('clubsApi', () => {
@@ -684,6 +690,99 @@ describe('clubsApi', () => {
       });
       expect(calledBody).not.toHaveProperty('instagram');
       expect(calledBody).not.toHaveProperty('facebook');
+    });
+  });
+
+  describe('cache invalidation on writes', () => {
+    it('invalidates the clubs cache after a successful upsertClub', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({
+        location: 'London', club_name: 'London TTC', homepage: 'https://london.example.com',
+      });
+
+      await clubsApi.upsertClub('London', 'London TTC', { homepage: 'https://london.example.com' });
+
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(CLUBS_CACHE_PREFIX);
+    });
+
+    it('does not invalidate the cache when upsertClub fails', async () => {
+      vi.mocked(apiFetch).mockRejectedValue(new GeneralApiError('Validation failed', 400));
+
+      await expect(clubsApi.upsertClub('London', 'London TTC', { homepage: 'not-a-url' }))
+        .rejects.toThrow();
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the clubs cache after a successful deleteClub', async () => {
+      vi.mocked(apiFetch).mockResolvedValue(undefined);
+
+      await clubsApi.deleteClub('London', 'London TTC');
+
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(CLUBS_CACHE_PREFIX);
+    });
+
+    it('does not invalidate the cache when deleteClub fails', async () => {
+      vi.mocked(apiFetch).mockRejectedValue(new GeneralApiError('Not Found', 404));
+
+      await expect(clubsApi.deleteClub('London', 'Unknown Club')).rejects.toThrow();
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the clubs cache after a successful upsertTournament', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({
+        tournament_name: 'Spring Open', tournament_info: 'https://tournament.example.com',
+        start_date: 1234567890, end_date: 1234567900,
+      });
+
+      await clubsApi.upsertTournament('London', 'London TTC', 'Spring Open', {
+        tournament_info: 'https://tournament.example.com', start_date: 1234567890, end_date: 1234567900,
+      });
+
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(CLUBS_CACHE_PREFIX);
+    });
+
+    it('does not invalidate the cache when upsertTournament fails', async () => {
+      vi.mocked(apiFetch).mockRejectedValue(new GeneralApiError('Validation failed', 400));
+
+      await expect(clubsApi.upsertTournament('London', 'London TTC', 'Spring Open', {
+        tournament_info: 'not-a-url', start_date: 1234567890, end_date: 1234567900,
+      })).rejects.toThrow();
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the clubs cache after a successful deleteTournament', async () => {
+      vi.mocked(apiFetch).mockResolvedValue(undefined);
+
+      await clubsApi.deleteTournament('London', 'London TTC', 'Spring Open');
+
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(CLUBS_CACHE_PREFIX);
+    });
+
+    it('does not invalidate the cache when deleteTournament fails', async () => {
+      vi.mocked(apiFetch).mockRejectedValue(new GeneralApiError('Not Found', 404));
+
+      await expect(clubsApi.deleteTournament('London', 'London TTC', 'Unknown')).rejects.toThrow();
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
+    });
+
+    it('never invalidates the cache for reads, which are not cached themselves', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({
+        location: 'London', club_name: 'London TTC', homepage: 'https://london.example.com',
+      });
+      await clubsApi.getClub('London', 'London TTC');
+
+      vi.mocked(apiFetch).mockResolvedValue([]);
+      await clubsApi.getAllClubsWithTournaments();
+      await clubsApi.getClubsWithTournamentsByLocation('London');
+      await clubsApi.getTournamentsForClub('London', 'London TTC');
+
+      vi.mocked(apiFetch).mockResolvedValue(null);
+      await clubsApi.getTournament('London', 'London TTC', 'Spring Open');
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
     });
   });
 });
