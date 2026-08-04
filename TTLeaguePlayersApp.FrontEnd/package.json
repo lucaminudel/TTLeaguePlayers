@@ -16,7 +16,7 @@
     "build-web:prod-env": "cross-env ENVIRONMENT=prod npm run build:steps",
     "unit-tests-web:run": "vitest run",
     "unit-tests-web:browser-run": "vitest --ui --open",
-    "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright dev",
+    "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright test",
     "e2e-tests-web:run test-env": "cross-env PORT=4173 playwright test",
     "C+ e2e-tests-web:run staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
     "C+ e2e-tests-web:run dev-env": "cross-env PORT=5173 EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
