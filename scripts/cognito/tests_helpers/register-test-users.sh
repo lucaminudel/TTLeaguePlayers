@@ -91,11 +91,17 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     echo "Cognito Test user '$EMAIL3' registered and confirmed successfully with only BCS league!"
 
 
-    # 4. User with one managed club
+    # 4. User with two managed clubs, one per spec file that writes tournaments as this user.
+    #    Playwright runs spec files in parallel workers, so ClubsAndTournaments.spec.ts and
+    #    ClubsAndTournamentsCaching.spec.ts must not share a club: both add and delete tournaments
+    #    on it and both assert the club has none. London/"Morpeth Table Tennis Club" belongs to
+    #    ClubsAndTournaments.spec.ts, Brighton/"Caching Check Club" to the caching spec. Keep them
+    #    in different locations - the Promote pages key their club selector on location - and keep
+    #    "Morpeth Table Tennis Club" first, because login.spec.ts asserts on nth(0).
     EMAIL4="test_already_registered3@user.test"
-    MANAGED_CLUBS_JSON4='[{"league":"CLTTL","season":"2025-2026","club_name":"Morpeth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"}]'
+    MANAGED_CLUBS_JSON4='[{"league":"CLTTL","season":"2025-2026","club_name":"Morpeth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2025-2026","club_name":"Caching Check Club","club_location":"Brighton","manager_name":"Luca Minudel"}]'
     register_user "$EMAIL4" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON4"
-    echo "Cognito Test user '$EMAIL4' registered and confirmed successfully with one Managed Club!"
+    echo "Cognito Test user '$EMAIL4' registered and confirmed successfully with two Managed Clubs!"
 
 
     # 5. User with NO active season and NO managed club
