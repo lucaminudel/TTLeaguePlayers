@@ -227,8 +227,8 @@ echo -e "${CYAN}# --------------------------------------------------------------
 # Start the preview server for the built artifacts
 # Note: "npm run run-web:test-env" usually runs "vite" (dev server). 
 # For a "reliable build check", running "vite preview" on the build output is often better,
-# BUT the user requested "start the web server for test (as in task.json)".
-# task.json "run-web:test-env" -> "npm run copy-config && cross-env ENVIRONMENT=test vite --port 4173"
+# BUT the user requested "start the web server for test (as in tasks.json)".
+# tasks.json "run-web:test-env" -> "npm run copy-config && cross-env ENVIRONMENT=test vite --port 4173"
 # This is a dev server. We will stick to the user's request to use the script from package.json.
 npm run run-web:test-env -- --host > /dev/null 2>&1 &
 WEB_PID=$!
