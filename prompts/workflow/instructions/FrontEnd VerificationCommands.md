@@ -4,6 +4,24 @@ List of commands to run the build and the tests for the TTLeaguePlayersApp.Front
 This is a general rule about the changes you make to the project files: do not make file changes, functional or UI, that have not been explicitly requested.
 This is another rule for when making changes to the frontend code and tests: use the following commands in this order to verify the changes made:
 
+## Which commands to reach for: the fast dev loop vs the authoritative pipeline
+
+The commands below are not equal alternatives. Use them in two tiers.
+
+**Tier 1 — the fast inner loop, on the dev environment.** Reuse the local web server and SAM that are already running, so nothing has to be started or rebuilt from scratch:
+* `npm run "build-web:dev-env"` — lint + `tsc -b` + vite build
+* `npm run "unit-tests-web:run"` — Vitest
+* `npm run "C+ e2e-tests-web:run dev-env"` — Playwright, optionally narrowed to one spec by appending `-- test/e2e/<spec>.spec.ts`
+
+Run this loop after every change. Scope it to what the change touched: lint + build plus the specs covering the changed files is usually enough, with the full loop kept for milestones.
+
+**Tier 2 — the authoritative final check, on the test environment.** Run once, when the work is otherwise complete: `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`. It is long-running and touches the shared test environment, so agents should confirm before launching it.
+
+### Notes that save time
+* **A dev-only frontend build is safe even when all four `config/*.env.json` files change.** The backend `LoaderTest` is an xUnit Theory over dev/test/staging/prod that reads and deserialises each file, so a malformed edit to any of them fails there. Vite injects the config JSON verbatim, so the frontend build does not type-check config contents in any environment.
+
+---
+
 ## Instructions to check for build, lint, and unit tests failures in TTLeaguePlayersApp.FrontEnd
 
 ### Prerequisites
@@ -20,7 +38,8 @@ The end-to-end tests require:
 ### Configuration
 The build and unit tests commands use the environment variable ENVIRONMENT = dev | test | staging | prod 
 The value of ENVIRONMENT set at build time determines which config file (there is one defined for each environment) will be used at runtime.
-The value of ENVIRONMENT is set by the command defined in the tasks.json so there is no need to set it manually.
+The value of ENVIRONMENT is set by the command defined in the 
+json so there is no need to set it manually.
 
 The end-to-end tests use 
 - the value of the variable ENVIRONMENT is defined statically during the build of the web app.
@@ -63,8 +82,9 @@ for the staging environment:
 `npm run "C+ e2e-tests-web:run staging-env"`
 
 Run these commands from the frontend project directly.
-They are defined here: TTLeaguePlayers/.vscode/tasks.json
+They are defined here: TTLeaguePlayers/.vscode/tasks.json and here TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
 
+You can find the info on FrontEnd end-to-end tests failures under this folder: TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/test-results
 
 
 ###  4) Command to run the full pipeline lint and build and unit, integration, acceptance, e2e tests (before asking me about staging)

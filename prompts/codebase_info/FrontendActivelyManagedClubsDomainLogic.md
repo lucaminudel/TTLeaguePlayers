@@ -48,7 +48,12 @@ The global configuration contains a list of supported data sources under `active
 - `season` (e.g., "2025"),
 - `registrations_start_date` (epoch timestamp in seconds when user registration & match rating starts),
 - `ratings_end_date` (epoch timestamp in seconds when the season match rating ends),
+- `custom_processor` (the `ActiveSeasonProcessor` strategy for the player/captain flows),
+- `custom_club_processor` (the `ManagedClubProcessor` strategy for the club-manager flows),
+- `club_teams` (one entry per club of the league: the club name mapped to the URL of that club's page; empty when the league has no club pages),
 - etc.
+
+Note the shape of `club_teams`: it mirrors its siblings `division_tables`, `division_fixtures` and `division_players` exactly — an array of single-entry objects read through the same `getUrlFromSource` helper — but it is keyed by club name rather than by division.
 
 ### Data Source and Retrieval
 * The configuration is build-time environment-dependent (prod, staging, test, dev). The configuration file is injected directly into the bundle.
@@ -105,15 +110,17 @@ This graph represents such logic:
 ```
 
 ### Files Involved
-The implementation file of this logic will be located in:
-* [PromoteMyClub Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyClub.tsx)
-* [PromoteMyTournaments Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyTournaments.tsx)
-* [MyClubTeams Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubTeams.tsx)
-* [MyClubStandings Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubStandings.tsx)
+The implementation files of this logic are located in:
+* [PromoteMyClub Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyClub.tsx) — implemented
+* [PromoteMyTournaments Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyTournaments.tsx) — implemented
+* [MyClubTeams Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubTeams.tsx) — placeholder, "Coming Soon"; this is the page the `ManagedClubProcessor` of section 5 exists to serve
+* [MyClubStandings Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubStandings.tsx) — placeholder, "Coming Soon"
 
 ### Additional Details For The Agent
 * **System Time Fetching**: Current time is checked by retrieving epoch seconds using `getClockTimeInEpochSeconds()` from [DateUtils.ts](TTLeaguePlayersApp.FrontEnd/src/utils/DateUtils.ts).
-* **Processor Factory Pattern**: The page constructs the processing logic dynamically via `createActiveSeasonProcessor(...)` in [ActiveSeasonProcessorFactory.ts](TTLeaguePlayersApp.FrontEnd/src/service/active-season-processors/ActiveSeasonProcessorFactory.ts). This maps the config strategy key (`custom_processor`) to the corresponding parsing engine class and injects scraping parameters.
+* **Club Processor Factory Pattern**: The club-manager pages construct their processing logic via `createManagedClubProcessor(...)` in [ManagedClubProcessorFactory.ts](TTLeaguePlayersApp.FrontEnd/src/service/active-season-processors/ManagedClubProcessorFactory.ts). This maps the config strategy key (`custom_club_processor`) to the corresponding parsing engine class, and injects the club name plus the scraping parameters.
+	* This is a **separate port** from the `ActiveSeasonProcessor` used by the player/captain flows, and deliberately so. `ActiveSeasonProcessor.getTeamFixtures()` needs a division and a team, which come from `custom:active_seasons`; a club manager has only a club, from `custom:managed_clubs`. Different binding tuple, different interface. Both are nonetheless resolved against the **same** `active_seasons_data_source` entry, matched on league + season.
+	* The factory wraps the processor in `ManagedClubProcessorWithLocalStorageCache` (same 72h fresh / 6d stale SWR policy as the fixtures cache), under the key `cache_club_{league}_{season}_{club}` — distinct from the fixtures key `cache_{league}_{season}_{division}_{team}`, since a club's teams do not vary by division or team.
 
 ---
 
@@ -124,14 +131,31 @@ The managed club card visualises the actively managed club's details, and handle
 Since a user can manage multiple clubs (e.g. managing different clubs in different leagues, or the same club across different seasons), the pages for club managers allow the user to toggle between the multiple clubs, and then visualises the features  related to the club visually selected.
 
 ### Files Involved
-The component will be implemented in:
-* [ManagedClubsCard.tsx](TTLeaguePlayersApp.FrontEnd/src/components/ui/ManagedClubsCard.tsx) (Planned)
+The component is implemented in:
+* [ManagedClubsCard.tsx](TTLeaguePlayersApp.FrontEnd/src/components/ui/ManagedClubsCard.tsx), used by [PromoteMyClub.tsx](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyClub.tsx) and [PromoteMyTournaments.tsx](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyTournaments.tsx)
+
+---
+
+## 5. Reading a Club's Teams
+
+`ManagedClubProcessor.getClubTeams()` reads the teams of one club from that club's page on the league site, orchestrated by [CLTTLManagedClub2025Processor.ts](TTLeaguePlayersApp.FrontEnd/src/service/active-season-processors/CLTTLManagedClub2025Processor.ts) and mirroring the shape of the existing `getTeams()`:
+
+1. **Look up the club's page URL** in the league season's configured `club_teams`, keyed by the manager's `club_name` from Cognito. If the club has no entry, throw `Club "<name>" not found in data source.`
+2. **Fetch that page** and parse `div#TeamsList` → the first `<td> > a` of each row, giving the team names.
+
+### Additional Details For The Agent
+* **The club → page URL map is configuration, not scraped.** An earlier design fetched the league's clubs list page and followed the link for the manager's club. Listing the clubs in `club_teams` instead makes this a single hop, identical in shape to the per-division lookups, and keeps the caching decorator the only place that caches. The cost is that the list is maintained by hand when clubs join or leave the league — the same cost the per-division URLs already carry.
+* **The lookup is exact and case-sensitive**, through the same `getUrlFromSource` helper the division lookups use, so Cognito's `club_name` must match the configured spelling byte for byte — including `AA Academy @ SJoA` and the straight apostrophe in `St Katharine's Trust`.
+* **No season filtering is applied.** The club page's second column shows a season label such as `"Winter 2025-26"`, which does not textually match the config's `season` (`"2025-2026"`), and the page carries no season in its URL. Every listed team is returned.
+* **A club with no configured page throws before any network call**: `Club "<name>" not found in data source.` This also covers leagues configured with an empty `club_teams`, such as BCS and FLICK.
+* **Test coverage is deliberately split.** [CLTTLManagedClub2025Processor.integration.test.ts](TTLeaguePlayersApp.FrontEnd/test/unit/service/active-season-processors/CLTTLManagedClub2025Processor.integration.test.ts) pins exact team names against HTML captured under `clttl-2025/data/`, while the e2e spec asserts only that the live page still contains `id="TeamsList"` — the live page has no archived version, so a season rollover must not turn the build red.
+* **Captured fixtures must be scrubbed before committing.** The live pages carry club contacts, team captains' mobile numbers and email addresses, and a third-party Google Maps API key. Run [scrub_clttl_fixtures.py](scripts/test_fixtures/scrub_clttl_fixtures.py) over any freshly captured fixture; it preserves every structure the parser navigates and reports anything sensitive left behind.
 
 ---
 
 ## Promote My Club Page: Example Of The Data Flow Of This Logic
 
-The diagram below outlines how the user context, build-time configurations, pages, and components will interact to render actively managed clubs and promotion capabilities:
+The diagram below outlines how the user context, build-time configurations, pages, and components interact to render actively managed clubs and promotion capabilities:
 
 ```mermaid
 graph TD

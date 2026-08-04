@@ -109,6 +109,7 @@ The implementation file of this logic is currently located in:
 ### Additional Details For The Agent
 * **System Time Fetching**: Current time is checked by retrieving epoch seconds using `getClockTimeInEpochSeconds()` from [DateUtils.ts](TTLeaguePlayersApp.FrontEnd/src/utils/DateUtils.ts).
 * **Processor Factory Pattern**: The page constructs the processing logic dynamically via `createActiveSeasonProcessor(...)` in [ActiveSeasonProcessorFactory.ts](TTLeaguePlayersApp.FrontEnd/src/service/active-season-processors/ActiveSeasonProcessorFactory.ts). This maps the config strategy key (`custom_processor`) to the corresponding parsing engine class and injects scraping parameters.
+* **`ActiveSeasonProcessor` is not the only port in that folder.** A parallel `ManagedClubProcessor`, with its own factory and config key (`custom_club_processor`), serves the club-manager flows — see [FrontendActivelyManagedClubsDomainLogic.md](prompts/codebase_info/FrontendActivelyManagedClubsDomainLogic.md). Club-side capabilities belong there: `getTeamFixtures()` is bound to a division and a team, which a club manager does not have. Do not widen `ActiveSeasonProcessor` to carry them.
 
 ---
 

@@ -5,6 +5,23 @@ List of commands to run the build and the tests for the TTLeaguePlayersApp.BackE
 This is a general rule about the changes you make to the project files: do not make file changes, functional or UI, that have not been explicitly requested.
 This is another rule for when making changes to the C# backend code and tests: use the following commands in this order to verify the changes made:
 
+## Which commands to reach for: the fast dev loop vs the authoritative pipeline
+
+The commands below are not equal alternatives. Use them in two tiers.
+
+**Tier 1 — the fast inner loop, on the dev environment.** Reuse the local SAM and DynamoDB that are already running:
+```
+sam build --config-env dev
+export ENVIRONMENT=dev
+dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
+```
+
+**The `sam build` refresh is mandatory before the C# tests, not optional.** A local SAM still serving pre-change lambda code produces acceptance-test failures that are indistinguishable from real regressions — typically HTTP 500s where a 2xx or 4xx was expected. Note that `sam build` alone only rewrites `.aws-sam/build`: if `sam local start-api` has been running since before the build, **restart it too**, or it keeps serving warm containers created from the replaced artifacts.
+
+**Tier 2 — the authoritative final check, on the test environment.** Run once, when the work is otherwise complete: `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`. It is long-running and touches the shared test environment, so agents should confirm before launching it.
+
+---
+
 ## Instructions to check for build, unit/integration and acceptance tests failures in TTLeaguePlayersApp.BackEnd
 
 ### Prerequisites
