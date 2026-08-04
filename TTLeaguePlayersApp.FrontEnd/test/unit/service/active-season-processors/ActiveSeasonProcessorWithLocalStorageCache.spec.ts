@@ -28,9 +28,11 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         registrations_start_date: 0,
         ratings_end_date: 0,
         custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_club_processor: 'CLTTLManagedClub2025Processor',
         division_tables: [{ 'Div1': 'http://test/tables' }],
         division_fixtures: [{ 'Div1': 'http://test/fixtures' }],
-        division_players: [{ 'Div1': 'http://test/players' }]
+        division_players: [{ 'Div1': 'http://test/players' }],
+        club_teams: []
     };
 
     const CACHE_KEY = 'cache_TEST_2025_Div1_TeamA';

@@ -16,12 +16,12 @@ export class CLTTLActiveSeason2025PagesFetcher {
         this.corsAnyWherePrefix = avoidCORS ? "https://go.x2u.in/proxy?email=contact_us@ttleagueplayers.uk&apiKey=307a1c8f&url=" : "";
     }
 
-    private getUrlFromSource(source: Record<string, string>[], division: string): string {
-        const entry = source.find(d => Object.prototype.hasOwnProperty.call(d, division));
-        if (!entry?.[division]) {
-            throw new Error(`Division "${division}" not found in data source.`);
+    private getUrlFromSource(source: Record<string, string>[], key: string, entity = 'Division'): string {
+        const entry = source.find(d => Object.prototype.hasOwnProperty.call(d, key));
+        if (!entry?.[key]) {
+            throw new Error(`${entity} "${key}" not found in data source.`);
         }
-        return entry[division];
+        return entry[key];
     }
 
     private async fetchWithRetry(url: string, retries = 2, delay = 2000): Promise<string> {
@@ -71,6 +71,14 @@ export class CLTTLActiveSeason2025PagesFetcher {
     }
 
     /**
+     * Extracts the link of the page for that club and downloads the HTML.
+     */
+    public async getClubTeams(club: string): Promise<string> {
+        const url = this.getUrlFromSource(this.dataSource.club_teams, club, 'Club');
+        return this.fetchWithRetry(url);
+    }
+
+    /**
      * Extracts the players page link for players of the team and concatenates the team id.
      * @param team The division name (used to find the base URL in division_players)
      * @param id The team ID
@@ -85,13 +93,6 @@ export class CLTTLActiveSeason2025PagesFetcher {
         // Let's check the base URL format: "All_Divisions?d=9445"
         const separator = baseUrl.includes('?') ? '&' : '?';
         const url = baseUrl + separator + 'stx=&swp=&spp=&t=' + String(id);
-
-        // Wait, the prompt says: "concatenates the team id to the link "?stx=&swp=&spp=&t=<team_id>""
-        // I'll stick to a safer implementation that respects the existing query string if any.
-        // But if the prompt meant literally appending that string starting with ?, I'll do that if it makes more sense.
-        // Actually, if I use the prompt's suggested string, it starts with ?.
-        // If baseUrl is "Base?d=1" and I append "?stx=..." I get "Base?d=1?stx=..." which is broken.
-        // I'll use the separator logic.
 
         return this.fetchWithRetry(url);
     }

@@ -158,6 +158,36 @@ export class CLTTLActiveSeason2025PagesParser {
         return players;
     }
 
+    /**
+     * Extracts the team names by parsing a club's page.
+     * Every team listed is returned: the page shows only the current season and carries no
+     * season in its URL, so there is nothing to filter on.
+     */
+    public getClubTeams(clubHtmlPage: string): string[] {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(clubHtmlPage, 'text/html');
+        const teamsDiv = doc.getElementById('TeamsList');
+
+        if (!teamsDiv) {
+            return [];
+        }
+
+        const rows = teamsDiv.querySelectorAll('tbody tr');
+        const teams: string[] = [];
+
+        rows.forEach((row) => {
+            // The team name is the first cell; later cells hold the season and the captain.
+            const anchor = row.querySelector('td:first-child a');
+            const team = (anchor?.textContent ?? '').trim();
+
+            if (team) {
+                teams.push(team);
+            }
+        });
+
+        return teams;
+    }
+
     public getTeamIds(allPlayersHtmlPage: string): { team: string; id: number }[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(allPlayersHtmlPage, 'text/html');

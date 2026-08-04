@@ -26,12 +26,14 @@ test.describe('Clubs & Tournaments Caching E2E', () => {
     test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
     test.setTimeout(90000);
 
-    // Playwright runs spec files in parallel workers. This spec deliberately reuses the same
-    // spec-owned club as ClubsAndTournaments.spec.ts (test_already_registered3@user.test manages
-    // only "Morpeth Table Tennis Club" in London), so it cannot race PromoteMyClub or
-    // PromoteMyTournaments, which add and remove that club's promotion info for their own tests.
+    // Playwright runs spec files in parallel workers, so this spec owns a club no other spec
+    // writes to. test_already_registered3@user.test manages two clubs for exactly this reason:
+    // London/"Morpeth Table Tennis Club" belongs to ClubsAndTournaments.spec.ts and
+    // Brighton/"Caching Check Club" to this one. Sharing a club with that spec used to fail
+    // intermittently: both add and delete a tournament on it, and both assert the club has none,
+    // so whichever ran inside the other's ~1s add/delete window saw a row it did not expect.
     const clubManager = { email: 'test_already_registered3@user.test', password: 'aA1!56789012' };
-    const club = { location: 'London', club_name: 'Morpeth Table Tennis Club' };
+    const club = { location: 'Brighton', club_name: 'Caching Check Club' };
 
     const tournament = {
         tournament_name: 'Caching Check Cup',

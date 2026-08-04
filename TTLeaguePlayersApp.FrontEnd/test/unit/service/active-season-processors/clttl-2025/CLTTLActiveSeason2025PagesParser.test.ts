@@ -151,4 +151,67 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             expect(teamIds).toEqual([]);
         });
     });
+
+    describe('getClubTeams', () => {
+        it('should extract every team name from a club html page', () => {
+            const filePath = path.resolve(__dirname, 'data/club_teams_morpeth.html');
+            const htmlContent = fs.readFileSync(filePath, 'utf-8');
+
+            const parser = new CLTTLActiveSeason2025PagesParser();
+            const teams = parser.getClubTeams(htmlContent);
+
+            expect(teams).toHaveLength(12);
+            expect(teams).toEqual([
+                'Morpeth 1',
+                'Morpeth 10',
+                'Morpeth 11',
+                'Morpeth 12 Jr',
+                'Morpeth 2',
+                'Morpeth 3',
+                'Morpeth 4',
+                'Morpeth 5',
+                'Morpeth 6',
+                'Morpeth 7',
+                'Morpeth 8',
+                'Morpeth 9'
+            ]);
+        });
+
+        it('should preserve the team names exactly as the site spells them', () => {
+            const filePath = path.resolve(__dirname, 'data/club_teams_aa_academy.html');
+            const htmlContent = fs.readFileSync(filePath, 'utf-8');
+
+            const parser = new CLTTLActiveSeason2025PagesParser();
+            const teams = parser.getClubTeams(htmlContent);
+
+            // The site is inconsistent about the capitalisation of "SJoA"; it is not normalised.
+            expect(teams).toEqual([
+                'AA Academy SJoA 1',
+                'AA Academy SJoA 2',
+                'AA Academy Sjoa 3',
+                'AA Academy Sjoa 4'
+            ]);
+        });
+
+        it('should extract named teams as well as numbered ones', () => {
+            const filePath = path.resolve(__dirname, 'data/club_teams_walworth.html');
+            const htmlContent = fs.readFileSync(filePath, 'utf-8');
+
+            const parser = new CLTTLActiveSeason2025PagesParser();
+            const teams = parser.getClubTeams(htmlContent);
+
+            expect(teams).toEqual([
+                'Walworth Enigma',
+                'Walworth Gainsford',
+                'Walworth Tigers',
+                'Walworth Wonderers'
+            ]);
+        });
+
+        it('should return empty array if TeamsList div is missing', () => {
+            const parser = new CLTTLActiveSeason2025PagesParser();
+            const teams = parser.getClubTeams('<html><body></body></html>');
+            expect(teams).toEqual([]);
+        });
+    });
 });

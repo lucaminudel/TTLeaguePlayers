@@ -6,6 +6,7 @@ const DATA_SOURCE: ActiveSeasonDataSource = {
     "league": "CLTTL",
     "season": "2025-2026",
     "custom_processor": "CLTTLActiveSeason2025Processor",
+    "custom_club_processor": "CLTTLManagedClub2025Processor",
     "registrations_start_date": 1755648000,
     "ratings_end_date": 1776124800,
     "division_tables": [
@@ -34,6 +35,9 @@ const DATA_SOURCE: ActiveSeasonDataSource = {
         { "Division 5": "https://www.tabletennis365.com/CentralLondon/IndividualAverages/Winter_2025-26/All_Divisions?d=9449" },
         { "Division 6": "https://www.tabletennis365.com/CentralLondon/IndividualAverages/Winter_2025-26/All_ivisions?d=9450" },
         { "Division 7": "https://www.tabletennis365.com/CentralLondon/IndividualAverages/Winter_2025-26/All_Divisions?d=9451" }
+    ],
+    "club_teams": [
+        { "Morpeth Table Tennis Club": "https://www.tabletennis365.com/CentralLondon/Club/392/Morpeth" }
     ]
 };
 
@@ -69,4 +73,11 @@ test.describe('CLTTLActiveSeason2025PagesFetcher E2E', () => {
         const html = await fetcher.getTeamPlayers('Division 1', 1);
         expect(html).toContain('id="Averages"');
     });
+
+    test('getClubTeams should return HTML containing id="TeamsList"', async () => {
+        test.slow();
+        const html = await fetcher.getClubTeams('Morpeth Table Tennis Club');
+        expect(html).toContain('id="TeamsList"');
+    });
 });
+
