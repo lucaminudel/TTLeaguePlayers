@@ -5,12 +5,12 @@ description: Adversarially review the uncommitted work produced by the Coding Ta
 
 # Coding Task Review
 
-Third and last of the three. Inputs are the plan and the work summary that
+Fourth and last of the four. Inputs are the plan and the work summary that
 `coding-task-inception` and `coding-task-execution` persisted, plus the uncommitted changes those
 produced in the working tree:
 
-- `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/memory/plan-<slug>.md`
-- `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/memory/work-summary-<slug>.md`
+- `~/.claude/projects/.../memory/plan-<slug>.md`
+- `~/.claude/projects/.../memory/work-summary-<slug>.md`
 
 If neither exists, stop and say so — there is nothing to review against. If only one exists, say
 which is missing and what you therefore cannot check, then proceed.
@@ -89,22 +89,17 @@ layout, error style, comment density? Is there a simpler shape that does the sam
 introduced for one caller are suspect. So is any new pattern that duplicates one already in the
 repo under a different name.
 
-**Dependencies and direction.** Does anything new point the wrong way — a port depending on an
-adapter, a domain type importing config, a processor importing a page component? Look for cycles.
-Check that a new interface really needed to be new: two ports that bind to the same identity tuple
-should probably have been one.
+**Dependencies and direction.** Does anything new point the wrong? Look for cycles.
 
-**Bugs.** Prioritise, in this repo:
-- **Decorators that silently drop methods.** A method added to an interface is dead code if the
-  `*WithLocalStorageCache` wrapper between factory and caller does not forward it. This exact dead
-  end already exists here (`getTeams()`, `getTeamPlayers()`). Trace the call chain from the caller
-  to the concrete class, through every wrapper, before believing a method is reachable.
-- **Cache key collisions.** Two entities sharing a `localStorage` key, or a key that omits part of
-  what makes the payload unique, corrupts data across leagues, seasons, clubs or users.
-- **Relative vs absolute URLs.** Scraped `href`s are usually relative; confirm each is resolved
-  against the right base.
-- **HTML entities and casing** in parsed text, and `null`/missing-element paths in every
-  `querySelector` chain.
+
+**Bugs.** For what this change actually touches:
+- **Decorators and wrappers that silently drop methods.** A method added to an interface is dead
+  code if a wrapper between factory and caller does not forward it. Trace the call chain from the
+  caller to the concrete class, through every wrapper, before believing a method is reachable.
+- **Cache keys**, where caching is involved: two entities sharing a key, or a key that omits part of
+  what makes the payload unique, corrupts data across users and contexts.
+- **Parsing of external content**, where any is involved: relative vs absolute URLs, entity
+  encoding, casing, and `null`/missing-element paths in every lookup chain.
 - Error paths: what does the user see when the fetch 404s, the element is absent, the config key is
   empty?
 
@@ -113,21 +108,27 @@ stubs vs mocks used as the guidelines define them, teardown that actually cleans
 mutable fixture shared between spec files** — Playwright runs spec files in parallel workers. Then
 the coverage question: for each behaviour added, is there a test that fails if you break it? Delete
 a line mentally and ask which test goes red. Assertions on "did not throw" cover almost nothing.
-- Frozen fixture *and* live test, for anything scraping an external source: exact values pinned in
-  the fixture test, only rollover-surviving shape asserted live.
+- Where the change reads an external source, check that the split between frozen-fixture tests and
+  live tests is right: exact values pinned against the fixture, only what survives the source
+  changing asserted live.
 - **Playwright specs run in Node and have no DOM.** Any `DOMParser` use in an e2e spec fails with
   `ReferenceError: DOMParser is not defined`; parser assertions belong in Vitest, which only works
   because `vite.config.ts` sets `environment: 'jsdom'`.
 
 **Security.** For what this change added:
-- Scraped or user-supplied strings reaching the DOM — any `innerHTML`, `dangerouslySetInnerHTML`,
+- External or user-supplied strings reaching the DOM — any `innerHTML`, `dangerouslySetInnerHTML`,
   or unescaped interpolation is a real finding.
-- **Personal data in committed test fixtures.** Saved HTML pages carry phone numbers, emails,
-  addresses and map keys. Check the fixtures in the diff for residuals.
+- **Personal data in committed test fixtures.** Captured pages and recorded payloads carry personal
+  data. Check every fixture in the diff for residuals.
 - Secrets, tokens or private URLs added to `config/*.env.json` — these ship to the browser via
   Vite's verbatim injection and are public by construction.
 - What gets written to `localStorage`, and whether it should be.
 - New external hosts fetched, and whether a CORS proxy is being used to reach them.
+
+You are encourage to use your commands: 
+  /simplify 
+  /code-review 
+  /security-review 
 
 ## Phase 3 — Triage, then stop
 
@@ -180,7 +181,7 @@ diff. Assume no memory of the plan, the execution session, or this codebase's co
 
 Append it, with the phase 2–4 findings, as a
 **`## Review`** section at the end of
-`~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/memory/work-summary-<slug>.md`, and
+`~/.claude/projects/.../memory/work-summary-<slug>.md`, and
 post it in the chat too.
 
 The section carries:
@@ -234,7 +235,7 @@ that turns out wider than it looked, asking for the tier-2 re-run — the user i
 them enough context to decide without reading the transcript or opening the diff. Lead with a short
 summary:
 
-- **What you were doing** — which phase and which files, findings or commands are involved.
+- **What you were doing** — a summary of which phase and which files, findings or commands are involved.
 - **The root cause** — why you are stopping. Not just the symptom: the actual reason the problem,
   need or question exists.
 - **The options** — each one you can see, and for each: how big a change it is, what it affects
@@ -243,6 +244,16 @@ summary:
 Keep it short enough to read in under a minute. The test is whether the user can tell, at a glance,
 what it is about, what they can do, and what each choice costs. A bare "should I proceed?" or a
 question that assumes they remember the last twenty tool calls fails that test.
+
+In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
+
+
+**Discuss with the user one topic at the time.** 
+Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
+Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
+
+When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
+
 
 **Git.** Stay on the current branch. No commits, no staging, no stash, no revert, no clean. The
 working tree stays exactly as the user left it, plus the approved fixes.

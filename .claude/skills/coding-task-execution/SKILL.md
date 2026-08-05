@@ -6,7 +6,7 @@ description: Execute a plan previously produced and persisted by the Coding Task
 # Coding Task Execution
 
 Input is a confirmed plan at
-`~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/memory/plan-<slug>.md`.
+`~/.claude/projects/.../memory/plan-<slug>.md`.
 That file is the source of truth across sessions and agents, not the in-session task list.
 
 If no such plan exists, stop and say so — run `coding-task-inception` first. Do not improvise one.
@@ -115,7 +115,7 @@ npm run "unit-tests-web:run"
 **Frontend — a single spec**, much faster while iterating on one file:
 
 ```bash
-npx vitest run test/unit/service/active-season-processors/SomeThing.spec.ts
+npx vitest run test/unit/<path-to-the-spec>.spec.ts
 ```
 
 **Backend — refresh the local SAM with the latest C# code.** Mandatory before the C# tests:
@@ -133,7 +133,7 @@ ENVIRONMENT=dev dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp
 **Backend — a single test**, for triaging one failure:
 
 ```bash
-ENVIRONMENT=dev dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --filter "FullyQualifiedName~InvitesAcceptanceTests.POST_Invites_Should_Return_400_For_Wrong_Email_Format" --logger "console;verbosity=normal"
+ENVIRONMENT=dev dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --filter "FullyQualifiedName~<TestClass>.<TestMethod>" --logger "console;verbosity=normal"
 ```
 
 **Frontend — e2e (Playwright) on dev, whole suite:**
@@ -145,7 +145,7 @@ npm run "C+ e2e-tests-web:run dev-env"
 **Frontend — e2e narrowed to one spec:**
 
 ```bash
-npm run "C+ e2e-tests-web:run dev-env" -- test/e2e/ClubsAndTournaments.spec.ts
+npm run "C+ e2e-tests-web:run dev-env" -- test/e2e/<path-to-the-spec>.spec.ts
 ```
 
 **Frontend — e2e on dev without the live Cognito tests.** Run Playwright directly; `PORT` is what
@@ -158,7 +158,7 @@ cross-env PORT=5173 playwright test
 Append a spec path to narrow it, and `--reporter=list` for readable console output:
 
 ```bash
-cross-env PORT=5173 playwright test test/e2e/ClubsAndTournaments.spec.ts --reporter=list
+cross-env PORT=5173 playwright test test/e2e/<path-to-the-spec>.spec.ts --reporter=list
 ```
 
 The equivalent npm script, which now wraps exactly that command:
@@ -288,7 +288,7 @@ Fix what you break. If verification will not go green, the sub-task is not done.
 ## Phase 6 — Work summary report
 
 Maintained at
-`~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/memory/work-summary-<slug>.md`,
+`~/.claude/projects/.../memory/work-summary-<slug>.md`,
 appended as each sub-task completes and **posted in the chat at the same time** so the user can
 follow along rather than reading it all at the end.
 
@@ -315,7 +315,7 @@ this skill. Corrections the user made are the highest-value input. Ask the user 
 confirmation before a long or shared-environment run — the user is arriving cold. Give them enough
 context to decide without reading the transcript or opening the diff. Lead with a short summary:
 
-- **What you were doing** — which sub-task, and which files, documents or commands are involved.
+- **What you were doing** — a summary of which topic or question are the subject, and which sources you used.
 - **The root cause** — why you are stopping. Not just the symptom: the actual reason the problem,
   need or question exists.
 - **The options** — each one you can see, and for each: how big a change it is, what it affects
@@ -324,6 +324,13 @@ context to decide without reading the transcript or opening the diff. Lead with 
 Keep it short enough to read in under a minute. The test is whether the user can tell, at a glance,
 what it is about, what they can do, and what each choice costs. A bare "should I proceed?" or a
 question that assumes they remember the last twenty tool calls fails that test.
+
+In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
+
+Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
+Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
+
+When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
 
 **Git.** Stay on the current branch. Make no commits. Leave the working tree for the user to stage
 themselves. Never stash, revert, or clean their pre-existing uncommitted changes.
