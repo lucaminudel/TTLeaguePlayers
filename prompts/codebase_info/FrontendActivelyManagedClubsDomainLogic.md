@@ -11,7 +11,7 @@ The user's managed clubs represent the leagues, seasons, and clubs that the logg
 ### Domain Model
 The `ManagedClub` represents a user registration as a club manager for a specific club in a league and season:
 - `league` (e.g., "CLTTL"),
-- `season` (e.g., "2025"),
+- `season` (e.g., "2025-2026"),
 - `club_name` (e.g., "Table Tennis Aces Club"),
 - `club_location` (e.g., "London"),
 - `manager_name` (e.g., "John Doe")
@@ -84,9 +84,12 @@ The club management and promotion logic resolves and merges the user’s managed
 4. **Managed CLub selection**:
    * If both the Matching Configuration and the relaxed Time Window checks succeed, the managed club card is rendered with the matching Managed Clubs, and the features are made available by the page once a club is selected.
    *  Matching Configuration Check is done for the features related to the club's league season (League + Season + Club Name + Location), such as listing the club's teams registratins and standings, and also for featrures that are specific to the club (Club Name + Location) as promoting the team and its tournament, because the club manager is assigned at every league's season, not indefently.
-5. **Group By Club Name + Location**:
-   *  For features that are specific to the club (Club Name + Location), like publishing the club info or a club's organised tournament, matches with the same Club Name and Location are collapsed into one button (Group By Club Name is set to true). 
-   *  Instead, for features that are specific to the club and the league's season (League + Season + Club Name + Location), like showing the club's teams registration status and kudos standings, one button per club and league's season is visualised (Group By Club Name is set to false).
+5. **Grouping the buttons: the `groupByLocation` prop**:
+   *  The flag on [ManagedClubsCard.tsx](TTLeaguePlayersApp.FrontEnd/src/components/ui/ManagedClubsCard.tsx) is named **`groupByLocation`** (it defaults to `false`). Earlier drafts of this document called it "Group By Club Name"; that name never existed in the code.
+   *  **`groupByLocation` set to `true`** — for features that are specific to the club (Club Name + Location), like publishing the club info or a club's organised tournament. Managed clubs sharing the same **Club Name + Location** are collapsed into one button, so the same club managed across several seasons shows once. The button label is the location alone, or `"<club_location> / <club_name>"` when that location has more than one club. This is what `PromoteMyClub.tsx` and `PromoteMyTournaments.tsx` pass.
+   *  **`groupByLocation` set to `false`** — for features specific to the club *and* the league's season (League + Season + Club Name + Location), like showing the club's teams registration status and kudos standings. One button per managed club is visualised, labelled `"<club_location> / <league>"`. No page uses this branch yet; My Club Teams and My Club Standings are the pages it exists for.
+   *  Either way the button's key is `createManagedClubKey(club)` = `` `${league}-${season}-${club_name}` `` ([clubUtils.ts](TTLeaguePlayersApp.FrontEnd/src/utils/clubUtils.ts)), so the selection always resolves back to a single `ManagedClub` — and from it to `club_location` as well.
+   *  Note the `false` label carries the league but **not the season**, so a manager of the same club in two seasons of one league would see two buttons with identical labels. The keys differ; only the labels collide. To be reviewed when My Club Teams is implemented.
 
  
 

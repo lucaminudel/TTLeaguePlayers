@@ -3,7 +3,10 @@
 
 ## Core Principles
 *  **No Implementation Changes:** Never modify the implementation code of the system under test (SUT). Only write or modify test code. This includes not increasing the visibility of implementation code private methods.
-*  **DRY Test Data:** Use the **Builder Pattern** for test data creation to avoid duplication and keep tests readable.
+*  **DRY Test Data:** Use the **Builder Pattern** for test data creation to avoid duplication and keep tests readable. It takes two forms in this codebase, and both are valid — pick the one that matches the test project you are in:
+	*  **Fluent builder class**, for test data assembled differently by many tests. The e2e specs use `TestInviteBuilder` (`TTLeaguePlayersApp.FrontEnd/test/e2e/builders/TestInviteBuilder.ts`): a valid baseline set in the constructor, then chained `withRole(...)` / `withTeam(...)` / `withLeague(...)` mutators and a final `build()`. See its nine uses in `test/e2e/join.spec.ts`.
+	*  **Parameterised static factory**, for test data where only a couple of fields vary. This is the convention in the **C# tests**, which have no builder classes: a `private static` method returning a valid object, with optional parameters for what the test needs to change — `CreateCaptainTestInvite()` / `CreateClubManagerTestInvite()` in `InvitesDataTableTest`, `CreatePlayerInvite(nanoId, acceptedAt, inviteeEmailId, league, season)` in `AccepteInviteLambdaTests`, `CreateTestClub(location?, clubName?)` and `CreateTestTournament(club, startOffset, endOffset)` in `ClubsAndTournamentsDataTableTest`, `CreateInviteRequestJson(...)` in the acceptance tests. Group them under a `// Builders` region as `ClubsAndTournamentsDataTableTest` does, and give them a `UniqueId()` suffix when parallel runs could collide.
+	*  Note `TTLeaguePlayersApp.BackEnd.Tests/Builders/` is an **empty directory** — it is not where the C# test data lives. The factories are private to each test class.
 *  **State Cleanup:** When integration testing involves stateful systems (Files, Databases, Auth Services), ensure the state is reverted or cleaned up in the **teardown/cleanup** phase of the test fixture. See [Test Data Cleanup](#test-data-cleanup) for the patterns to follow in each test type.
 
 Use data-testid to quickly identify the html elements.
@@ -78,6 +81,19 @@ Follow `PromoteMyClub.spec.ts`, `PromoteMyTournaments.spec.ts`, `KudosAwardAndSt
 *  **Log the outcome** of each delete (`🧹 [Cleanup] ...`, `✅`, `❌`) and catch errors per item, so a failed cleanup is visible in the run output without failing the suite. Retry when the API is flaky, as the Kudos cleanup does.
 *  **Do not share mutable fixtures between spec files.** Playwright runs spec files in **parallel workers**, so two specs that add and remove the *same* club, user or record will race and fail intermittently — and may appear to pass for a while depending on scheduling. Pick a Cognito test user and club that the spec owns; check which specs already use a given static user before reusing it.
 
+
+## Acceptance tests run in two environments — branch, don't skip
+
+The backend acceptance tests under `TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests/` are **one suite with two jobs**: they run locally against `sam local start-api` during development and CI (`run_backend_acceptance_tests.sh`), and they run again unchanged against the deployed staging stack as the **smoke tests** (`run_smoke_tests_staging.sh`). Staging is configured identically to prod, so that second run is the only one that exercises the real AWS configuration.
+
+The two environments do not behave identically, because **SAM local applies no API Gateway authorizer**. Anything that depends on API Gateway configuration — authentication, authorizer overrides per route, gateway responses — simply does not happen locally.
+
+*  **Branch on the environment inside the test; do not skip the test and do not weaken the assertion.** Use `RunningAgainst.ALocalEnvironmentIsTrue()` / `RunningAgainst.ACloudEnvironmentIsTrue()` (`AcceptanceTests/RunningAgainst.cs`), which read the `ENVIRONMENT` variable (`staging`/`prod` are cloud; anything else, default `dev`, is local). Each branch asserts the behaviour that is *correct for that environment*, so both runs are meaningful.
+*  **Write the pair of tests, one per environment**, each returning early in the environment it does not describe, with a comment saying why. The existing example is authentication on an unknown protected path in `InvitesAcceptanceTests`:
+	*  `GET_Protected_NonExistentPath_Should_Return_401_Unauthorized` — returns early when `ALocalEnvironmentIsTrue()`, because locally an unknown path returns 404 with no auth check; in the cloud the authorizer rejects the request before routing, so it asserts `401`.
+	*  `GET_NonExistentPath_Should_Return_404_NotFound` — the mirror image, returning early when `ACloudEnvironmentIsTrue()`.
+*  **Assert `401` for authentication in the cloud branch only.** A test that asserts a protected endpoint rejects an unauthenticated caller is meaningless locally — it would pass for the wrong reason (no authorizer, so 404 or 200), or fail for the wrong reason. Put the `401` expectation behind `ACloudEnvironmentIsTrue()`.
+*  **Consequence to plan for: security configuration is only verified by the staging smoke-test run.** When a change adds a protected endpoint, or overrides an authorizer for a specific route, a green local run proves nothing about it. The verification happens when the smoke tests run against staging — so treat that run as a required gate for such changes, not an optional extra.
 
 # Cognito test users creation and use
 
