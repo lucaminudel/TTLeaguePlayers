@@ -45,6 +45,7 @@ if [[ "$FORCE_DELETE" == "force" ]]; then
     E6=""
     E7=""
     E8=""
+    E9=""
 else
     # Emails to exclude from deletion
     echo "Only dynamically created test_{number} users will be deleted ..."
@@ -57,6 +58,7 @@ else
     E6="test_already_registered5@user.test"
     E7="test_kudos_wt@user.test"
     E8="test_kudos_f5@user.test"
+    E9="test_team_registrations_invitee@user.test"
 fi
 
 # echo "User Pool ID: $USER_POOL_ID"
@@ -64,7 +66,7 @@ fi
 # Get all users and filter by email starting with test_ but exclude specific emails
 USERS=$(aws cognito-idp list-users \
     --user-pool-id $USER_POOL_ID \
-    --query "Users[?Attributes[?Name=='email' && starts_with(Value, 'test_') && Value!='$E1' && Value!='$E2' && Value!='$E3' && Value!='$E4' && Value!='$E5' && Value!='$E6' && Value!='$E7' && Value!='$E8']].Username" \
+    --query "Users[?Attributes[?Name=='email' && starts_with(Value, 'test_') && Value!='$E1' && Value!='$E2' && Value!='$E3' && Value!='$E4' && Value!='$E5' && Value!='$E6' && Value!='$E7' && Value!='$E8' && Value!='$E9']].Username" \
     --output text)
 
 if [ -z "$USERS" ]; then

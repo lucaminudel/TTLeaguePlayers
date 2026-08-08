@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Xunit;
 using System.Collections.Concurrent;
+using TTLeaguePlayersApp.BackEnd.Tests;
 
 namespace TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore.Tests;
 
@@ -409,8 +410,11 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         await TrackedUpsertTournament(activeTournament);
         await TrackedUpsertTournament(expiredTournament);
 
-        // Act
-        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        // Act — wait only for the club to appear in the index; which tournaments come back with it is
+        // the behaviour under test.
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveAllClubsWithActiveTournamentsAsync(now),
+            r => r.Any(e => e.Club.ClubName == club.ClubName));
 
         // Assert
         var entry = result.FirstOrDefault(e => e.Club.ClubName == club.ClubName);
@@ -430,8 +434,12 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         var expiredTournament = CreateTestTournament(club, startOffset: -30, endOffset: -1);
         await TrackedUpsertTournament(expiredTournament);
 
-        // Act
-        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        // Act — the club must have propagated. That its tournament list is empty is the assertion, so
+        // the predicate must NOT wait for that: an empty list is also what a not-yet-propagated club
+        // looks like, and waiting on it would make this test pass for the wrong reason.
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveAllClubsWithActiveTournamentsAsync(now),
+            r => r.Any(e => e.Club.ClubName == club.ClubName));
 
         // Assert
         var entry = result.FirstOrDefault(e => e.Club.ClubName == club.ClubName);
@@ -457,8 +465,12 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         await TrackedUpsertTournament(t2);
         await TrackedUpsertTournament(t3);
 
-        // Act
-        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        // Act — wait for all three tournaments to be visible across the two clubs. Their ORDER, and
+        // the order of the clubs themselves, is what this test asserts.
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveAllClubsWithActiveTournamentsAsync(now),
+            r => r.Where(e => e.Club.ClubName == clubA.ClubName || e.Club.ClubName == clubB.ClubName)
+                  .Sum(e => e.Tournaments.Count) == 3);
 
         // Assert — clubs appear in location order
         var clubAEntry = result.FirstOrDefault(e => e.Club.ClubName == clubA.ClubName);
@@ -487,8 +499,10 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
 
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        // Act
-        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        // Act — wait for the club to appear; the promotion profile fields on it are the assertion.
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveAllClubsWithActiveTournamentsAsync(now),
+            r => r.Any(e => e.Club.ClubName == club.ClubName));
 
         // Assert
         var entry = result.FirstOrDefault(e => e.Club.ClubName == club.ClubName);
@@ -510,8 +524,11 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
 
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        // Act
-        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        // Act — wait for the synthesised club entry to appear. That it exists at all despite having no
+        // CLUB# item, and that its profile fields are null, is what this test asserts.
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveAllClubsWithActiveTournamentsAsync(now),
+            r => r.Any(e => e.Club.ClubName == unpromotedClub.ClubName));
 
         // Assert
         var entry = result.FirstOrDefault(e => e.Club.ClubName == unpromotedClub.ClubName);
@@ -541,8 +558,14 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
 
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        // Act
-        var result = await _db.RetrieveAllClubsWithActiveTournamentsAsync(now);
+        // Act — wait until both tournaments are visible SOMEWHERE across the two clubs. Deliberately
+        // not "one each": misattribution — the bug this test exists to catch — also totals two, so it
+        // still fails immediately rather than after the timeout.
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveAllClubsWithActiveTournamentsAsync(now),
+            r => r.Where(e => e.Club.ClubName == shorterNamedClub.ClubName
+                           || e.Club.ClubName == longerNamedClub.ClubName)
+                  .Sum(e => e.Tournaments.Count) == 2);
 
         // Assert — each tournament stays with the club that owns it
         var shorterNamedEntry = result.FirstOrDefault(e => e.Club.ClubName == shorterNamedClub.ClubName);
@@ -574,8 +597,12 @@ public class ClubsAndTournamentsDataTableTest : IAsyncLifetime
         var tournament = CreateTestTournament(clubInTarget, startOffset: -1, endOffset: +7);
         await TrackedUpsertTournament(tournament);
 
-        // Act
-        var result = await _db.RetrieveClubsWithActiveTournamentsByLocationAsync(targetLocation, now);
+        // Act — wait for the target club to appear. That the OTHER location is excluded is the
+        // assertion, and an empty result is also what not-yet-propagated looks like, so the predicate
+        // must not simply wait for "not empty".
+        var result = await EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveClubsWithActiveTournamentsByLocationAsync(targetLocation, now),
+            r => r.Any(e => e.Club.ClubName == clubInTarget.ClubName));
 
         // Assert
         result.Should().NotBeEmpty();

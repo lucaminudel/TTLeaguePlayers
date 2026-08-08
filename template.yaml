@@ -263,6 +263,20 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+        InvitesRegistrations:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites/registrations
+            Method: POST
+        InvitesRegistrationsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites/registrations
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         # Read-only listing of clubs and their active tournaments, shown on the public
         # Clubs & Tournaments page to visitors who are not logged in.
         ClubsGet:
@@ -492,6 +506,10 @@ Resources:
           AttributeType: S
         - AttributeName: created_at
           AttributeType: N
+        - AttributeName: league_season
+          AttributeType: S
+        - AttributeName: invitee_team
+          AttributeType: S
       KeySchema:
         - AttributeName: nano_id
           KeyType: HASH
@@ -515,6 +533,24 @@ Resources:
               - invitee_role
               - invitee_club
               - club_location
+        - IndexName: LeagueSeasonTeamIndex
+          KeySchema:
+            - AttributeName: league_season
+              KeyType: HASH
+            - AttributeName: invitee_team
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - nano_id
+              - invitee_role
+              - accepted_at
+              - created_at
+              - invitee_name
+              - invitee_email_id
+              - team_division
+              - league
+              - season
 
   KudosTable:
     Type: AWS::DynamoDB::Table

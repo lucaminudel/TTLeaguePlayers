@@ -128,6 +128,11 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     register_user "$EMAIL8" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON8"
     echo "Cognito Test user '$EMAIL8' registered and confirmed successfully!"
 
+    # 9. Invitee for the team-registrations acceptance tests.
+    EMAIL9="test_team_registrations_invitee@user.test"
+    register_user "$EMAIL9" "$COMMON_PASSWORD" "true"
+    echo "Cognito Test user '$EMAIL9' registered and confirmed successfully as the team-registrations invitee!"
+
 fi
 
 

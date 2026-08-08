@@ -11,9 +11,11 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
     private readonly AmazonDynamoDBClient _client;
     private readonly ITable _table;
 
+    private readonly string _tableName;
+
     public InvitesDataTable(Uri? localDynamoDbServiceUrl, Amazon.RegionEndpoint? remoteDynamoDbRegion, string tablesNameSuffix)
     {
-        var _tableName = $"ttleague-invites-{tablesNameSuffix}";
+        _tableName = $"ttleague-invites-{tablesNameSuffix}";
 
         AmazonDynamoDBConfig clientConfig;
         if (localDynamoDbServiceUrl != null)
@@ -37,6 +39,10 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
 
         var json = PolymorphicallySerializeInvite(invite);
         var document = Document.FromJson(json);
+
+        // Partition key of LeagueSeasonTeamIndex
+        document["league_season"] = LeagueSeasonKey(invite.League, invite.Season);
+
         await _table.PutItemAsync(document);
     }
     
@@ -86,6 +92,110 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
         EnsureValidId(nanoId);
         await _table.DeleteItemAsync(nanoId);
     }
+
+    public async Task<List<CaptainInviteSummary>> RetrieveCaptainInvitesForTeams(
+        string league, string season, IReadOnlyList<string> teamNames)
+    {
+        ValidateRetrieveCaptainInvitesForTeamsParameters(league, season, teamNames);
+
+        var requestedTeams = new HashSet<string>(teamNames, StringComparer.Ordinal);
+
+        var values = new Dictionary<string, AttributeValue>
+        {
+            [":league_season"] = new AttributeValue { S = LeagueSeasonKey(league, season) },
+            [":captain"] = new AttributeValue { S = nameof(Role.CAPTAIN) }
+        };
+
+        var invites = new List<CaptainInviteSummary>();
+        Dictionary<string, AttributeValue>? exclusiveStartKey = null;
+
+        do
+        {
+            var request = new QueryRequest
+            {
+                TableName = _tableName,
+                IndexName = "LeagueSeasonTeamIndex",
+                KeyConditionExpression = "league_season = :league_season",
+                FilterExpression = "invitee_role = :captain",
+                ExpressionAttributeValues = values,
+                ExclusiveStartKey = exclusiveStartKey
+            };
+
+            var response = await _client.QueryAsync(request);
+
+            foreach (var item in response.Items)
+            {
+                var invite = ToCaptainInviteSummary(item);
+                if (requestedTeams.Contains(invite.InviteeTeam))
+                {
+                    invites.Add(invite);
+                }
+            }
+
+            // A FilterExpression is applied AFTER the 1 MB page read, so a page can come back with
+            // ZERO items and still carry a LastEvaluatedKey. Terminating on an empty page instead of
+            // on the absence of a key would silently drop invites — stop only when the key is gone.
+            exclusiveStartKey = response.LastEvaluatedKey is { Count: > 0 } ? response.LastEvaluatedKey : null;
+        }
+        while (exclusiveStartKey is not null);
+
+        return invites;
+    }
+
+    private static CaptainInviteSummary ToCaptainInviteSummary(Dictionary<string, AttributeValue> item)
+    {
+        return new CaptainInviteSummary
+        {
+            NanoId = GetString(item, "nano_id"),
+            InviteeName = GetString(item, "invitee_name"),
+            InviteeEmailId = GetString(item, "invitee_email_id"),
+            InviteeRole = Enum.TryParse<Role>(GetString(item, "invitee_role"), out var role) ? role : Role.CAPTAIN,
+            League = GetString(item, "league"),
+            Season = GetString(item, "season"),
+            InviteeTeam = GetString(item, "invitee_team"),
+            TeamDivision = GetString(item, "team_division"),
+            CreatedAt = GetLong(item, "created_at") ?? 0,
+            AcceptedAt = GetLong(item, "accepted_at")
+        };
+    }
+
+    private static string GetString(Dictionary<string, AttributeValue> item, string key)
+    {
+        return item.TryGetValue(key, out var value) ? value.S ?? string.Empty : string.Empty;
+    }
+
+    private static long? GetLong(Dictionary<string, AttributeValue> item, string key)
+    {
+        if (!item.TryGetValue(key, out var value)) return null;
+        if (value.NULL == true) return null;
+        return long.TryParse(value.N, out var parsed) ? parsed : null;
+    }
+
+    private static void ValidateRetrieveCaptainInvitesForTeamsParameters(
+        string league, string season, IReadOnlyList<string> teamNames)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add("league is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add("season is required");
+
+        if (teamNames is null || teamNames.Count == 0)
+        {
+            errors.Add("team_names is required and must contain at least one team name");
+        }
+        else if (teamNames.Any(string.IsNullOrWhiteSpace))
+        {
+            errors.Add("team_names must not contain empty team names");
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    // The one place the LeagueSeasonTeamIndex partition key is spelled. 
+    public static string LeagueSeasonKey(string league, string season) => $"{league}#{season}";
 
     private void EnsureValidId(string nanoId)
     {
