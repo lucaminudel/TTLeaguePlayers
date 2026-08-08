@@ -16,7 +16,7 @@ nothing into the repo tree except the report's own scratch notes, and no applica
 
 ## Phase 1 — Frame the task
 
-Ask the user, as one batch, and wait:
+Ask the user (as one batch, and wait unless for one or more of these points you have questions, choices, points to raise, additional info related to one or more of these points; in such case you can print the list of all the points and then go through one by one including your questions etc.):
 
 1. **The bigger picture** — which end-user feature or outcome does it serve?
 2. **What it contributes to** — how does this task contribute to that? What is its part?
@@ -93,7 +93,9 @@ say which is which.
 Read-only exploration, live fetches, web search, and diagnostic commands (`git log`, `ps`, `lsof`,
 `aws dynamodb list-tables`, a `curl` against the local API).
 
-Running an existing test or a build purely to **observe current behaviour** is allowed, but **ask
+Running a read-only command against the cloud environment, and Cognito is permitted, but **ask permission 
+first**. Running a mutating or state changing command against the cloud environment, and Cognito is NOT permitted.
+Running an existing test or a build purely to **observe current behaviour** is allowed, but **ask permission 
 first** — the local SAM, web server and DynamoDB are shared state the user may be using, and a build
 can invalidate a running `sam local start-api`. Never modify a test to make it reveal something;
 never write application code.

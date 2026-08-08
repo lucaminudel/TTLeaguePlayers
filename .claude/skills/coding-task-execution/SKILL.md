@@ -60,6 +60,9 @@ For each sub-task, in order:
 A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
 tests, or anything you worked around rather than solved — report it and stop.
 
+
+- **Commands against live cloud and Cognito environment** Running a read-only command against the cloud environment, and Cognito is permitted. Before running any mutating or state changing command against the cloud environment, and Cognito, ask permission from the user, and proceed only if the persimiion is give. Present at the end a list of all such write or mutating or state changing command.
+
 ## Phase 4 — Checkpoints
 
 When the plan contains a review checkpoint, **stop completely** and hand back. Show what the
@@ -81,6 +84,50 @@ user before launching** — it is long-running and touches the shared test envir
 
 Never substitute tier 2 for a tier-1 loop (too slow to iterate on), and never let tier 1 stand in
 for tier 2 (different environment, no live Cognito, no clean-room build).
+
+**Prove which environment a run actually reached — never infer it from the flag you passed.** Passing
+`ENVIRONMENT=staging` is an intention, not a result: the value still has to survive the config loader,
+and the config decides whether the client talks to AWS or to a container on localhost. Before
+reporting a result whose meaning depends on the environment, confirm it from the environment itself —
+a table or user that exists in only one of them, a resource the other could not resolve. Read the raw
+config rather than trusting a key name you remember; keys here are not spelled the way you would
+guess (`AWS.Region`, not `AWSRegion`), and a mistyped lookup returns a confident, silent null.
+"Three green staging runs" is worth nothing if they were served by local DynamoDB.
+
+### Test fixtures write to more than the store you tear down
+
+A test's teardown covers the rows it created. It does **not** cover whatever else the code under test
+wrote on the way — and lambdas here routinely write outside their own table. Accepting an invite
+updates the invitee's **Cognito** attributes; deleting the invite afterwards does not undo that.
+
+So before writing a fixture, ask what the code under test writes *besides* the obvious store, and
+whether anything else asserts on it. A fixture pointed at a shared record other suites depend on will
+break them in a way that looks nothing like your change: the failure lands in an unrelated spec file,
+often only on one browser project, and the diff that caused it touches neither.
+
+**Any shared external record a test needs must be declared in the project's provisioning scripts** —
+`scripts/cognito/tests_helpers/register-test-users.sh` for Cognito users — and **never** created or
+reconfigured from a test, or by hand with an `aws` command. Two consequences worth knowing:
+
+- Give the test its own record rather than borrowing one that already exists for another suite. A
+  record two suites both mutate is the same trap one step further away.
+- A new entry usually needs adding in more than one place. A Cognito user added to
+  `register-test-users.sh` must also be added to the exclusion list in `delete-test-users.sh`,
+  including the `list-users` query — otherwise the pipeline's cleanup deletes it and the next run
+  fails.
+
+### Prove the test fails, not just that it passes
+
+A test that has never been seen red is an assertion about nothing. For each behaviour the sub-task
+exists to protect, break the production code deliberately, watch that specific test fail, then revert
+and confirm green. Keep the mutation realistic — the mistake a maintainer would actually make, not a
+syntax error.
+
+This is worth the minutes for the reason that it disproves as often as it confirms. Doing it here
+showed that a null-guard believed to be load-bearing was in fact redundant, and that the real hazard
+lay somewhere else entirely — so both the code comment and the understanding behind it were wrong
+until a mutation said so. Expect that outcome sometimes, and correct the claim when it happens rather
+than reaching for a second mutation that flatters the original guess.
 
 ### What to run for which change
 
@@ -327,7 +374,7 @@ question that assumes they remember the last twenty tool calls fails that test.
 
 In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
 
-Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
+Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topics, one sub-topic at the time, until the sub-topic or topic is fully clarified.
 Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
 
 When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
@@ -354,3 +401,7 @@ passing, and do not narrow it because a step looks awkward.
 - Adapting the plan quietly when it turns out to be wrong.
 - Handing back a question, blocker or checkpoint without the context, cause and options the user
   needs to answer it.
+- Reporting which environment a test run reached from the flag passed to it rather than from evidence.
+- Creating or reconfiguring a shared test record — a Cognito user above all — from a test or by hand,
+  instead of declaring it in the provisioning scripts.
+- Marking a behaviour verified by a test that has never been observed failing.

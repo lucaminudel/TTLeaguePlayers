@@ -65,6 +65,13 @@ and *why* — a future agent reads the description, not this conversation.
 
 Identify the tasks with no dependencies and say which they are; they can start immediately.
 
+**Check the order against real-world sequencing, not only code dependencies.** A graph that is
+correct about what compiles after what can still be wrong about what must *happen* after what —
+deploy ordering, schema before data, a migration before the tests that read the migrated rows, a
+write-path change before the backfill that depends on it. Those constraints usually live in a README
+or a script header rather than in the code, so re-read the ones you cited in research and walk the
+task order against them before presenting.
+
 Sequence verification as **two tiers**, never one:
 - a fast inner loop on the dev environment, reusing the already-running local web server and SAM
 - one authoritative final run of the full pipeline on the test environment
@@ -76,10 +83,14 @@ front of a half-wired tree.
 
 ## Phase 5 — Question the gaps
 
-Batch the questions; do not interrogate incrementally. Use `AskUserQuestion` with a recommendation
-as the first option and a concrete `preview` snippet showing what each choice looks like in code.
-Every question must change what you build — if a sensible default exists, take it and state it as
-an assumption instead.
+Use `AskUserQuestion` with a recommendation as the first option and a concrete `preview` snippet
+showing what each choice looks like in code. Every question must change what you build — if a
+sensible default exists, take it and state it as an assumption instead.
+
+**One topic per stop — see Standing rules.** That rule governs prose presentations exactly as much
+as `AskUserQuestion` calls. Answering a question, summarising the changes you just applied, and
+asking whether to proceed are three topics; putting them in one message breaks it just as surely as
+a four-question panel does.
 
 State your remaining assumptions explicitly, so silence counts as agreement.
 
@@ -87,12 +98,6 @@ State your remaining assumptions explicitly, so silence counts as agreement.
 class to modify. If research says otherwise, present the trade-off with costs, flag the divergence
 from what they wrote, and get explicit confirmation. Do not silently comply, and do not silently
 deviate.
-
-**Discuss with the user one topic at the time.** 
-Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
-Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
-
-When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
 
 
 ## Phase 6 — Present, amend, confirm, persist
@@ -130,7 +135,7 @@ this skill. Corrections the user made are the highest-value input. Ask the user 
 
 - Writing application code before phase 6 confirmation.
 - Planning against an external data source without fetching it first.
-- Asking questions one at a time, or asking questions whose answer would not change the work.
+- Asking questions whose answer would not change the work, or bundling several topics into one stop.
 - Inferring process rules from repo guideline docs instead of asking.
 - Declaring a change safe for another stack without running that stack's tests.
 - Persisting the plan only to the in-session task list, which the next session cannot read.
@@ -146,7 +151,11 @@ transcript:
 - **What is it about** — a short and clear summary of what is it all about.
 - **your findings or relevant data** — a short and clear summary of the findings or data or facts you want to preset, before sharing the details.
 - **What is the question or decision or contribution you are asking for** — a short and clear summary of what you expect from the user and the pros and cons and/or consequences of each choise
-
 Keep it short enough to read in under a minute.
-
 In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
+- **Discuss with the user one topic at the time.** 
+Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
+Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
+
+When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
+- **Commands against live cloud and Cognito environment** Running a read-only command against the cloud environment, and Cognito is permitted, but **ask permission first**. Running during the incpetion a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. It is ok for that to be part of the plan the inception creates, inform the user in such case.

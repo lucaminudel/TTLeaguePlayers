@@ -150,6 +150,18 @@ Standing rules describes — where each finding came from, why it is wrong, and 
 its blast radius and the alternative of leaving it. Change nothing until they approve. If they amend
 it, fold the amendment in and re-present.
 
+**List all the findings at once; then take them ONE AT A TIME.** The two lists exist so the user can
+see the whole picture before deciding anything — that part is a single presentation. Deciding is not.
+Do not close with "approve findings 1, 2 and 3?", and do not offer a recommendation that bundles
+them: each finding has its own failing case, its own fix, its own cost, and the user may reshape one
+and reject another. Ask about the first, settle it, **fix it and verify it**, then move to the second.
+
+This is the phase where the temptation to bundle is strongest, because the analysis is finished and
+it all feels like one deliverable. It is not one deliverable to the person answering — and a bundled
+question quietly pushes them to accept a fix they would have improved. In practice they often will:
+expect the user's alternative to beat your proposal, particularly on operational cost, and treat that
+as the normal outcome rather than a correction.
+
 ## Phase 4 — Fix
 
 Execute the approved plan only. Nothing from list 2 gets touched, and no cleanup gets folded in
@@ -179,12 +191,23 @@ understandable on its own** — the reviewer should grasp what the change does a
 *before* opening a single file, and should never have to reverse-engineer a file's purpose from its
 diff. Assume no memory of the plan, the execution session, or this codebase's conventions.
 
-Append it, with the phase 2–4 findings, as a
-**`## Review`** section at the end of
-`~/.claude/projects/.../memory/work-summary-<slug>.md`, and
-post it in the chat too.
+**It goes in its own document.** Write it, with the phase 2–4 findings, to
+`~/.claude/projects/.../memory/review-<slug>.md` — a
+new file, **not** appended to `work-summary-<slug>.md`. Give it the usual frontmatter (`name`,
+`description`, `metadata.type: project`) and add a pointer line to `MEMORY.md`.
 
-The section carries:
+The two documents have different readers and different lifetimes. The work summary is the *execution*
+record — per sub-task, written as the work happened, and it only grows. The review guide is written
+once, for a person about to read the diff cold, and it is the thing they open first. Appending the
+guide to a 50-page execution log buries the document that was meant to be the entry point, and makes
+the reader scroll past sub-task notes they have no reason to read.
+
+**Do not paste the whole guide into the chat.** Post a condensed version — what the change does, the
+verification status, the findings, and the reading order — and then, **as the last thing in the
+final message, present the link to the document you created.** The link is the deliverable; the chat
+summary exists so the user can decide whether to open it now or when they sit down to review.
+
+The document carries:
 
 - **What this change does** — a short paragraph, in the terms of the app rather than of the code:
   the user-visible or behavioural outcome, and the shape of the solution. Enough that the rest of
@@ -275,8 +298,14 @@ thorough, and do not soften a real finding into a suggestion.
 - Starting fixes before the user approves the fix plan.
 - Launching the tier-2 pipeline without asking.
 - Committing or staging anything.
+- Asking the user to approve two or more findings in one question, or recommending them as a block.
+- Moving to the next finding before the current one is decided, fixed and verified.
 - Writing a PR guide that restates the diff instead of directing attention within it.
 - Listing a file in the PR guide without saying what it is, why it changed, and what to look for in
   it.
+- Appending the PR guide to the work summary instead of giving it its own `review-<slug>.md`.
+- Pasting the whole guide into the chat, or ending the final message with anything other than the
+  link to it.
 - Handing back a question, a red pipeline or a fix plan without the context, cause and options the
   user needs to answer it.
+- Commands against live cloud and Cognito environment: Running a read-only command against the cloud environment, and Cognito is permitted, but **ask permission first**. Running during the review a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. 
