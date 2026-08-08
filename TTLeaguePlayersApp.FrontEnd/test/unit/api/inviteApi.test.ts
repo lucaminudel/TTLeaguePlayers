@@ -2,7 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { inviteApi } from '../../../src/api/inviteApi';
 import { apiFetch } from '../../../src/api/api';
 import { getConfig, type EnvironmentConfig } from '../../../src/config/environment';
-import { type CreateInviteRequest, Role } from '../../../src/types/invite';
+import {
+  type CreateInviteRequest,
+  type TeamRegistrationsRequest,
+  type TeamRegistrationsResponse,
+  Role,
+} from '../../../src/types/invite';
+import { invalidateCacheByPrefix } from '../../../src/utils/CacheUtils';
+import { INVITE_CACHE_PREFIX } from '../../../src/api/cachedInviteApi';
 
 // Mock dependencies
 vi.mock('../../../src/api/api', () => ({
@@ -11,6 +18,10 @@ vi.mock('../../../src/api/api', () => ({
 
 vi.mock('../../../src/config/environment', () => ({
   getConfig: vi.fn(),
+}));
+
+vi.mock('../../../src/utils/CacheUtils', () => ({
+  invalidateCacheByPrefix: vi.fn(),
 }));
 
 describe('inviteApi', () => {
@@ -154,6 +165,126 @@ describe('inviteApi', () => {
           body: JSON.stringify({ accepted_at: acceptedAt }),
         })
       );
+    });
+  });
+
+  describe('getTeamRegistrations', () => {
+    const request: TeamRegistrationsRequest = {
+      league: 'CLTTL',
+      season: '2025-2026',
+      club_name: 'Morpeth Table Tennis Club',
+      club_location: 'London',
+      team_names: ['Morpeth 9', "St Katharine's Trust 2"],
+    };
+
+    it('should POST to /invites/registrations', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ teams: [] });
+
+      await inviteApi.getTeamRegistrations(request);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites/registrations',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    // The team list travels in the BODY, never in the URL. These names contain a space and an
+    // apostrophe, which is the reason the endpoint is a POST at all.
+    it('should send the whole request in the body, spaces and apostrophes intact', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ teams: [] });
+
+      await inviteApi.getTeamRegistrations(request);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites/registrations',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(request),
+        })
+      );
+    });
+
+    it('should not put team names in the path', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ teams: [] });
+
+      await inviteApi.getTeamRegistrations(request);
+
+      const [, path] = vi.mocked(apiFetch).mock.calls[0];
+      expect(path).toBe('/invites/registrations');
+      expect(path).not.toContain('Morpeth');
+      expect(path).not.toContain('Katharine');
+    });
+
+    it('should return the response unchanged', async () => {
+      const response: TeamRegistrationsResponse = {
+        league: 'CLTTL',
+        season: '2025-2026',
+        club_name: 'Morpeth Table Tennis Club',
+        club_location: 'London',
+        teams: [
+          { team_name: 'Morpeth 9', status: 'ACCEPTED', accepted_at: 1786000000, nano_id: 'abcd1234' },
+          { team_name: 'Morpeth 10', status: 'PENDING', accepted_at: null, nano_id: 'efgh5678' },
+          { team_name: 'Morpeth 11', status: 'NOT_INVITED', accepted_at: null },
+        ],
+      };
+      vi.mocked(apiFetch).mockResolvedValue(response);
+
+      const result = await inviteApi.getTeamRegistrations(request);
+
+      expect(result).toEqual(response);
+      // NOT_INVITED entries carry accepted_at: null and no nano_id.
+      expect(result.teams[2].accepted_at).toBeNull();
+      expect(result.teams[2].nano_id).toBeUndefined();
+    });
+
+    it('should not invalidate the cache — it is a read', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ teams: [] });
+
+      await inviteApi.getTeamRegistrations(request);
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
+    });
+  });
+
+  // A new or accepted invite changes what getTeamRegistrations would return, and that answer is
+  // cached for a day. Without invalidation a manager who has just invited a captain keeps being told
+  // the team is NOT_INVITED.
+  describe('cache invalidation', () => {
+    it('should invalidate the invite cache after creating an invite', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ nano_id: 'abcd1234' });
+
+      const request: CreateInviteRequest = {
+        invitee_name: 'Test Captain',
+        invitee_email_id: 'captain@example.com',
+        invitee_role: Role.CAPTAIN,
+        invitee_team: 'Morpeth 9',
+        team_division: 'Division 4',
+        league: 'CLTTL',
+        season: '2025-2026',
+        invited_by: 'Test',
+      };
+
+      await inviteApi.createInvite(request);
+
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(INVITE_CACHE_PREFIX);
+    });
+
+    it('should invalidate the invite cache after accepting an invite', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ nano_id: 'abcd1234', accepted_at: 1786000000 });
+
+      await inviteApi.acceptInvite('abcd1234', 1786000000);
+
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(INVITE_CACHE_PREFIX);
+    });
+
+    it('should not invalidate the cache when reading a single invite', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ nano_id: 'abcd1234' });
+
+      await inviteApi.getInvite('abcd1234');
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
     });
   });
 });
