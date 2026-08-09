@@ -95,6 +95,92 @@ The two environments do not behave identically, because **SAM local applies no A
 *  **Assert `401` for authentication in the cloud branch only.** A test that asserts a protected endpoint rejects an unauthenticated caller is meaningless locally — it would pass for the wrong reason (no authorizer, so 404 or 200), or fail for the wrong reason. Put the `401` expectation behind `ACloudEnvironmentIsTrue()`.
 *  **Consequence to plan for: security configuration is only verified by the staging smoke-test run.** When a change adds a protected endpoint, or overrides an authorizer for a specific route, a green local run proves nothing about it. The verification happens when the smoke tests run against staging — so treat that run as a required gate for such changes, not an optional extra.
 
+## The two xUnit traits that decide which backend tests run
+
+The C# backend suite is filtered by **two independent traits**. Neither is decoration: each one is read
+by a CI script, so getting one wrong silently changes what a pipeline actually verifies.
+
+| Trait | Where it goes | Who reads it | Effect |
+|---|---|---|---|
+| `[Trait("Cognito", "Live")]` | on the **individual test** | `run_backend_acceptance_tests.sh`, `run_full_stack_builds_tests_pipeline.sh` — `--filter Cognito!=Live` when the `COGNITO` argument is **absent** | **Excludes** the test from the "no live Cognito" run |
+| `[Trait("Environment", "Staging")]` | on the **test class** | `run_smoke_tests_staging.sh` — `--filter "Environment=Staging"` | **Includes** the class in the staging smoke run; everything untagged is skipped there |
+
+They answer different questions, so a test can carry one, both or neither.
+
+### `[Trait("Cognito", "Live")]` — "does this test reach real AWS Cognito?"
+
+Add it to **every individual test** that causes a call to real Cognito, whether the test makes that call
+itself or the code under test makes it. There are two ways to reach Cognito, and **the second is the one
+that gets missed**.
+
+**1 — Directly: the test itself calls the Cognito SDK.** Authenticating to obtain an id token
+(`AdminInitiateAuthAsync`), or reading a user's attributes back to assert on them.
+
+> ⚠️ **`InitializeAsync` counts, and it counts for every test in the class.** A class implementing
+> `IAsyncLifetime` gets a **new instance per test**, so a `InitializeAsync` that logs in authenticates
+> once per test — every test in that class reaches Cognito, even the ones whose body is a pure
+> 405/CORS check. `ClubsAndTournamentsAcceptanceTests` is exactly this shape. The same applies to a
+> `DisposeAsync` that re-authenticates in order to clean up.
+
+**2 — Indirectly: the request reaches a lambda that calls Cognito.** Only four lambdas hold a real
+`CognitoUsers` (built in `ApiGatewayProxyHandler.cs:61`), and each calls it only on a specific path:
+
+| Route | Cognito call | Reached only when |
+|---|---|---|
+| `POST /invites` | `RetrieveCognitoUserByEmailId` (`CreateInviteLambda.cs:241`) | `invitee_role` is **`CLUB_MANAGER`** — and only after `ValidateRequestStructure` passes |
+| `GET /invites/{id}` | `IsUserRegisteredByEmail` (`GetInviteLambda.cs:28`) | the invite **exists** — a 404 throws before the call |
+| `PATCH /invites/{id}` | `RetrieveCognitoUserByEmailId` (`AccepteInviteLambda.cs:51`) | the invite exists **and** is not already accepted |
+| `POST /kudos` | `AddLatestKudosDateToActiveSeason` (`CreateKudosLambda.cs:60`) | the authenticated success path |
+
+Those conditions are the whole rule — several tests hit these routes and still never reach Cognito, and
+tagging them would wrongly remove them from the no-Cognito run:
+
+*  a `400` test on `POST /invites` with `CLUB_MANAGER`, because validation rejects it **before** the branch;
+*  a `GET`/`PATCH`/`DELETE` against a non-existent or already-deleted invite, because the not-found path returns first;
+*  a "should be protected" test, because the authorizer rejects the request before the lambda runs.
+
+**Tests that use `FakeCognitoClient` never need the trait.** All Lambda unit tests inject it (a subclass
+of `AmazonCognitoIdentityProviderClient` overriding `ListUsersAsync` / `AdminUpdateUserAttributesAsync`),
+so nothing leaves the process. Neither do tests of the **static** helpers on `CognitoUsers`
+(`ExtractManagedClubs`, `FindConflictingLeagueSeasonEntry`, `ExtractUserClaims`, …) — those are pure
+functions and construct no client.
+
+**How to check rather than guess.** Run the tests with deliberately invalid AWS credentials; anything
+that truly reaches Cognito fails, and the stack trace names the call site:
+
+```
+AWS_ACCESS_KEY_ID=AKIAINVALIDINVALID00 AWS_SECRET_ACCESS_KEY=bogus... AWS_EC2_METADATA_DISABLED=true \
+ENVIRONMENT=dev dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" \
+  --filter "Cognito!=Live"
+```
+
+A clean result means the no-Cognito mode is honest. Any failure is a test that needs the trait. Use
+`--list-tests` to see what a filter selects without executing anything.
+
+**Why it matters.** An untagged Cognito test makes `--filter Cognito!=Live` a lie: the "local, no live
+Cognito" run still calls AWS, so it fails for anyone without credentials or connectivity, and it keeps
+consuming the Cognito request quota that the whole point of that mode is to protect.
+
+### `[Trait("Environment", "Staging")]` — "is this test meaningful against a deployed stack?"
+
+Put it on the **class**, not on individual tests. Add it when the class exercises a **real,
+environment-configured resource** — the DynamoDB tables selected by `ENVIRONMENT`, the HTTP API, or the
+config loader itself. Those are the classes whose result actually changes when pointed at staging, and
+`run_smoke_tests_staging.sh` runs **only** them.
+
+Tagged today: the four **acceptance** classes (`ClubsAndTournamentsAcceptanceTests`,
+`InvitesAcceptanceTests`, `KudosAcceptanceTests`, `TeamRegistrationsAcceptanceTests`), the four
+**DataStore integration** classes (`ClubsAndTournamentsDataTableTest`, `InvitesDataTableTest`,
+`InvitesDataTableRetrieveCaptainInvitesTest`, `KudosDataTableTest`), and `LoaderTest`.
+
+**Do not add it to tests that run entirely on fakes** — every `*LambdaTests` class, `CognitoUsersTests`,
+`FunctionTest`. They pass or fail identically wherever they run, so including them would lengthen the
+smoke run while proving nothing about the deployed stack.
+
+A new test class that talks to DynamoDB or to the API needs this trait, or it will **silently never run
+against staging** — and per the section above, staging is the only run that exercises the real API
+Gateway authorizer.
+
 # Cognito test users creation and use
 
 ## The static Cognito user pool
@@ -129,16 +215,36 @@ So when changing the code related to those tests, it is necessary to clean and r
 ### Mechanism 1 — Most static users are used read-only
 Across both backend acceptance tests and frontend e2e specs, most of the static users are used purely to **log in and read** their pre-baked `active_seasons` / `managed_clubs` attributes . Since these tests never write to the user's Cognito attributes, there's no accumulated state to collide with.
 
-### Mechanism 2 — Invite-acceptance tests: Group A (no Cognito touch)
+### Mechanism 2 — Invite tests: Group A (reads Cognito at most, never writes it)
 
-The tests of both groups are in `InvitesAcceptanceTests.cs`' and they **never** reset any Cognito user.
+The tests of both groups are in `InvitesAcceptanceTests.cs` and they **never** reset any Cognito user.
 
-#### Group A — E2E Tests that never touch Cognito at all
-Group A tests are read-only/no-touch with respect to Cognito simply because the code path they exercise never reaches it — no static-user reuse concern applies to them.
+#### Group A — Backend acceptance tests that never *write* to Cognito
+No static-user reuse concern applies to Group A, because nothing they do leaves state behind. Note the
+reason carefully: it is **not** that they never reach Cognito. Several of them do — but only to **read**
+(`ListUsers`), and a read accumulates nothing.
 
-Tests for CAPTAIN/PLAYER roles that only exercise `POST /invites`, `GET /invites/{id}`, or `DELETE /invites/{id}` (create, read, validation, delete — and never the accept step) use throwaway users that are **not part of the static pool**.  Indeed only `PATCH /invites/{id}` (accept) looks up and writes Cognito attributes for.
+Tests for CAPTAIN/PLAYER roles that exercise `POST /invites`, `GET /invites/{id}` or
+`DELETE /invites/{id}` (create, read, validation, delete — never the accept step) use throwaway users
+that are **not part of the static pool**. Which of those actually reach Cognito:
 
- A Create Invite Test for CLUB_MANAGER roles does read Cognito at create-time, but explicitly catches `UserNotFoundException` and returns. 
+*  `DELETE /invites/{id}` — **never**. `DeleteInviteLambda` is constructed without a `CognitoUsers` at all.
+*  `POST /invites` — **only for `CLUB_MANAGER`**, to check for a conflicting managed club. A CAPTAIN or
+   PLAYER create never reaches Cognito.
+*  `GET /invites/{id}` — **on every invite that exists**, to set `invitee_already_registered` via
+   `IsUserRegisteredByEmail` (`GetInviteLambda.cs:28`). This is a read of the pool, not of a specific
+   user's attributes, and it happens regardless of the invite's role. A 404 returns before it.
+*  `PATCH /invites/{id}` (accept) — the **only** route that *writes* Cognito attributes, which is why
+   Group B below is the one with the reuse risk.
+
+A Create Invite test for CLUB_MANAGER roles reads Cognito at create-time and catches
+`UserNotFoundException` to carry on when the invitee is not yet registered — but the **call still
+happens**, so the test still depends on Cognito being reachable.
+
+> Because these reads are real calls to AWS, every Group A test that performs one still needs
+> `[Trait("Cognito", "Live")]` — see *The two xUnit traits that decide which backend tests run* above.
+> Group A is about **write**-state reuse; the trait is about **reachability**. Do not use one to reason
+> about the other.
 
 ### Mechanism 3 — Invite-acceptance tests: Group B (writes to the shared mutated user)
 
@@ -170,7 +276,7 @@ Kudos-rating specs face a subtler problem: the UI disables re-rating a match bas
 | # | Mechanism | Test type(s) |
 |---|---|---|
 | 1 | Static users used read-only | **Both** backend acceptance tests **and** frontend e2e specs  |
-| 2 | Group A (no Cognito touch)  | Backend acceptance tests only  |
+| 2 | Group A (reads Cognito at most, never writes it)  | Backend acceptance tests only  |
 | 3 | Group B.1 (Captain-Player, fixed key "update attributes" test) / Group B.2 (Club Manager: fixed-key "update attributes" test) | Backend acceptance tests only  |
 | 4 | Fresh dynamic `test_<epoch>@delete.me` identities | Frontend e2e only |
 | 5 | Mocking `GetUser` to neutralize `latest_kudos` | Frontend e2e only  |
@@ -190,10 +296,14 @@ Kudos-rating specs face a subtler problem: the UI disables re-rating a match bas
 
 **Backend C# acceptance tests (hit real Cognito, use the static pool — mechanisms 1 and 2):**
 - `TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests/`
+- Note this is **not** limited to the tests that log in. A class whose `IAsyncLifetime.InitializeAsync`
+  authenticates makes *every* test in it hit Cognito, and a test can reach Cognito purely through the
+  lambda it invokes. Both need `[Trait("Cognito", "Live")]`.
 
 **Other Backend C# unit tests (no real Cognito, use fakes — not affected by static-user reuse):**
 The remaining tests under
-- `TTLeaguePlayersApp.BackEnd.Tests/`
+- `TTLeaguePlayersApp.BackEnd.Tests/` — the `*LambdaTests` classes inject `FakeCognitoClient`, and
+  `CognitoUsersTests` exercises only the static, pure helpers on `CognitoUsers`.
 
 **Frontend unit tests (Vitest, no real Cognito — not affected by static-user reuse):**
 - `TTLeaguePlayersApp.FrontEnd/test/unit/`
