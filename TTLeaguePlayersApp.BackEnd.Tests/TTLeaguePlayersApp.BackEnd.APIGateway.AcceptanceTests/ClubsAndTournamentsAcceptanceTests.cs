@@ -43,6 +43,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region GET /clubs Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Clubs_Should_Return_200_With_List()
     {
         var response = await _httpClient.GetAsync("/clubs");
@@ -54,6 +55,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Clubs_Should_Omit_Homepage_And_List_Tournaments_When_Club_Info_Not_Created()
     {
         // No UpsertClubAsync call — the club profile itself was never created, only its tournament.
@@ -79,6 +81,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task POST_Clubs_Should_Return_405_MethodNotAllowed()
     {
         var response = await _httpClient.PostAsync("/clubs", new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -87,6 +90,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task OPTIONS_Clubs_Should_Return_200_For_CORS_Preflight()
     {
         var request = new HttpRequestMessage(HttpMethod.Options, "/clubs");
@@ -105,6 +109,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region GET /clubs/{location} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_ClubsByLocation_Should_Return_200_With_List()
     {
         var response = await _httpClient.GetAsync($"/clubs/{Uri.EscapeDataString(TestLocation)}");
@@ -116,6 +121,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_ClubsByLocation_Should_Handle_UrlEncoded_Location()
     {
         var locationWithSpace = "North East";
@@ -128,6 +134,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task POST_ClubsByLocation_Should_Return_405_MethodNotAllowed()
     {
         var response = await _httpClient.PostAsync($"/clubs/{Uri.EscapeDataString(TestLocation)}", new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -136,6 +143,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task OPTIONS_ClubsByLocation_Should_Return_200_For_CORS_Preflight()
     {
         var request = new HttpRequestMessage(HttpMethod.Options, $"/clubs/{Uri.EscapeDataString(TestLocation)}");
@@ -154,6 +162,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region PUT /clubs/{location}/{clubName} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Be_Protected()
     {
         if (RunningAgainst.ALocalEnvironmentIsTrue())
@@ -168,6 +177,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task DELETE_Club_Should_Be_Protected()
     {
         if (RunningAgainst.ALocalEnvironmentIsTrue())
@@ -181,6 +191,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Create_Club_Successfully()
     {
         var body = CreateUpsertClubJson("https://testclub.example.com");
@@ -200,6 +211,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Be_Idempotent_When_Called_Twice()
     {
         var clubName = "Idempotent Club";
@@ -229,6 +241,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Return_400_For_Invalid_Homepage_Uri()
     {
         var body = CreateUpsertClubJson("not_a_valid_uri");
@@ -242,6 +255,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Return_400_For_Empty_Body()
     {
         var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
@@ -254,6 +268,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Return_400_For_Malformed_Json()
     {
         var content = new StringContent("{ invalid json", Encoding.UTF8, "application/json");
@@ -266,6 +281,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Return_415_For_Unsupported_ContentType()
     {
         var content = new StringContent(CreateUpsertClubJson("https://testclub.example.com"), Encoding.UTF8, "application/xml");
@@ -276,6 +292,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Club_Should_Handle_UrlEncoded_Path_Segments()
     {
         var locationWithSpace = "North East";
@@ -297,6 +314,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Club_Should_Return_200_With_Club_Details()
     {
         var clubName = "Club To Retrieve";
@@ -315,6 +333,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Club_Should_Return_404_When_Club_Not_Found()
     {
         var response = await _httpClient.GetAsync(ClubPath(TestLocation, "NonExistent Club"));
@@ -323,6 +342,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task OPTIONS_Club_Should_Return_200_For_CORS_Preflight()
     {
         var request = new HttpRequestMessage(HttpMethod.Options, ClubPath(TestLocation, TestClubName));
@@ -341,6 +361,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region DELETE /clubs/{location}/{clubName} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task DELETE_Club_Should_Delete_Club_Successfully()
     {
         var clubName = "Club To Delete";
@@ -352,6 +373,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task DELETE_Club_Should_Be_Idempotent_When_Called_Twice()
     {
         var clubName = "Club To Delete Twice";
@@ -369,6 +391,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region GET /clubs/{location}/{clubName}/tournaments Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_TournamentsForClub_Should_Return_200_With_List()
     {
         var clubName = "Tournaments List Club";
@@ -386,6 +409,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_TournamentsForClub_Should_Return_Tournaments_When_Club_Info_Not_Created()
     {
         // No UpsertClubAsync call — the club profile itself was never created, only its tournament.
@@ -406,6 +430,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_TournamentsForClub_Should_Return_Empty_List_For_Unknown_Club()
     {
         var response = await _httpClient.GetAsync(ClubTournamentsPath(TestLocation, "Unknown Club For Tournaments 99"));
@@ -418,6 +443,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_TournamentsForClub_Should_Handle_UrlEncoded_Location_And_ClubName()
     {
         var locationWithSpace = "North East";
@@ -433,6 +459,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task POST_TournamentsForClub_Should_Return_405_MethodNotAllowed()
     {
         var response = await _httpClient.PostAsync(ClubTournamentsPath(TestLocation, TestClubName), new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -441,6 +468,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task OPTIONS_TournamentsForClub_Should_Return_200_For_CORS_Preflight()
     {
         var request = new HttpRequestMessage(HttpMethod.Options, ClubTournamentsPath(TestLocation, TestClubName));
@@ -459,6 +487,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region PUT /clubs/{location}/{clubName}/tournaments/{tournamentName} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Tournament_Should_Create_Tournament_Successfully()
     {
         await UpsertClubAsync(TestLocation, TestClubName, "https://testclub.example.com");
@@ -473,6 +502,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Tournament_Should_Return_400_For_Invalid_TournamentInfo_Uri()
     {
         var body = CreateUpsertTournamentJson("not_a_valid_uri");
@@ -486,6 +516,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Tournament_Should_Return_400_For_Empty_Body()
     {
         var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
@@ -498,6 +529,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Tournament_Should_Return_415_For_Unsupported_ContentType()
     {
         var content = new StringContent(CreateUpsertTournamentJson("https://tournament.example.com"), Encoding.UTF8, "application/xml");
@@ -508,6 +540,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task PUT_Tournament_Should_Handle_UrlEncoded_Path_Segments()
     {
         var locationWithSpace = "North East";
@@ -525,6 +558,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task POST_Tournament_Should_Return_405_MethodNotAllowed()
     {
         var response = await _httpClient.PostAsync(TournamentPath(TestLocation, TestClubName, TestTournamentName), new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -533,6 +567,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task OPTIONS_Tournament_Should_Return_200_For_CORS_Preflight()
     {
         var request = new HttpRequestMessage(HttpMethod.Options, TournamentPath(TestLocation, TestClubName, TestTournamentName));
@@ -551,6 +586,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region GET /clubs/{location}/{clubName}/tournaments/{tournamentName} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Tournament_Should_Return_Tournament_Successfully()
     {
         await UpsertClubAsync(TestLocation, TestClubName, "https://testclub.example.com");
@@ -568,6 +604,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Tournament_Should_Return_404_For_NonExistent_Tournament()
     {
         var response = await _httpClient.GetAsync(TournamentPath(TestLocation, TestClubName, "NonExistentTournament99"));
@@ -580,6 +617,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     #region DELETE /clubs/{location}/{clubName}/tournaments/{tournamentName} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task DELETE_Tournament_Should_Delete_Tournament_Successfully()
     {
         var tournamentName = "Tournament To Delete";
@@ -592,6 +630,7 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task DELETE_Tournament_Should_Be_Idempotent_When_Called_Twice()
     {
         var tournamentName = "Tournament To Delete Twice";

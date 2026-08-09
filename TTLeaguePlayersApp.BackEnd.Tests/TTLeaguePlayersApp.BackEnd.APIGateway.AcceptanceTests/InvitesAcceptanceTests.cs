@@ -85,6 +85,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task POST_Invites_With_ClubManager_Should_Create_New_Invite_Successfully()
     {
         // Arrange
@@ -256,6 +257,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     #region GET /invites/{nano_id} Tests
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Invite_Should_Return_Captain_Invite_Successfully()
     {
         // Arrange - Create an invite first
@@ -294,6 +296,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task GET_Invite_Should_Return_ClubManager_Invite_Successfully()
     {
         // Arrange - Create an invite first
@@ -1104,6 +1107,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         getAfter.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
     [Fact]
+    [Trait("Cognito", "Live")]
     public async Task DELETE_ClubManager_Invite_Should_Delete_Invite_Successfully()
     {
         // Arrange - Create an invite first

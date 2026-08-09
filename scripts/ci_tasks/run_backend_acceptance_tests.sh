@@ -120,7 +120,7 @@ else
     echo "No Live Cognito setup..."
 fi
 
-# ENVIRONMENT is local to this script's process and its children
+# ENVIRONMENT is local to this script's process and its children, it is read by the test project
 export ENVIRONMENT="$CONFIG_ENV"
 
 if [ "$EXECUTE_LIVE_COGNITO_TESTS" = "true" ]; then
