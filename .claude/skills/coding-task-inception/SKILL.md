@@ -32,6 +32,13 @@ If the user asks a question mid-brief, answer it, but do not start planning.
 What to implement, constraints, quality criteria, example files, how to verify. Do not push back
 yet; collect everything, then note conflicts for phase 5.
 
+**One topic per stop — see Standing rules.** The specification arrives as several strands — scope,
+wording, constraints, example files — and collecting them as a numbered list in one message is the
+obvious move and the wrong one. Ask for one strand, wait, then ask for the next.
+
+A gap you find between the user's brief and the Discovery findings report is **itself a topic**, not a
+preamble to append to a question about something else. Raise it alone.
+
 ## Phase 3 — Research
 
 The most valuable phase. Budget real effort here — every plan defect in practice traced back to
