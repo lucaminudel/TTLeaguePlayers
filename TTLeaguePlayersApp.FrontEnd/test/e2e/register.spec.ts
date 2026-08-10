@@ -698,7 +698,6 @@ test.describe('Register with Invite Flow', () => {
     });
 
     test('registration with invite success - happy path', async ({ page }) => {
-      test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
       const inviteId = 'abcd5678';
       const email = uniqueTestEmail();

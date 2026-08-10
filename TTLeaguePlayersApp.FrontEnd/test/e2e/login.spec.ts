@@ -64,6 +64,8 @@ test.describe('Login Flow', () => {
     });
 
     test('login - non existing user shows expected error message', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
         const user = new UserFlow(page);
         const loginPage = await user.navigateToLogin();
         
