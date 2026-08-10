@@ -77,8 +77,10 @@ export interface TeamRegistrationsRequest {
     club_name: string;
     club_location: string;
     /**
-     * Matched BYTE-EXACTLY against the stored invites — the backend has no case-insensitive
-     * comparison. A casing or punctuation difference yields NOT_INVITED with no error.
+     * Matched against the stored invites CASE-INSENSITIVELY and with surrounding whitespace IGNORED.
+     * Matching is forgiving about nothing else: it is not a prefix match, and PUNCTUATION STILL
+     * COUNTS — a curly apostrophe is a different team from a straight one, and yields NOT_INVITED
+     * with no error.
      */
     team_names: string[];
 }

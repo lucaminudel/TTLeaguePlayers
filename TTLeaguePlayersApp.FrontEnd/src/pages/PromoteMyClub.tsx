@@ -11,7 +11,7 @@ import { FieldError } from '../components/common/FieldError';
 import { ManagedClubsCard } from '../components/ui/ManagedClubsCard';
 import { useAuth } from '../hooks/useAuth';
 import { clubsApi, type PromotableClubRequest } from '../api/clubsApi';
-import { createManagedClubKey } from '../utils/clubUtils';
+import { createManagedClubKey, selectActiveManagedClubs } from '../utils/clubUtils';
 import { getConfig } from '../config/environment';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
@@ -306,33 +306,11 @@ export const PromoteMyClub: React.FC = () => {
     const config = getConfig();
     const nowEpoch = getClockTimeInEpochSeconds();
 
-    const managedClubs = allManagedClubs.filter(club => {
-        try {
-            const dataSourceList = config.active_seasons_data_source as typeof config.active_seasons_data_source | undefined;
-            if (!dataSourceList || dataSourceList.length === 0) {
-                throw new Error('Configuration error: active_seasons_data_source is missing from the environment config.');
-            }
-
-            const matchingConfig = dataSourceList.find(
-                source => source.league === club.league && source.season === club.season
-            );
-
-            if (!matchingConfig) {
-                throw new Error(`Data source not found for league "${club.league}" and season "${club.season}".`);
-            }
-
-            const startEpoch = matchingConfig.registrations_start_date;
-            const endDate = new Date(matchingConfig.ratings_end_date * 1000);
-            const endOfYear = new Date(Date.UTC(endDate.getUTCFullYear(), 11, 31, 23, 59, 59));
-            const endOfYearEpoch = Math.floor(endOfYear.getTime() / 1000);
-
-            return nowEpoch >= startEpoch && nowEpoch <= endOfYearEpoch;
-        } catch (err) {
-            console.info('❌ Page event log processing managed club:', err);
-            //throw err;
-            return false;
-        }
-    });
+    // Shared with MyClubTeams - see selectActiveManagedClubs in utils/clubUtils. This page needs only
+    // the surviving clubs; the matched data source it used to compute and discard is returned by the
+    // helper for the pages that do need it.
+    const managedClubs = selectActiveManagedClubs(allManagedClubs, config.active_seasons_data_source, nowEpoch)
+        .active.map(({ club }) => club);
 
     const [selectedClubKey, setSelectedClubKey] = useState<string | null>(null);
     const [formValues, setFormValues] = useState<ClubFormValues>(emptyFormValues);

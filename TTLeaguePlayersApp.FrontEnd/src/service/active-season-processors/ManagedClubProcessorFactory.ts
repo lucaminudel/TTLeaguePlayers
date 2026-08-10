@@ -25,6 +25,7 @@ export function createManagedClubProcessor(
     processorName: string,
     dataSource: ActiveSeasonDataSource,
     clubName: string,
+    clubLocation: string,
     avoidCORS = false
 ): ManagedClubProcessor {
     const ManagedClubProcessorClass = clubProcessorRegistry[processorName] as ManagedClubProcessorConstructor | undefined;
@@ -35,8 +36,9 @@ export function createManagedClubProcessor(
     const realProcessor = new ManagedClubProcessorClass(dataSource, clubName, avoidCORS);
 
     // Create a unique cache key. The club's teams do not vary by division or team, so this key
-    // is deliberately distinct from the fixtures one.
-    const uniqueKey = `cache_club_${dataSource.league}_${dataSource.season}_${clubName}`;
+    // is deliberately distinct from the fixtures one. The location is part of the key because a
+    // club is identified by location AND name — two towns can host clubs of the same name.
+    const uniqueKey = `cache_club_${dataSource.league}_${dataSource.season}_${clubLocation}_${clubName}`;
 
     return new ManagedClubProcessorWithLocalStorageCache(realProcessor, uniqueKey);
 }

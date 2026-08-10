@@ -40,6 +40,11 @@ vi.mock('../../../src/api/clubsApi', () => ({
 }));
 
 describe('PromoteMyTournaments', () => {
+    // The whole suite runs on this fixed clock. Anything year-sensitive must be derived from it and
+    // never from the real wall-clock, or the expectations drift as calendar years pass.
+    const FIXED_CLOCK = '2025-06-01T12:00:00Z';
+    const FIXED_CLOCK_YEAR = new Date(FIXED_CLOCK).getFullYear();
+
     const managedClub = {
         league: 'CLTTL',
         season: '2025-2026',
@@ -102,7 +107,7 @@ describe('PromoteMyTournaments', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        setUnitFixedClockTime('2025-06-01T12:00:00Z');
+        setUnitFixedClockTime(FIXED_CLOCK);
 
         mockUseAuth.mockReturnValue({
             isAuthenticated: true,
@@ -435,8 +440,10 @@ describe('PromoteMyTournaments', () => {
     });
 
     describe('tournament date range formatting', () => {
-        // formatTournamentDateRange compares against the real wall-clock "now" (not the fixed test clock),
-        // so "current year" cases are computed relative to the actual current year at test-run time.
+        // formatTournamentDateRange compares against getClockTime(), so "current year" here means the
+        // year of the fixed test clock. The assertions below match the link text exactly rather than by
+        // substring: a substring match cannot tell "15 Jul" from "15 Jul, 2026", which is precisely the
+        // elision rule these cases exist to protect.
         const localEpoch = (year: number, month: number, day: number) =>
             Math.floor(new Date(year, month - 1, day, 12, 0, 0).getTime() / 1000);
 
@@ -449,45 +456,43 @@ describe('PromoteMyTournaments', () => {
         };
 
         it('shows only the end date, with no leading range, when start and end are the same day in the current year', async () => {
-            const year = new Date().getFullYear();
-            const sameDay = localEpoch(year, 7, 15);
+            const sameDay = localEpoch(FIXED_CLOCK_YEAR, 7, 15);
 
             await renderWithTournamentDates(sameDay, sameDay);
 
             const link = screen.getByTestId('tournament-link');
-            expect(link).toHaveTextContent(`${sampleTournament.tournament_name}, 15 Jul`);
+            expect(link.textContent).toBe(`${sampleTournament.tournament_name}, 15 Jul`);
             expect(link.textContent).not.toContain('-');
         });
 
         it('hides the start month and the year when start/end share month and the current year, but keeps the differing day', async () => {
-            const year = new Date().getFullYear();
-            const start = localEpoch(year, 7, 1);
-            const end = localEpoch(year, 7, 20);
+            const start = localEpoch(FIXED_CLOCK_YEAR, 7, 1);
+            const end = localEpoch(FIXED_CLOCK_YEAR, 7, 20);
 
             await renderWithTournamentDates(start, end);
 
-            expect(screen.getByTestId('tournament-link')).toHaveTextContent(`${sampleTournament.tournament_name}, 1 - 20 Jul`);
+            expect(screen.getByTestId('tournament-link').textContent).toBe(`${sampleTournament.tournament_name}, 1 - 20 Jul`);
         });
 
         it('shows the year once, on the end date, when start and end share a year different from the current year', async () => {
-            const year = new Date().getFullYear() + 1;
+            const year = FIXED_CLOCK_YEAR + 1;
             const start = localEpoch(year, 3, 5);
             const end = localEpoch(year, 6, 10);
 
             await renderWithTournamentDates(start, end);
 
-            expect(screen.getByTestId('tournament-link')).toHaveTextContent(`${sampleTournament.tournament_name}, 5 Mar - 10 Jun, ${String(year)}`);
+            expect(screen.getByTestId('tournament-link').textContent).toBe(`${sampleTournament.tournament_name}, 5 Mar - 10 Jun, ${String(year)}`);
         });
 
         it('shows both years when start and end fall in different years', async () => {
-            const startYear = new Date().getFullYear() + 1;
+            const startYear = FIXED_CLOCK_YEAR + 1;
             const endYear = startYear + 1;
             const start = localEpoch(startYear, 12, 30);
             const end = localEpoch(endYear, 1, 3);
 
             await renderWithTournamentDates(start, end);
 
-            expect(screen.getByTestId('tournament-link')).toHaveTextContent(
+            expect(screen.getByTestId('tournament-link').textContent).toBe(
                 `${sampleTournament.tournament_name}, 30 Dec, ${String(startYear)} - 3 Jan, ${String(endYear)}`
             );
         });

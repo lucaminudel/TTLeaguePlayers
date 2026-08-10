@@ -133,6 +133,20 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     register_user "$EMAIL9" "$COMMON_PASSWORD" "true"
     echo "Cognito Test user '$EMAIL9' registered and confirmed successfully as the team-registrations invitee!"
 
+    # 10. Manager for the My Club Teams page, owned by MyClubTeams.spec.ts.
+    #     Both club_name values must appear VERBATIM in club_teams in config/*.env.json, or
+    #     getUrlFromSource throws before any fetch - mocking the club page does not help there.
+    #     Walworth and Highbury are used by no other spec, so nothing races on them.
+    #     Two DIFFERENT locations on purpose: the button label is "location / league", so equal
+    #     locations would render two identical buttons (and now log a console.error).
+    #     Known and accepted: two clubs in one league+season trips the integrity check in
+    #     AuthContextParsers, so this user logs a console.error on every login. Only CLTTL has
+    #     club_teams configured, so a second league is not an option.
+    EMAIL10="test_my_club_teams_manager@user.test"
+    MANAGED_CLUBS_JSON10='[{"league":"CLTTL","season":"2025-2026","club_name":"Walworth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2025-2026","club_name":"Highbury Table Tennis Club","club_location":"Islington","manager_name":"Luca Minudel"}]'
+    register_user "$EMAIL10" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON10"
+    echo "Cognito Test user '$EMAIL10' registered and confirmed successfully as the My Club Teams manager!"
+
 fi
 
 

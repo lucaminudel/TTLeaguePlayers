@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ManagedClubsCard } from '../../../../src/components/ui/ManagedClubsCard';
 
@@ -26,8 +27,15 @@ function key(league: string, season: string, club_name: string) {
 
 describe('ManagedClubsCard – default mode', () => {
     const onSelectClub = vi.fn();
+    let consoleErrorSpy: MockInstance;
 
-    beforeEach(() => { vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        // Silenced so a deliberately-logged integrity issue does not pollute the suite output.
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => { consoleErrorSpy.mockRestore(); });
 
     it('renders one button per club entry', () => {
         render(
@@ -54,6 +62,42 @@ describe('ManagedClubsCard – default mode', () => {
         );
 
         expect(screen.getByRole('button', { name: 'London / League A' })).toBeInTheDocument();
+    });
+
+    // The label is location + league, so two clubs sharing both are indistinguishable to the manager.
+    // Only reachable through a config error, hence logged rather than fixed in the label.
+    it('logs an error when two clubs produce the same button label', () => {
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC', 'League A', '2025'),
+                    club('London', 'Battersea TTC', 'League A', '2026'),
+                ]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+            />
+        );
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            '❌ Page event log processing managed club:',
+            new Error('Managed clubs produce the duplicate button label "London / League A": club_location "London" and league "League A" appear more than once.')
+        );
+    });
+
+    it('logs nothing when every button label is distinct', () => {
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC', 'League A'),
+                    club('London', 'London TTC', 'League B'),
+                    club('Berlin', 'Berlin TTC', 'League A'),
+                ]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+            />
+        );
+
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
     it('applies the selected style to the button matching selectedClubKey', () => {

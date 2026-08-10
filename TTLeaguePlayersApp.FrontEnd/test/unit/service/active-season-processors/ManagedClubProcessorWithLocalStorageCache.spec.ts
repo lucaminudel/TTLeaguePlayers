@@ -24,7 +24,8 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
     };
 
     const CLUB = 'Morpeth Table Tennis Club';
-    const CACHE_KEY = 'cache_club_TEST_2025_Morpeth Table Tennis Club';
+    const LOCATION = 'London';
+    const CACHE_KEY = 'cache_club_TEST_2025_London_Morpeth Table Tennis Club';
 
     beforeEach(() => {
         localStorage.clear();
@@ -50,14 +51,14 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
     };
 
     it('should throw for a processor name that is not registered', () => {
-        expect(() => createManagedClubProcessor('NoSuchProcessor', mockDataSource, CLUB))
+        expect(() => createManagedClubProcessor('NoSuchProcessor', mockDataSource, CLUB, LOCATION))
             .toThrow('Managed Club Processor "NoSuchProcessor" not present or registered.');
     });
 
     it('Cold Start: Fetches from network and caches result', async () => {
         setupMockProcessor(['Morpeth 1', 'Morpeth 2']);
 
-        const processor = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
 
         const result = await processor.getClubTeams();
 
@@ -73,7 +74,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
     it('Fresh Cache: Returns cached data immediately, no network call', async () => {
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor(['Morpeth 1']);
-        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         await processor1.getClubTeams();
         expect(getMockedGetClubTeams()).toHaveBeenCalledTimes(1);
 
@@ -83,7 +84,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor(['Fresh Team']);
 
-        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         const result = await processor2.getClubTeams();
 
         expect(result).toEqual(['Morpeth 1']);
@@ -93,7 +94,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
     it('Stale Cache (< 6 days): Returns cached data AND refreshes in background', async () => {
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor(['Old Team']);
-        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         await processor1.getClubTeams();
 
         // Advance 4 days: stale (72h < 96h < 144h)
@@ -102,7 +103,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor(['New Team']);
 
-        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         const result = await processor2.getClubTeams();
 
         // Stale data returned immediately
@@ -122,7 +123,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
     it('Expired Cache (> 6 days): Fetches new data and returns it', async () => {
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor(['Old Team']);
-        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         await processor1.getClubTeams();
 
         setUnitFixedClockTime('2025-01-08T10:00:00Z'); // +7 days
@@ -130,7 +131,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor(['Brand New Team']);
 
-        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         const result = await processor2.getClubTeams();
 
         expect(result).toEqual(['Brand New Team']);
@@ -139,24 +140,42 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
 
     it('gives each club its own cache entry', async () => {
         setupMockProcessor(['Morpeth 1']);
-        const morpeth = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const morpeth = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         await morpeth.getClubTeams();
 
         vi.clearAllMocks();
         setupMockProcessor(['Walworth Tigers']);
-        const walworth = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, 'Walworth Table Tennis Club');
+        const walworth = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, 'Walworth Table Tennis Club', LOCATION);
         const result = await walworth.getClubTeams();
 
         // A second club must not read the first club's cache entry.
         expect(result).toEqual(['Walworth Tigers']);
         expect(getMockedGetClubTeams()).toHaveBeenCalledTimes(1);
         expect(localStorage.getItem(CACHE_KEY)).not.toBeNull();
-        expect(localStorage.getItem('cache_club_TEST_2025_Walworth Table Tennis Club')).not.toBeNull();
+        expect(localStorage.getItem('cache_club_TEST_2025_London_Walworth Table Tennis Club')).not.toBeNull();
+    });
+
+    // Two clubs in different towns can carry the same name, so the name alone does not identify a club.
+    it('gives each location its own cache entry when two clubs share a name', async () => {
+        setupMockProcessor(['London Morpeth 1']);
+        const london = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, 'London');
+        await london.getClubTeams();
+
+        vi.clearAllMocks();
+        setupMockProcessor(['Manchester Morpeth 1']);
+        const manchester = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, 'Manchester');
+        const result = await manchester.getClubTeams();
+
+        // The second location must not read the first location's cache entry.
+        expect(result).toEqual(['Manchester Morpeth 1']);
+        expect(getMockedGetClubTeams()).toHaveBeenCalledTimes(1);
+        expect(localStorage.getItem(`cache_club_TEST_2025_London_${CLUB}`)).not.toBeNull();
+        expect(localStorage.getItem(`cache_club_TEST_2025_Manchester_${CLUB}`)).not.toBeNull();
     });
 
     it('does not collide with the active season fixtures cache key', async () => {
         setupMockProcessor(['Morpeth 1']);
-        const processor = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         await processor.getClubTeams();
 
         // The fixtures decorator uses cache_{league}_{season}_{division}_{team}
@@ -171,7 +190,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
             } as unknown as CLTTLManagedClub2025Processor;
         });
 
-        const processor = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
 
         await expect(processor.getClubTeams()).rejects.toThrow('Network failure');
     });
@@ -181,7 +200,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
 
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor(['Old Team']);
-        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor1 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         await processor1.getClubTeams();
 
         setUnitFixedClockTime('2025-01-05T10:00:00Z');
@@ -192,7 +211,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
             } as unknown as CLTTLManagedClub2025Processor;
         });
 
-        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB);
+        const processor2 = createManagedClubProcessor('CLTTLManagedClub2025Processor', mockDataSource, CLUB, LOCATION);
         const result = await processor2.getClubTeams();
 
         expect(result).toEqual(['Old Team']);

@@ -35,12 +35,15 @@ vi.mock('../../../src/api/cachedClubsApi', () => ({
 }));
 
 describe('ClubsAndTournaments', () => {
-    // formatTournamentDateRange compares against the real wall-clock "now" (not the fixed test clock),
-    // so dates are built relative to the actual current year at test-run time.
+    // The whole suite runs on this fixed clock, and formatTournamentDateRange compares against
+    // getClockTime(), so dates are built relative to the fixed clock's year rather than the real one.
+    const FIXED_CLOCK = '2026-06-01T12:00:00Z';
+    const FIXED_CLOCK_YEAR = new Date(FIXED_CLOCK).getFullYear();
+
     const localEpoch = (year: number, month: number, day: number) =>
         Math.floor(new Date(year, month - 1, day, 12, 0, 0).getTime() / 1000);
 
-    const nextYear = new Date().getFullYear() + 1;
+    const nextYear = FIXED_CLOCK_YEAR + 1;
 
     // The API returns clubs already ordered by location, then club name, then tournament start date.
     const buildClub = (overrides: Partial<ClubWithTournaments> = {}): ClubWithTournaments => ({
@@ -93,7 +96,7 @@ describe('ClubsAndTournaments', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        setUnitFixedClockTime('2026-06-01T12:00:00Z');
+        setUnitFixedClockTime(FIXED_CLOCK);
 
         mockUseAuth.mockReturnValue({
             isAuthenticated: false,
@@ -227,7 +230,8 @@ describe('ClubsAndTournaments', () => {
             });
 
             const link = screen.getByTestId('tournament-link');
-            expect(link).toHaveTextContent(`Midlands Masters, 9 - 12 Sep, ${String(nextYear)}`);
+            // Exact match, not a substring: only an exact match can tell an elided year from a shown one.
+            expect(link.textContent).toBe(`Midlands Masters, 9 - 12 Sep, ${String(nextYear)}`);
             expect(link).toHaveAttribute('href', 'https://midlands.example.com');
         });
 

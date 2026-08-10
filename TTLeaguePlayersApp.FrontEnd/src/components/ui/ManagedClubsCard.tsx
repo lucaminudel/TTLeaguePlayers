@@ -74,6 +74,30 @@ export const ManagedClubsCard: React.FC<ManagedClubsCardProps> = ({
             };
         });
     
+    // In default mode the button label is "location / league", so two managed clubs sharing both a
+    // location and a league render two identical buttons and the manager cannot tell them apart.
+    //
+    // Do NOT "fix" this by making the label more specific: the colliding state is only reachable
+    // through a CONFIG ERROR, because only one season per league can be active at a time. The right
+    // response is to make the bad config visible, which is why this logs at error level.
+    //
+    // AuthContextParsers.ts:79-89 checks a *different* collision — same league + same season.
+    useEffect(() => {
+        if (groupByLocation) return;
+
+        const seenLabels = new Set<string>();
+        for (const club of managedClubs) {
+            const label = `${club.club_location} / ${club.league}`;
+            if (seenLabels.has(label)) {
+                console.error('❌ Page event log processing managed club:', new Error(
+                    `Managed clubs produce the duplicate button label "${label}": club_location "${club.club_location}" and league "${club.league}" appear more than once.`
+                ));
+            } else {
+                seenLabels.add(label);
+            }
+        }
+    }, [managedClubs, groupByLocation]);
+
     // Auto-select when there's only one button and no selection exists
     useEffect(() => {
         if (buttons.length === 1 && !selectedClubKey) {

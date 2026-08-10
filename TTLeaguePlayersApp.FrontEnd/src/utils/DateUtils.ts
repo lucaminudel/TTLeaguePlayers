@@ -86,16 +86,40 @@ export function getClockTimeInEpochSeconds(): number {
 }
 
 /**
+ * Formats a single epoch-seconds date as "5 Mar", or "5 Mar, 2025" when it does not
+ * fall in the current year.
+ *
+ * A season spans two calendar years, so a date on either side of "now" is normal and the
+ * year has to be shown for both. "Now" comes from getClockTime(), so tests control it.
+ * Date parts are UTC, like the other formatters in this module.
+ */
+export function formatSingleDate(epochSeconds: number): string {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const date = new Date(epochSeconds * 1000);
+    const dayOfMonth = date.getUTCDate();
+    const monthName = months[date.getUTCMonth()];
+    const year = date.getUTCFullYear();
+
+    const currentYear = getClockTime().getUTCFullYear();
+    const dayAndMonth = `${String(dayOfMonth)} ${monthName}`;
+
+    return year === currentYear ? dayAndMonth : `${dayAndMonth}, ${String(year)}`;
+}
+
+/**
  * Formats a tournament's start/end epoch seconds as a compact range
  * (e.g. "9 Sept - 12 Sept, 2026", or just "5 Oct, 2026" for a single day).
  *
- * Note: unlike the rest of this module this deliberately uses the real local wall-clock
- * and local date parts, not getClockTime(), so it is not affected by __FIXED_CLOCK_TIME__.
+ * "Now" comes from getClockTime(), so __FIXED_CLOCK_TIME__ decides which year counts as the
+ * current one and the output is deterministic under test.
+ *
+ * Note the date parts here are LOCAL, unlike the UTC parts used everywhere else in this module.
  */
 export function formatTournamentDateRange(startDate: number, endDate: number): string {
     const start = new Date(startDate * 1000);
     const end = new Date(endDate * 1000);
-    const now = new Date();
+    const now = getClockTime();
     const currentYear = now.getFullYear();
 
     const startYear = start.getFullYear();

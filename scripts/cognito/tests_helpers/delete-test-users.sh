@@ -46,6 +46,7 @@ if [[ "$FORCE_DELETE" == "force" ]]; then
     E7=""
     E8=""
     E9=""
+    E10=""
 else
     # Emails to exclude from deletion
     echo "Only dynamically created test_{number} users will be deleted ..."
@@ -59,14 +60,18 @@ else
     E7="test_kudos_wt@user.test"
     E8="test_kudos_f5@user.test"
     E9="test_team_registrations_invitee@user.test"
+    E10="test_my_club_teams_manager@user.test"
 fi
+
+# NOTE: adding a static user needs BOTH branches above AND the list-users query below. Omitting the
+# query lets the pipeline's cleanup delete the user, and the next run fails for no obvious reason.
 
 # echo "User Pool ID: $USER_POOL_ID"
 # echo "Finding users with email starting with 'test_'..."
 # Get all users and filter by email starting with test_ but exclude specific emails
 USERS=$(aws cognito-idp list-users \
     --user-pool-id $USER_POOL_ID \
-    --query "Users[?Attributes[?Name=='email' && starts_with(Value, 'test_') && Value!='$E1' && Value!='$E2' && Value!='$E3' && Value!='$E4' && Value!='$E5' && Value!='$E6' && Value!='$E7' && Value!='$E8' && Value!='$E9']].Username" \
+    --query "Users[?Attributes[?Name=='email' && starts_with(Value, 'test_') && Value!='$E1' && Value!='$E2' && Value!='$E3' && Value!='$E4' && Value!='$E5' && Value!='$E6' && Value!='$E7' && Value!='$E8' && Value!='$E9' && Value!='$E10']].Username" \
     --output text)
 
 if [ -z "$USERS" ]; then
