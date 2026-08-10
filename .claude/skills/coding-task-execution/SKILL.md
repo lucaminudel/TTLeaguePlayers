@@ -1,6 +1,9 @@
 ---
 name: coding-task-execution
 description: Execute a plan previously produced and persisted by the Coding Task Inception skill, tracking per-sub-task status and building a work summary report for human code review. Use when the user says "Coding Task Execution", or asks to start, resume or continue work on a stored plan.
+model: sonnet
+effort: high
+maxTurns: 40
 ---
 
 # Coding Task Execution
@@ -10,6 +13,67 @@ Input is a confirmed plan at
 That file is the source of truth across sessions and agents, not the in-session task list.
 
 If no such plan exists, stop and say so — run `coding-task-inception` first. Do not improvise one.
+
+## The one-ask rule
+
+**Read this before sending any message in this skill. It outranks every other instruction in this
+file:** where a phase looks like it calls for two asks in one message, the phase is wrong and this
+rule wins. This skill has **no exception** to it — the batched framing questions belong to
+`coding-task-discovery`'s Phase 1, not here.
+
+**A message may contain at most ONE ask.** An *ask* is anything the user has to respond to:
+
+- a question of any size, including "does that look right?", "anything else?", "shall I continue?";
+- a choice between options, or a request to confirm, approve or reject;
+- a request that they run a command, supply a file, check a value, or make a decision;
+- a statement of what you are about to do next where silence would count as tacit approval;
+- an `AskUserQuestion` call — **one question per call, never two to four** — and one such call per
+  message.
+
+Two small asks in one message is the same violation as ten.
+
+**The pre-send gate. Run it on every message, without exception:**
+
+1. Re-read the message you are about to send, from the top.
+2. Count the asks. Count the question marks first, then the sentences that need a response without
+   one — "let me know if…", "I'll proceed with X unless…", "confirm and I'll start".
+3. **Count 0** — a report, a findings list, a status update, a document hand-over. Send it and
+   **stop there.** Do not append a question to save a round-trip; the next message carries the ask.
+4. **Count 1** — check that everything else in the message is what the user needs *in order to
+   answer that one ask*. Cut the rest; it belongs in its own message.
+5. **Count 2 or more** — keep the first, move the others to later messages. **Never drop an ask to
+   get the count down.** Retracting a point is not the fix and the user has rejected it explicitly:
+   every point still gets asked, one message at a time.
+
+**Reports and overviews carry no ask at all.** A findings list, a topic write-up, a plan, a status
+report, a summary of what you just changed: post it, stop, and put the first decision in its own
+later message. Attaching "so, shall I start with the first one?" to the bottom of an overview is the
+exact bundling this rule forbids — it makes the reader hold every unresolved item in their head to
+answer one question. It is not a smaller violation because only one question mark was used.
+
+**Sequence, never batch.** Ask → wait → act on the answer → then the next ask. Where several asks
+share context, present that context once in an ask-free message, then take the items one at a time,
+each with enough background to be understood on its own without re-reading the transcript.
+
+**Why:** batched asks arrive without enough context to judge any single one, and a bundled ask
+quietly pushes the user into accepting something they would otherwise have reshaped. The user has
+corrected this forcefully in more than one session. Saving a round-trip is never worth it to them.
+
+*This block is identical in all four `coding-task-*` skills. If you change it, change all four.*
+
+### The asks this skill makes most often — each one alone, in its own message
+
+| Ask | Never combined with |
+|---|---|
+| The green-baseline confirmation (Phase 1) | anything else; it is the first message of the session |
+| Permission for a mutating Cognito command | the report of what you just finished, or the next sub-task's question |
+| Permission to launch Tier 1-C or Tier 2 | the sub-task's work-summary entry |
+| A checkpoint hand-back (Phase 4) | "and shall I also start sub-task 7?" |
+| Plan drift — a finding plus its options | any other blocker found at the same time |
+| The Cognito-budget stop at 10 | the diagnosis of the failure that prompted it |
+
+A per-sub-task work summary entry (Phase 3, step 5) is a **report**: it carries no ask. If finishing
+that sub-task also produced a question, post the entry, stop, and ask in the next message.
 
 ## Phase 1 — Load and reconcile
 
@@ -35,6 +99,10 @@ environment. Do **not** run them yourself to find out: the e2e suite spends live
 scarce resource this skill exists to protect (see *The Cognito budget*). Without a confirmed baseline
 you cannot tell your own regressions from failures that were already there — which is the whole
 purpose of asking.
+
+That is **one ask covering all three suites**, and it is the only thing in that message. The
+reconciliation report above — what you verified, what is `in progress`, what you re-checked — is a
+report and goes in its own earlier message with no question attached.
 
 ## Phase 2 — Order the work
 
@@ -62,10 +130,13 @@ For each sub-task, in order:
 2. Do the work as the sub-task describes.
 3. Verify it (Phase 5).
 4. Set Status to `done` and append a dated line to the plan's progress log.
-5. Write its entry in the work summary report (Phase 6) and post that entry in the chat.
+5. Write its entry in the work summary report (Phase 6) and post that entry in the chat — as a
+   report, with **no question appended**, not even "shall I move on to sub-task 4?". Moving on to
+   the next unblocked sub-task needs no permission; a checkpoint (Phase 4) is its own message.
 
 A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
-tests, or anything you worked around rather than solved — report it and stop.
+tests, or anything you worked around rather than solved — report it and stop. If stopping raises a
+question, that question is its own message, sent after the report.
 
 
 ### Commands against the live cloud and Cognito
@@ -99,6 +170,12 @@ When the plan contains a review checkpoint, **stop completely** and hand back. S
 checkpoint task says to show, framed as *Asking the user* under Standing rules describes, and wait
 for explicit permission to continue. Do not start the next sub-task, do not "get a head start" on
 unrelated ones.
+
+**The checkpoint's ask is "may I continue?", and nothing else rides with it.** Not a question about
+a design choice you made along the way, not permission for the next Tier 1-C run, not a second
+decision the user could "answer at the same time". Those each get their own message afterwards — and
+if one of them must be settled *before* continuing, ask it first, on its own, and hold the
+checkpoint question until it is resolved.
 
 ## Phase 5 — Verify before marking done
 
@@ -536,6 +613,11 @@ Keep entries short. A reviewer should be able to read the whole report before op
 Review how task execution phases 1–6 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
 
+## Phase 8 — Close
+
+At the end when all is done do a:
+/compact keep all the relevant info emerged during the execution before moving to the Review
+
 ## Standing rules
 
 **Asking the user.** Every time you stop — a question, a blocker, a checkpoint, plan drift, a
@@ -554,10 +636,20 @@ question that assumes they remember the last twenty tool calls fails that test.
 
 In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
 
+That visual separation is also the **last check of the pre-send gate**: put the one ask in its own
+clearly-marked section at the end. If that section needs a second bullet, the message is carrying
+two asks — split it.
+
+**One ask per message.** See *The one-ask rule* at the top of this file. It applies to every message
+in every phase of this skill, with no exception, and the pre-send gate runs before each one.
+
 Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topics, one sub-topic at the time, until the sub-topic or topic is fully clarified.
 Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
 
-When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
+When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics — and ask that on its own, not in the same message that opens the next topic.
+
+"One topic per message" is the weaker constraint: **a single topic can still hold two asks, and then
+it is two messages.** The one-ask rule decides, not the topic count.
 
 **Git.** Stay on the current branch. Make no commits. Leave the working tree for the user to stage
 themselves. Never stash, revert, or clean their pre-existing uncommitted changes.
@@ -581,6 +673,13 @@ passing, and do not narrow it because a step looks awkward.
 - Adapting the plan quietly when it turns out to be wrong.
 - Handing back a question, blocker or checkpoint without the context, cause and options the user
   needs to answer it.
+- Sending a message with two asks in it, however small the second one is — or skipping the pre-send
+  gate because the message "obviously" only asks one thing.
+- Appending a question to a work-summary entry, a status report or a verification result.
+- Bundling permission for a Cognito command, a tier run or a checkpoint with any other decision.
+- Passing more than one question to a single `AskUserQuestion` call.
+- Dropping or retracting a point to get a message down to one ask, instead of moving it to the next
+  message.
 - Reporting which environment a test run reached from the flag passed to it rather than from evidence.
 - Running a mutating Cognito command — the provisioning scripts, an `aws cognito-idp` write, applying a
   pending change to either — without asking first.

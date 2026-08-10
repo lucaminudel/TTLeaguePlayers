@@ -51,6 +51,99 @@ Look at examples the [e2e test file Registration](file://~/TTLeaguePlayers/TTLea
 		* `App.NewInvoice.RememberInvoiceNumber(newInvoice.Number)` 
 	*  accessed later like this: `App.NewInvoice.InvoiceNumber`
 
+## Applying the `EXECUTE_LIVE_COGNITO_TESTS` skip guard in e2e specs
+
+Every frontend e2e spec file declares:
+
+```typescript
+const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
+```
+
+The guard `test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test')` must appear at the top of the test body (or on the `describe` block) **if and only if** the test causes a real network call to AWS Cognito during its execution.
+
+### The decision rule — ask one question
+
+> **Does this test, when run with `EXECUTE_LIVE_COGNITO_TESTS=false` and no real AWS credentials, issue a network request to `cognito-idp.*.amazonaws.com` that is not intercepted by a `page.route(...)` mock?**
+
+- **Yes** → add the guard.
+- **No** → do not add the guard.
+
+### What counts as "touching real Cognito"
+
+A test touches real Cognito when any of these is true **and no `page.route(...)` mock intercepts the call**:
+
+| Action | Cognito call triggered |
+|---|---|
+| `loginPage.tryToLogin(email, password)` | `InitiateAuth` |
+| `user.navigateToLoginAndSuccesfullyLogin(...)` | `InitiateAuth` + `GetUser` |
+| `loginPage.loginAndWaitForHome(...)` | `InitiateAuth` + `GetUser` |
+| `registerPage.registerNewUser(email, password)` | `SignUp` (real, not mocked) |
+| `registerPage.tentativelyRegisterNewUser(email, password)` | `SignUp` (real, not mocked) |
+| Navigation to a page that runs an auth-check `GetUser` for a logged-in user | `GetUser` |
+
+### What does NOT count as "touching real Cognito"
+
+- A `page.route('https://cognito-idp.*.amazonaws.com/', ...)` mock that intercepts **all** relevant Cognito operations used by the test (`SignUp`, `InitiateAuth`, `ConfirmSignUp`, `GetUser`, …). Even if the code path exercises the Cognito client, the real endpoint is never hit.
+- Client-side form validation that prevents the form from being submitted (the network call never fires).
+- Navigating to a page as an **unauthenticated user** when the app only reads auth state from `localStorage` / memory without calling `GetUser`.
+
+### The two failure modes to avoid
+
+**Missing guard (the more harmful mistake):**
+A test that calls real Cognito without the guard will fail for anyone running without AWS credentials or connectivity, and it silently consumes Cognito request quota in supposedly credential-free runs. Example that required the guard added:
+
+```typescript
+// login.spec.ts — fires a real InitiateAuth; no page.route mock intercepts it
+test('login - non existing user shows expected error message', async ({ page }) => {
+    test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+    // ...
+    await loginPage.tryToLogin('non_existing_user@Idonotexist.com', 'aA1!56789012');
+    // Cognito itself returns "Incorrect username or password."
+});
+```
+
+**Unnecessary guard (reduces coverage silently):**
+A test with the guard whose Cognito calls are all intercepted by `page.route` mocks runs fine without credentials — but the guard skips it unnecessarily, hiding a coverage gap. Example that required the guard removed:
+
+```typescript
+// register.spec.ts — both .SignUp and .ConfirmSignUp are mocked via page.route;
+// the invite endpoints are also mocked. No real Cognito call is made.
+test('registration with invite success - happy path', async ({ page }) => {
+    // test.skip removed — guard was wrong here
+    await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
+        if (target?.endsWith('.SignUp')) { await route.fulfill({ ... }); return; }
+        if (target?.endsWith('.ConfirmSignUp')) { await route.fulfill({ ... }); return; }
+        await route.continue();
+    });
+    // ...
+});
+```
+
+### Verification procedure
+
+When unsure, run the test suite with invalid AWS credentials. Any test that truly reaches Cognito will fail with an AWS auth error, and the stack trace will name the call site:
+
+```bash
+AWS_ACCESS_KEY_ID=AKIAINVALIDINVALID00 \
+AWS_SECRET_ACCESS_KEY=bogussecret \
+AWS_EC2_METADATA_DISABLED=true \
+EXECUTE_LIVE_COGNITO_TESTS=false \
+npx playwright test --project=chromium <spec-file>
+```
+
+A clean run means no unguarded real-Cognito tests remain. Any failure exposes a missing guard.
+
+### Placement rule — test vs describe
+
+- If **every** test in a `describe` block touches real Cognito, put the guard on the `describe`:
+  ```typescript
+  test.describe('My Club Teams Page', () => {
+      test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+      // all tests inside login as a real user
+  });
+  ```
+- If only **some** tests in a `describe` touch real Cognito, put the guard individually on each affected test, not on the describe.
+
 ## Test Data Cleanup
 
 Any test that writes to a real store (DynamoDB, the HTTP API, Cognito, files, environment variables) must leave the environment as it found it, **whether the test passes or fails**.

@@ -65,6 +65,8 @@ The implementation files are located in:
 ### Additional Details For The Agent
 * **Bundler Injection**: The bundler (Vite) replaces references to `import.meta.env.APP_CONFIG` with the actual JSON configuration file matching the active target environment.
 * **Retrieval Hook**: The `getConfig()` function in [environment.ts](TTLeaguePlayersApp.FrontEnd/src/config/environment.ts) retrieves this config synchronously, throwing an error at startup if the configuration is undefined.
+* **Assumption: the config and the league site's pages are always current for the current season.** Nothing reconciles them, and nothing detects drift — a division, club or team added on the league site is invisible to the app until the config is edited by hand and the relevant cache expires. The same assumption is recorded in [FrontendActivelyManagedClubsDomainLogic.md](prompts/codebase_info/FrontendActivelyManagedClubsDomainLogic.md).
+* **Because the config is injected at BUILD time**, changing it requires a rebuild and redeploy of the frontend; it is not a runtime setting.
 
 ---
 

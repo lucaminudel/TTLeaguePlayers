@@ -18,6 +18,57 @@ which is missing and what you therefore cannot check, then proceed.
 The output is **a reviewed, green, committable working tree and a guide for reviewing it** — not a
 commit. You never commit.
 
+## The one-ask rule
+
+**Read this before sending any message in this skill. It outranks every other instruction in this
+file:** where a phase looks like it calls for two asks in one message, the phase is wrong and this
+rule wins. This skill has **no exception** to it — the batched framing questions belong to
+`coding-task-discovery`'s Phase 1, not here.
+
+**A message may contain at most ONE ask.** An *ask* is anything the user has to respond to:
+
+- a question of any size, including "does that look right?", "anything else?", "shall I continue?";
+- a choice between options, or a request to confirm, approve or reject;
+- a request that they run a command, supply a file, check a value, or make a decision;
+- a statement of what you are about to do next where silence would count as tacit approval;
+- an `AskUserQuestion` call — **one question per call, never two to four** — and one such call per
+  message.
+
+Two small asks in one message is the same violation as ten.
+
+**The pre-send gate. Run it on every message, without exception:**
+
+1. Re-read the message you are about to send, from the top.
+2. Count the asks. Count the question marks first, then the sentences that need a response without
+   one — "let me know if…", "I'll proceed with X unless…", "confirm and I'll start".
+3. **Count 0** — a report, a findings list, a status update, a document hand-over. Send it and
+   **stop there.** Do not append a question to save a round-trip; the next message carries the ask.
+4. **Count 1** — check that everything else in the message is what the user needs *in order to
+   answer that one ask*. Cut the rest; it belongs in its own message.
+5. **Count 2 or more** — keep the first, move the others to later messages. **Never drop an ask to
+   get the count down.** Retracting a point is not the fix and the user has rejected it explicitly:
+   every point still gets asked, one message at a time.
+
+**Reports and overviews carry no ask at all.** A findings list, a topic write-up, a plan, a status
+report, a summary of what you just changed: post it, stop, and put the first decision in its own
+later message. Attaching "so, shall I start with the first one?" to the bottom of an overview is the
+exact bundling this rule forbids — it makes the reader hold every unresolved item in their head to
+answer one question. It is not a smaller violation because only one question mark was used.
+
+**Sequence, never batch.** Ask → wait → act on the answer → then the next ask. Where several asks
+share context, present that context once in an ask-free message, then take the items one at a time,
+each with enough background to be understood on its own without re-reading the transcript.
+
+**Why:** batched asks arrive without enough context to judge any single one, and a bundled ask
+quietly pushes the user into accepting something they would otherwise have reshaped. The user has
+corrected this forcefully in more than one session. Saving a round-trip is never worth it to them.
+
+*This block is identical in all four `coding-task-*` skills. If you change it, change all four.*
+
+**This is the skill where the rule is broken most often**, because phase 3 produces a pile of
+findings at once and they feel like one deliverable. They are not one deliverable to the person
+answering. Phase 3 spells out the sequence; follow it literally.
+
 ## Phase 0 — Start from green
 
 A review of a red build reports the build, not the code. So before reading a single diff, establish
@@ -92,6 +143,15 @@ repo under a different name.
 **Dependencies and direction.** Does anything new point the wrong? Look for cycles.
 
 
+**Claims made in comments are findings to verify, not context to absorb.** Any comment asserting
+that something is impossible, unreachable, always/never true, or that "nothing in this codebase does
+X" is a factual claim — check it against the code before accepting it, and treat a false one as a
+finding even when the behaviour is right. Two of these appeared in a single review: one caught, one
+missed because the comment said "unreachable" and that was taken at face value. The danger is not the
+wrong comment; it is that the comment stops you looking, and it is usually load-bearing — the stated
+justification for the very decision under review.
+
+
 **Bugs.** For what this change actually touches:
 - **Decorators and wrappers that silently drop methods.** A method added to an interface is dead
   code if a wrapper between factory and caller does not forward it. Trace the call chain from the
@@ -119,7 +179,13 @@ a line mentally and ask which test goes red. Assertions on "did not throw" cover
 - External or user-supplied strings reaching the DOM — any `innerHTML`, `dangerouslySetInnerHTML`,
   or unescaped interpolation is a real finding.
 - **Personal data in committed test fixtures.** Captured pages and recorded payloads carry personal
-  data. Check every fixture in the diff for residuals.
+  data. Check every fixture in the diff for residuals — names, phone numbers, emails, addresses —
+  and check the WHOLE fixture, not just the block the tests read: scrubbing is done by hand and gets
+  missed exactly where nothing asserts on it.
+  **This is the one lens that must look outside the diff.** Once a residual is found, grep the whole
+  repo for it: captured pages get copied between the unit and e2e trees, and the other copy is often
+  already committed. Say so plainly if it is — scrubbing the working tree does not remove it from
+  history, and only the user can decide on a rewrite.
 - Secrets, tokens or private URLs added to `config/*.env.json` — these ship to the browser via
   Vite's verbatim injection and are public by construction.
 - What gets written to `localStorage`, and whether it should be.
@@ -139,28 +205,42 @@ appealing it looks.
 Verify every finding against the real files before reporting it. Drop anything you cannot
 reproduce; do not report it as a "possible issue".
 
-Present two lists:
+**The exact message sequence. Do not compress it.**
+
+**Message 1 — the overview, with NO ask in it.** Two lists:
 
 1. **High-priority findings**, each with: file:line, what is wrong, the concrete failing case, and
    the proposed fix. Followed by a fix plan — ordered, with the verification each fix needs.
 2. **Noted, not actioned** — everything lower. Named, one line each, no fix plan.
 
-Then **stop and wait** for the user to review the fix plan, presenting it as *Asking the user* under
-Standing rules describes — where each finding came from, why it is wrong, and for each fix its size,
-its blast radius and the alternative of leaving it. Change nothing until they approve. If they amend
-it, fold the amendment in and re-present.
+End it by saying nothing is being changed yet, and **stop**. No question — not even "shall I fix
+finding 1?", not "does the ordering look right?", not "anything you'd add?". Attaching a question to
+the bottom of the overview reads as one wall of findings *plus* a decision, which is exactly the
+bundling this phase forbids: the reader has to hold ten unresolved items in their head to answer
+one. It is not a smaller violation because only one question mark was used; the overview is already
+a lot to absorb. The two lists exist so the user can see the whole picture before deciding anything
+— that part is a single presentation. Deciding is not.
 
-**List all the findings at once; then take them ONE AT A TIME.** The two lists exist so the user can
-see the whole picture before deciding anything — that part is a single presentation. Deciding is not.
-Do not close with "approve findings 1, 2 and 3?", and do not offer a recommendation that bundles
-them: each finding has its own failing case, its own fix, its own cost, and the user may reshape one
-and reject another. Ask about the first, settle it, **fix it and verify it**, then move to the second.
+**Message 2 — finding 1, and only finding 1.** Present it as *Asking the user* under Standing rules
+describes: where it came from, why it is wrong, the failing case, and for the fix its size, its
+blast radius and the alternative of leaving it. One ask: what to do about this finding. Then wait.
 
-This is the phase where the temptation to bundle is strongest, because the analysis is finished and
-it all feels like one deliverable. It is not one deliverable to the person answering — and a bundled
-question quietly pushes them to accept a fix they would have improved. In practice they often will:
-expect the user's alternative to beat your proposal, particularly on operational cost, and treat that
-as the normal outcome rather than a correction.
+**Then: settle it, fix it, verify it — and only then move to finding 2**, in its own message, same
+shape. Never "approve findings 1, 2 and 3?", and never a recommendation that bundles them: each has
+its own failing case, its own fix, its own cost, and the user may reshape one and reject another.
+
+Change nothing until the user approves a fix. If they amend the plan, fold the amendment in and
+re-present that one finding.
+
+Every later message in this phase obeys the same gate. When a fix turns out wider than it looked,
+report that alone and stop — do not also ask what to do about the next finding. When a fix goes
+green, say so and move on; that report carries no ask.
+
+The temptation to bundle is strongest here because the analysis is finished and it all feels like
+one deliverable. It is not one deliverable to the person answering — and a bundled question quietly
+pushes them to accept a fix they would have improved. In practice they often will: expect the user's
+alternative to beat your proposal, particularly on operational cost, and treat that as the normal
+outcome rather than a correction.
 
 ## Phase 4 — Fix
 
@@ -182,19 +262,21 @@ A fix that does not go green is not done. If a fix turns out to be wrong or wide
 stop and say so rather than expanding it silently.
 
 Re-running the full pipeline after the fixes is the user's call and the user's command — ask, state
-why it is needed, and wait.
+why it is needed, and wait. That request is its own message: it does not travel with the summary of
+the fixes just applied, and it does not travel with the PR guide.
 
 ## Phase 5 — The PR-review guide
 
-Write it for a human about to read the diff cold. It is a **summary that makes the change
-understandable on its own** — the reviewer should grasp what the change does and what to look for
-*before* opening a single file, and should never have to reverse-engineer a file's purpose from its
+Write it for a human about to read the diff cold. Make it as for a software engineer that have no previous knowledge of this coding task so provide short and clear explanations. Include a **summary that makes the change
+understandable on its own** — the reviewer should be given a clear and short summary of what the change is for and what it does and what to look for *before* opening a single file, and should never have to reverse-engineer a file's purpose from its
 diff. Assume no memory of the plan, the execution session, or this codebase's conventions.
 
 **It goes in its own document.** Write it, with the phase 2–4 findings, to
 `~/.claude/projects/.../memory/review-<slug>.md` — a
 new file, **not** appended to `work-summary-<slug>.md`. Give it the usual frontmatter (`name`,
 `description`, `metadata.type: project`) and add a pointer line to `MEMORY.md`.
+
+When the review document is completed, presentthe link to the review file.
 
 The two documents have different readers and different lifetimes. The work summary is the *execution*
 record — per sub-task, written as the work happened, and it only grows. The review guide is written
@@ -206,6 +288,10 @@ the reader scroll past sub-task notes they have no reason to read.
 verification status, the findings, and the reading order — and then, **as the last thing in the
 final message, present the link to the document you created.** The link is the deliverable; the chat
 summary exists so the user can decide whether to open it now or when they sit down to review.
+
+**That message is a hand-over and carries no ask.** It ends with the link, not with "does this look
+right?" and not with the commit message. Phases 5, 6 and 7 are three separate messages in that
+order: the guide, then the proposed commit message, then the retrospect question.
 
 The document carries:
 
@@ -270,12 +356,21 @@ question that assumes they remember the last twenty tool calls fails that test.
 
 In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
 
+That visual separation is also the **last check of the pre-send gate**: put the one ask in its own
+clearly-marked section at the end. If that section needs a second bullet, the message is carrying
+two asks — split it.
+
+**One ask per message.** See *The one-ask rule* at the top of this file. It applies to every message
+in every phase of this skill, with no exception, and the pre-send gate runs before each one.
 
 **Discuss with the user one topic at the time.** 
 Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
 Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
 
-When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
+When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics — and ask that on its own, not in the same message that opens the next topic.
+
+"One topic per message" is the weaker constraint: **a single topic — one finding, say — can still
+hold two asks, and then it is two messages.** The one-ask rule decides, not the topic count.
 
 
 **Git.** Stay on the current branch. No commits, no staging, no stash, no revert, no clean. The
@@ -299,6 +394,13 @@ thorough, and do not soften a real finding into a suggestion.
 - Launching the tier-2 pipeline without asking.
 - Committing or staging anything.
 - Asking the user to approve two or more findings in one question, or recommending them as a block.
+- Ending the two-list overview with a question. The overview carries no ask at all.
+- Putting more than one ask in any message, however small the second one is — or skipping the
+  pre-send gate because the message "obviously" only asks one thing.
+- Passing more than one question to a single `AskUserQuestion` call.
+- Dropping or retracting a finding to get a message down to one ask, instead of moving it to the
+  next message.
+- Ending the PR-guide hand-over, or a "fix is green" report, with a question.
 - Moving to the next finding before the current one is decided, fixed and verified.
 - Writing a PR guide that restates the diff instead of directing attention within it.
 - Listing a file in the PR guide without saying what it is, why it changed, and what to look for in

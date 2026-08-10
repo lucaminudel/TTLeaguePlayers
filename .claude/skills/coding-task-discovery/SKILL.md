@@ -14,9 +14,67 @@ belongs to inception; if you find yourself sequencing work, you have left this s
 Discovery is **read-only**. Read the codebase, fetch live external pages, search the web. Write
 nothing into the repo tree except the report's own scratch notes, and no application code at all.
 
+## The one-ask rule
+
+**Read this before sending any message in this skill. It outranks every other instruction in this
+file:** where a phase looks like it calls for two asks in one message, the phase is wrong and this
+rule wins. This skill's Phase 1 carries the single documented exception, described there.
+
+**A message may contain at most ONE ask.** An *ask* is anything the user has to respond to:
+
+- a question of any size, including "does that look right?", "anything else?", "shall I continue?";
+- a choice between options, or a request to confirm, approve or reject;
+- a request that they run a command, supply a file, check a value, or make a decision;
+- a statement of what you are about to do next where silence would count as tacit approval;
+- an `AskUserQuestion` call — **one question per call, never two to four** — and one such call per
+  message.
+
+Two small asks in one message is the same violation as ten.
+
+**The pre-send gate. Run it on every message, without exception:**
+
+1. Re-read the message you are about to send, from the top.
+2. Count the asks. Count the question marks first, then the sentences that need a response without
+   one — "let me know if…", "I'll proceed with X unless…", "confirm and I'll start".
+3. **Count 0** — a report, a findings list, a status update, a document hand-over. Send it and
+   **stop there.** Do not append a question to save a round-trip; the next message carries the ask.
+4. **Count 1** — check that everything else in the message is what the user needs *in order to
+   answer that one ask*. Cut the rest; it belongs in its own message.
+5. **Count 2 or more** — keep the first, move the others to later messages. **Never drop an ask to
+   get the count down.** Retracting a point is not the fix and the user has rejected it explicitly:
+   every point still gets asked, one message at a time.
+
+**Reports and overviews carry no ask at all.** A findings list, a topic write-up, a plan, a status
+report, a summary of what you just changed: post it, stop, and put the first decision in its own
+later message. Attaching "so, shall I start with the first one?" to the bottom of an overview is the
+exact bundling this rule forbids — it makes the reader hold every unresolved item in their head to
+answer one question. It is not a smaller violation because only one question mark was used.
+
+**Sequence, never batch.** Ask → wait → act on the answer → then the next ask. Where several asks
+share context, present that context once in an ask-free message, then take the items one at a time,
+each with enough background to be understood on its own without re-reading the transcript.
+
+**Why:** batched asks arrive without enough context to judge any single one, and a bundled ask
+quietly pushes the user into accepting something they would otherwise have reshaped. The user has
+corrected this forcefully in more than one session. Saving a round-trip is never worth it to them.
+
+*This block is identical in all four `coding-task-*` skills. If you change it, change all four.*
+
 ## Phase 1 — Frame the task
 
-Ask the user (as one batch, and wait unless for one or more of these points you have questions, choices, points to raise, additional info related to one or more of these points; in such case you can print the list of all the points and then go through one by one including your questions etc.):
+**This phase carries the one documented exception to the one-ask rule, and it is narrow.** The four
+framing questions below may go out together, in a single message, **only** when you have nothing of
+your own to attach to any of them: no question, no choice, no point to raise, no information from
+previous work — an earlier session, a prior report, a brief the user already gave you — that bears
+on one of the four. Discovery is the first of the four skills, so on a cold start that is usually
+the case, and the batch is allowed.
+
+The moment you have something of your own to add to even one of the four, **the exception lapses**.
+Then: post the four points as a list so the user can see the shape, with **no ask attached to that
+message**, and afterwards work through them one message at a time, folding your own question or
+information into the point it belongs to. Never attach your point to a batch of four questions.
+
+Ask for:
 
 1. **The bigger picture** — which end-user feature or outcome does it serve?
 2. **What it contributes to** — how does this task contribute to that? What is its part?
@@ -26,7 +84,9 @@ Ask the user (as one batch, and wait unless for one or more of these points you 
 Also collect any references they name — files, URLs, tickets, screenshots, prior conversations —
 and read every one of them in full before exploring anything.
 
-If they give you only some of the four, ask for the rest rather than inventing it. The framing is
+If they give you only some of the four, ask for the rest rather than inventing it — and once the
+first answers are in you are no longer on a cold start, so those follow-ups go **one per message**.
+The framing is
 what stops discovery from sprawling: a topic that serves neither the bigger picture nor a stated
 question does not belong in the report.
 
@@ -46,6 +106,11 @@ wrong would cost the most later — and propose starting there.
 Get agreement on the list before phase 3. The list is not frozen (see *Standing rules*), only
 agreed.
 
+**The list is one ask, and the list is the whole message.** Present it and ask the single question
+"is this the right list?". Do not also ask which topic to start with, do not also raise a doubt
+about topic 4, and do not also ask a framing question you forgot in phase 1 — each of those is its
+own later message, after the list is agreed.
+
 ## Phase 3 — Explore and discuss, one topic at a time
 
 For each topic in turn: explore it, write up the findings, **present them, and wait** for the user
@@ -55,10 +120,21 @@ new topic on the spot. Do not batch the whole exploration and present it at the 
 A topic is done when the answers are **detailed enough to act on** — concrete values, exact paths,
 named identifiers, real examples — not when they are merely plausible.
 
-Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
-Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
+**One topic at a time, and within a topic one sub-topic at a time**, until that sub-topic or topic
+is fully clarified. Do not raise a second topic or sub-topic while the first is unsettled — the only
+exception is a dependency or trade-off between them that genuinely cannot be explored separately,
+and then say so explicitly.
 
-When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics.
+"One topic per message" is the weaker constraint; **the one-ask rule still applies inside a single
+topic.** One topic's write-up easily contains three asks — a gap to resolve, a value to confirm, a
+choice of how deep to go — and that is three messages, not one. Run the pre-send gate on a topic
+write-up exactly as on everything else.
+
+**A topic's findings are a report, so that message carries no ask.** Post the findings, stop; the
+first question about them goes in the next message. When the topic looks settled, the closing
+message asks one thing only — whether they consider the topic complete — and asks it *before* any
+information or question about the next topic. Never roll "is topic 2 complete?" together with the
+findings for topic 3: the answer to the first can change whether topic 3 is explored at all.
 
 ### Where to look
 
@@ -146,6 +222,12 @@ Then:
 3. **Present the final document** and ask whether it is complete or whether there is more to
    explore. Wait. Expect rounds; fold each one in and re-present.
 
+These three steps are **three messages, in this order**, not one. Step 1's corrections are a report
+with no ask. Step 3 carries the single ask — and only after the "any more topics?" question above
+has been asked and answered, since that one comes first and is an ask of its own. If the
+re-verification in step 1 turned something up that needs a decision, that decision is its own
+message too, settled before you present the final document.
+
 Do not hand off to `coding-task-inception` yourself. Tell the user the report is ready and where it
 is; starting inception is their call.
 
@@ -155,6 +237,11 @@ Review how phases 1–5 actually went and fold anything durable back into this s
 user made are the highest-value input — especially topics you should have proposed and did not,
 findings you asserted without evidence and had to walk back, and sources you should have checked
 earlier. Ask the user if they want to add any other improvement to this skill.
+
+## Phase 7 — Close
+
+At the end when all is done do a:
+/compact keep all the relevant findings from this discovery before moving to the Inception
 
 ## Standing rules
 
@@ -175,6 +262,14 @@ transcript:
 Keep it short enough to read in under a minute.
 In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
 
+That visual separation is also the **last check of the pre-send gate**: put the one ask in its own
+clearly-marked section at the end. If that section needs a second bullet, the message is carrying
+two asks — split it.
+
+**One ask per message.** See *The one-ask rule* at the top of this file; it applies to every message
+in every phase, and the pre-send gate runs before each one. Phase 1's four framing questions are the
+only exception, under the conditions stated there.
+
 **Evidence over recall.** Every finding is traceable to something you actually read, fetched or ran
 in this session. If you are working from memory of this codebase, go and check.
 
@@ -187,6 +282,15 @@ ends exactly as the user left it.
 
 ## Anti-patterns
 
+- Sending a message with two asks in it, however small the second one is — or skipping the pre-send
+  gate because the message "obviously" only asks one thing.
+- Ending a topic write-up, a findings list or the final report presentation with an extra question.
+- Batching Phase 1's four framing questions when you have a question, a choice or prior information
+  of your own to attach to one of them.
+- Passing more than one question to a single `AskUserQuestion` call.
+- Dropping or retracting a point to get a message down to one ask, instead of moving it to the next
+  message.
+- Asking "is this topic complete?" in the same message that opens the next topic.
 - Exploring before the framing questions are answered.
 - Writing application code, or modifying the repo tree at all.
 - Producing a plan, sub-tasks or an implementation sequence — that is inception's job.
