@@ -90,14 +90,16 @@ class FakeInvitesDataTable : IInvitesDataTable
         }
         if (errors.Count > 0) throw new ValidationException(errors);
 
-        var requested = new HashSet<string>(teamNames!, StringComparer.Ordinal);
+        // Must mirror the real matching rule (case-insensitive, surrounding whitespace ignored), or
+        // the lambda tests pass against a stricter fake than production and prove nothing.
+        var requested = new HashSet<string>(teamNames!.Select(name => name.Trim()), StringComparer.OrdinalIgnoreCase);
 
         var found = Invites.Values
             .OfType<CaptainOrPlayerInvite>()
             .Where(i => i.League == league
                      && i.Season == season
                      && i.InviteeRole == Role.CAPTAIN
-                     && requested.Contains(i.InviteeTeam))
+                     && requested.Contains(i.InviteeTeam.Trim()))
             .Select(i => new CaptainInviteSummary
             {
                 NanoId = i.NanoId,

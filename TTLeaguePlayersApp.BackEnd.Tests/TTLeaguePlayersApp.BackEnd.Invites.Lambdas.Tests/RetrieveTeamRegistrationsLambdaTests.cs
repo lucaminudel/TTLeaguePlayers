@@ -101,17 +101,53 @@ public class RetrieveTeamRegistrationsLambdaTests
         result.ClubLocation.Should().Be(ClubLocation);
     }
 
-    // ---------------------------------------------------------------- case sensitivity
+    // ---------------------------------------------------------------- matching semantics
     //
-    // Pinned in BOTH directions on purpose. The first test alone would still pass if matching became
-    // fuzzy; the third alone would still pass if matching stopped working altogether.
+    // Matching is case-insensitive and ignores surrounding whitespace, but NOTHING else: it is not a
+    // prefix match and punctuation still counts. Pinned in BOTH directions on purpose — the forgiving
+    // tests alone would still pass if matching became fuzzy, and the strict ones alone would still
+    // pass if matching stopped working altogether.
 
     [Fact]
-    public async Task TeamNameMatchingIsCaseSensitive_LowercaseDoesNotMatch()
+    public async Task TeamNameMatchingIsCaseInsensitive_LowercaseStillMatches()
     {
         _dataTable.Seed(CreateCaptainInvite("11111111", "Morpeth 9", acceptedAt: 1786000000));
 
         var result = await CreateLambda().HandleAsync(CreateRequest("morpeth 9"), ManagerClaims(), _context);
+
+        result.Teams.Should().ContainSingle().Which.Status.Should().Be(TeamRegistrationStatus.ACCEPTED);
+    }
+
+    [Fact]
+    public async Task TeamNameMatchingIgnoresWhitespaceAroundTheRequestedName()
+    {
+        _dataTable.Seed(CreateCaptainInvite("11111111", "Morpeth 9", acceptedAt: 1786000000));
+
+        var result = await CreateLambda().HandleAsync(CreateRequest("  Morpeth 9  "), ManagerClaims(), _context);
+
+        result.Teams.Should().ContainSingle().Which.Status.Should().Be(TeamRegistrationStatus.ACCEPTED);
+    }
+
+    [Fact]
+    public async Task TeamNameMatchingIgnoresWhitespaceAroundTheStoredName()
+    {
+        // No frontend feature currently implemented in this codebase creates invites, so the stored
+        // spelling is hand-typed and may carry stray whitespace that only a non-empty rule ever checked.
+        _dataTable.Seed(CreateCaptainInvite("11111111", "  Morpeth 9  ", acceptedAt: 1786000000));
+
+        var result = await CreateLambda().HandleAsync(CreateRequest("Morpeth 9"), ManagerClaims(), _context);
+
+        result.Teams.Should().ContainSingle().Which.Status.Should().Be(TeamRegistrationStatus.ACCEPTED);
+    }
+
+    [Fact]
+    public async Task TeamNameMatchingStillDistinguishesPunctuation()
+    {
+        _dataTable.Seed(CreateCaptainInvite("11111111", "St Katharine's Trust 2", acceptedAt: 1786000000));
+
+        // A curly apostrophe is a different character; forgiving case and whitespace does not make
+        // matching fuzzy.
+        var result = await CreateLambda().HandleAsync(CreateRequest("St Katharine’s Trust 2"), ManagerClaims(), _context);
 
         result.Teams.Should().ContainSingle().Which.Status.Should().Be(TeamRegistrationStatus.NOT_INVITED);
     }
@@ -143,7 +179,8 @@ public class RetrieveTeamRegistrationsLambdaTests
 
         var result = await CreateLambda().HandleAsync(CreateRequest("morpeth 9"), ManagerClaims(), _context);
 
-        // NOT_INVITED, and still spelled the way the caller asked, so the page can join it back.
+        // The invite IS found now that matching is case-insensitive, but the entry is still spelled
+        // the way the caller asked, so the page can join it back to its own team list.
         result.Teams.Should().ContainSingle().Which.TeamName.Should().Be("morpeth 9");
     }
 

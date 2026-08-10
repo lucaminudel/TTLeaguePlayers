@@ -84,15 +84,20 @@ public class RetrieveTeamRegistrationsLambda
         Dictionary<string, string> userClaims,
         ILambdaContext context)
     {
+        // Case-insensitive and whitespace-trimmed, matching the datastore's own rule — see
+        // IInvitesDataTable.RetrieveCaptainInvitesForTeams. Keep the two in step: a stricter lookup
+        // here would silently drop invites the datastore had already found.
         var invitesByTeam = invites
-            .GroupBy(invite => invite.InviteeTeam, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+            .GroupBy(invite => invite.InviteeTeam.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
 
         var entries = new List<TeamRegistrationEntry>(request.TeamNames.Count);
 
         foreach (var teamName in request.TeamNames)
         {
-            if (!invitesByTeam.TryGetValue(teamName, out var teamInvites) || teamInvites.Count == 0)
+            // Looked up trimmed, but the ENTRY still echoes the caller's own spelling below, so the
+            // page can join the response back to the team list it sent.
+            if (!invitesByTeam.TryGetValue(teamName.Trim(), out var teamInvites) || teamInvites.Count == 0)
             {
                 entries.Add(new TeamRegistrationEntry
                 {

@@ -144,13 +144,35 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     // ------------------------------------------------------------------ matching semantics
 
     [Fact]
-    public async Task TeamMatchingIsCaseSensitive()
+    public async Task TeamMatchingIsCaseInsensitive()
     {
         await TrackedCreate(CaptainInvite("Gamma 1", accepted: false));
 
         var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "gamma 1" });
 
-        found.Should().BeEmpty();
+        found.Should().ContainSingle().Which.InviteeTeam.Should().Be("Gamma 1");
+    }
+
+    [Fact]
+    public async Task TeamMatchingIgnoresWhitespaceAroundTheRequestedName()
+    {
+        await TrackedCreate(CaptainInvite("Gamma 3", accepted: false));
+
+        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "  Gamma 3  " });
+
+        found.Should().ContainSingle().Which.InviteeTeam.Should().Be("Gamma 3");
+    }
+
+    [Fact]
+    public async Task TeamMatchingIgnoresWhitespaceAroundTheStoredName()
+    {
+        // No frontend feature currently implemented in this codebase creates invites, so the stored
+        // spelling is hand-typed and only ever had a non-empty rule applied to it.
+        await TrackedCreate(CaptainInvite("  Gamma 4  ", accepted: false));
+
+        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Gamma 4" });
+
+        found.Should().ContainSingle().Which.InviteeTeam.Should().Be("  Gamma 4  ");
     }
 
     [Fact]

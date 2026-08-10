@@ -98,7 +98,13 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
     {
         ValidateRetrieveCaptainInvitesForTeamsParameters(league, season, teamNames);
 
-        var requestedTeams = new HashSet<string>(teamNames, StringComparer.Ordinal);
+        // Team names are matched case-insensitively and with surrounding whitespace ignored.
+        // No frontend feature currently implemented in this codebase creates invites, so invitee_team
+        // is hand-typed and has only ever had a non-empty rule applied to it (CreateInviteLambda
+        // stores it verbatim) — a casing or padding difference is a data-entry slip,
+        // not a different team. Matching stops being forgiving there: it is NOT a prefix match, and
+        // punctuation still counts (a curly apostrophe is a different team from a straight one).
+        var requestedTeams = new HashSet<string>(teamNames.Select(name => name.Trim()), StringComparer.OrdinalIgnoreCase);
 
         var values = new Dictionary<string, AttributeValue>
         {
@@ -126,7 +132,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
             foreach (var item in response.Items)
             {
                 var invite = ToCaptainInviteSummary(item);
-                if (requestedTeams.Contains(invite.InviteeTeam))
+                if (requestedTeams.Contains(invite.InviteeTeam.Trim()))
                 {
                     invites.Add(invite);
                 }

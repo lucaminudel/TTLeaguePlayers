@@ -146,7 +146,7 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
 
     [Fact]
     [Trait("Cognito", "Live")]
-    public async Task POST_TeamRegistrations_TeamNameMatching_Should_Be_Case_Sensitive()
+    public async Task POST_TeamRegistrations_TeamNameMatching_Should_Be_Case_Insensitive()
     {
         var team = $"{_teamPrefix} CaseCheck";
         await CreateCaptainInviteAsync(team, UnacceptedInviteeEmail);
@@ -157,9 +157,28 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
         var teams = await ReadTeamsAsync(response);
 
         teams.Should().ContainSingle();
-        teams[0].GetProperty("status").GetString().Should().Be("NOT_INVITED");
-        // The caller's spelling is echoed back, so the page can join the response to what it sent.
+        // invitee_team is hand-typed, so a casing difference is a data-entry slip, not a different
+        // team. This test previously pinned the opposite; the rule was deliberately changed.
+        teams[0].GetProperty("status").GetString().Should().Be("PENDING");
+        // The caller's spelling is still echoed back, so the page can join the response to what it sent.
         teams[0].GetProperty("team_name").GetString().Should().Be(team.ToLowerInvariant());
+    }
+
+    [Fact]
+    [Trait("Cognito", "Live")]
+    public async Task POST_TeamRegistrations_TeamNameMatching_Should_Ignore_Surrounding_Whitespace()
+    {
+        var team = $"{_teamPrefix} TrimCheck";
+        await CreateCaptainInviteAsync(team, UnacceptedInviteeEmail);
+
+        await AuthenticateAsAsync(ManagerUserEmail);
+
+        var response = await PostRegistrationsAsync($"  {team}  ");
+        var teams = await ReadTeamsAsync(response);
+
+        teams.Should().ContainSingle();
+        teams[0].GetProperty("status").GetString().Should().Be("PENDING");
+        teams[0].GetProperty("team_name").GetString().Should().Be($"  {team}  ");
     }
 
     // The security check LOGS AND CONTINUES: a caller who does not manage this club still gets a 200
