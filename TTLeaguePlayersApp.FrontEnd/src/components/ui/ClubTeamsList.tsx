@@ -72,6 +72,10 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
 
         const load = async () => {
             setIsLoading(true);
+            // Rows never outlive the props they were fetched for. MyClubTeams keeps ONE list mounted
+            // across a club switch (no `key`), so without this a failed load for the newly selected
+            // club would leave the previous club's rows on screen under the new club's heading.
+            setTeams(null);
             try {
                 const teamNames = await processor.getClubTeams();
 

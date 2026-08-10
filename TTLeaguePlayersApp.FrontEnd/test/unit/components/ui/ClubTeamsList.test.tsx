@@ -67,16 +67,26 @@ describe('ClubTeamsList', () => {
         inviteApiMocks.getCachedTeamRegistrations.mockResolvedValue(response);
     }
 
-    function renderList(processor: ManagedClubProcessor) {
-        render(
+    // Separate from renderList so a test can re-render the SAME instance with another club's props,
+    // which is what selecting a different club in ManagedClubsCard does to this component.
+    function listFor(
+        processor: ManagedClubProcessor,
+        clubName: string = CLUB_NAME,
+        clubLocation: string = CLUB_LOCATION
+    ) {
+        return (
             <ClubTeamsList
                 processor={processor}
                 league={LEAGUE}
                 season={SEASON}
-                clubName={CLUB_NAME}
-                clubLocation={CLUB_LOCATION}
+                clubName={clubName}
+                clubLocation={clubLocation}
             />
         );
+    }
+
+    function renderList(processor: ManagedClubProcessor) {
+        return render(listFor(processor));
     }
 
     const rowCells = (teamName: string) => {
@@ -260,6 +270,35 @@ describe('ClubTeamsList', () => {
 
         expect(screen.queryAllByTestId('club-team-name')).toHaveLength(0);
         expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    // MyClubTeams renders ONE ClubTeamsList with no `key`, so choosing another club in
+    // ManagedClubsCard re-runs this effect on the same instance rather than mounting a fresh one.
+    // The rows already in state therefore survive a failed load, and the user is left reading the
+    // previous club's teams under the newly selected club's heading.
+    it('clears the previous club rows when the newly selected club fails to load', async () => {
+        respondWith([entry({ team_name: 'Walworth 1' }), entry({ team_name: 'Walworth 2' })]);
+
+        const { rerender } = renderList(stubProcessor(['Walworth 1', 'Walworth 2']));
+
+        await waitFor(() => { expect(screen.getAllByTestId('club-team-name')).toHaveLength(2); });
+
+        // The club switch: a new processor instance, plus the newly selected club's name and location.
+        rerender(listFor(
+            stubProcessor(new Error('Club "Flick M" not found in data source.')),
+            'Flick M',
+            'Hackney'
+        ));
+
+        // The logged error is the signal that the SECOND load has settled — the first one succeeds,
+        // so nothing else in this test writes to console.error.
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            expect(screen.queryByTestId('club-teams-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.queryAllByTestId('club-team-name')).toHaveLength(0);
+        expect(screen.queryByTestId('club-teams')).not.toBeInTheDocument();
     });
 
     it('shows a loading indicator until the data arrives', async () => {
