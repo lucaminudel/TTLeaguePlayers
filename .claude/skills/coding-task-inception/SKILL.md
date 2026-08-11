@@ -5,55 +5,174 @@ description: Turn a coding task brief into a researched, questioned, confirmed a
 
 # Coding Task Inception
 
-A seven-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
-not code. Write no application code during phases 1–6.
+An eight-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
+not code. Write no application code during phases 1–8.
 
-## The one-ask rule
+---
+## One Ask Per Message Rule 
 
-**Read this before sending any message in this skill. It outranks every other instruction in this
-file:** where a phase looks like it calls for two asks in one message, the phase is wrong and this
-rule wins. This skill has **no exception** to it — the batched framing questions belong to
-`coding-task-discovery`'s Phase 1, not here.
+### What an *ask* is
 
-**A message may contain at most ONE ask.** An *ask* is anything the user has to respond to:
+An **ask** is any part of a message that the model cannot proceed past without the user
+replying.
 
-- a question of any size, including "does that look right?", "anything else?", "shall I continue?";
-- a choice between options, or a request to confirm, approve or reject;
-- a request that they run a command, supply a file, check a value, or make a decision;
-- a statement of what you are about to do next where silence would count as tacit approval;
-- an `AskUserQuestion` call — **one question per call, never two to four** — and one such call per
-  message.
+**The test:** *would I act differently depending on what the user says to this?* If yes,
+it is an ask. If the user could ignore it entirely and nothing about the work would
+change, it is not.
 
-Two small asks in one message is the same violation as ten.
+**These all count as asks, and each one alone fills the quota for a message:**
 
-**The pre-send gate. Run it on every message, without exception:**
+| Form | Example |
+|---|---|
+| A direct question, however small | "does that look right?", "anything else?", "shall I continue?" |
+| A choice between options | "A or B?", a list of alternatives with a recommendation |
+| A request to confirm, approve or reject | "approve this fix?", "is this the right list?" |
+| A request that the user do something | run a command, supply a file, check a value, make a decision |
+| **An announcement where silence would count as consent** | "I'll proceed with X unless you object", "otherwise I'll save it as is", "let me know if not" |
+| An `AskUserQuestion` call | **one question per call, never two to four — and one call per message** |
+
+**These are not asks** (and a message made only of these carries zero asks): statements of
+fact, findings, a status update, a report, a summary of work already done, a link to a
+document you produced.
+
+**Size is irrelevant.** Two small asks in one message is the same violation as ten. A
+second ask does not become acceptable because it is short, obvious, related to the first,
+or phrased without a question mark.
+
+### The rule
+
+**A message may contain at most ONE ask.**
+
+Reports, overviews, findings lists, status updates, plans and document hand-overs carry
+**zero** asks — not one. Post them, stop, and put the first decision in its own later
+message.
+
+### Why
+
+Every ask is work handed to the user: they have to understand it, weigh it against the
+rest of the change, and answer it. Bundling asks does three things, all bad:
+
+1. **It overwhelms.** The user has to hold every unresolved item in their head at once
+   just to answer any of them.
+2. **It confuses.** With several asks in flight it stops being clear which part of their
+   reply answers which ask — and a partial reply leaves the rest silently unresolved,
+   usually decided by default rather than by them.
+3. **It makes reacting properly impossible.** A user who wants to reshape the third ask
+   has to either write an essay addressing all of them or let it go. Letting it go is what
+   actually happens — which means a bundled ask quietly extracts agreement to something
+   the user would have changed.
+
+That last one is the real cost. Sequencing costs a round-trip. Bundling costs the user's
+actual input, which was the whole reason for asking.
+
+### The pre-send gate — run on every message, without exception
 
 1. Re-read the message you are about to send, from the top.
-2. Count the asks. Count the question marks first, then the sentences that need a response without
-   one — "let me know if…", "I'll proceed with X unless…", "confirm and I'll start".
-3. **Count 0** — a report, a findings list, a status update, a document hand-over. Send it and
-   **stop there.** Do not append a question to save a round-trip; the next message carries the ask.
-4. **Count 1** — check that everything else in the message is what the user needs *in order to
-   answer that one ask*. Cut the rest; it belongs in its own message.
-5. **Count 2 or more** — keep the first, move the others to later messages. **Never drop an ask to
-   get the count down.** Retracting a point is not the fix and the user has rejected it explicitly:
-   every point still gets asked, one message at a time.
+2. **Count the asks.** Count the question marks first. Then count the sentences that need
+   a response without one: "let me know if…", "I'll proceed with X unless…", "confirm and
+   I'll start".
+3. **Count 0** → send it and **stop there**. Do not append a question to save a
+   round-trip; the next message carries the ask.
+4. **Count 1** → check that everything else in the message is what the user needs *in
+   order to answer that one ask*. Cut the rest; it belongs in its own message.
+5. **Count 2 or more** → keep the first, move the others to later messages.
+   **Never drop an ask to get the count down.** Retracting is not the fix — every ask
+   still gets asked, one message at a time.
+6. **Last check:** the one ask sits in its own clearly-marked section at the end,
+   visually separated from the information above it. **If that section needs a second
+   bullet, the message is carrying two asks — split it.**
 
-**Reports and overviews carry no ask at all.** A findings list, a topic write-up, a plan, a status
-report, a summary of what you just changed: post it, stop, and put the first decision in its own
-later message. Attaching "so, shall I start with the first one?" to the bottom of an overview is the
-exact bundling this rule forbids — it makes the reader hold every unresolved item in their head to
-answer one question. It is not a smaller violation because only one question mark was used.
+### The shape of the loop
 
-**Sequence, never batch.** Ask → wait → act on the answer → then the next ask. Where several asks
-share context, present that context once in an ask-free message, then take the items one at a time,
-each with enough background to be understood on its own without re-reading the transcript.
+**Ask → wait → act on the answer → then the next ask.**
 
-**Why:** batched asks arrive without enough context to judge any single one, and a bundled ask
-quietly pushes the user into accepting something they would otherwise have reshaped. The user has
-corrected this forcefully in more than one session. Saving a round-trip is never worth it to them.
+Where several asks share the same background, send that background **once, in a message
+with no ask in it**, then take the asks one at a time — each carrying enough context to
+be answered without re-reading the transcript.
 
-*This block is identical in all four `coding-task-*` skills. If you change it, change all four.*
+---
+
+## One Point Per Message Rule
+
+
+### What a *point* is
+
+A **point** is a unit of content the user has to evaluate on its own: a topic, a
+sub-topic, a finding, an issue, a bug, an analysis result, an option, a review comment, a
+gap, a risk, a trade-off, a correction, a recap item.
+
+**The test:** *could the user accept this one and reject the next?* If yes, they are two
+points.
+
+**Points nest, and the rule is scale-free.** A discovery topic contains sub-topics; a
+review contains findings; a finding contains its cause and its fix options. Whatever the
+level you are working at, the unit at *that* level is the point, and one goes per message.
+Going a level deeper does not license bundling the level above.
+
+**Shared context is not a point.** Background that several points rest on — what you were
+doing, which files, which command, what the plan said — is context. Send it once, in its
+own message with no ask, then let the points follow one per message.
+
+### The rule
+
+**One point per message, and one point at a time.** Three obligations:
+
+1. **Within a message — the five-line threshold.** More than one point in a message
+   longer than five screen lines is a batch: split it, send the first point, wait for the
+   reply, then the next. Several points may travel together **only** when the whole
+   message fits inside five screen lines, because only then can the reader hold all of
+   them at once. That is the whole of the length rule — there is no separate allowance
+   above five lines, and a long message does not earn extra points by being well
+   organised.
+2. **Across messages — settle before opening the next.** Do not open the next point while
+   the current one is unsettled. Present it, **wait**, and let the user accept, correct,
+   or redirect before moving on. When a point is a topic with sub-topics, finish the
+   sub-topic before returning to the parent.
+3. **A required deliverable is one point, and it travels alone.** When a phase requires a
+   list or a document — a topic list, a plan, a findings report, a work summary, a PR
+   guide, a triage overview — it is exempt from the five-line threshold: the user reads it
+   as a single artefact, in one pass, which is the point of producing it. In exchange it
+   must be the message's **entire** content. Nothing travels with it: no second point, no
+   ask, no preamble raising something else, no "so, shall I start with the first one?" at
+   the bottom. The exemption is what makes the message readable; anything added takes it
+   back.
+
+**Closure is explicit.** When you present a conclusion on a point — especially one
+reporting gaps — ask whether the user considers it complete **before** presenting anything
+about the next point. That closure question is an ask, so under (a) it goes in its own
+message, never in the one that opens the next point.
+
+**This rule limits the message, not the ask count.** A three-point message with no
+question mark anywhere in it still breaks it. So does a point-by-point review of a list
+the user wrote themselves. And rule (a) applies **inside** a single point: one finding
+that raises a gap, a value to confirm and a choice of depth is three asks, so three
+messages, not one.
+
+### Why
+
+Points are not neutral information — each one is something the user may want to correct,
+push back on, reprioritise or reject. Presented as a wall, they behave exactly like
+bundled asks:
+
+1. **They overwhelm.** Ten findings at once is not ten times as informative as one; past
+   about three the reader stops evaluating and starts skimming.
+2. **They confuse.** The user's reaction to point 5 arrives without the model knowing
+   whether points 1–4 were accepted or merely not mentioned.
+3. **They suppress reaction.** Responding to a wall of points means writing a wall back.
+   Most users answer the one or two that stood out and let the rest pass — so the points
+   that most needed their judgement are the ones that silently ship unexamined.
+
+The user's correction on a single point is the highest-value thing in the whole protocol.
+Batching is the reliable way to lose it.
+
+### Procedure
+
+1. Before sending, **count the points** — separately from counting asks.
+2. More than one **and** longer than five screen lines? → split.
+3. Send point 1 alone. **Wait.** Settle it. Then point 2.
+4. Never delete or retract a point to shorten a message. Move it to the next message.
+
+---
 
 ## Phase 1 — Receive the general information
 
@@ -74,18 +193,17 @@ Always read, whether or not they are named:
 
 If the user asks a question mid-brief, answer it, but do not start planning.
 
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+
 ## Phase 2 — Receive the specification
 
 What to implement, constraints, quality criteria, example files, how to verify. Do not push back
 yet; collect everything, then note conflicts for phase 5.
 
-**One topic per stop, and one ask per message — see *The one-ask rule*.** The specification arrives
-as several strands — scope, wording, constraints, example files — and collecting them as a numbered
-list in one message is the obvious move and the wrong one. Ask for one strand, wait, then ask for
-the next.
-
 A gap you find between the user's brief and the Discovery findings report is **itself a topic**, not a
 preamble to append to a question about something else. Raise it alone.
+
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
 
 ## Phase 3 — Research
 
@@ -112,6 +230,8 @@ contains dead ends of exactly that kind.
 intended structure that the code has not grown yet — including inside mermaid diagrams. Read them
 before proposing architecture; you may be re-deriving a decision already made.
 
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+
 ## Phase 4 — Build the plan
 
 Create sub-tasks with `TaskCreate`, then wire dependencies with `TaskUpdate` `addBlockedBy`. Each
@@ -136,7 +256,10 @@ before the next layer goes on. Place each one at a state that compiles and runs;
 order prevents that, say so and propose the split that fixes it rather than parking the user in
 front of a half-wired tree.
 
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+
 ## Phase 5 — Question the gaps
+
 
 Use `AskUserQuestion` with a recommendation as the first option and a concrete `preview` snippet
 showing what each choice looks like in code. Every question must change what you build — if a
@@ -146,11 +269,6 @@ sensible default exists, take it and state it as an assumption instead.
 the most common way this skill breaks the one-ask rule, because the tool makes it look sanctioned.
 It is not. Ask the first gap, wait for the answer, apply it, then ask the next.
 
-**The rule governs prose presentations exactly as much as tool calls.** Answering a question,
-summarising the changes you just applied, and asking whether to proceed are three things; putting
-them in one message breaks the rule just as surely as a four-question panel does. Run the pre-send
-gate before every one of them.
-
 State your remaining assumptions explicitly, so silence counts as agreement.
 
 **Treat the spec's implementation directives as provisional.** The brief may name the interface and
@@ -158,6 +276,7 @@ class to modify. If research says otherwise, present the trade-off with costs, f
 from what they wrote, and get explicit confirmation. Do not silently comply, and do not silently
 deviate.
 
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
 
 ## Phase 6 — Present, amend, confirm, persist
 
@@ -188,10 +307,14 @@ the in-session task list is not. The file must carry:
 - standing assumptions and accepted risks
 - a dated progress log, and instructions that any agent may update it
 
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+
 ## Phase 7 — Retrospect
 
 Once the plan is persisted, review how phases 1–6 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
+
+Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
 
 ## Phase 8 — Close
 
@@ -205,13 +328,6 @@ At the end when all is done do a:
 
 - Writing application code before phase 6 confirmation.
 - Planning against an external data source without fetching it first.
-- Asking questions whose answer would not change the work, or bundling several topics into one stop.
-- Sending a message with two asks in it, however small the second one is — or skipping the pre-send
-  gate because the message "obviously" only asks one thing.
-- Passing more than one question to a single `AskUserQuestion` call.
-- Ending the plan presentation with a request to confirm, or with "otherwise I'll persist it as is".
-- Combining an answer to the user's question, a summary of what you changed, and "shall I proceed?"
-  in one message.
 - Dropping or retracting a point to get a message down to one ask, instead of moving it to the next
   message.
 - Inferring process rules from repo guideline docs instead of asking.
@@ -222,29 +338,4 @@ At the end when all is done do a:
 
 ## Standing rules
 
-**Asking the user.** Every time you stop — presenting a topic's findings, asking to run something,
-closing out — the user is arriving cold. Give them a short summary with enough context to respond without re-reading the
-transcript:
-
-- **What is it about** — a short and clear summary of what is it all about.
-- **your findings or relevant data** — a short and clear summary of the findings or data or facts you want to preset, before sharing the details.
-- **What is the question or decision or contribution you are asking for** — a short and clear summary of what you expect from the user and the pros and cons and/or consequences of each choise
-Keep it short enough to read in under a minute.
-In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
-
-That visual separation is also the **last check of the pre-send gate**: put the one ask in its own
-clearly-marked section at the end. If that section needs a second bullet, the message is carrying
-two asks — split it.
-
-**One ask per message.** See *The one-ask rule* at the top of this file. It applies to every message
-in every phase of this skill, with no exception, and the pre-send gate runs before each one.
-
-- **Discuss with the user one topic at the time.** 
-Make sure to ask quesitons to the the user one topic at the time, and if there are sub-topic one sub-topic at the time, untile the sub-topic or topic is fully clarified.
-Do not ask questions about multiple topics or sub-topics at the same time unless it is necessary because there are dependencies or tradeoffs between multiple topics or sub-topics that you want to explore with the user. 
-
-When you present the conclusion on a topic or question, even more if that include reports of gaps, ask the user if they consider the topic completed before presenting info or questions on other topics — and ask that on its own, not in the same message that opens the next topic.
-
-"One topic per message" is the weaker constraint: **a single topic can still hold two asks, and then
-it is two messages.** The one-ask rule decides, not the topic count.
 - **Commands against live cloud and Cognito environment** Running a read-only command against the cloud environment, and Cognito is permitted, but **ask permission first**. Running during the incpetion a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. It is ok for that to be part of the plan the inception creates, inform the user in such case.

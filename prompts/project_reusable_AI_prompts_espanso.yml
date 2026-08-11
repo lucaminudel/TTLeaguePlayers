@@ -12,84 +12,85 @@
 
 matches:
   #
-  # Codebase/Project prompts
+  # Codebase/Domain/Product documentation info
   #
   - trigger: /ttarch # TT Architecture
-    label: 1a. PRJ - Read the Architecture & Tech-Stack summary file
+    label: 1. INFO - Architecture & Tech-Stack summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp architecture and tech stack info:
       ~/Code/TTLeaguePlayers/prompts/codebase_info/ArchitectureAndTechStack.md
 
   - trigger: /ttinseason # TT In-season Domain Logic summary
-    label: 1b. PRJ - Read the In-season Domain Logic summary file
+    label: 2a. INFO - In-season Domain Logic summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp In-season Domain Logic From Cognito Users & Configuration Files
       ~/Code/TTLeaguePlayers/prompts/codebase_info/FrontendInSeasonDomainLogic.md
 
   - trigger: /ttmanagedclubs # TT Actively Managed Clubs Domain Logic summary
-    label: 1c. PRJ - Read the Actively Managed Clubs Logic summary file
+    label: 2b. INFO - Actively Managed Clubs Domain Logic summary file
     replace: |
       Read from this file, the TTLeaguePlayersApp Actively Managed Clubs Domain Logic From Cognito Users & Configuration Files
       ~/Code/TTLeaguePlayers/prompts/codebase_info/FrontendActivelyManagedClubsDomainLogic.md
 
-  - trigger: /ttlogs # TT Logging and Exceptions summary
-    label: 2. PRJ - Read the Logging and Exceptions guidelines
+#
+  # Workflow Tasks Guidelines and skills
+  #
+  - trigger: /ttlogs # TT Logging and Exceptions guidelines
+    label: 3. SKILL - Logging and Exceptions guidelines
     replace: |
       Read from this file, the TTLeaguePlayersApp guidelines for logging and handling errors:
       ~/Code/TTLeaguePlayers/prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md
 
-  - trigger: /ttws # TT Workflow Staging
-    label: 3. PRJ - End of task Staging/Commit and CI pipeline execution
+  - trigger: /ttwfwt # TT Workflow, Write Tests 
+    label: 4a. SKILL - Test writing guidelines
     replace: |
-      This is a general rule about what to do after you complete a task: After completing a step of the tasks for which you have made changes to files, and having successfully passed the verification steps, ask me if I want you to
-      1) run the basic verification commands (defined by other instructions or rules)
-      2) wait for me to manually review the file changes
-      3) add the modified files to the stage area (assuming point 1 passes) in one command
+      Read from this file, with the guidelines for writing tests:
+      ~/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
+  - trigger: /ttftests # TT Workflow, Fix Tests 
+    label: 4b. SKILL - Broken Test fixing guidelines
+    replace: |
+      Read from this file, with the guidelines for fixing tests:
+      ~/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
+      
+  - trigger: /ttcoding-task-discovery # Coding task: Discovery
+    label: 5a. SKILL - Coding Task Discovery
+    replace: |
+      Read from this file, with the instruction to conduct a pre-inception task Discovery:
+      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-discovery/SKILL.md
+  - trigger: /ttcoding-task-inception # Coding task: Inception
+    label: 5b. SKILL - Coding Task Inception
+    replace: |
+      Read from this file, with the instruction to conduct a task Inception to produce an Plan:
+      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-inception/SKILL.md
+  - trigger: /ttcoding-task-execution # Coding task: Execution
+    label: 5c. SKILL - Coding Task Execution
+    replace: |
+      Read from this file, with the instruction to execute the Plan from the task Inception:
+      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-execution/SKILL.md
+  - trigger: /ttcoding-task-review # Coding task: Review
+    label: 5d. SKILL - Coding Task Review
+    replace: |
+      Read from this file, with the instruction to execute the task Review following the Execution:
+      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-review/SKILL.md
 
   #
   # Tasks specific instructions 
   #
 
   - trigger: /ttwfv # TT Workflow Frontend Verification
-    label: 4a. TSK - FrontEnd verification commands
+    label: 6a. CMDs - FrontEnd verification commands
     replace: |
       Read from this file, on the commands to run verification commands for the FrontEnd:
       ~/Code/TTLeaguePlayers/prompts/workflow/instructions/FrontEnd VerificationCommands.md
       
   - trigger: /ttwbv # TT Workflow Backend Verification
-    label: 4b. TSK - Backend verification commands
+    label: 6b. CMDs - Backend verification commands
     replace: |
       Read from this file, on the commands to run verification commands for the BackEnd:
       ~/Code/TTLeaguePlayers/prompts/workflow/instructions/BackEndVerificationCommands.md
 
   - trigger: /ttdebug # TT Workflow Debug local SAM lambdas
-    label: 5 TSK - Start Debugging local SAM lambdas
+    label: 7 CMDs - Start Debugging local SAM lambdas
     replace: |
       Read from this file, the debug instructions to debug the Lambdas and Api GatewayC# running on SAM locally:
       ~/Code/TTLeaguePlayers/prompts/workflow/instructions/LocalSAMBackEndDebugInstructions.md
-
-  #
-  # Workflow instructions 
-  #
-  - trigger: /ttwfwt # TT Workflow, Write Tests 
-    label: 6a. WF - Test writing guidelines
-    replace: |
-      Read from this file, with the guidelines for writing tests:
-      ~/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/WriteTestsGuidelines.md
-  - trigger: /ttftests # TT Workflow, Fix Tests 
-    label: 6b. WF - Broken Test fixing guidelines
-    replace: |
-      Read from this file, with the guidelines for fixing tests:
-      ~/Code/TTLeaguePlayers/prompts/workflow/steps_guidelines/FixRedTestGuidelines.md
-
-  - trigger: /tthandoff # TT Workflow Session Hand-off
-    label: 7 WF - Session Handoff
-    replace: |
-      You're now handing this task off to another software engineer. Write a summary of
-      A - what's still to be done, and
-      B - how to do it 
-      This software engineer, you are handing this taks off, has zero context about the task, so include in your summary 
-      any info, context, references, details, and whatever will help them to execute point A and B.
-      Include in your summary include relevant links to code files and .md files.
-      Finally add a paragraph at the end of the suppari with info and insttructions for the LLM AI assistant that will help
-      the software engineer with the task.
