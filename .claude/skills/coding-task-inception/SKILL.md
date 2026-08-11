@@ -8,7 +8,7 @@ allowed-tools: Bash(cat:*)
 
 # Coding Task Inception
 
-An eight-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
+An nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
 not code. Write no application code during phases 1–8.
 
 ---
@@ -123,7 +123,13 @@ deviate.
 
 IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
-## Phase 6 — Present, amend, confirm, persist
+## Phase 6 — Review the plan for completeness
+Double-ckeck the plan decisions and sub-tasks making sure they are sufficiently detailed and have all the information required for  the agent to implement the plan-subtasks minimising the interruptions such as additional asks or reviews that need to be presented to the user.
+
+Where you can anticipate a gap and a missing information or a decision or a confirmation required, bridge the gap now with the user so the plan execution will have much much less interruptions
+
+
+## Phase 7 — Present, amend, confirm, persist
 
 Present the full plan as a table: number, sub-task, blocked-by. Add files created vs modified,
 decisions locked in, assumptions, and anything you would flag as accepted risk.
@@ -155,7 +161,7 @@ task artifacts are found by path, not by recall. The file must carry:
 
 IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
-## Phase 7 — Retrospect
+## Phase 8 — Retrospect
 
 Once the plan is persisted, review how phases 1–6 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
@@ -171,7 +177,7 @@ time.
 injected from that one shared file; editing it in place either silently diverges the four skills
 or is discarded the next time the file is read. Open the shared file and change it there, once.
 
-## Phase 8 — Close
+## Phase 9 — Close
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 

@@ -178,7 +178,7 @@ The two rules above govern *how many*. This one governs *what the one you send m
 **Every time you stop, the user is arriving cold** — presenting findings, hitting a blocker,
 reaching a checkpoint, reporting plan drift, asking permission before a long or shared-environment
 run. They have not read the transcript, do not remember the last twenty tool calls, and have not
-opened the diff. Lead with a short summary:
+opened the diff. Lead with a clear short summary as if the user knew noghing about what you are doing and where you are:
 
 - **What you were doing** — which topic, question, phase, files or commands are the subject, and
   which sources you used.
@@ -194,7 +194,8 @@ opened the diff. Lead with a short summary:
 about, what they can do, and what each choice costs. A bare "should I proceed?", or a question that
 assumes they remember the last twenty tool calls, fails that test.
 
-**Separate the information from the ask visually.** Make a clear distinction between what you are
+**Visually separate in clear way the information from the ask or point and what the user has to do with it.
+** Make a clear distinction between what you are
 telling them and what you need back. That separation is also the **last check of the pre-send
 gate**: the one ask sits in its own clearly-marked section at the end. If that section needs a
 second bullet, the message is carrying two asks — split it.
