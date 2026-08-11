@@ -172,7 +172,7 @@ Follow `PromoteMyClub.spec.ts`, `PromoteMyTournaments.spec.ts`, `KudosAwardAndSt
 *  **Track what you create:** declare a describe-scope variable (`let addedClub: { url: string; auth: string } | null = null`) and record the **URL and the `Authorization` header** of the upsert request the UI issues, by listening to `page.on('request', ...)` (or `page.once` immediately before the action) and filtering on method and URL. The captured token is what lets the teardown delete the item.
 *  **Clear the tracker when the test itself removes the item** (`addedClub = null;`), so the teardown only has work to do when the test did not get that far. Removing through the UI can stay a meaningful test step — the teardown is the safety net, not a replacement for it.
 *  **Log the outcome** of each delete (`🧹 [Cleanup] ...`, `✅`, `❌`) and catch errors per item, so a failed cleanup is visible in the run output without failing the suite. Retry when the API is flaky, as the Kudos cleanup does.
-*  **Do not share mutable fixtures between spec files.** Playwright runs spec files in **parallel workers**, so two specs that add and remove the *same* club, user or record will race and fail intermittently — and may appear to pass for a while depending on scheduling. Pick a Cognito test user and club that the spec owns; check which specs already use a given static user before reusing it.
+*  **Do not share mutable fixtures between spec files.** Playwright runs spec files in **parallel workers**, so two specs that add and remove the *same* club, user or record will race and fail intermittently — and may appear to pass for a while depending on scheduling. Pick a club, tournament or invite that the spec owns. For the *Cognito identity* itself the rule is narrower — a read-only user may legitimately be shared; see [Reusing a read-only static user, or adding a new one](#reusing-a-read-only-static-user-or-adding-a-new-one).
 
 
 ## Acceptance tests run in two environments — branch, don't skip
@@ -374,6 +374,68 @@ Kudos-rating specs face a subtler problem: the UI disables re-rating a match bas
 | 4 | Fresh dynamic `test_<epoch>@delete.me` identities | Frontend e2e only |
 | 5 | Mocking `GetUser` to neutralize `latest_kudos` | Frontend e2e only  |
 
+
+## Reusing a read-only static user, or adding a new one
+
+Every new static user costs something real: a line in `register-test-users.sh`, a line in the
+`delete-test-users.sh` exclusion list, one more identity against the **Cognito daily create/delete
+quota**, and — because the pipeline calls `register-test-users.sh` **without** `force`, which
+creates nothing — a **manual** `delete-test-users.sh <env> force` followed by
+`register-test-users.sh <env> force` before the new spec can pass anywhere. That manual step is
+invisible to the code-dependency graph: skip it and the new spec fails with a login error that
+looks exactly like a code defect.
+
+So do not add one reflexively. Ask the two questions below, in order.
+
+### Question 1 — does the new test WRITE to the Cognito user?
+
+A test writes to Cognito only through the accept-invite path (`PATCH /invites/{id}` →
+`CognitoUsers.AddActiveSeason` / the managed-clubs update). Logging in, reading
+`custom:active_seasons` / `custom:managed_clubs` from the token, and every DynamoDB-backed call
+are all **reads**.
+
+*  **The new test writes** → **add a new user**, unless it can target the identity that already
+   exists for this purpose (`test_ready_for_accept_invite_api_call@user.test`). Two specs writing
+   the same user's attributes in parallel workers race, and — worse — the idempotent accept path
+   makes the second one *pass* against the first one's leftovers. That is Group B's false-success
+   risk.
+*  **The new test only reads** → go to question 2.
+
+### Question 2 — does the new test collide on the DATA, not the identity?
+
+Sharing a read-only identity is safe: concurrent `InitiateAuth` / `GetUser` calls do not race, and
+a read leaves nothing behind. What can still race is the **club, team or record the spec asserts
+on**, if another spec writes it.
+
+Check what the candidate user's attributes point at, then grep the other specs for those names.
+
+*  **A club or team the user manages is written by another spec** (kudos awarded to one of its
+   teams, tournaments added under it, invites created for it) → either **pick a different club on
+   the same user**, or add a new user. Prefer the different club: it is free.
+*  **Nothing else writes that data** → **reuse the existing user.** Record the sharing in the
+   comment block above that user in `register-test-users.sh`, naming *both* specs, so the next
+   reader knows the identity is no longer owned by one spec and that making either spec write
+   would now couple them.
+
+### Worked example
+
+`test_my_club_teams_manager@user.test` manages **Walworth** (London) and **Highbury** (Islington).
+It is referenced in exactly three places — `MyClubTeams.spec.ts` (login only),
+`register-test-users.sh`, `delete-test-users.sh` — and no test accepts an invite as it, so it is
+read-only (Mechanism 1). A second read-only spec may therefore share it.
+
+But `KudosAwardAndStanding.spec.ts` awards kudos **to `Walworth Tigers`** and deletes them in
+teardown. A spec asserting Walworth's kudos standings would race that parallel worker and pass or
+fail depending on scheduling. **Highbury** is written by no spec, so the correct answer is *reuse
+the user, assert on Highbury* — not *create a new user*.
+
+### The one thing this criteria cannot protect
+
+Read-only is a property of **current usage**, not of the user. Nothing in the code enforces it, and
+`delete-test-users.sh` deliberately spares these identities from the non-`force` cleanup, so state
+accumulates for as long as it exists. The moment any spec makes a shared user mutable, every spec
+sharing it inherits the Group B risk at once. That is why the sharing must be written down in the
+script's comment block rather than left to be rediscovered.
 
 ### Files Involved
 

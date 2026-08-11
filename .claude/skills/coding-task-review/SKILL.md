@@ -1,6 +1,9 @@
 ---
 name: coding-task-review
 description: Adversarially review the uncommitted work produced by the Coding Task Execution skill, fix the high-priority findings, and hand the user a PR-review guide and commit message for the pending changes. Use when the user says "Coding Task Review", or asks to review the work done before committing.
+model: opus
+effort: high
+allowed-tools: Bash(cat:*)
 ---
 
 # Coding Task Review
@@ -9,8 +12,11 @@ Fourth and last of the four. Inputs are the plan and the work summary that
 `coding-task-inception` and `coding-task-execution` persisted, plus the uncommitted changes those
 produced in the working tree:
 
-- `~/.claude/projects/.../memory/plan-<slug>.md`
-- `~/.claude/projects/.../memory/work-summary-<slug>.md`
+- `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md`
+- `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/work-summary.md`
+
+List the `coding-tasks/` directory to find the slug rather than guessing it: one match, use it;
+several, ask the user which.
 
 If neither exists, stop and say so — there is nothing to review against. If only one exists, say
 which is missing and what you therefore cannot check, then proceed.
@@ -19,190 +25,17 @@ The output is **a reviewed, green, committable working tree and a guide for revi
 commit. You never commit.
 
 ---
-## One Ask Per Message Rule 
-
-### What an *ask* is
-
-An **ask** is any part of a message that the model cannot proceed past without the user
-replying.
-
-**The test:** *would I act differently depending on what the user says to this?* If yes,
-it is an ask. If the user could ignore it entirely and nothing about the work would
-change, it is not.
-
-**These all count as asks, and each one alone fills the quota for a message:**
-
-| Form | Example |
-|---|---|
-| A direct question, however small | "does that look right?", "anything else?", "shall I continue?" |
-| A choice between options | "A or B?", a list of alternatives with a recommendation |
-| A request to confirm, approve or reject | "approve this fix?", "is this the right list?" |
-| A request that the user do something | run a command, supply a file, check a value, make a decision |
-| **An announcement where silence would count as consent** | "I'll proceed with X unless you object", "otherwise I'll save it as is", "let me know if not" |
-| An `AskUserQuestion` call | **one question per call, never two to four — and one call per message** |
-
-**These are not asks** (and a message made only of these carries zero asks): statements of
-fact, findings, a status update, a report, a summary of work already done, a link to a
-document you produced.
-
-**Size is irrelevant.** Two small asks in one message is the same violation as ten. A
-second ask does not become acceptable because it is short, obvious, related to the first,
-or phrased without a question mark.
-
-### The rule
-
-**A message may contain at most ONE ask.**
-
-Reports, overviews, findings lists, status updates, plans and document hand-overs carry
-**zero** asks — not one. Post them, stop, and put the first decision in its own later
-message.
-
-### Why
-
-Every ask is work handed to the user: they have to understand it, weigh it against the
-rest of the change, and answer it. Bundling asks does three things, all bad:
-
-1. **It overwhelms.** The user has to hold every unresolved item in their head at once
-   just to answer any of them.
-2. **It confuses.** With several asks in flight it stops being clear which part of their
-   reply answers which ask — and a partial reply leaves the rest silently unresolved,
-   usually decided by default rather than by them.
-3. **It makes reacting properly impossible.** A user who wants to reshape the third ask
-   has to either write an essay addressing all of them or let it go. Letting it go is what
-   actually happens — which means a bundled ask quietly extracts agreement to something
-   the user would have changed.
-
-That last one is the real cost. Sequencing costs a round-trip. Bundling costs the user's
-actual input, which was the whole reason for asking.
-
-### The pre-send gate — run on every message, without exception
-
-1. Re-read the message you are about to send, from the top.
-2. **Count the asks.** Count the question marks first. Then count the sentences that need
-   a response without one: "let me know if…", "I'll proceed with X unless…", "confirm and
-   I'll start".
-3. **Count 0** → send it and **stop there**. Do not append a question to save a
-   round-trip; the next message carries the ask.
-4. **Count 1** → check that everything else in the message is what the user needs *in
-   order to answer that one ask*. Cut the rest; it belongs in its own message.
-5. **Count 2 or more** → keep the first, move the others to later messages.
-   **Never drop an ask to get the count down.** Retracting is not the fix — every ask
-   still gets asked, one message at a time.
-6. **Last check:** the one ask sits in its own clearly-marked section at the end,
-   visually separated from the information above it. **If that section needs a second
-   bullet, the message is carrying two asks — split it.**
-
-### The shape of the loop
-
-**Ask → wait → act on the answer → then the next ask.**
-
-Where several asks share the same background, send that background **once, in a message
-with no ask in it**, then take the asks one at a time — each carrying enough context to
-be answered without re-reading the transcript.
-
----
-
-## One Point Per Message Rule
-
-
-### What a *point* is
-
-A **point** is a unit of content the user has to evaluate on its own: a topic, a
-sub-topic, a finding, an issue, a bug, an analysis result, an option, a review comment, a
-gap, a risk, a trade-off, a correction, a recap item.
-
-**The test:** *could the user accept this one and reject the next?* If yes, they are two
-points.
-
-**Points nest, and the rule is scale-free.** A discovery topic contains sub-topics; a
-review contains findings; a finding contains its cause and its fix options. Whatever the
-level you are working at, the unit at *that* level is the point, and one goes per message.
-Going a level deeper does not license bundling the level above.
-
-**Shared context is not a point.** Background that several points rest on — what you were
-doing, which files, which command, what the plan said — is context. Send it once, in its
-own message with no ask, then let the points follow one per message.
-
-### The rule
-
-**One point per message, and one point at a time.** Three obligations:
-
-1. **Within a message — the five-line threshold.** More than one point in a message
-   longer than five screen lines is a batch: split it, send the first point, wait for the
-   reply, then the next. Several points may travel together **only** when the whole
-   message fits inside five screen lines, because only then can the reader hold all of
-   them at once. That is the whole of the length rule — there is no separate allowance
-   above five lines, and a long message does not earn extra points by being well
-   organised.
-2. **Across messages — settle before opening the next.** Do not open the next point while
-   the current one is unsettled. Present it, **wait**, and let the user accept, correct,
-   or redirect before moving on. When a point is a topic with sub-topics, finish the
-   sub-topic before returning to the parent.
-3. **A required deliverable is one point, and it travels alone.** When a phase requires a
-   list or a document — a topic list, a plan, a findings report, a work summary, a PR
-   guide, a triage overview — it is exempt from the five-line threshold: the user reads it
-   as a single artefact, in one pass, which is the point of producing it. In exchange it
-   must be the message's **entire** content. Nothing travels with it: no second point, no
-   ask, no preamble raising something else, no "so, shall I start with the first one?" at
-   the bottom. The exemption is what makes the message readable; anything added takes it
-   back.
-
-**Closure is explicit.** When you present a conclusion on a point — especially one
-reporting gaps — ask whether the user considers it complete **before** presenting anything
-about the next point. That closure question is an ask, so under (a) it goes in its own
-message, never in the one that opens the next point.
-
-**This rule limits the message, not the ask count.** A three-point message with no
-question mark anywhere in it still breaks it. So does a point-by-point review of a list
-the user wrote themselves. And rule (a) applies **inside** a single point: one finding
-that raises a gap, a value to confirm and a choice of depth is three asks, so three
-messages, not one.
-
-### Why
-
-Points are not neutral information — each one is something the user may want to correct,
-push back on, reprioritise or reject. Presented as a wall, they behave exactly like
-bundled asks:
-
-1. **They overwhelm.** Ten findings at once is not ten times as informative as one; past
-   about three the reader stops evaluating and starts skimming.
-2. **They confuse.** The user's reaction to point 5 arrives without the model knowing
-   whether points 1–4 were accepted or merely not mentioned.
-3. **They suppress reaction.** Responding to a wall of points means writing a wall back.
-   Most users answer the one or two that stood out and let the rest pass — so the points
-   that most needed their judgement are the ones that silently ship unexamined.
-
-The user's correction on a single point is the highest-value thing in the whole protocol.
-Batching is the reliable way to lose it.
-
-### Procedure
-
-1. Before sending, **count the points** — separately from counting asks.
-2. More than one **and** longer than five screen lines? → split.
-3. Send point 1 alone. **Wait.** Settle it. Then point 2.
-4. Never delete or retract a point to shorten a message. Move it to the next message.
+```!
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
+```
 
 ---
 ## Phase 0 — Start from green
 
-A review of a red build reports the build, not the code. So before reading a single diff, establish
-that the last complete verification passed.
+Ask the user to confirm the state of the code to be reviewed is green: all tests pass so does the full verification pipeline.
+  
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
-Look for the tier-2 run in the plan's progress log and the work summary's final entry: the command
-`./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`, on the **test** environment,
-with live Cognito, and its recorded outcome. Do not accept a tier-1 dev run as a substitute.
-
-- **Not run, or run before the last change landed** — ask the user to run it. Do not launch it
-  yourself; it is long-running and touches the shared test environment.
-- **Run and failed** — present the failures with the actual output quoted, framed as *Asking the
-  user* under Standing rules describes, then **ask the user what
-  to do**. They will reply with instructions specific to that failure: fix it yourself, they will
-  fix it, it is a known flake to ignore, restart a stale service, and so on. Do not decide on your
-  own initiative whose problem it is, and do not start diagnosing or fixing before they answer.
-  Once they have instructed you, follow that instruction, get to green, and only then enter phase 1.
-- **Run and passed** — record the date and the outcome line, and continue.
-
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
 
 ## Phase 1 — Read the diff and reconstruct intent
 
@@ -234,11 +67,17 @@ finding — either the work summary is incomplete or the change was unplanned.
 Read the file's *surroundings*, not just its diff. Most consistency findings come from the
 neighbouring code that did not change.
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
 ## Phase 2 — Review, adversarially
 
-Do this **inline, yourself, in this session**. No subagents.
+**The judgement is yours, inline, in this session.** Deciding what is wrong, what it would break,
+what matters and what to tell the user is never delegated — an agent spawned from this session
+carries the same blind spot as you and will confirm the same mistakes with more words.
+
+Scoped analysis passes are a different thing and are welcome; see *Cross-check with the review
+commands* at the end of this phase. They return **data**, not verdicts. Whatever they return is
+verified and triaged by you, exactly like a finding you made yourself.
 
 The difficulty is that you likely wrote this code, and your default posture is to confirm it. So
 invert it deliberately: for each change, the question is not "is this reasonable?" but **"what
@@ -250,6 +89,8 @@ Re-read the standards before judging against them, rather than from memory:
 - `prompts/workflow/steps_guidelines/FixRedTestGuidelines.md`
 - the `prompts/codebase_info/*DomainLogic.md` for the area touched
 
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+
 ### The lenses
 
 **Code quality, simplicity, consistency.** Does it look like the code around it — naming, file
@@ -257,7 +98,9 @@ layout, error style, comment density? Is there a simpler shape that does the sam
 introduced for one caller are suspect. So is any new pattern that duplicates one already in the
 repo under a different name.
 
-**Dependencies and direction.** Does anything new point the wrong? Look for cycles.
+**Dependencies and direction.** Does anything new point the wrong way — an inner layer reaching
+outward, a domain type importing infrastructure, a shared module depending on a caller? Look for
+cycles.
 
 **Claims made in comments are findings to verify, not context to absorb.** Any comment asserting
 that something is impossible, unreachable, always/never true, or that "nothing in this codebase does
@@ -266,7 +109,6 @@ finding even when the behaviour is right. Two of these appeared in a single revi
 missed because the comment said "unreachable" and that was taken at face value. The danger is not the
 wrong comment; it is that the comment stops you looking, and it is usually load-bearing — the stated
 justification for the very decision under review.
-
 
 **Bugs.** For what this change actually touches:
 - **Decorators and wrappers that silently drop methods.** A method added to an interface is dead
@@ -307,12 +149,41 @@ a line mentally and ask which test goes red. Assertions on "did not throw" cover
 - What gets written to `localStorage`, and whether it should be.
 - New external hosts fetched, and whether a CORS proxy is being used to reach them.
 
-You are encourage to use your commands: 
-  /simplify 
-  /code-review 
-  /security-review 
+### Cross-check with the review commands
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+**Run them after the lenses above, never before.** Run first and they anchor you: a clean tool
+report reads as permission to skip the hard thinking, which is precisely the confirmation bias this
+phase exists to defeat. Do your own pass, write your findings down, *then* run these:
+
+| Command | Covers |
+|---|---|
+| `/code-review` | correctness, simplification, efficiency, test coverage over the working diff |
+| `/security-review` | security review of the pending changes on the current branch |
+
+**The delta is the real signal.** Anything they surface that you did not is evidence your own pass
+was too soft — say so plainly and look at what you missed and why, rather than quietly adding it to
+the list. Anything you found that they did not is not thereby suspect: they do not know this
+repo's domain rules, its fixture conventions, or what the plan intended.
+
+Four rules for folding the output in:
+
+1. **Scope.** Both look at the *whole* pending diff; this review's scope is only what the plan and
+   work summary account for (Phase 1). A finding against a riding-along file does not enter triage
+   — list it under *riding along* and say a tool flagged it, so the decision stays the user's.
+2. **Verify before believing.** Tool findings are claims, checked against the real files like any
+   other. Drop what you cannot reproduce. A tool's confidence is not evidence.
+3. **Deduplicate.** They will re-report things the lenses already caught. One finding per issue,
+   cited once, in Phase 3's list.
+4. **Do not paste the reports into the chat.** They arrive as a wall of findings, which is the
+   batching Phase 3 forbids. Their output feeds the triage; the triage is what the user sees.
+
+Neither command fixes anything, so both are safe to run before the fix plan is approved. `/simplify`
+is deliberately not in this list — it *applies* changes, and nothing changes during review until the
+user approves a fix plan.
+
+**`/code-review ultra` is not yours to launch.** It is user-triggered and billed. If the change
+warrants that depth, say so and let the user decide.
+
 
 ## Phase 3 — Triage, then stop
 
@@ -339,9 +210,10 @@ one. It is not a smaller violation because only one question mark was used; the 
 a lot to absorb. The two lists exist so the user can see the whole picture before deciding anything
 — that part is a single presentation. Deciding is not.
 
-**Message 2 — finding 1, and only finding 1.** Present it as *Asking the user* under Standing rules
-describes: where it came from, why it is wrong, the failing case, and for the fix its size, its
-blast radius and the alternative of leaving it. One ask: what to do about this finding. Then wait.
+**Message 2 — finding 1, and only finding 1.** Present it as the *Presenting Rule for the One Ask
+and the One Topic you do send* describes: where it came from, why it is wrong, the failing case,
+and for the fix its size, its blast radius and the alternative of leaving it. One ask: what to do
+about this finding. Then wait.
 
 **Then: settle it, fix it, verify it — and only then move to finding 2**, in its own message, same
 shape. Never "approve findings 1, 2 and 3?", and never a recommendation that bundles them: each has
@@ -360,23 +232,21 @@ pushes them to accept a fix they would have improved. In practice they often wil
 alternative to beat your proposal, particularly on operational cost, and treat that as the normal
 outcome rather than a correction.
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
 ## Phase 4 — Fix
 
 Execute the approved plan only. Nothing from list 2 gets touched, and no cleanup gets folded in
 along the way — the diff must not grow during its own review.
 
-Verify with the commands and the two-tier discipline in the `coding-task-execution` skill, Phase 5.
-In short:
+Verify with the commands and the **four-tier discipline** — 1-A (dev, no Cognito), 1-B (dev, scoped
+Cognito), 1-C (dev, full Cognito, ask first), 2 (test env, full pipeline, ask first) — defined in
+*Phase 5 — Verify before marking done* of the `coding-task-execution` skill.
 
-| Fix touched | Run |
-|---|---|
-| Frontend source | `npm run "build-web:dev-env"` plus the specs covering the changed files |
-| `config/*.env.json` | the backend suite — `LoaderTest` is a Theory over all four environments |
-| Test or fixture only | just that suite |
-| Backend C# | `sam build --config-env dev` **then** the backend suite |
-| Anything, once all fixes are in | the whole of tier 1; then ask the user to re-run tier 2 |
+That content is **not** loaded into this session. Read it from disk before relying on it:
+`.claude/skills/coding-task-execution/SKILL.md`. Do not reconstruct the commands or the tier gates
+from memory, and do not assume a tier is free — 1-B, 1-C and 2 all spend live Cognito and count
+against the budget defined there.
 
 A fix that does not go green is not done. If a fix turns out to be wrong or wider than it looked,
 stop and say so rather than expanding it silently.
@@ -385,7 +255,7 @@ Re-running the full pipeline after the fixes is the user's call and the user's c
 why it is needed, and wait. That request is its own message: it does not travel with the summary of
 the fixes just applied, and it does not travel with the PR guide.
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
 ## Phase 5 — The PR-review guide
 
@@ -394,11 +264,14 @@ understandable on its own** — the reviewer should be given a clear and short s
 diff. Assume no memory of the plan, the execution session, or this codebase's conventions.
 
 **It goes in its own document.** Write it, with the phase 2–4 findings, to
-`~/.claude/projects/.../memory/review-<slug>.md` — a
-new file, **not** appended to `work-summary-<slug>.md`. Give it the usual frontmatter (`name`,
-`description`, `metadata.type: project`) and add a pointer line to `MEMORY.md`.
+`~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/review.md` — a new
+file in the same `<slug>` directory, **not** appended to `work-summary.md`.
 
-When the review document is completed, presentthe link to the review file.
+**`MEMORY.md` gets at most one line, and only if the task produced something durable** — a decision
+or constraint worth carrying into unrelated future work. The review guide itself is not that: it is
+found by path. Never index the four task artifacts.
+
+When the review document is completed, present the link to the review file.
 
 The two documents have different readers and different lifetimes. The work summary is the *execution*
 record — per sub-task, written as the work happened, and it only grows. The review guide is written
@@ -443,7 +316,7 @@ The document carries:
 Keep it readable in one sitting. Context and direction, never a restatement of the lines that
 changed — if the reviewer could get it from the diff alone, leave it out.
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
 ## Phase 6 — Suggest the commit message
 
@@ -454,7 +327,7 @@ Body explains *why*, since the diff already shows *what*. Note user-facing behav
 config-file structure changes, and anything a future bisect would want to find. Do not sign it as
 Claude unless the user asks.
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
 
 ## Phase 7 — Retrospect
 
@@ -463,31 +336,36 @@ user made are the highest-value input — especially findings you missed that th
 findings you raised that turned out to be noise. Ask the user if they want to add any other
 improvement to this skill.
 
-Remember to apply the One Ask Per Message Rule and the One Point Per Message Rule.
+
+**Where the improvement goes — check before editing anything.** Phase logic (the steps, their
+order, what this phase produces) belongs in this file. Anything about the interaction protocol —
+the One Ask and One Point rules, the pre-send gate, the shape of a hand-back — belongs in
+`.claude/skills/shared/interaction-protocol.md`, which all four skills inject verbatim at load
+time.
+
+**Never edit the protocol text as it appears in a rendered skill.** What you see inline was
+injected from that one shared file; editing it in place either silently diverges the four skills
+or is discarded the next time the file is read. Open the shared file and change it there, once.
+
+## Phase 8 — Close
+
+This is the end of the four-skill sequence: the working tree is reviewed, green and committable,
+and the commit message is proposed. **You do not commit** — staging and committing are the user's.
+
+**Tell the user** — you cannot run this yourself; `/compact` is a command they type:
+
+> The review is complete. The PR-review guide is at `<path>`, and the proposed commit message is
+> above. Nothing has been staged or committed. 
+
+```!
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
+```
 
 ## Standing rules
 
-
-**Asking the user.** Every time you stop — a red pipeline in phase 0, the fix plan in phase 3, a fix
-that turns out wider than it looked, asking for the tier-2 re-run — the user is arriving cold. Give
-them enough context to decide without reading the transcript or opening the diff. Lead with a short
-summary:
-
-- **What you were doing** — a summary of which phase and which files, findings or commands are involved.
-- **The root cause** — why you are stopping. Not just the symptom: the actual reason the problem,
-  need or question exists.
-- **The options** — each one you can see, and for each: how big a change it is, what it affects
-  downstream, and its pros and cons. Say which you recommend and why.
-
-Keep it short enough to read in under a minute. The test is whether the user can tell, at a glance,
-what it is about, what they can do, and what each choice costs. A bare "should I proceed?" or a
-question that assumes they remember the last twenty tool calls fails that test.
-
-In the presentation make a clear visual distinction between the info you present and the questions or next steps expected from the user.
-
-That visual separation is also the **last check of the pre-send gate**: put the one ask in its own
-clearly-marked section at the end. If that section needs a second bullet, the message is carrying
-two asks — split it.
+**Asking the user.** A red pipeline in phase 0, the fix plan in phase 3, a fix that turns out wider
+than it looked, asking for the tier-2 re-run — each is a stop, and every stop follows *Presenting
+the one ask you do send* in the interaction protocol above.
 
 **Git.** Stay on the current branch. No commits, no staging, no stash, no revert, no clean. The
 working tree stays exactly as the user left it, plus the approved fixes.
@@ -499,16 +377,20 @@ Review is not the moment to improve unrelated code.
 change genuinely is clean, say what you checked and why it holds — do not pad the list to look
 thorough, and do not soften a real finding into a suggestion.
 
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+
+
 ## Anti-patterns
 
 - Reviewing on top of a red or unverified build.
 - Spawning subagents; this protocol is done inline unless the user asks otherwise.
+
 - Reporting findings you have not verified against the real files.
 - Confirming your own earlier work instead of attacking it.
 - Fixing lower-priority findings, or folding in cleanups, during the fix phase.
 - Starting fixes before the user approves the fix plan.
 - Launching the tier-2 pipeline without asking.
-- Committing or staging anything.- 
+- Committing or staging anything.
 - Ending the two-list overview with a question. The overview carries no ask at all.
 - Moving to the next finding before the current one is decided, fixed and verified.
 - Writing a PR guide that restates the diff instead of directing attention within it.
@@ -519,4 +401,4 @@ thorough, and do not soften a real finding into a suggestion.
   link to it.
 - Handing back a question, a red pipeline or a fix plan without the context, cause and options the
   user needs to answer it.
-- Commands against live cloud and Cognito environment: Running a read-only command against the cloud environment, and Cognito is permitted, but **ask permission first**. Running during the review a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. 
+- Commands against live cloud and Cognito environment: Running a read-only command against the cloud environment, and Cognito is permitted. Running during this Review a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. 
