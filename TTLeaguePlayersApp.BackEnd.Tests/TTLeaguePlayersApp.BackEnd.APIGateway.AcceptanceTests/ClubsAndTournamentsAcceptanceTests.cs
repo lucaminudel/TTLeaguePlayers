@@ -706,23 +706,10 @@ public class ClubsAndTournamentsAcceptanceTests : IAsyncLifetime
         _createdTournaments.Add((location, clubName, tournamentName));
     }
 
-    private async Task<string> LoginAndGetIdTokenAsync(string email, string password)
-    {
-        var authRequest = new AdminInitiateAuthRequest
-        {
-            UserPoolId = _userPoolId,
-            ClientId = _clientId,
-            AuthFlow = AuthFlowType.ADMIN_NO_SRP_AUTH,
-            AuthParameters = new Dictionary<string, string>
-            {
-                { "USERNAME", email },
-                { "PASSWORD", password }
-            }
-        };
-
-        var response = await _cognitoClient.AdminInitiateAuthAsync(authRequest);
-        return response.AuthenticationResult.IdToken;
-    }
+    // Thin binding to the shared CognitoTestLogin. Kept as a private method of the same name so the
+    // call sites in this class stay untouched; the auth flow itself lives in one place now.
+    private Task<string> LoginAndGetIdTokenAsync(string email, string password) =>
+        CognitoTestLogin.GetIdTokenAsync(_cognitoClient, _userPoolId, _clientId, email, password);
 
     #endregion
 
