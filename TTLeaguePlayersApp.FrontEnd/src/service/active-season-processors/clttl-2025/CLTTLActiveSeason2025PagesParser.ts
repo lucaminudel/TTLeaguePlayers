@@ -1,3 +1,5 @@
+import type { ClubTeamWithDivision } from '../../../types/clubTeam';
+
 export interface Fixture {
     startDateTime: Date;
     venue: string;
@@ -6,6 +8,25 @@ export interface Fixture {
     awayTeam: string;
     awayTeamPlayers: string[];
     isCompleted: boolean;
+}
+
+// The league site writes divisions as URL slugs - "Division_Four"
+const NUMBER_WORDS: Record<string, string> = {
+    one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9'
+};
+
+/**
+ * Turns a division URL slug into the spelling kudos are stored under.
+ *
+ *   Division_Four    ->  Division 4
+ *   Division_Premier ->  Division Premier
+ *   division_one     ->  Division 1
+ */
+function divisionFromSlug(slug: string): string {
+    return slug
+        .split('_')
+        .map((word) => NUMBER_WORDS[word.toLowerCase()] ?? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
 }
 
 export class CLTTLActiveSeason2025PagesParser {
@@ -159,11 +180,14 @@ export class CLTTLActiveSeason2025PagesParser {
     }
 
     /**
-     * Extracts the team names by parsing a club's page.
+     * Extracts the teams by parsing a club's page, each with the division it plays in.
      * Every team listed is returned: the page shows only the current season and carries no
      * season in its URL, so there is nothing to filter on.
+     *
+     * The division is NOT a column on the page - it is only in the team link's href:
+     *   /CentralLondon/Results/Team/Statistics/Winter_2025-26/Division_Four/Morpeth_10
      */
-    public getClubTeams(clubHtmlPage: string): string[] {
+    public getClubTeams(clubHtmlPage: string): ClubTeamWithDivision[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(clubHtmlPage, 'text/html');
         const teamsDiv = doc.getElementById('TeamsList');
@@ -173,7 +197,7 @@ export class CLTTLActiveSeason2025PagesParser {
         }
 
         const rows = teamsDiv.querySelectorAll('tbody tr');
-        const teams: string[] = [];
+        const teams: ClubTeamWithDivision[] = [];
 
         rows.forEach((row) => {
             // The team name is the first cell; later cells hold the season and the captain.
@@ -181,7 +205,13 @@ export class CLTTLActiveSeason2025PagesParser {
             const team = (anchor?.textContent ?? '').trim();
 
             if (team) {
-                teams.push(team);
+                const segments = (anchor?.getAttribute('href') ?? '').split('/').filter(Boolean);
+                const divisionSlug = segments.length >= 2 ? segments[segments.length - 2] : '';
+
+                teams.push({
+                    team_name: team,
+                    team_division: divisionSlug ? divisionFromSlug(divisionSlug) : ''
+                });
             }
         });
 

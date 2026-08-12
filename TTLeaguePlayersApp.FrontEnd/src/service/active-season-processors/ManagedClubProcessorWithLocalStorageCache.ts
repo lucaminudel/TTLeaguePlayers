@@ -1,5 +1,6 @@
 import { withSWR } from '../../utils/CacheUtils';
 import type { ManagedClubProcessor } from './ManagedClubProcessor';
+import type { ClubTeamWithDivision } from '../../types/clubTeam';
 
 export class ManagedClubProcessorWithLocalStorageCache implements ManagedClubProcessor {
     private CACHE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours
@@ -16,8 +17,7 @@ export class ManagedClubProcessorWithLocalStorageCache implements ManagedClubPro
         this.cacheKey = cacheKey;
     }
 
-    async getClubTeams(): Promise<string[]> {
-        // No deserialization step: the payload is plain strings, with no dates to rebuild.
+    async getClubTeams(): Promise<ClubTeamWithDivision[]> {
         return withSWR(
             this.cacheKey,
             () => this.realProcessor.getClubTeams(),

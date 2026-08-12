@@ -92,12 +92,6 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
 
 
     # 4. User with two managed clubs, one per spec file that writes tournaments as this user.
-    #    Playwright runs spec files in parallel workers, so ClubsAndTournaments.spec.ts and
-    #    ClubsAndTournamentsCaching.spec.ts must not share a club: both add and delete tournaments
-    #    on it and both assert the club has none. London/"Morpeth Table Tennis Club" belongs to
-    #    ClubsAndTournaments.spec.ts, Brighton/"Caching Check Club" to the caching spec. Keep them
-    #    in different locations - the Promote pages key their club selector on location - and keep
-    #    "Morpeth Table Tennis Club" first, because login.spec.ts asserts on nth(0).
     EMAIL4="test_already_registered3@user.test"
     MANAGED_CLUBS_JSON4='[{"league":"CLTTL","season":"2025-2026","club_name":"Morpeth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2025-2026","club_name":"Caching Check Club","club_location":"Brighton","manager_name":"Luca Minudel"}]'
     register_user "$EMAIL4" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON4"
@@ -133,7 +127,12 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     register_user "$EMAIL9" "$COMMON_PASSWORD" "true"
     echo "Cognito Test user '$EMAIL9' registered and confirmed successfully as the team-registrations invitee!"
 
-    # 10. Manager for the My Club Teams page, owned by MyClubTeams.spec.ts.
+    # 10. Manager for the My Club Teams AND My Club Standings pages.
+    #     SHARED BY TWO SPECS: MyClubTeams.spec.ts (asserts on Walworth) and
+    #     MyClubStandings.spec.ts (asserts on Highbury). Safe only because BOTH use it strictly
+    #     read-only - they log in and never write to Cognito. Adding a spec that accepts an invite
+    #     as this user would break the other one. See WriteTestsGuidelines.md, "Reusing a read-only
+    #     static user, or adding a new one".
     #     Both club_name values must appear VERBATIM in club_teams in config/*.env.json, or
     #     getUrlFromSource throws before any fetch - mocking the club page does not help there.
     #     Walworth and Highbury are used by no other spec, so nothing races on them.

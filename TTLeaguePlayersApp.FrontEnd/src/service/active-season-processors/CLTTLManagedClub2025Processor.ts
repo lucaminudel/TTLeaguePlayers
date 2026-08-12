@@ -2,6 +2,7 @@ import type { ActiveSeasonDataSource } from '../../config/environment';
 import { CLTTLActiveSeason2025PagesFetcher } from './clttl-2025/CLTTLActiveSeason2025PagesFetcher';
 import { CLTTLActiveSeason2025PagesParser } from './clttl-2025/CLTTLActiveSeason2025PagesParser';
 import type { ManagedClubProcessor } from './ManagedClubProcessor';
+import type { ClubTeamWithDivision } from '../../types/clubTeam';
 
 export class CLTTLManagedClub2025Processor implements ManagedClubProcessor {
     private fetcher: CLTTLActiveSeason2025PagesFetcher;
@@ -15,9 +16,9 @@ export class CLTTLManagedClub2025Processor implements ManagedClubProcessor {
     }
 
     /**
-     * Fetches and parses the teams of the current club from the club's page.
+     * Fetches and parses the teams of the current club from the club's page, each with its division.
      */
-    public async getClubTeams(): Promise<string[]> {
+    public async getClubTeams(): Promise<ClubTeamWithDivision[]> {
         const html = await this.fetcher.getClubTeams(this.clubName);
         return this.parser.getClubTeams(html);
     }

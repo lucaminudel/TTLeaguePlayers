@@ -767,6 +767,167 @@ public class KudosDataTableTest : IAsyncLifetime
 
     #endregion
 
+    #region RetrieveKudosAwardedToClubTeams Tests
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToClubTeams_ReturnsRowsForTeamsSpreadAcrossDivisions()
+    {
+        // Arrange - the whole point of the fan-out: a club's teams sit in DIFFERENT divisions, so
+        // no single GSI2PK partition reaches them all. A single-division test would pass even if
+        // the method only ever queried the first couple's partition.
+        var id = Guid.NewGuid().ToString("N")[..8];
+        var league = "League_" + id;
+        var season = "Season_" + id;
+        var divisionA = "Division 4_" + id;
+        var divisionB = "Division 7_" + id;
+        var teamInA = "Highbury 2_" + id;
+        var teamInB = "Highbury 5_" + id;
+
+        var kudosForTeamInA = CreateTestKudos();
+        kudosForTeamInA.League = league; kudosForTeamInA.Season = season; kudosForTeamInA.Division = divisionA;
+        kudosForTeamInA.ReceivingTeam = teamInA;
+        kudosForTeamInA.MatchDateTime = 1000L;
+        kudosForTeamInA.HomeTeam = teamInA; kudosForTeamInA.AwayTeam = "Opponent"; kudosForTeamInA.GiverTeam = "Opponent";
+
+        var kudosForTeamInB = CreateTestKudos();
+        kudosForTeamInB.League = league; kudosForTeamInB.Season = season; kudosForTeamInB.Division = divisionB;
+        kudosForTeamInB.ReceivingTeam = teamInB;
+        kudosForTeamInB.MatchDateTime = 2000L;
+        kudosForTeamInB.HomeTeam = "Opponent"; kudosForTeamInB.AwayTeam = teamInB; kudosForTeamInB.GiverTeam = "Opponent";
+
+        // Same division as teamInA, but a team the caller did not ask for.
+        var kudosForUnrequestedTeam = CreateTestKudos();
+        kudosForUnrequestedTeam.League = league; kudosForUnrequestedTeam.Season = season; kudosForUnrequestedTeam.Division = divisionA;
+        kudosForUnrequestedTeam.ReceivingTeam = "Someone Else_" + id;
+        kudosForUnrequestedTeam.MatchDateTime = 3000L;
+        kudosForUnrequestedTeam.HomeTeam = "Someone Else_" + id; kudosForUnrequestedTeam.AwayTeam = "Opponent"; kudosForUnrequestedTeam.GiverTeam = "Opponent";
+
+        await TrackedSave(kudosForTeamInA);
+        await TrackedSave(kudosForTeamInB);
+        await TrackedSave(kudosForUnrequestedTeam);
+
+        // Act
+        var result = await _db.RetrieveKudosAwardedToClubTeams(league, season, new[]
+        {
+            (divisionA, teamInA),
+            (divisionB, teamInB)
+        });
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(s => s.ReceivingTeam == teamInA && s.Division == divisionA);
+        result.Should().Contain(s => s.ReceivingTeam == teamInB && s.Division == divisionB);
+        result.Should().NotContain(s => s.ReceivingTeam.StartsWith("Someone Else"));
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToClubTeams_ContributesNoRows_ForATeamWithNoKudos()
+    {
+        // Arrange - a club team nobody has rated yet. The datastore returns nothing for it; turning
+        // that absence into a 0/0/0 row is the lambda's job, not this method's.
+        var id = Guid.NewGuid().ToString("N")[..8];
+        var league = "League_" + id;
+        var season = "Season_" + id;
+        var division = "Division 4_" + id;
+        var ratedTeam = "Highbury 2_" + id;
+        var unratedTeam = "Highbury 3_" + id;
+
+        var kudos = CreateTestKudos();
+        kudos.League = league; kudos.Season = season; kudos.Division = division;
+        kudos.ReceivingTeam = ratedTeam;
+        kudos.MatchDateTime = 1000L;
+        kudos.HomeTeam = ratedTeam; kudos.AwayTeam = "Opponent"; kudos.GiverTeam = "Opponent";
+
+        await TrackedSave(kudos);
+
+        // Act
+        var result = await _db.RetrieveKudosAwardedToClubTeams(league, season, new[]
+        {
+            (division, ratedTeam),
+            (division, unratedTeam)
+        });
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.Single().ReceivingTeam.Should().Be(ratedTeam);
+        result.Should().NotContain(s => s.ReceivingTeam == unratedTeam);
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToClubTeams_ReturnsNoRows_WhenTheDivisionIsWrong()
+    {
+        // Arrange - documents the silent-empty behaviour accepted in decision 12. The team exists
+        // and has kudos, but asking for it under the wrong division hits a partition that does not
+        // exist. There is NO error: the standings simply read 0/0/0. This is the failure mode a
+        // mid-season division change would produce.
+        var id = Guid.NewGuid().ToString("N")[..8];
+        var league = "League_" + id;
+        var season = "Season_" + id;
+        var actualDivision = "Division 4_" + id;
+        var wrongDivision = "Division 5_" + id;
+        var teamName = "Highbury 2_" + id;
+
+        var kudos = CreateTestKudos();
+        kudos.League = league; kudos.Season = season; kudos.Division = actualDivision;
+        kudos.ReceivingTeam = teamName;
+        kudos.MatchDateTime = 1000L;
+        kudos.HomeTeam = teamName; kudos.AwayTeam = "Opponent"; kudos.GiverTeam = "Opponent";
+
+        await TrackedSave(kudos);
+
+        // Act
+        var result = await _db.RetrieveKudosAwardedToClubTeams(league, season, new[]
+        {
+            (wrongDivision, teamName)
+        });
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToClubTeams_ThrowsValidationException_WhenTheTeamListIsEmpty()
+    {
+        // Act
+        var act = async () => await _db.RetrieveKudosAwardedToClubTeams("CLTTL", "2025-2026", Array.Empty<(string, string)>());
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("teams is required"));
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToClubTeams_ThrowsValidationException_NamingThePositionOfEachBadCouple()
+    {
+        // Act - the second couple is malformed. With a dozen couples in flight, an error that did
+        // not say WHICH one would be unactionable.
+        var act = async () => await _db.RetrieveKudosAwardedToClubTeams("CLTTL", "2025-2026", new[]
+        {
+            ("Division 4", "Highbury 2"),
+            ("", "")
+        });
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("teams[1].Division is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("teams[1].TeamName is required"));
+        exception.Which.Errors.Should().NotContain(e => e.Contains("teams[0]"));
+    }
+
+    [Fact]
+    public async Task RetrieveKudosAwardedToClubTeams_ThrowsValidationException_WhenLeagueAndSeasonAreMissing()
+    {
+        // Act
+        var act = async () => await _db.RetrieveKudosAwardedToClubTeams("", "", new[] { ("Division 4", "Highbury 2") });
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(e => e.Contains("league is required"));
+        exception.Which.Errors.Should().Contain(e => e.Contains("season is required"));
+    }
+
+    #endregion
+
     private static KudosEvent CreateTestKudos()
     {
         var id = Guid.NewGuid().ToString("N")[..8];

@@ -8,9 +8,12 @@ internal sealed class FakeKudosDataTable : IKudosDataTable
     public List<DataStore.Kudos> KudosToReturn { get; set; } = new();
     public RetrieveKudosGivenByPlayerRequest? LastRetrieveKudosGivenByPlayerRequest { get; private set; }
     public List<DeletedKudosRequest> DeletedKudos { get; } = new();
+    public List<KudosSummary> ClubTeamsSummariesToReturn { get; set; } = new();
+    public IReadOnlyList<(string Division, string TeamName)>? LastRequestedTeams { get; private set; }
 
     public bool ThrowOnSaveKudos { get; set; }
     public bool ThrowOnRetrieveKudosGivenByPlayer { get; set; }
+    public bool ThrowOnRetrieveKudosAwardedToClubTeams { get; set; }
 
     public Task SaveKudosAsync(DataStore.Kudos kudos)
     {
@@ -76,6 +79,21 @@ internal sealed class FakeKudosDataTable : IKudosDataTable
     public Task<List<KudosSummary>> RetrieveKudosAwardedToAllDivisionTeams(string league, string season, string division)
     {
             throw new NotImplementedException();
+    }
+
+    public Task<List<KudosSummary>> RetrieveKudosAwardedToClubTeams(string league, string season, IReadOnlyList<(string Division, string TeamName)> teams)
+    {
+        // Captured so a test can assert WHICH couples the lambda asked for — the lambda is
+        // responsible for passing the request's teams through unchanged, and a silently dropped or
+        // reordered couple would otherwise look identical to a team that simply has no kudos.
+        LastRequestedTeams = teams;
+
+        if (ThrowOnRetrieveKudosAwardedToClubTeams)
+        {
+            throw new System.Exception("Simulated data store failure for club kudos standings retrieval");
+        }
+
+        return Task.FromResult(ClubTeamsSummariesToReturn);
     }
 
     public void Dispose() { }

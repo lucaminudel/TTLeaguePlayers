@@ -31,6 +31,7 @@ public partial class ApiGatewayProxyHandler
     private readonly RetrieveKudosGivenByPlayerLambda _retrieveKudosGivenByPlayerLambda;
     private readonly RetrieveKudosAwardedToTeamLambda _retrieveKudosAwardedToTeamLambda;
     private readonly RetrieveKudosStandingsLambda _retrieveKudosStandingsLambda;
+    private readonly RetrieveClubKudosStandingsLambda _retrieveClubKudosStandingsLambda;
     private readonly RetrieveClubLambda _retrieveClubLambda;
     private readonly UpsertClubLambda _upsertClubLambda;
     private readonly DeleteClubLambda _deleteClubLambda;
@@ -75,6 +76,7 @@ public partial class ApiGatewayProxyHandler
         _retrieveKudosGivenByPlayerLambda = new RetrieveKudosGivenByPlayerLambda(_observer, kudosDataTable);
         _retrieveKudosAwardedToTeamLambda = new RetrieveKudosAwardedToTeamLambda(_observer, kudosDataTable);
         _retrieveKudosStandingsLambda = new RetrieveKudosStandingsLambda(_observer, kudosDataTable);
+        _retrieveClubKudosStandingsLambda = new RetrieveClubKudosStandingsLambda(_observer, kudosDataTable);
 
         var clubsAndTournamentsDataTable = new ClubsAndTournamentsDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         _retrieveClubLambda = new RetrieveClubLambda(_observer, clubsAndTournamentsDataTable);
@@ -103,6 +105,7 @@ public partial class ApiGatewayProxyHandler
         _retrieveKudosGivenByPlayerLambda = retrieveKudosGivenByPlayerLambda;
         _retrieveKudosAwardedToTeamLambda = retrieveKudosAwardedToTeamLambda;
         _retrieveKudosStandingsLambda = retrieveKudosStandingsLambda;
+        _retrieveClubKudosStandingsLambda = new RetrieveClubKudosStandingsLambda(new LoggerObserver(), kudosDataTable);
         _retrieveClubLambda = new RetrieveClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _upsertClubLambda = new UpsertClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _deleteClubLambda = new DeleteClubLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
@@ -192,6 +195,15 @@ public partial class ApiGatewayProxyHandler
 
                  // Method not allowed for /kudos/standings
                 (var m, "/kudos/standings") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+                // Preflight for /kudos/clubstandings
+                ("OPTIONS", "/kudos/clubstandings") => CreatePreflightResponse("OPTIONS,POST", request),
+
+                // Get the kudos standings of every team in a club: POST /kudos/clubstandings
+                ("POST", "/kudos/clubstandings") => await HandleGetClubKudosStandings(request, context),
+
+                // Method not allowed for /kudos/clubstandings
+                (var m, "/kudos/clubstandings") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
 
                 //
@@ -525,6 +537,39 @@ public partial class ApiGatewayProxyHandler
             var errorMessage = "Validation failed";
 
             _observer.OnRuntimeRegularEvent("GET TEAM REGISTRATIONS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetClubKudosStandings(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetClubKudosStandings));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GET CLUB KUDOS STANDINGS", context, inParameters);
+
+        ExtractBodyOrCreateResponseAndNotifyObserver("GET CLUB KUDOS STANDINGS COMPLETED", context, request.Headers, request.Body, fromHere, inParameters,
+                                                     out ClubKudosStandingsRequest? clubStandingsRequest, out APIGatewayProxyResponse? extractResponse);
+        if (clubStandingsRequest is null)
+            return extractResponse!;
+
+        Dictionary<string, string> userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+        try
+        {
+            var standings = await _retrieveClubKudosStandingsLambda.HandleAsync(clubStandingsRequest, userClaims, context);
+
+            _observer.OnRuntimeRegularEvent("GET CLUB KUDOS STANDINGS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+
+            return CreateResponse(HttpStatusCode.OK, standings);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("GET CLUB KUDOS STANDINGS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }

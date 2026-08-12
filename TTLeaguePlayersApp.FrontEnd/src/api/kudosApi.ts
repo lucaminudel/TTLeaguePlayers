@@ -2,6 +2,7 @@ import { apiFetch } from './api';
 import { getConfig } from '../config/environment';
 import { invalidateCacheByPrefix } from '../utils/CacheUtils';
 import { KUDOS_CACHE_PREFIX } from './cachedKudosApi';
+import type { ClubTeamWithDivision } from '../types/clubTeam';
 
 export interface KudosRequest {
     league: string;
@@ -159,5 +160,43 @@ export async function getKudosStandings(request: GetKudosStandingsRequest): Prom
 
     return apiFetch<KudosStandingsResponse>(baseUrl, `/kudos/standings?${params.toString()}`, {
         method: 'GET',
+    });
+}
+
+// ---------------------------------------------------------------- club standings
+
+export interface ClubKudosStandingsRequest {
+    league: string;
+    season: string;
+    club_name: string;
+    club_location: string;
+    teams: ClubTeamWithDivision[];
+}
+
+export interface ClubKudosStandingsEntry {
+    team_name: string;
+    positive_count: number;
+    neutral_count: number;
+    negative_count: number;
+}
+
+export interface ClubKudosStandingsResponse {
+    league: string;
+    season: string;
+    club_name: string;
+    club_location: string;
+    teams: ClubKudosStandingsEntry[];
+}
+
+/**
+ * Kudos standings for every team of one club, in the order the teams were sent.
+ */
+export async function getClubKudosStandings(request: ClubKudosStandingsRequest): Promise<ClubKudosStandingsResponse> {
+    const config = getConfig();
+    const baseUrl = config.ApiGateWay.ApiBaseUrl;
+
+    return apiFetch<ClubKudosStandingsResponse>(baseUrl, '/kudos/clubstandings', {
+        method: 'POST',
+        body: JSON.stringify(request),
     });
 }

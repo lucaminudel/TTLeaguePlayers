@@ -56,19 +56,22 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
 
         const teams = await processor.getClubTeams();
 
+        // The cheapest end-to-end proof of the division transform: Morpeth's 12 teams carry four
+        // different division slugs, and this asserts on the processor's output rather than the
+        // parser's, so it also covers the fetcher-parser wiring.
         expect(teams).toEqual([
-            'Morpeth 1',
-            'Morpeth 10',
-            'Morpeth 11',
-            'Morpeth 12 Jr',
-            'Morpeth 2',
-            'Morpeth 3',
-            'Morpeth 4',
-            'Morpeth 5',
-            'Morpeth 6',
-            'Morpeth 7',
-            'Morpeth 8',
-            'Morpeth 9'
+            { team_name: 'Morpeth 1', team_division: 'Division 1' },
+            { team_name: 'Morpeth 10', team_division: 'Division 4' },
+            { team_name: 'Morpeth 11', team_division: 'Division 5' },
+            { team_name: 'Morpeth 12 Jr', team_division: 'Division 5' },
+            { team_name: 'Morpeth 2', team_division: 'Division 1' },
+            { team_name: 'Morpeth 3', team_division: 'Division 1' },
+            { team_name: 'Morpeth 4', team_division: 'Division 1' },
+            { team_name: 'Morpeth 5', team_division: 'Division 1' },
+            { team_name: 'Morpeth 6', team_division: 'Division 1' },
+            { team_name: 'Morpeth 7', team_division: 'Division 2' },
+            { team_name: 'Morpeth 8', team_division: 'Division 2' },
+            { team_name: 'Morpeth 9', team_division: 'Division 4' }
         ]);
         expect(fetch).toHaveBeenCalledTimes(1);
         expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Club/392/Morpeth');
@@ -81,10 +84,10 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
         const teams = await walworth.getClubTeams();
 
         expect(teams).toEqual([
-            'Walworth Enigma',
-            'Walworth Gainsford',
-            'Walworth Tigers',
-            'Walworth Wonderers'
+            { team_name: 'Walworth Enigma', team_division: 'Division 3' },
+            { team_name: 'Walworth Gainsford', team_division: 'Division 2' },
+            { team_name: 'Walworth Tigers', team_division: 'Division 4' },
+            { team_name: 'Walworth Wonderers', team_division: 'Division 7' }
         ]);
         expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Club/6008/TSPxHAtVSl');
     });
@@ -96,7 +99,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
         const teams = await aaAcademy.getClubTeams();
 
         // The site is inconsistent about the capitalisation of "SJoA"; it is not normalised.
-        expect(teams).toEqual([
+        expect(teams.map((team) => team.team_name)).toEqual([
             'AA Academy SJoA 1',
             'AA Academy SJoA 2',
             'AA Academy Sjoa 3',

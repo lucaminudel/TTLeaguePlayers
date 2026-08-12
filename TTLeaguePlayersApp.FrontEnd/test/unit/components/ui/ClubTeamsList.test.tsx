@@ -40,11 +40,16 @@ describe('ClubTeamsList', () => {
 
     // ---------------------------------------------------------------- builders
 
+    // Call sites still pass plain team NAMES: this page uses only the name, and spelling out a
+    // division at every one of them would add noise no assertion here depends on. The division the
+    // processor now returns is filled in with a constant, and the mapping happens here.
     function stubProcessor(teams: string[] | Error): ManagedClubProcessor {
         return {
             getClubTeams: teams instanceof Error
                 ? vi.fn().mockRejectedValue(teams)
-                : vi.fn().mockResolvedValue(teams),
+                : vi.fn().mockResolvedValue(
+                    teams.map((team_name) => ({ team_name, team_division: 'Division 4' }))
+                ),
         };
     }
 

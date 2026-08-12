@@ -90,6 +90,7 @@ public class RetrieveKudosStandingsLambdaTests
         public Task DeleteKudosAsync(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam, string giverPersonSub) => throw new NotImplementedException();
         public Task<List<DataStore.Kudos>> RetrieveKudosGivenByPlayerAsync(string league, string season, string giverPersonSub, string division, string giverTeam) => throw new NotImplementedException();
         public Task<List<KudosSummary>> RetrieveKudosAwardedToTeamAsync(string league, string season, string division, string teamName) => throw new NotImplementedException();
+        public Task<List<KudosSummary>> RetrieveKudosAwardedToClubTeams(string league, string season, IReadOnlyList<(string Division, string TeamName)> teams) => throw new NotImplementedException();
         public void Dispose() { }
     }
 }

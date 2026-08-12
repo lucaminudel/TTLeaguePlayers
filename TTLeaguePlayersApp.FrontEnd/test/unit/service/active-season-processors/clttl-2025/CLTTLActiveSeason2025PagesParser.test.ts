@@ -160,20 +160,62 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             const parser = new CLTTLActiveSeason2025PagesParser();
             const teams = parser.getClubTeams(htmlContent);
 
+            // Morpeth is the widest fixture available: its 12 teams span FOUR different division
+            // slugs, so this single assertion covers the number-word map for One, Two, Four and
+            // Five at once. The divisions come from the team links' hrefs, not from any column.
             expect(teams).toHaveLength(12);
             expect(teams).toEqual([
-                'Morpeth 1',
-                'Morpeth 10',
-                'Morpeth 11',
-                'Morpeth 12 Jr',
-                'Morpeth 2',
-                'Morpeth 3',
-                'Morpeth 4',
-                'Morpeth 5',
-                'Morpeth 6',
-                'Morpeth 7',
-                'Morpeth 8',
-                'Morpeth 9'
+                { team_name: 'Morpeth 1', team_division: 'Division 1' },
+                { team_name: 'Morpeth 10', team_division: 'Division 4' },
+                { team_name: 'Morpeth 11', team_division: 'Division 5' },
+                { team_name: 'Morpeth 12 Jr', team_division: 'Division 5' },
+                { team_name: 'Morpeth 2', team_division: 'Division 1' },
+                { team_name: 'Morpeth 3', team_division: 'Division 1' },
+                { team_name: 'Morpeth 4', team_division: 'Division 1' },
+                { team_name: 'Morpeth 5', team_division: 'Division 1' },
+                { team_name: 'Morpeth 6', team_division: 'Division 1' },
+                { team_name: 'Morpeth 7', team_division: 'Division 2' },
+                { team_name: 'Morpeth 8', team_division: 'Division 2' },
+                { team_name: 'Morpeth 9', team_division: 'Division 4' }
+            ]);
+        });
+
+        // The transform is UNCONDITIONAL — no test for whether a slug "looks like" it needs
+        // converting, and no failure branch. These pin both halves of that: a slug with a number
+        // word becomes a digit, and one without simply passes through capitalised.
+        it.each([
+            ['Division_Four', 'Division 4'],
+            ['Division_One', 'Division 1'],
+            ['Division_Nine', 'Division 9'],
+            ['Division_Premier', 'Division Premier'],
+            ['division_one', 'Division 1'],
+            ['Division_Two_A', 'Division 2 A'],
+            ['Premier', 'Premier']
+        ])('turns the division slug %s into %s', (slug, expected) => {
+            const html = `<html><body><div id="TeamsList"><table><tbody><tr><td>
+                <a href="/CentralLondon/Results/Team/Statistics/Winter_2025-26/${slug}/Some_Team">Some Team</a>
+            </td></tr></tbody></table></div></body></html>`;
+
+            const parser = new CLTTLActiveSeason2025PagesParser();
+
+            expect(parser.getClubTeams(html)).toEqual([
+                { team_name: 'Some Team', team_division: expected }
+            ]);
+        });
+
+        it('keeps a team whose link carries no division, with an empty division', () => {
+            // Never seen live — all 85 team rows across the 17 configured clubs carry a full link.
+            // The row is kept because My Club Teams needs every team the club page lists and reads
+            // only the name. ClubStandingsList filters these out before calling the standings
+            // endpoint; see its "drops a team with no division" test.
+            const html = `<html><body><div id="TeamsList"><table><tbody><tr><td>
+                <a href="/Linkless">Odd Team</a>
+            </td></tr></tbody></table></div></body></html>`;
+
+            const parser = new CLTTLActiveSeason2025PagesParser();
+
+            expect(parser.getClubTeams(html)).toEqual([
+                { team_name: 'Odd Team', team_division: '' }
             ]);
         });
 
@@ -185,7 +227,8 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             const teams = parser.getClubTeams(htmlContent);
 
             // The site is inconsistent about the capitalisation of "SJoA"; it is not normalised.
-            expect(teams).toEqual([
+            // The TEAM NAME is untouched — only the division slug is transformed.
+            expect(teams.map((team) => team.team_name)).toEqual([
                 'AA Academy SJoA 1',
                 'AA Academy SJoA 2',
                 'AA Academy Sjoa 3',
@@ -201,10 +244,10 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             const teams = parser.getClubTeams(htmlContent);
 
             expect(teams).toEqual([
-                'Walworth Enigma',
-                'Walworth Gainsford',
-                'Walworth Tigers',
-                'Walworth Wonderers'
+                { team_name: 'Walworth Enigma', team_division: 'Division 3' },
+                { team_name: 'Walworth Gainsford', team_division: 'Division 2' },
+                { team_name: 'Walworth Tigers', team_division: 'Division 4' },
+                { team_name: 'Walworth Wonderers', team_division: 'Division 7' }
             ]);
         });
 

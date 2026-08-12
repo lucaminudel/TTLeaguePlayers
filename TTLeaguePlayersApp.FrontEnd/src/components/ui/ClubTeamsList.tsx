@@ -77,11 +77,11 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
             // club would leave the previous club's rows on screen under the new club's heading.
             setTeams(null);
             try {
-                const teamNames = await processor.getClubTeams();
+                const clubTeams = await processor.getClubTeams();
 
                 // A club with no teams must NOT reach the endpoint: an empty team_names is a 400,
                 // and the client API has no guard of its own.
-                if (teamNames.length === 0) {
+                if (clubTeams.length === 0) {
                     if (!cancelled) setTeams([]);
                     return;
                 }
@@ -91,7 +91,10 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
                     season,
                     club_name: clubName,
                     club_location: clubLocation,
-                    team_names: teamNames,
+                    // This page needs only the names. The division now travelling alongside each
+                    // team is for the club-standings endpoint; the /invites/registrations contract
+                    // is deliberately unchanged.
+                    team_names: clubTeams.map((team) => team.team_name),
                 });
 
                 // Rendered directly: the response carries one entry per requested team, in the order

@@ -498,6 +498,75 @@ public class KudosDataTable : IDisposable, IKudosDataTable
         return resultList;
     }
 
+    public async Task<List<KudosSummary>> RetrieveKudosAwardedToClubTeams(string league, string season, IReadOnlyList<(string Division, string TeamName)> teams)
+    {
+        ValidateRetrieveKudosAwardedToClubTeamsParameters(league, season, teams);
+
+        // One query per couple, issued concurrently. A club's teams sit in different divisions and
+        // therefore different partitions, so there is no single query that reaches them all.
+        var perTeamResults = await Task.WhenAll(
+            teams.Select(team => RetrieveKudosAwardedToOneClubTeam(league, season, team.Division, team.TeamName)));
+
+        // Concatenation order follows the request, but callers must NOT rely on it: within a team
+        // the rows come back descending by match, and a caller grouping by position would break the
+        // moment a team's rows arrive interleaved. Group by ReceivingTeam instead.
+        return perTeamResults.SelectMany(result => result).ToList();
+    }
+
+    // Deliberately NOT a call to RetrieveKudosAwardedToTeamAsync: that method issues a single
+    // QueryAsync and silently drops anything past the first 1 MB page. It backs the shipped
+    // GET /kudos path, so it is left exactly as it is rather than changed underneath its callers.
+    private async Task<List<KudosSummary>> RetrieveKudosAwardedToOneClubTeam(string league, string season, string division, string teamName)
+    {
+        var gsi2pk = $"{league}#{season}#{division}";
+        var gsi2skPrefix = $"{teamName}#";
+
+        var resultList = new List<KudosSummary>();
+        Dictionary<string, AttributeValue>? lastKeyEvaluated = null;
+
+        do
+        {
+            var request = new QueryRequest
+            {
+                TableName = _tableName,
+                IndexName = "TeamStandingsIndex",
+                KeyConditionExpression = "GSI2PK = :gsi2pk AND begins_with(GSI2SK, :gsi2skPrefix)",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                {
+                    { ":gsi2pk", new AttributeValue { S = gsi2pk } },
+                    { ":gsi2skPrefix", new AttributeValue { S = gsi2skPrefix } }
+                },
+                ScanIndexForward = false, // Descending order
+                ExclusiveStartKey = lastKeyEvaluated
+            };
+
+            var response = await _client.QueryAsync(request);
+            resultList.AddRange(response.Items.Select(item =>
+            {
+                var sk = item["GSI2SK"].S;
+                var parts = sk.Split('#');
+
+                return new KudosSummary
+                {
+                    League = league,
+                    Season = season,
+                    Division = division,
+                    ReceivingTeam = parts[0],
+                    MatchDateTime = parts.Length > 1 && long.TryParse(parts[1], out var dt) ? dt : 0,
+                    HomeTeam = parts.Length > 2 ? parts[2] : string.Empty,
+                    AwayTeam = parts.Length > 3 ? parts[3] : string.Empty,
+                    PositiveKudosCount = GetInt(item, "positive_kudos_count"),
+                    NeutralKudosCount = GetInt(item, "neutral_kudos_count"),
+                    NegativeKudosCount = GetInt(item, "negative_kudos_count")
+                };
+            }));
+
+            lastKeyEvaluated = response.LastEvaluatedKey;
+        } while (lastKeyEvaluated != null && lastKeyEvaluated.Count > 0);
+
+        return resultList;
+    }
+
 
     private string GetString(Dictionary<string, AttributeValue> item, string key)
     {
@@ -537,6 +606,31 @@ public class KudosDataTable : IDisposable, IKudosDataTable
         if (string.IsNullOrWhiteSpace(season)) errors.Add($"{nameof(season)} is required");
         if (string.IsNullOrWhiteSpace(division)) errors.Add($"{nameof(division)} is required");
         if (string.IsNullOrWhiteSpace(teamName)) errors.Add($"{nameof(teamName)} is required");
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private void ValidateRetrieveKudosAwardedToClubTeamsParameters(string league, string season, IReadOnlyList<(string Division, string TeamName)> teams)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{nameof(league)} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{nameof(season)} is required");
+        if (teams == null || teams.Count == 0) errors.Add($"{nameof(teams)} is required");
+
+        // Reported per position: with a dozen couples in flight, "division is required" alone would
+        // not say which team row of the club page is malformed.
+        if (teams != null)
+        {
+            for (var i = 0; i < teams.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(teams[i].Division)) errors.Add($"teams[{i}].Division is required");
+                if (string.IsNullOrWhiteSpace(teams[i].TeamName)) errors.Add($"teams[{i}].TeamName is required");
+            }
+        }
 
         if (errors.Count > 0)
         {

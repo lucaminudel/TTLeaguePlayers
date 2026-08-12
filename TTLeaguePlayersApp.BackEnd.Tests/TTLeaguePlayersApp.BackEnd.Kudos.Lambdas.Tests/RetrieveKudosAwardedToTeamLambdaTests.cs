@@ -90,6 +90,7 @@ public class RetrieveKudosAwardedToTeamLambdaTests
         }
 
         public Task<List<KudosSummary>> RetrieveKudosAwardedToAllDivisionTeams(string league, string season, string division) => throw new NotImplementedException();
+        public Task<List<KudosSummary>> RetrieveKudosAwardedToClubTeams(string league, string season, IReadOnlyList<(string Division, string TeamName)> teams) => throw new NotImplementedException();
 
         public Task SaveKudosAsync(DataStore.Kudos kudos) => throw new NotImplementedException();
         public Task<DataStore.Kudos> RetrieveKudosAsync(string league, string season, string division, string receivingTeam, string homeTeam, string awayTeam, string giverPersonSub) => throw new NotImplementedException();

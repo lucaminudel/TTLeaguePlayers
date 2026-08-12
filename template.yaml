@@ -311,6 +311,14 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+        KudosClubStandingsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /kudos/clubstandings
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         ClubsOptions:
           Type: Api
           Properties:

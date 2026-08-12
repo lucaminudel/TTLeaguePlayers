@@ -11,4 +11,5 @@ public interface IKudosDataTable
     Task<List<Kudos>> RetrieveKudosGivenByPlayerAsync(string league, string season, string giverPersonSub, string division, string giverTeam);
     Task<List<KudosSummary>> RetrieveKudosAwardedToTeamAsync(string league, string season, string division, string teamName);
     Task<List<KudosSummary>> RetrieveKudosAwardedToAllDivisionTeams(string league, string season, string division);
+    Task<List<KudosSummary>> RetrieveKudosAwardedToClubTeams(string league, string season, IReadOnlyList<(string Division, string TeamName)> teams);
 }
