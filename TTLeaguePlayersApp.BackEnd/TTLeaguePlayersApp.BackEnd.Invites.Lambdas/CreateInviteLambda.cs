@@ -143,17 +143,17 @@ public class CreateInviteLambda
             var subject = $"Invite to manage {clubManagerInvite.InviteeClub} on TT League Players App";
             var body = $@"Hi {invite.InviteeName},
 
-As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join our new unofficial web-app designed to provide a modern digital experience and promote inclusivity and fair play in table tennis league matches.
+As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join this new Unofficial web-app designed to promote inclusivity and fair play in table tennis league matches, provide a modern digital experience and support local leagues.
 
 Our core values are: 
-- Modernity
-- Fair play & positive behaviour
-- Community.
+- Fair play & positive, inclusive behaviour
+- A modern digital experience
+- Supporting local leagues.
 
 With the TT League Players app, you can:
 - Promote your club and upcoming tournaments
 - Monitor your club teams' registration to this app
-- Monitor the Kudos received by your club teams.
+- Monitor the Kudos received by your teams.
 
 To unlock all these features, on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
@@ -164,7 +164,7 @@ Instructions:
 
 1. Click 'Redeem your invite' at the bottom of the page, and sign up
 
-2. Complete your registration by entering the verification code you will receive via email
+2. Complete your new account registration by entering the verification code you will receive via email
 
 3. Log in and enjoy the app!
 
@@ -187,21 +187,20 @@ Luca Minudel
             var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join TT League Players App";
             var body = $@"Hi {invite.InviteeName},
 
-As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join our new unofficial web-app designed to provide a modern digital experience and promote inclusivity and fair play in table tennis league matches.
+As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join our new Unofficial web-app designed designed to promote inclusivity and fair play in table tennis league matches, provide a modern digital experience and support local leagues.
 
 Our core values are: 
-- Modernity
-- Fair play & positive behaviour
-- Community.
+- Fair play & positive, inclusive behaviour
+- A modern digital experience
+- Supporting local leagues.
 
-Many have already registered. Give it a try.
 
 With the TT League Players app, you can:
-- Istantly view the updcoming match date, location, and opponent
-- Award Kudos to opposing teams based on your team's match experience
-- View the Kudos {captainOrPlayerInvite.InviteeTeam} has received from other teams
-- Discover local tournaments and new venues.
-Future features will allow you to manage your team formations, and stay connected with other players.
+- Find local clubs & tournaments
+- Reward fair play & positive behaviour
+- Check your next match date, time, location
+- View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
+In the future, new features will allow you to manage your team formations, record the match scorecard in real time, on your phone.
 
 To unlock all these features, on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
@@ -212,7 +211,7 @@ Instructions:
 
 1. Click 'Redeem your invite' at the bottom of the page, and sign up
 
-2. Complete your registration by entering the verification code you will receive via email
+2. Complete your new account registration by entering the verification code you will receive via email
 
 3. Log in and enjoy the app!
 
