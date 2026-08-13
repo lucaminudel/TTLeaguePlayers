@@ -46,7 +46,7 @@ export class HomePage {
 
         // Verify navigation to Kudos page
         await expect(this.page).toHaveURL(/\/#\/kudos$/);
-        await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
+        await expect(this.page.locator('h2')).toHaveText('Matches & Kudos');
 
         return new KudosAndAwardPages(this.page);
     }

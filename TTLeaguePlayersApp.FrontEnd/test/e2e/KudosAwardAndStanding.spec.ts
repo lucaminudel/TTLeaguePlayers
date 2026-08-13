@@ -156,9 +156,9 @@ test.describe('Kudos Standings', () => {
 
         // Checking one by one if they exist in the list implies we know the order.
         // Let's check that we can find each expected card.
-        await kudosStandingsPage.myKudosItemsContains(1, 'Fusion 6 Jr', 'Negative');
-        await kudosStandingsPage.myKudosItemsContains(2, 'Walworth Tigers', 'Neutral');
-        await kudosStandingsPage.myKudosItemsContains(3, 'Fusion 5', 'Positive');
+        await kudosStandingsPage.myKudosItemsContains(1, 'Fusion 6 Jr', 'Fewer');
+        await kudosStandingsPage.myKudosItemsContains(2, 'Walworth Tigers', 'Standard');
+        await kudosStandingsPage.myKudosItemsContains(3, 'Fusion 5', 'Extra');
     });
 
     test('Step 2: Kudos awarded to your team & show your Team\'s kudos', async ({ page }) => {
@@ -227,9 +227,9 @@ test.describe('Kudos Standings', () => {
         expect(await kudosStandingsPage.teamKudosItemsCount()).toBe(2);
 
         // Verify the kudos are from Walworth Tigers and Fusion 5, both Positive
-        // Each item should show the team name and have a "Positive" badge
-        await kudosStandingsPage.teamKudosItemsContains(1, 'Walworth ', 'Positive');
-        await kudosStandingsPage.teamKudosItemsContains(2, 'Fusion 5', 'Positive');
+        // Each item should show the team name and have a "Extra" badge
+        await kudosStandingsPage.teamKudosItemsContains(1, 'Walworth ', 'Extra');
+        await kudosStandingsPage.teamKudosItemsContains(2, 'Fusion 5', 'Extra');
     });
 
     test('Step 3: Kudos awarded to other teams & show Team\'s standings', async ({ page }) => {

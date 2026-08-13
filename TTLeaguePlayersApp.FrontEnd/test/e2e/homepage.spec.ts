@@ -17,7 +17,7 @@ test.describe('Homepage', () => {
         await expect(page.locator('h2')).toHaveText('Welcome');
 
         // checks that the is the welcome sub-message
-        await expect(page.locator('main')).toContainText("Home of local leagues' Table Tennis players. Starting with the CLTTL");
+        await expect(page.locator('main')).toContainText("Unofficial Table Tennis local leagues' App");
 
         // checks that the Enter button is present (use stable test id, not label)
         const enterButton = page.getByTestId('home-enter-button');
@@ -78,7 +78,7 @@ test.describe('Homepage', () => {
             await loginPage.tryToLogin('test_already_registered4@user.test', 'aA1!56789012');
 
             await expect(page).toHaveURL('/#/kudos');
-            await expect(page.locator('h2')).toHaveText('Fair play Kudos');
+            await expect(page.locator('h2')).toHaveText('Matches & Kudos');
             await expect(page.locator('main')).toContainText('You are not currently registered to a league, a season, and a team.');
         });
 
@@ -97,7 +97,7 @@ test.describe('Homepage', () => {
             await loginPage.tryToLogin('test_already_registered@user.test', 'aA1!56789012');
 
             await expect(page).toHaveURL('/#/kudos');
-            await expect(page.locator('h2')).toHaveText('Fair play Kudos');
+            await expect(page.locator('h2')).toHaveText('Matches & Kudos');
             await expect(page.getByTestId('active-seasons-list')).toBeVisible();
         });
 

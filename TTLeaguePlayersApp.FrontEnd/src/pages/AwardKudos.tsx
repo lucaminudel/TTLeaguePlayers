@@ -12,6 +12,13 @@ import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 
 type KudosType = 'Positive' | 'Neutral' | 'Negative';
 
+// The stored kudos values keep their original names; the UI names them after the buttons the player picked.
+const KUDOS_LABEL: Record<KudosType, string> = {
+    'Positive': 'Extra',
+    'Neutral': 'Standard',
+    'Negative': 'Fewer',
+};
+
 interface AwardKudosLocationState {
     league: string;
     season: string;
@@ -131,9 +138,11 @@ export const AwardKudos: React.FC = () => {
                                 onClick={() => { handleKudosClick('Positive'); }}
                             >
                                 <div className="flex flex-col items-center">
-                                    <span>Positive Kudos</span>
+                                    <span>Extra Kudos:{'  '}  
+                                        <span style={{ color: '#f4c430' }}>&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                                    </span>
                                     <span className="text-xs sm:text-sm font-normal opacity-90 mt-1">
-                                        <i>for a notably friendly conduct &amp; fair play</i>
+                                        <i>for a notably friendly experience &amp; fair play</i>
                                     </span>
                                 </div>
                             </Button>
@@ -144,22 +153,28 @@ export const AwardKudos: React.FC = () => {
                                 onClick={() => { handleKudosClick('Neutral'); }}
                             >
                                 <div className="flex flex-col items-center">
-                                    <span>Neutral Kudos</span>
+                                    <span>Standard Kudos:{'  '}  
+                                        <span style={{ color: '#f4c430' }}>&#9733;&#9733;&#9733;</span>
+                                        <span style={{ color: '#e0e0e0' }}>&#9734;&#9734;</span>
+                                    </span>
                                     <span className="text-xs sm:text-sm font-normal opacity-90 mt-1">
-                                        <i>for a standard match experience</i>
+                                        <i>for a good, standard match experience</i>
                                     </span>
                                 </div>
                             </Button>
 
                             <Button
-                                className="!bg-[#F06400] hover:!bg-[#CC5500] py-8 flex-grow flex items-center"
+                                className="!bg-transparent hover:!bg-[#85a3c2]/10 border-4 border-[#85a3c2] py-8 flex-grow flex items-center"
                                 fullWidth
                                 onClick={() => { handleKudosClick('Negative'); }}
                             >
                                 <div className="flex flex-col items-center text-center">
-                                    <span>Negative Kudos</span>
+                                    <span>Fewer Kudos:{'  '}  
+                                        <span style={{ color: '#f4c430' }}>&#9733;</span>
+                                        <span style={{ color: '#e0e0e0' }}>&#9734;&#9734;&#9734;&#9734;</span>
+                                    </span>
                                     <span className="text-xs sm:text-sm font-normal opacity-90 mt-1">
-                                        <i>for markedly poor sportsmanship or incidents</i>
+                                        <i>for an experience with room for improvement</i>
                                     </span>
                                 </div>
                             </Button>
@@ -198,10 +213,10 @@ export const AwardKudos: React.FC = () => {
 
                                 <div className="space-y-8 flex-grow">
                                     <div>
-                                        <h3 className="text-base sm:text-lg font-bold text-[#48bb78] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award positive Kudos for:</h3>
+                                        <h3 className="text-base sm:text-lg font-bold text-[#48bb78] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award Extra Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Welcoming Atmosphere</b> The environment was friendly, inclusive, and kind.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Atmosphere</b> The environment was friendly, inclusive, and kind.</span>
                                             </li>
                                             <li className="flex flex-col">
                                                 <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism</b> The match started on time, progressed smoothly, was played and umpired with good sportsmanship, and disputes, if any, were handled calmly and fairly.</span>
@@ -210,13 +225,23 @@ export const AwardKudos: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <h3 className="text-base sm:text-lg font-bold text-[#f56565] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award negative Kudos for:</h3>
+                                        <h3 className="text-base sm:text-lg font-bold text-white mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award Fewer Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Hostile Atmosphere</b> There were episodes of hostile, unwelcoming, disrespectful or aggressive behaviour.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Atmosphere</b> The welcome could have been warmer or the environment more inclusive.</span>
                                             </li>
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Unprofessionalism</b> The match was chaotic, players arrived or were substituted very late without notice or due care, or the playing area was managed in a disruptive way. Or the play was markedly unfair or "over-competitive" to the point of conflict, including biased umpiring or escalated disputes.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism</b> The arrangements and/or the playing area could have been better, or there was room for more sportsmanship.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-base sm:text-lg font-bold mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Disputes</h3>
+                                        <ul className="space-y-4">
+                                            <li className="flex flex-col">
+                                                <span className="text-sm text-secondary-text leading-relaxed">Official match disputes: must be directed to the league officials.<br/>
+                                                Awarded kudos: have no relevance to the league.</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -232,10 +257,10 @@ export const AwardKudos: React.FC = () => {
 
                                 <div className="text-center space-y-2">
                                     <p className="text-base sm:text-lg">
-                                        You are awarding a <span className={`font-bold ${selectedKudos === 'Positive' ? 'text-[#48bb78]' :
+                                        You are awarding <span className={`font-bold ${selectedKudos === 'Positive' ? 'text-[#48bb78]' :
                                             selectedKudos === 'Neutral' ? 'text-[#85a3c2]' :
-                                                'text-[#F06400]'
-                                            }`}>{selectedKudos} Kudos</span>
+                                                'text-white'
+                                            }`}>{KUDOS_LABEL[selectedKudos]} Kudos</span>
                                     </p>
                                     <p className="text-base">
                                         for the {state.isHome ? 'Home game' : 'Away game'} on {dateStr}
@@ -258,7 +283,7 @@ export const AwardKudos: React.FC = () => {
                                         className={
                                             selectedKudos === 'Positive' ? '!bg-[#004d27] hover:!bg-[#143D33]' :
                                                 selectedKudos === 'Neutral' ? '!bg-[#85a3c2] hover:!bg-[#6a8bb1]' :
-                                                    '!bg-[#F06400] hover:!bg-[#CC5500]'
+                                                    '!bg-transparent hover:!bg-[#85a3c2]/10 border-4 border-[#85a3c2]'
                                         }
                                     >
                                         {isSubmitting ? 'Confirming...' : 'Confirm'}

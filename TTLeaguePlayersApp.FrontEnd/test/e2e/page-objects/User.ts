@@ -101,7 +101,7 @@ export class User {
   async navigateToKudos(): Promise<KudosAndAwardPages> {
     const kudosPage = new KudosAndAwardPages(this.page);
     await this.page.goto('/#/kudos');
-    await expect(this.page.locator('h2')).toHaveText('Fair play Kudos');
+    await expect(this.page.locator('h2')).toHaveText('Matches & Kudos');
     return kudosPage;
   }
 

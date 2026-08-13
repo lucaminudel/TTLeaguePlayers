@@ -58,17 +58,17 @@ export class KudosAndAwardPages {
 
     async ratePositiveKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
 
-        return this.RateKudosFromOpenCard('Positive Kudos', receivingTeamName);
+        return this.RateKudosFromOpenCard('Extra Kudos', receivingTeamName);
     }
 
     async RateNeutralKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
 
-        return this.RateKudosFromOpenCard('Neutral Kudos', receivingTeamName);
+        return this.RateKudosFromOpenCard('Standard Kudos', receivingTeamName);
     }
 
     async RateNegativeKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
 
-        return this.RateKudosFromOpenCard('Negative Kudos', receivingTeamName);
+        return this.RateKudosFromOpenCard('Fewer Kudos', receivingTeamName);
     }
 
     private async RateKudosFromOpenCard(rating: string, receivingTeamName: string): Promise<KudosStandingsPage> {

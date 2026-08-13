@@ -19,6 +19,23 @@ interface KudosStandingsLocationState {
 
 type TabType = 'Awarded' | 'Team' | 'Table';
 
+type KudosType = 'Positive' | 'Neutral' | 'Negative';
+
+// The stored kudos values keep their original names; the UI names them after the Award Kudos buttons.
+const KUDOS_LABEL: Record<KudosType, string> = {
+    'Positive': 'Extra',
+    'Neutral': 'Standard',
+    'Negative': 'Fewer',
+};
+
+// Same palette as the Award Kudos buttons. Fewer is an outline rather than a fill, so the
+// lowest tier reads as ordinary feedback instead of a penalty.
+// Each pill carries its own padding: Fewer gives up 2px on every side to its border, so all
+// three end up the same size when they sit next to each other in a list.
+const EXTRA_PILL = 'px-2 py-1 bg-[#004d27] text-white';
+const STANDARD_PILL = 'px-2 py-1 bg-[#85a3c2] text-white';
+const FEWER_PILL = 'px-1.5 py-0.5 bg-transparent border-2 border-[#85a3c2] text-white';
+
 export const KudosStandings: React.FC = () => {
     const location = useLocation();
     const { userId, activeSeasons } = useAuth();
@@ -142,11 +159,11 @@ export const KudosStandings: React.FC = () => {
                                 <span className="font-bold text-main-text text-sm">{kudos.receiving_team}</span>
                                 <span className="text-sm text-secondary-text"> - {shortFormatFixtureDate(date)}</span>
                             </div>
-                            <div className={`px-2 py-1 rounded text-xs font-bold w-20 text-center ${kudos.kudos_value > 0 ? 'bg-[#004d27] text-white' :
-                                kudos.kudos_value === 0 ? 'bg-[#85a3c2] text-white' :
-                                    'bg-[#F06400] text-white'
+                            <div className={`rounded text-xs font-bold w-20 text-center ${kudos.kudos_value > 0 ? EXTRA_PILL :
+                                kudos.kudos_value === 0 ? STANDARD_PILL :
+                                    FEWER_PILL
                                 }`}>
-                                {kudos.kudos_value > 0 ? 'Positive' : kudos.kudos_value === 0 ? 'Neutral' : 'Negative'}
+                                {kudos.kudos_value > 0 ? KUDOS_LABEL.Positive : kudos.kudos_value === 0 ? KUDOS_LABEL.Neutral : KUDOS_LABEL.Negative}
                             </div>
                         </div>
                     );
@@ -165,7 +182,7 @@ export const KudosStandings: React.FC = () => {
             key: string;
             opponentTeam: string;
             date: Date;
-            kudosType: 'Positive' | 'Neutral' | 'Negative';
+            kudosType: KudosType;
             kudosValue: number;
         }[] = [];
 
@@ -212,11 +229,11 @@ export const KudosStandings: React.FC = () => {
                 {kudosItems.map((kudos) => (
                     <div key={kudos.key} data-testid="team-kudos-item" className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                            <div className={`px-2 py-1 rounded text-xs font-bold w-20 text-center ${kudos.kudosValue > 0 ? 'bg-[#004d27] text-white' :
-                                kudos.kudosValue === 0 ? 'bg-[#85a3c2] text-white' :
-                                    'bg-[#F06400] text-white'
+                            <div className={`rounded text-xs font-bold w-20 text-center ${kudos.kudosValue > 0 ? EXTRA_PILL :
+                                kudos.kudosValue === 0 ? STANDARD_PILL :
+                                    FEWER_PILL
                                 }`}>
-                                {kudos.kudosType}
+                                {KUDOS_LABEL[kudos.kudosType]}
                             </div>
                             <div className="flex items-center">
                                 <span className="font-bold text-main-text text-sm">{kudos.opponentTeam}</span>
@@ -240,15 +257,15 @@ export const KudosStandings: React.FC = () => {
 
         return (
             <div className="space-y-6" data-testid="kudos-standings-tables">
-                {/* Positive Kudos Table */}
+                {/* Extra Kudos Table */}
                 {standingsData.positive_kudos_table.length > 0 && (
                     <div data-testid="positive-kudos-standings">
-                        <h3 className="text-xs font-bold text-main-text mb-3 uppercase tracking-wide">Positive Kudos Match Tally</h3>
+                        <h3 className="text-xs font-bold text-main-text mb-3 uppercase tracking-wide">Extra Kudos Match Tally</h3>
                         <div className="space-y-2">
                             {standingsData.positive_kudos_table.map((entry) => (
                                 <div key={entry.team_name} className="flex justify-between items-center" data-testid={`positive-standing-${entry.team_name}`}>
                                     <span className="font-bold text-main-text text-sm">{entry.team_name}</span>
-                                    <div className="px-2 py-1 rounded text-xs font-bold bg-[#004d27] text-white">
+                                    <div className={`rounded text-xs font-bold ${EXTRA_PILL}`}>
                                         {entry.count}
                                     </div>
                                 </div>
@@ -257,15 +274,15 @@ export const KudosStandings: React.FC = () => {
                     </div>
                 )}
 
-                {/* Neutral Kudos Table */}
+                {/* Standard Kudos Table */}
                 {standingsData.neutral_kudos_table.length > 0 && (
                     <div data-testid="neutral-kudos-standings">
-                        <h3 className="text-xs font-bold text-main-text mb-3 uppercase tracking-wide">Neutral Kudos Match Tally</h3>
+                        <h3 className="text-xs font-bold text-main-text mb-3 uppercase tracking-wide">Standard Kudos Match Tally</h3>
                         <div className="space-y-2">
                             {standingsData.neutral_kudos_table.map((entry) => (
                                 <div key={entry.team_name} className="flex justify-between items-center" data-testid={`neutral-standing-${entry.team_name}`}>
                                     <span className="font-bold text-main-text text-sm">{entry.team_name}</span>
-                                    <div className="px-2 py-1 rounded text-xs font-bold bg-[#85a3c2] text-white">
+                                    <div className={`rounded text-xs font-bold ${STANDARD_PILL}`}>
                                         {entry.count}
                                     </div>
                                 </div>
@@ -274,15 +291,15 @@ export const KudosStandings: React.FC = () => {
                     </div>
                 )}
 
-                {/* Negative Kudos Table */}
+                {/* Fewer Kudos Table */}
                 {standingsData.negative_kudos_table.length > 0 && (
                     <div data-testid="negative-kudos-standings">
-                        <h3 className="text-xs font-bold text-main-text mb-2 uppercase tracking-wide">Negative Kudos Match Tally</h3>
+                        <h3 className="text-xs font-bold text-main-text mb-2 uppercase tracking-wide">Fewer Kudos Match Tally</h3>
                         <div className="space-y-2">
                             {standingsData.negative_kudos_table.map((entry) => (
                                 <div key={entry.team_name} className="flex justify-between items-center" data-testid={`negative-standing-${entry.team_name}`}>
                                     <span className="font-bold text-main-text text-sm">{entry.team_name}</span>
-                                    <div className="px-2 py-1 rounded text-xs font-bold bg-[#F06400] text-white">
+                                    <div className={`rounded text-xs font-bold ${FEWER_PILL}`}>
                                         {entry.count}
                                     </div>
                                 </div>

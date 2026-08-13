@@ -94,8 +94,9 @@ describe('ClubStandingsList', () => {
         expect(screen.getAllByTestId('club-standing-name').map((n) => n.textContent))
             .toEqual(['Highbury 2', 'Highbury 5']);
         expect(screen.getAllByTestId('club-standing-positive').map((n) => n.textContent)).toEqual(['5', '2']);
-        expect(screen.getAllByTestId('club-standing-neutral').map((n) => n.textContent)).toEqual(['1', '0']);
-        expect(screen.getAllByTestId('club-standing-negative').map((n) => n.textContent)).toEqual(['0', '3']);
+        // A zero count renders as an empty slot, not a pill showing '0'.
+        expect(screen.getAllByTestId('club-standing-neutral').map((n) => n.textContent)).toEqual(['1', '']);
+        expect(screen.getAllByTestId('club-standing-negative').map((n) => n.textContent)).toEqual(['', '3']);
     });
 
     // NOT sorted by count, deliberately unlike the Kudos Standings page: this one mirrors the club
@@ -114,7 +115,7 @@ describe('ClubStandingsList', () => {
             .toEqual(['Highbury 2', 'Highbury 5']);
     });
 
-    it('renders a team with no kudos as three zeros rather than hiding it', async () => {
+    it('keeps a team with no kudos in the list, with all three slots empty', async () => {
         respondWith([entry('Highbury 2', 3), entry('Highbury 9')]);
 
         renderList(stubProcessor([
@@ -127,9 +128,9 @@ describe('ClubStandingsList', () => {
         const zeros = screen.getAllByTestId('club-standing-row-Highbury 9');
         expect(zeros).toHaveLength(1);
         expect(zeros[0].textContent).toContain('Highbury 9');
-        expect(screen.getAllByTestId('club-standing-positive')[1].textContent).toBe('0');
-        expect(screen.getAllByTestId('club-standing-neutral')[1].textContent).toBe('0');
-        expect(screen.getAllByTestId('club-standing-negative')[1].textContent).toBe('0');
+        expect(screen.getAllByTestId('club-standing-positive')[1].textContent).toBe('');
+        expect(screen.getAllByTestId('club-standing-neutral')[1].textContent).toBe('');
+        expect(screen.getAllByTestId('club-standing-negative')[1].textContent).toBe('');
     });
 
     // An empty teams list is a 400 from the endpoint, and the client API has no guard of its own.

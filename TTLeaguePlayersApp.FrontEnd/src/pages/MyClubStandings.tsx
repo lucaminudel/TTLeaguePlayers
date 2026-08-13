@@ -50,8 +50,7 @@ export const MyClubStandings: React.FC = () => {
                 <PageContainer title="My Club Standings">
                     <div className="space-y-6 sm:space-y-8">
                         <p>
-                            See how every team in your club is doing on kudos: how many matches they were
-                            given positive, neutral and negative kudos in.
+                            See the matche tally of extra, standard and fewer kudos received by every team in your club.
                         </p>
 
                         {allManagedClubs.length === 0 ? (
@@ -87,9 +86,9 @@ export const MyClubStandings: React.FC = () => {
 
                                         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-secondary-text">
                                             <div className="flex-1 min-w-0">Match Tally</div>
-                                            <div className="w-10 shrink-0 text-center">Pos</div>
-                                            <div className="w-10 shrink-0 text-center">Neu</div>
-                                            <div className="w-10 shrink-0 text-center">Neg</div>
+                                            <div className="w-10 shrink-0 text-center">Ext</div>
+                                            <div className="w-10 shrink-0 text-center">Std</div>
+                                            <div className="w-10 shrink-0 text-center">Few</div>
                                         </div>
 
                                         <ClubStandingsList

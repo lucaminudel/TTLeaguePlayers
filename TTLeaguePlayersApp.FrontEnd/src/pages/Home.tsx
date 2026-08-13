@@ -37,8 +37,7 @@ export const Home: React.FC = () => {
                 }
             >
                 <p>
-                    Home of local leagues'
-                    Table Tennis players. Starting with the CLTTL<br />                    
+                    <b>Unofficial</b> Table Tennis local leagues' App
                 </p>
 
                 <img
@@ -49,12 +48,18 @@ export const Home: React.FC = () => {
 
                 <p className="text-base sm:text-lg leading-relaxed">
                     <b>We promote fair play &amp; positive behaviour</b><br />
-                    You award Kudos for match fair play <br />
-                    We publish the Team Kudos Standings
+                     We provide a modern digital experience<br />
+                    We support local leagues
                     <br />
                     <br />
-                    <b>We stay connected</b><br />
-                    Features Coming Soon &#10144; Never miss a tournament, stay informed on new venues and clubs, manage team members availability and team formation, discuss gear and more.<br />
+                    <b>What Now</b><br />
+                    Find local clubs &amp; tournaments<br />
+                    Reward fair play &amp; positive behaviour<br />
+                    Check your next match date, time, location<br />
+                    <br />
+                    <b>What's Next</b><br />
+                    Manage team formations<br />
+                    Record match scorecard in real time<br />
                 </p>
 
             </PageContainer>

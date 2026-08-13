@@ -24,7 +24,7 @@ test.describe('Kudos', () => {
 
             // Verify redirect back to kudos page after successful login
             await expect(page).toHaveURL('/#/kudos');
-            await expect(page.locator('h2')).toHaveText('Fair play Kudos');
+            await expect(page.locator('h2')).toHaveText('Matches & Kudos');
         });
 
         test('when a non logged-in user tries to navigate to kudos and login+verifyemail, is redirected through verification with returnUrl preserved', async ({ page }) => {

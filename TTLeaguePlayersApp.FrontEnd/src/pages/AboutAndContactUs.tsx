@@ -17,20 +17,22 @@ export const AboutAndContactUs: React.FC = () => {
                         <br/>
                         <h2 className="text-2xl font-bold text-main-text mb-4">Built by Players, for Players</h2>
                         <p className="text-main-text">
-                            We are a community of local league players.
-                            We operate independently of any local league organisations.
+                            This <b>Unofficial</b> App 
+                            operates independently of any local Table Tennis local league organisations.
                             <br/>
-                            Our core values are:<br/>
-                            - a modern digital experience<br/>
-                            - transparency and accountability, for all<br/>
-                            - a self-organising community with freedom of choice.
+                            <br/>
+                            <b>Our core values are</b>:<br/>
+                            - fair play, positive, inclusive behaviour<br />
+                            - a modern digital experience<br />
+                            - supporting local leagues  
                         </p>
                     </section>
 
                     <section className="mt-8">
+                        <br/>
                         <h2 className="text-2xl font-bold text-main-text mb-4">Contacts</h2>
                         <p className="text-main-text">
-                            For technical support, questions, etc. email us at{' '}
+                            For technical support, general questions, or media enquiries, email us at:{' '}
                             <a
                                 href={`mailto:${email}`}
                                 className="text-action-accent hover:underline font-semibold"

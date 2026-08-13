@@ -156,9 +156,9 @@ describe('MyClubStandings', () => {
         renderPage();
 
         expect(screen.getByText('Match Tally')).toBeInTheDocument();
-        expect(screen.getByText('Pos')).toBeInTheDocument();
-        expect(screen.getByText('Neu')).toBeInTheDocument();
-        expect(screen.getByText('Neg')).toBeInTheDocument();
+        expect(screen.getByText('Ext')).toBeInTheDocument();
+        expect(screen.getByText('Std')).toBeInTheDocument();
+        expect(screen.getByText('Few')).toBeInTheDocument();
     });
 
     it('shows no standings list until a club is chosen, when there are several', () => {

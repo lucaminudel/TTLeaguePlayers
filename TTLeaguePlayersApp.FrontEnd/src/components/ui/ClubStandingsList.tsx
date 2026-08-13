@@ -14,9 +14,28 @@ interface ClubStandingsListProps {
 }
 
 // Same palette as the Kudos standings pills, so a count reads the same way across the app.
-const POSITIVE_PILL = 'bg-[#004d27] text-white';
-const NEUTRAL_PILL = 'bg-[#85a3c2] text-white';
-const NEGATIVE_PILL = 'bg-[#F06400] text-white';
+// Each pill carries its own padding: Fewer gives up 2px on every side to its border, so all
+// three come out the same size on a row.
+const EXTRA_PILL = 'px-2 py-1 bg-[#004d27] text-white';
+const STANDARD_PILL = 'px-2 py-1 bg-[#85a3c2] text-white';
+const FEWER_PILL = 'px-1.5 py-0.5 bg-transparent border-2 border-[#85a3c2] text-white';
+
+/**
+ * A zero tally shows nothing at all: a row of empty pills reads as noise, and what a manager
+ * looks for is where the counts ARE. The empty slot keeps its width so the columns stay lined
+ * up with the Ext/Std/Few headings above them.
+ */
+const CountPill: React.FC<{ count: number; pill: string; testId: string }> = ({ count, pill, testId }) => {
+    if (count === 0) {
+        return <div className="w-10 shrink-0" data-testid={testId} />;
+    }
+
+    return (
+        <div className={`w-10 shrink-0 rounded text-xs font-bold text-center ${pill}`} data-testid={testId}>
+            {count}
+        </div>
+    );
+};
 
 export const ClubStandingsList: React.FC<ClubStandingsListProps> = ({
     processor,
@@ -119,24 +138,9 @@ export const ClubStandingsList: React.FC<ClubStandingsListProps> = ({
                         {team.team_name}
                     </div>
 
-                    <div
-                        className={`w-10 shrink-0 px-2 py-1 rounded text-xs font-bold text-center ${POSITIVE_PILL}`}
-                        data-testid="club-standing-positive"
-                    >
-                        {team.positive_count}
-                    </div>
-                    <div
-                        className={`w-10 shrink-0 px-2 py-1 rounded text-xs font-bold text-center ${NEUTRAL_PILL}`}
-                        data-testid="club-standing-neutral"
-                    >
-                        {team.neutral_count}
-                    </div>
-                    <div
-                        className={`w-10 shrink-0 px-2 py-1 rounded text-xs font-bold text-center ${NEGATIVE_PILL}`}
-                        data-testid="club-standing-negative"
-                    >
-                        {team.negative_count}
-                    </div>
+                    <CountPill count={team.positive_count} pill={EXTRA_PILL} testId="club-standing-positive" />
+                    <CountPill count={team.neutral_count} pill={STANDARD_PILL} testId="club-standing-neutral" />
+                    <CountPill count={team.negative_count} pill={FEWER_PILL} testId="club-standing-negative" />
                 </div>
             ))}
         </div>

@@ -23,15 +23,12 @@ export const Kudos: React.FC = () => {
   return (
     <ProtectedRoute>
       <MobileLayout>
-        <PageContainer title="Fair play Kudos">
+        <PageContainer title="Matches & Kudos">
           <div className="space-y-4 sm:space-y-6">
-            <p>
-              Award kudos to recognize fair play and positive behaviour in table tennis.
-            </p>
             {hasActiveSeasons ? (
               <div className="space-y-2" data-testid="active-seasons-list">
                 <p>
-                  Celebrate sportsmanship and build a community that values integrity and respect.
+                After every match, rate your experience!<br/>Award the opposition extra kudos for fair play &amp; positive behaviour.<br/><br/>
                 </p>
                 {activeSeasons.map((season, index) => {
                   try {

@@ -91,11 +91,12 @@ test.describe('My Club Standings Page', () => {
             await expect(page.getByTestId('club-standing-name')).toHaveText(EXPECTED_TEAMS);
         });
 
-        await test.step('And each team shows all three counts', async () => {
-            // No kudos exist for any Highbury team, so every count is zero. That is the seeded left
-            // join doing its job: without it the table would be EMPTY rather than nine rows of zero,
-            // and a manager would see their club as having no teams.
-            const zeros = EXPECTED_TEAMS.map(() => '0');
+        await test.step('And each team shows an empty slot for all three counts', async () => {
+            // No kudos exist for any Highbury team, so every count is zero and a zero renders as an
+            // empty slot rather than a pill. The rows themselves still being here is the seeded left
+            // join doing its job: without it the table would be EMPTY rather than nine rows, and a
+            // manager would see their club as having no teams.
+            const zeros = EXPECTED_TEAMS.map(() => '');
 
             await expect(page.getByTestId('club-standing-positive')).toHaveText(zeros);
             await expect(page.getByTestId('club-standing-neutral')).toHaveText(zeros);
@@ -106,9 +107,9 @@ test.describe('My Club Standings Page', () => {
             // The pills are told apart by colour and position alone; this header is the only thing
             // on screen saying what the numbers mean.
             await expect(page.getByText('Match Tally')).toBeVisible();
-            await expect(page.getByText('Pos', { exact: true })).toBeVisible();
-            await expect(page.getByText('Neu', { exact: true })).toBeVisible();
-            await expect(page.getByText('Neg', { exact: true })).toBeVisible();
+            await expect(page.getByText('Ext', { exact: true })).toBeVisible();
+            await expect(page.getByText('Std', { exact: true })).toBeVisible();
+            await expect(page.getByText('Few', { exact: true })).toBeVisible();
         });
     });
 
