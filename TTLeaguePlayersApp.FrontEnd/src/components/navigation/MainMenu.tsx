@@ -26,7 +26,7 @@ export const MainMenu: React.FC = () => {
             visibleToUnauthenticated: true
         },
         {
-            label: 'Kudos',
+            label: 'Matches & Kudos',
             path: '/kudos',
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: false,

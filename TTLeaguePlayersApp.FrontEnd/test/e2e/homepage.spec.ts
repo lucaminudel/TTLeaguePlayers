@@ -141,7 +141,7 @@ test.describe('Homepage', () => {
             // Verify Logged-in only, Players and Captains only items and Club Manager only items are NOT visible
             const playerCaptainClubManagerOnlyAndNotLoggedInItems = [
                 { name: 'Log out', testId: 'main-menu-logout-button' },
-                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos', testId: 'main-menu-nav-matches-and-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
                 { name: 'Promote My Club', testId: 'main-menu-nav-promote-my-club' },
@@ -186,7 +186,7 @@ test.describe('Homepage', () => {
             // Verify Logged-in only, Players and Captains only items and Club Manager only items are NOT visible
             const captainOnlyAndNotLoggedInItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
-                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos', testId: 'main-menu-nav-matches-and-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
                 { name: 'Promote My Club & Tournaments', testId: 'main-menu-nav-promote-my-club-and-tournaments' },
@@ -221,7 +221,7 @@ test.describe('Homepage', () => {
                 { name: 'Home', testId: 'main-menu-nav-home' },
                 { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
                 { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' },
-                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
+                { name: 'Kudos', testId: 'main-menu-nav-matches-and-kudos' },
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' }
             ];
 
@@ -277,8 +277,8 @@ test.describe('Homepage', () => {
             // Verify Player and Captains only items and Non logged-in only items are NOT visible
             const playerCaptainOnlyAndNotLoggedInItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
-                { name: 'Kudos', testId: 'main-menu-nav-kudos' },
-                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                { name: 'Kudos', testId: 'main-menu-nav-matches-and-kudos' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-and-kudos-standings' },
             ];
  
             for (const item of playerCaptainOnlyAndNotLoggedInItems) {
@@ -293,7 +293,7 @@ test.describe('Homepage', () => {
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             await user.menu.open();
-            const kudosLink = page.locator('[data-testid="main-menu-nav-kudos"]');
+            const kudosLink = page.locator('[data-testid="main-menu-nav-matches-and-kudos"]');
             await expect(kudosLink).toBeVisible();
         });
 
@@ -339,7 +339,7 @@ test.describe('Homepage', () => {
             await user.menu.open();
 
             // Click on Kudos menu item
-            const kudosLink = page.getByTestId('main-menu-nav-kudos');
+            const kudosLink = page.getByTestId('main-menu-nav-matches-and-kudos');
             await kudosLink.click();
 
             // Verify navigation to kudos page
