@@ -80,7 +80,7 @@ export class MenuPage {
         const link = this.page.getByTestId('main-menu-nav-promote-my-tournaments');
         await link.click();
 
-        await expect(this.page.locator('h2')).toHaveText('Promote My Tournament');
+        await expect(this.page.locator('h2')).toHaveText('Promote My Tournaments');
         return new PromoteMyTournamentsPage(this.page);
     }
 

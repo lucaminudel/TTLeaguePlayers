@@ -406,7 +406,7 @@ export const PromoteMyTournaments: React.FC = () => {
         <ProtectedRoute>
             <MobileLayout>
                 <PageContainer 
-                    title="Promote My Tournament"
+                    title="Promote My Tournaments"
                     footer={
                         managedClubs.length > 0 && effectiveManagedClub && !isLoading ? (
                             <div className="space-y-3 pt-6">
@@ -434,7 +434,7 @@ export const PromoteMyTournaments: React.FC = () => {
                 >
                     <div className="space-y-6 sm:space-y-8">
                         <p>
-                            Promote the tournaments your club organises
+                            Promote your club tournaments 
                         </p>
 
                         {managedClubs.length === 0 ? (

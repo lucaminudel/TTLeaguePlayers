@@ -18,7 +18,7 @@ export const AboutAndContactUs: React.FC = () => {
                         <h2 className="text-2xl font-bold text-main-text mb-4">Built by Players, for Players</h2>
                         <p className="text-main-text">
                             This <b>Unofficial</b> App 
-                            operates independently of any local Table Tennis local league organisations.
+                            operates independently of any local Table Tennis league organisations.
                             <br/>
                             <br/>
                             <b>Our core values are</b>:<br/>
@@ -30,7 +30,7 @@ export const AboutAndContactUs: React.FC = () => {
 
                     <section className="mt-8">
                         <br/>
-                        <h2 className="text-2xl font-bold text-main-text mb-4">Contacts</h2>
+                        <h2 className="text-2xl font-bold text-main-text mb-4">Contact Us</h2>
                         <p className="text-main-text">
                             For technical support, general questions, or media enquiries, email us at:{' '}
                             <a

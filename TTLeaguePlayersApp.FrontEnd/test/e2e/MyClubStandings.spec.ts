@@ -106,7 +106,7 @@ test.describe('My Club Standings Page', () => {
         await test.step('And the counts are labelled as a match tally, not as kudos', async () => {
             // The pills are told apart by colour and position alone; this header is the only thing
             // on screen saying what the numbers mean.
-            await expect(page.getByText('Match Tally')).toBeVisible();
+            await expect(page.getByTestId('Match-Tally')).toBeVisible();
             await expect(page.getByText('Ext', { exact: true })).toBeVisible();
             await expect(page.getByText('Std', { exact: true })).toBeVisible();
             await expect(page.getByText('Few', { exact: true })).toBeVisible();

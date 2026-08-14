@@ -150,7 +150,8 @@ export const ClubsAndTournaments: React.FC = () => {
             <PageContainer title="Clubs & Tournaments">
                 <div className="space-y-6 sm:space-y-8">
                     <p>
-                        Never miss a tournament, stay informed on new venues and clubs
+                        Never miss a tournament, find clubs
+                        with teams competing in local leagues
                     </p>
 
                     {isLoading ? (

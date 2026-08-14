@@ -217,10 +217,10 @@ export const AwardKudos: React.FC = () => {
                                         <h3 className="text-base sm:text-lg font-bold text-[#48bb78] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award Extra Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Atmosphere</b> The environment was friendly, inclusive, and kind.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Atmosphere:</b> The environment was friendly, inclusive, and kind.</span>
                                             </li>
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism</b> The match started on time, progressed smoothly, was played and umpired with good sportsmanship, and disputes, if any, were handled calmly and fairly.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism:</b> The match started on time, progressed smoothly, was played and umpired with good sportsmanship, and disputes, if any, were handled calmly and fairly.</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -229,10 +229,10 @@ export const AwardKudos: React.FC = () => {
                                         <h3 className="text-base sm:text-lg font-bold text-white mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award Fewer Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Atmosphere</b> The welcome could have been warmer or the environment more inclusive.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Atmosphere:</b> The welcome could have been warmer or the environment more inclusive.</span>
                                             </li>
                                             <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism</b> The arrangements and/or the playing area could have been better, or there was room for more sportsmanship.</span>
+                                                <span className="text-sm text-secondary-text leading-relaxed"><b className="text-main-text">Professionalism:</b> The arrangements and/or the playing area could have been better, or there was room for more sportsmanship.</span>
                                             </li>
                                         </ul>
                                     </div>

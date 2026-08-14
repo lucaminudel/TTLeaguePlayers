@@ -70,13 +70,13 @@ export const Join: React.FC = () => {
                         message = 'This invitation cannot be found. It may have expired, been canceled, or is no longer valid. If you believe this is an error, please contact us.';
                         showRetry = false;
                     } else if (status === 409) {
-                        message = 'Invite already used. Have you already registered? Try to login';
+                        message = 'Invite already used. Have you already registered? Try logging in.';
                         showRetry = false;
                     } else if (status !== undefined && status >= 500) {
-                        message = 'The server is not available, retry later';
+                        message = 'The server is not available, retry later.';
                         showRetry = true;
                     } else if (errMessage === 'Connection error' || status === undefined || errMessage.includes('NetworkError') || errMessage.includes('Failed to fetch')) {
-                        message = 'Network connection error. Make sure you are online and retry later';
+                        message = 'Network connection error. Make sure you are online and retry later.';
                         showRetry = true;
                     } else if (errMessage !== '') {
                         message = errMessage;
@@ -242,7 +242,7 @@ export const Join: React.FC = () => {
 
                     {!isInviteRedeemed && (
                         <div className="border-b border-gray-600 pb-2 mb-2" data-testid="join-invite-email">
-                            <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Email Id</p>
+                            <p className="text-secondary-text text-sm sm:text-base uppercase tracking-wide">Email</p>
                             <p className="text-base sm:text-lg">{invite.invitee_email_id}</p>
                         </div>
                     )}

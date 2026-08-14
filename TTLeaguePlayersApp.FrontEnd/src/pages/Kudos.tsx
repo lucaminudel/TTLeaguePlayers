@@ -85,10 +85,10 @@ export const Kudos: React.FC = () => {
                   ⚠️ You are not currently registered to a league, a season, and a team.
                 </p>
                 <p className="text-base sm:text-lg leading-relaxed pt-4">
-                  👉 Open again your invite link to complete this second part of the registration and then come back here.
+                  👉 Open your invite link again to complete this second part of the registration and then come back here.
                 </p>
                 <p className="text-base sm:text-lg leading-relaxed pt-4">
-                  ❌ Otherwise ask your captain to send you an invite (this feature that allow team captains to invite other team members will arrive soon).
+                  ❌ Otherwise ask your captain to send you an invite (this feature that allows team captains to invite other team members will arrive soon).
                 </p>
               </div>
             )}

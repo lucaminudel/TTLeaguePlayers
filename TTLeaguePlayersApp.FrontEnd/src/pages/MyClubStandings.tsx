@@ -50,7 +50,7 @@ export const MyClubStandings: React.FC = () => {
                 <PageContainer title="My Club Standings">
                     <div className="space-y-6 sm:space-y-8">
                         <p>
-                            See the matche tally of extra, standard and fewer kudos received by every team in your club.
+                            See the match tally of extra, standard and fewer kudos received by every team in your club.
                         </p>
 
                         {allManagedClubs.length === 0 ? (
@@ -85,7 +85,7 @@ export const MyClubStandings: React.FC = () => {
                                         </h3>
 
                                         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-secondary-text">
-                                            <div className="flex-1 min-w-0">Match Tally</div>
+                                            <div className="flex-1 min-w-0" data-testid="Match-Tally">Match Tally</div>
                                             <div className="w-10 shrink-0 text-center">Ext</div>
                                             <div className="w-10 shrink-0 text-center">Std</div>
                                             <div className="w-10 shrink-0 text-center">Few</div>
