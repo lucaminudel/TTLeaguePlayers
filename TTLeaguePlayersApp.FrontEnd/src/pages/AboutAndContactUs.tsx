@@ -1,8 +1,11 @@
 import React from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
+import { getAppVersion } from '../config/environment';
 
 export const AboutAndContactUs: React.FC = () => {
+    const { version, buildDate, buildSeconds } = getAppVersion();
+
     // Simple anti-scraping: build the email address in JavaScript
     const user = 'contact_us';
     const domain = 'ttleagueplayers.uk';
@@ -40,6 +43,12 @@ export const AboutAndContactUs: React.FC = () => {
                             >
                                 {email}
                             </a>
+                        </p>
+                    </section>
+
+                    <section >
+                        <p className="text-sm text-main-text/60" data-testid="about-app-version">
+                            App. Ver. {version} ({buildSeconds}) — {buildDate}
                         </p>
                     </section>
                 </div>

@@ -56,6 +56,23 @@ export function getConfig(): EnvironmentConfig {
 }
 
 /**
+ * App version (fixed, from package.json) and build stamp: the UTC build date plus the
+ * seconds elapsed since that day's midnight UTC.
+ * All are injected by vite.config.ts at build time.
+ */
+export function getAppVersion(): { version: string; buildDate: string; buildSeconds: string } {
+    const env = (import.meta as unknown as {
+        env?: { APP_VERSION?: string; APP_BUILD_DATE?: string; APP_BUILD_SECONDS?: string }
+    }).env;
+
+    return {
+        version: env?.APP_VERSION ?? 'dev',
+        buildDate: env?.APP_BUILD_DATE ?? 'local',
+        buildSeconds: env?.APP_BUILD_SECONDS ?? '0',
+    };
+}
+
+/**
  * Backwards-compatible async wrapper.
  *
  * Previously this fetched `/assets/${ENVIRONMENT}.env.json` at runtime.

@@ -22,6 +22,22 @@ function loadBuildTimeConfig(): Record<string, unknown> {
 
 const appConfig = loadBuildTimeConfig()
 
+// Fixed version, maintained by hand in package.json.
+const appVersion = (JSON.parse(
+  fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8')
+) as { version: string }).version
+
+// Build stamp: UTC build date (e.g. 14-Aug-2026) plus seconds elapsed since that day's
+// midnight UTC (e.g. 56460), which increases at every build within the day.
+const buildDateTime = new Date()
+const buildDate = buildDateTime.toLocaleDateString('en-GB', {
+  timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric',
+}).replace(/ /g, '-')
+const buildSecondsOfDay =
+  buildDateTime.getUTCHours() * 3600 +
+  buildDateTime.getUTCMinutes() * 60 +
+  buildDateTime.getUTCSeconds()
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react({
@@ -33,6 +49,11 @@ export default defineConfig({
     // Expose ENVIRONMENT and config to the browser at build time.
     'import.meta.env.ENVIRONMENT': JSON.stringify(process.env.ENVIRONMENT ?? 'dev'),
     'import.meta.env.APP_CONFIG': JSON.stringify(appConfig),
+
+    // App version and build stamp, shown on the About & Contact Us page.
+    'import.meta.env.APP_VERSION': JSON.stringify(appVersion),
+    'import.meta.env.APP_BUILD_DATE': JSON.stringify(buildDate),
+    'import.meta.env.APP_BUILD_SECONDS': JSON.stringify(String(buildSecondsOfDay)),
 
     // Fix for amazon-cognito-identity-js global object requirement
     global: 'globalThis'
