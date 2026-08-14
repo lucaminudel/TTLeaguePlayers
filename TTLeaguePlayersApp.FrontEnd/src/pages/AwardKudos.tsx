@@ -196,7 +196,7 @@ export const AwardKudos: React.FC = () => {
 
                     {showGuidelines && (
                         <div
-                            className="fixed inset-0 z-50 bg-primary-base overflow-y-auto animate-fadeIn"
+                            className="fixed inset-0 z-50 bg-primary-base overflow-y-auto"
                         >
                             <div className="max-w-xl mx-auto min-h-full flex flex-col p-6 sm:p-8">
                                 <div className="flex justify-between items-center mb-6 sm:mb-8">
@@ -213,6 +213,7 @@ export const AwardKudos: React.FC = () => {
 
                                 <div className="space-y-8 flex-grow">
                                     <div>
+                                        <br/>   
                                         <h3 className="text-base sm:text-lg font-bold text-[#48bb78] mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award Extra Kudos for:</h3>
                                         <ul className="space-y-4">
                                             <li className="flex flex-col">
@@ -223,7 +224,7 @@ export const AwardKudos: React.FC = () => {
                                             </li>
                                         </ul>
                                     </div>
-
+                                    <br/>   
                                     <div>
                                         <h3 className="text-base sm:text-lg font-bold text-white mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Award Fewer Kudos for:</h3>
                                         <ul className="space-y-4">
@@ -236,22 +237,12 @@ export const AwardKudos: React.FC = () => {
                                         </ul>
                                     </div>
 
-                                    <div>
-                                        <h3 className="text-base sm:text-lg font-bold mb-3 border-b border-gray-700 pb-2 uppercase tracking-wide">Disputes</h3>
-                                        <ul className="space-y-4">
-                                            <li className="flex flex-col">
-                                                <span className="text-sm text-secondary-text leading-relaxed">Official match disputes: must be directed to the league officials.<br/>
-                                                Awarded kudos: have no relevance to the league.</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-
                                 </div>
                             </div>
                         </div>
                     )}
                     {showConfirmModal && selectedKudos && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                             <div className="bg-primary-base border border-gray-600 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6">
                                 <h3 className="text-xl font-bold text-main-text text-center">Confirm Kudos <br />to {state.opponentTeam}</h3>
 

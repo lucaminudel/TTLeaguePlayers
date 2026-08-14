@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ActiveSeason } from '../../contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../service/active-season-processors/ActiveSeasonProcessor';
@@ -6,6 +6,10 @@ import type { Fixture } from '../../service/active-season-processors/clttl-2025/
 import { getClockTime, formatFixtureDateTime, isSameDay } from '../../utils/DateUtils';
 import { Button } from '../common/Button';
 import { useAuth } from '../../hooks/useAuth';
+
+// Identifies the "Rate" info modal in local storage. Fixed for the life of the feature:
+// changing it resurfaces the modal for everyone who had opted out.
+const RATE_INFO_MODAL_GUID = '3732bda6-ce5f-407e-95d7-8f638cb333cc';
 
 interface ActiveSeasonCardProps {
     season: ActiveSeason;
@@ -16,10 +20,25 @@ interface ActiveSeasonCardProps {
 
 export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, processor, isExpanded, onToggle }) => {
     const navigate = useNavigate();
-    const { activeSeasons } = useAuth();
+    const { activeSeasons, userId } = useAuth();
     const [prevMatch, setPrevMatch] = useState<Fixture | null | -1>(null);
     const [nextMatch, setNextMatch] = useState<Fixture | null | -1>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
+    // The fixture whose Rate button was clicked; non-null while the info modal is open.
+    const [rateInfoModalFixture, setRateInfoModalFixture] = useState<Fixture | null>(null);
+    const [dontShowRateInfoAgain, setDontShowRateInfoAgain] = useState(false);
+    // One card is rendered per active season, so the ARIA ids must be unique per instance.
+    const rateInfoModalId = useId();
+    const rateInfoModalOkContainerRef = useRef<HTMLDivElement>(null);
+
+    // Suppression is per user, not per browser: signing out does not clear local storage.
+    const rateInfoModalStorageKey = userId ? `hide_modal_${RATE_INFO_MODAL_GUID}_${userId}` : null;
+
+    useEffect(() => {
+        if (rateInfoModalFixture) {
+            rateInfoModalOkContainerRef.current?.querySelector('button')?.focus();
+        }
+    }, [rateInfoModalFixture]);
 
     useEffect(() => {
         if (isExpanded) {
@@ -84,8 +103,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         return matchTimestampSeconds > latestKudosTimestamp;
     };
 
-    // Handler for Rate button click
-    const handleRateClick = (fixture: Fixture) => {
+    const navigateToAwardKudos = (fixture: Fixture) => {
         const isHome = fixture.homeTeam === season.team_name;
         const opponentTeam = isHome ? fixture.awayTeam : fixture.homeTeam;
 
@@ -103,6 +121,38 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                 venue: fixture.venue
             }
         });
+    };
+
+    // Handler for Rate button click: show the info modal first, unless this user opted out of it.
+    const handleRateClick = (fixture: Fixture) => {
+        const isSuppressed = rateInfoModalStorageKey !== null
+            && localStorage.getItem(rateInfoModalStorageKey) === 'true';
+
+        if (isSuppressed) {
+            navigateToAwardKudos(fixture);
+            return;
+        }
+
+        setDontShowRateInfoAgain(false);
+        setRateInfoModalFixture(fixture);
+    };
+
+    // Handler for the info modal's OK button: persist the opt-out if ticked, then carry on.
+    const handleRateInfoModalOk = () => {
+        const fixture = rateInfoModalFixture;
+        if (!fixture) return;
+
+        // With no userId there is no key to scope the preference to, so nothing is written.
+        if (dontShowRateInfoAgain && rateInfoModalStorageKey !== null) {
+            try {
+                localStorage.setItem(rateInfoModalStorageKey, 'true');
+            } catch (error) {
+                console.warn('Could not save modal preference:', error);
+            }
+        }
+
+        setRateInfoModalFixture(null);
+        navigateToAwardKudos(fixture);
     };
 
     const renderFixture = (fixture: Fixture | null | -1, testId: string) => {
@@ -197,6 +247,56 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                             </div>
                         </>
                     )}
+                </div>
+            )}
+
+            {rateInfoModalFixture && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={`${rateInfoModalId}-title`}
+                        data-testid="rate-info-modal"
+                        className="bg-primary-base border border-gray-600 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6"
+                    >
+                        <h3 id={`${rateInfoModalId}-title`} className="text-xl font-bold text-main-text text-center">
+                            Please be aware that:
+                        </h3>
+
+                        <div className="text-center space-y-2">
+                            <p className="text-base sm:text-lg">
+                                League officials are not responsible for managing disputes on Kudos awarded or received.
+                                <br/><br/>
+                            </p>
+                            <p className="text-base sm:text-lg">
+                                Match disputes must be directed as usual to the league officials.
+                                <br/><br/>
+                            </p>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-3">
+                            <input
+                                type="checkbox"
+                                id={`${rateInfoModalId}-dont-show-again`}
+                                data-testid="rate-info-modal-dont-show-again"
+                                checked={dontShowRateInfoAgain}
+                                onChange={(e) => { setDontShowRateInfoAgain(e.target.checked); }}
+                                className="w-5 h-5 accent-action-accent"
+                            />
+                            <label htmlFor={`${rateInfoModalId}-dont-show-again`} className="text-sm text-secondary-text">
+                                Don&apos;t show this message again
+                            </label>
+                        </div>
+
+                        <div className="flex justify-center" ref={rateInfoModalOkContainerRef}>
+                            <Button
+                                onClick={handleRateInfoModalOk}
+                                data-testid="rate-info-modal-ok"
+                            >
+                                OK
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

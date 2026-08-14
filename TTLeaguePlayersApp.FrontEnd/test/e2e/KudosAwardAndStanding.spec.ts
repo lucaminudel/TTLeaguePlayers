@@ -118,6 +118,7 @@ test.describe('Kudos Standings', () => {
         await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
 
         // Rate Previous Match against "Fusion 5"
+        // Info modal: dismiss it without ticking, so it must appear again at rate 2.
         await kudosPage.ratePositiveKudosFromOpenCard('Fusion 5');
 
         // 2. Rate Match 2: 21st Jan 2026 - Walworth Tigers - Neutral
@@ -128,7 +129,8 @@ test.describe('Kudos Standings', () => {
         await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
 
         // Rate "Previous Match" against "Walworth Tigers"
-        await kudosPage.RateNeutralKudosFromOpenCard('Walworth Tigers');
+        // Info modal: tick "Don't show this message again" before dismissing it.
+        await kudosPage.RateNeutralKudosFromOpenCard('Walworth Tigers', 'tick-and-ok');
 
 
         // 3. Rate Match 3: 7th Feb 2026 - Fusion 6 Jr - Negative
@@ -139,7 +141,9 @@ test.describe('Kudos Standings', () => {
         await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
 
         // Rate "Previous Match" against "Fusion 6 Jr"
-        const kudosStandingsPage = await kudosPage.RateNegativeKudosFromOpenCard('Fusion 6 Jr');
+        // Info modal: must NOT appear — it was suppressed at rate 2, and the kudos awarded in
+        // between call invalidateCacheByPrefix('kudos_cache_'), which the preference key must survive.
+        const kudosStandingsPage = await kudosPage.RateNegativeKudosFromOpenCard('Fusion 6 Jr', 'expect-absent');
 
 
         // Check list items

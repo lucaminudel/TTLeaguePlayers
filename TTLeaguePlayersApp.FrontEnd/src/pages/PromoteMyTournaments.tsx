@@ -558,7 +558,7 @@ export const PromoteMyTournaments: React.FC = () => {
                 </PageContainer>
                 
                 {editingTournament && effectiveManagedClub && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                         <div className="bg-primary-base border border-gray-600 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6">
                             <h3 className="text-xl font-bold text-main-text text-center">
                                 {isNewTournament ? 'Add Tournament' : 'Edit Tournament'}
@@ -777,7 +777,7 @@ export const PromoteMyTournaments: React.FC = () => {
                 )}
 
                 {showDeleteConfirmModal && deletingTournament && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                         <div className="bg-primary-base border border-gray-600 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6">
                             <h3 className="text-xl font-bold text-main-text text-center" data-testid="delete-confirm-title">Confirm Removal<br />of {deletingTournament.tournament_name}</h3>
 

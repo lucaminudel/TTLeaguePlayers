@@ -1,6 +1,14 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { KudosStandingsPage } from './KudosStandingsPage';
 
+/**
+ * How a rate flow should treat the info modal shown after the Rate button is clicked.
+ * - 'ok'            dismiss it, leaving it to show again next time
+ * - 'tick-and-ok'   tick "Don't show this message again", then dismiss it
+ * - 'expect-absent' assert it does not appear, because it was suppressed earlier
+ */
+type RateInfoModalMode = 'ok' | 'tick-and-ok' | 'expect-absent';
+
 export class KudosAndAwardPages {
     private page: Page;
     private openCard?: Locator;
@@ -56,22 +64,11 @@ export class KudosAndAwardPages {
         return this.openCard;
     }
 
-    async ratePositiveKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
-
-        return this.RateKudosFromOpenCard('Extra Kudos', receivingTeamName);
+    rateInfoModal(): Locator {
+        return this.page.getByTestId('rate-info-modal');
     }
 
-    async RateNeutralKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
-
-        return this.RateKudosFromOpenCard('Standard Kudos', receivingTeamName);
-    }
-
-    async RateNegativeKudosFromOpenCard(receivingTeamName: string): Promise<KudosStandingsPage> {
-
-        return this.RateKudosFromOpenCard('Fewer Kudos', receivingTeamName);
-    }
-
-    private async RateKudosFromOpenCard(rating: string, receivingTeamName: string): Promise<KudosStandingsPage> {
+    async clickRateFromOpenCard(receivingTeamName: string): Promise<void> {
 
         if (!this.openCard) {
             throw new Error('No active season card is open. Please call openActiveSeasonCard or findAndOpenActiveSeasonCard first.');
@@ -83,6 +80,48 @@ export class KudosAndAwardPages {
 
         // Click "Rate" button
         await this.openCard.getByTestId('rate-button').click();
+    }
+
+    async dismissRateInfoModal(tickDontShowAgain: boolean): Promise<void> {
+
+        await expect(this.rateInfoModal()).toBeVisible({ timeout: 10000 });
+
+        if (tickDontShowAgain) {
+            await this.page.getByTestId('rate-info-modal-dont-show-again').check();
+        }
+
+        await this.page.getByTestId('rate-info-modal-ok').click();
+        await expect(this.rateInfoModal()).toBeHidden();
+    }
+
+    async ratePositiveKudosFromOpenCard(receivingTeamName: string, infoModal: RateInfoModalMode = 'ok'): Promise<KudosStandingsPage> {
+
+        return this.RateKudosFromOpenCard('Extra Kudos', receivingTeamName, infoModal);
+    }
+
+    async RateNeutralKudosFromOpenCard(receivingTeamName: string, infoModal: RateInfoModalMode = 'ok'): Promise<KudosStandingsPage> {
+
+        return this.RateKudosFromOpenCard('Standard Kudos', receivingTeamName, infoModal);
+    }
+
+    async RateNegativeKudosFromOpenCard(receivingTeamName: string, infoModal: RateInfoModalMode = 'ok'): Promise<KudosStandingsPage> {
+
+        return this.RateKudosFromOpenCard('Fewer Kudos', receivingTeamName, infoModal);
+    }
+
+    private async RateKudosFromOpenCard(rating: string, receivingTeamName: string, infoModal: RateInfoModalMode = 'ok'): Promise<KudosStandingsPage> {
+
+        await this.clickRateFromOpenCard(receivingTeamName);
+
+        if (infoModal === 'expect-absent') {
+            // Suppressed earlier in this test by 'tick-and-ok', so the click goes straight through.
+            // The navigation is what proves it: toBeHidden() on its own is satisfied at t=0, before
+            // React could have rendered the modal, so it would pass even if the modal did appear.
+            await expect(this.page).toHaveURL(/\/award-kudos/, { timeout: 10000 });
+            await expect(this.rateInfoModal()).toBeHidden();
+        } else {
+            await this.dismissRateInfoModal(infoModal === 'tick-and-ok');
+        }
 
         // Award Positive Kudos
         await this.page.getByRole('button', { name: rating }).click();

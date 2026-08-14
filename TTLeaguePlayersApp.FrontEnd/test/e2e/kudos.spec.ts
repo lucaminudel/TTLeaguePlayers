@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { User as UserFlow, LoginPage, RegisterPage } from './page-objects/User';
+import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
@@ -101,6 +102,44 @@ test.describe('Kudos', () => {
         });
     });
     test.describe('active season cards', () => {
+
+        test('the Rate info modal, once dismissed with "don\'t show again", stays hidden for that user but not for another one on the same browser', async ({ page }) => {
+            test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+            // These users carry kudos from earlier runs, which would hide the Rate button.
+            await mockCognitoLatestKudos(page);
+
+            const user = new UserFlow(page);
+
+            // User A: dismiss the info modal ticking "Don't show this message again".
+            // Walworth Tigers play Morpeth 10 on the 21st of January 2026.
+            await user.setFixedClockTime('2026-01-21T12:00:00Z');
+            await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
+
+            const kudosPageA = await user.navigateToKudos();
+            await kudosPageA.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
+            await kudosPageA.clickRateFromOpenCard('Morpeth 10');
+
+            await expect(kudosPageA.rateInfoModal()).toBeVisible();
+            await kudosPageA.dismissRateInfoModal(true);
+
+            // The OK click lands on the award-kudos page, which renders inside the MobileLayout,
+            // so the menu is available to log out from there. No kudos is awarded.
+            await user.menu.open();
+            await user.menu.logout();
+
+            // User B, same browser and so the same local storage: the preference is scoped to
+            // user A's Cognito sub, so the modal must still appear.
+            // Fusion 5 play Morpeth 10 on the 18th of January 2026, a different date.
+            await user.setFixedClockTime('2026-01-18T12:00:00Z');
+            await user.navigateToLoginAndSuccesfullyLogin('test_kudos_f5@user.test', 'aA1!56789012');
+
+            const kudosPageB = await user.navigateToKudos();
+            await kudosPageB.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Fusion 5');
+            await kudosPageB.clickRateFromOpenCard('Morpeth 10');
+
+            await expect(kudosPageB.rateInfoModal()).toBeVisible();
+        });
 
         test('shows previous and current match for all active seasons', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
