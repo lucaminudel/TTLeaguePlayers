@@ -27,9 +27,7 @@
     "C+ e2e-tests-web:run-browser staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test --ui"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-brands-svg-icons": "^7.3.1",
-    "@fortawesome/react-fontawesome": "^3.4.0",
     "amazon-cognito-identity-js": "^6.3.16",
     "react": "^19.2.0",
     "react-compiler-runtime": "^1.0.0",

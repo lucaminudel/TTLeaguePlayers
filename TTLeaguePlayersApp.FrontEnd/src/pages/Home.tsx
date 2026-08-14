@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Button } from '../components/common/Button';
-import logo from "../assets/logo.png";   
+import logo from "../assets/logo.webp";
 
 export const Home: React.FC = () => {
     const { inviteId } = useParams<{ inviteId?: string }>();

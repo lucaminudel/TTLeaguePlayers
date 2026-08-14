@@ -16,7 +16,7 @@ import { getConfig } from '../config/environment';
 import { getClockTimeInEpochSeconds, formatTournamentDateRange } from '../utils/DateUtils';
 import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { SocialIcon } from '../components/common/SocialIcon';
 import { faFacebookSquare, faInstagram } from '@fortawesome/free-brands-svg-icons';
 
 function isValidHttpUrl(value: string): boolean {
@@ -528,7 +528,7 @@ export const PromoteMyTournaments: React.FC = () => {
                                                                                 className="text-pink-600 hover:text-pink-500"
                                                                                 data-testid="tournament-instagram-link"
                                                                             >
-                                                                                <FontAwesomeIcon icon={faInstagram} size="lg" />
+                                                                                <SocialIcon icon={faInstagram} />
                                                                             </a>
                                                                         )}
                                                                         {tournament.facebook && (
@@ -539,7 +539,7 @@ export const PromoteMyTournaments: React.FC = () => {
                                                                                 className="text-blue-600 hover:text-blue-500"
                                                                                 data-testid="tournament-facebook-link"
                                                                             >
-                                                                                <FontAwesomeIcon icon={faFacebookSquare} size="lg" />
+                                                                                <SocialIcon icon={faFacebookSquare} />
                                                                             </a>
                                                                         )}
                                                                     </div>

@@ -7,7 +7,7 @@ import type { ClubWithTournaments, TournamentInfo } from '../api/clubsApi';
 import { formatTournamentDateRange } from '../utils/DateUtils';
 import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { SocialIcon } from '../components/common/SocialIcon';
 import { faFacebookSquare, faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons';
 
 interface ListedTournament extends TournamentInfo {
@@ -83,7 +83,7 @@ const SocialLinks: React.FC<{
                 className="text-pink-600 hover:text-pink-500"
                 data-testid={`${testIdPrefix}-instagram-link`}
             >
-                <FontAwesomeIcon icon={faInstagram} size="lg" />
+                <SocialIcon icon={faInstagram} />
             </a>
         )}
         {facebook && (
@@ -94,7 +94,7 @@ const SocialLinks: React.FC<{
                 className="text-blue-600 hover:text-blue-500"
                 data-testid={`${testIdPrefix}-facebook-link`}
             >
-                <FontAwesomeIcon icon={faFacebookSquare} size="lg" />
+                <SocialIcon icon={faFacebookSquare} />
             </a>
         )}
         {youtube && (
@@ -105,7 +105,7 @@ const SocialLinks: React.FC<{
                 className="text-red-600 hover:text-red-500"
                 data-testid={`${testIdPrefix}-youtube-link`}
             >
-                <FontAwesomeIcon icon={faYoutube} size="lg" />
+                <SocialIcon icon={faYoutube} />
             </a>
         )}
     </div>
