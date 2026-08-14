@@ -51,7 +51,7 @@ The framing is
 what stops discovery from sprawling: a topic that serves neither the bigger picture nor a stated
 question does not belong in the report.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 2 — Agree the topic list
 
@@ -74,7 +74,7 @@ agreed.
 about topic 4, and do not also ask a framing question you forgot in phase 1 — each of those is its
 own later message, after the list is agreed.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 3 — Explore and discuss, one topic at a time
 
@@ -85,7 +85,7 @@ new topic on the spot. Do not batch the whole exploration and present it at the 
 A topic is done when the answers are **detailed enough to act on** — concrete values, exact paths,
 named identifiers, real examples — not when they are merely plausible.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### Where to look
 
@@ -161,7 +161,7 @@ The file carries:
 
 Keep it factual. Anything shaped like "we should therefore..." is a plan and belongs to inception.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 5 — Exhaust and verify
 
@@ -191,7 +191,7 @@ message too, settled before you present the final document.
 Do not hand off to `coding-task-inception` yourself. Tell the user the report is ready and where it
 is; starting inception is their call.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 6 — Retrospect
 
@@ -246,7 +246,7 @@ survives into the plan and then into the code.
 **Git.** Stay on the current branch. No commits, no staging, no stash, no clean. The working tree
 ends exactly as the user left it.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Anti-patterns
 

@@ -34,7 +34,7 @@ cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
 
 Ask the user to confirm the state of the code to be reviewed is green: all tests pass so does the full verification pipeline.
   
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 
 ## Phase 1 — Read the diff and reconstruct intent
@@ -67,7 +67,7 @@ finding — either the work summary is incomplete or the change was unplanned.
 Read the file's *surroundings*, not just its diff. Most consistency findings come from the
 neighbouring code that did not change.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 2 — Review, adversarially
 
@@ -89,7 +89,7 @@ Re-read the standards before judging against them, rather than from memory:
 - `prompts/workflow/steps_guidelines/FixRedTestGuidelines.md`
 - the `prompts/codebase_info/*DomainLogic.md` for the area touched
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### The lenses
 
@@ -232,7 +232,7 @@ pushes them to accept a fix they would have improved. In practice they often wil
 alternative to beat your proposal, particularly on operational cost, and treat that as the normal
 outcome rather than a correction.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 4 — Fix
 
@@ -255,7 +255,7 @@ Re-running the full pipeline after the fixes is the user's call and the user's c
 why it is needed, and wait. That request is its own message: it does not travel with the summary of
 the fixes just applied, and it does not travel with the PR guide.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 5 — The PR-review guide
 
@@ -316,7 +316,7 @@ The document carries:
 Keep it readable in one sitting. Context and direction, never a restatement of the lines that
 changed — if the reviewer could get it from the diff alone, leave it out.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 6 — Suggest the commit message
 
@@ -327,7 +327,7 @@ Body explains *why*, since the diff already shows *what*. Note user-facing behav
 config-file structure changes, and anything a future bisect would want to find. Do not sign it as
 Claude unless the user asks.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 7 — Retrospect
 
@@ -377,7 +377,7 @@ Review is not the moment to improve unrelated code.
 change genuinely is clean, say what you checked and why it holds — do not pad the list to look
 thorough, and do not soften a real finding into a suggestion.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 
 ## Anti-patterns

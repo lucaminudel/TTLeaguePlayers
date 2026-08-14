@@ -110,6 +110,10 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     echo "Cognito Test user '$EMAIL6' registered and confirmed successfully with multiple Managed Clubs!"
 
     # 7. User Salvatore Bollito
+    #    SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts (Steps 2 and 3, which award kudos as
+    #    this user) and kudos.spec.ts (the Rate info-modal cross-user suppression test, which stops
+    #    at the modal and so writes nothing at all - no kudos, no Cognito change). Safe only because
+    #    the second one is strictly read-only. See WriteTestsGuidelines.md.
     EMAIL7="test_kudos_wt@user.test"
     ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
     register_user "$EMAIL7" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON7"
@@ -117,6 +121,10 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
 
 
     # 8. User Charlie Boom
+    #    SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts (Steps 2 and 3, which award kudos as
+    #    this user) and kudos.spec.ts (the Rate info-modal cross-user suppression test, which stops
+    #    at the modal and so writes nothing at all - no kudos, no Cognito change). Safe only because
+    #    the second one is strictly read-only. See WriteTestsGuidelines.md.
     EMAIL8="test_kudos_f5@user.test"
     ACTIVE_SEASONS_JSON8='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
     register_user "$EMAIL8" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON8"

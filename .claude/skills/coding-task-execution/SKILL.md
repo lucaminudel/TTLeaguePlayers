@@ -54,7 +54,7 @@ That is **one ask covering all three suites**, and it is the only thing in that 
 reconciliation report above — what you verified, what is `in progress`, what you re-checked — is a
 report and goes in its own earlier message with no question attached.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 2 — Order the work
 
@@ -74,25 +74,38 @@ regressions. So:
 
 Where the graph is a chain, say so and run it serially rather than manufacturing parallelism.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
-## Phase 3 — Execute
+## Phase 3 — Bridge the gaps to limit the interruptions
+
+Look ahead to every plan subtask, and double-check if there is any gap, clarificaiton, decision, missing info or permission you may need from the user during the exection of the plan.
+
+For each one of those, ask the user now instead of later during the execution.
+Update the plan and subtask tescripttion with the additonal info that emerges from this.
+The aim is to avoid preventable interruptions during the plan execition, and limit the number of times you will have to stop and hand over to the user during the plan execution.  Therefore the plan execution will stop to hand over to the user for things that cannot be unticipated and can only be found while duing the actual work.
+
+
+## Phase 4 — Execute
 
 For each sub-task, in order:
 
 1. Set its Status to `in progress` in the persisted plan **before** starting.
 2. Do the work as the sub-task describes.
-3. Verify it (Phase 5).
+3. Verify it (Phase 6).
 4. Set Status to `done` and append a dated line to the plan's progress log.
-5. Write its entry in the work summary report (Phase 6) and post that entry in the chat — as a
+5. Write its entry in the work summary report (Phase 7) and post that entry in the chat — as a
    report, with **no question appended**, not even "shall I move on to sub-task 4?". Moving on to
-   the next unblocked sub-task needs no permission; a checkpoint (Phase 4) is its own message.
+   the next unblocked sub-task needs no permission; a checkpoint (Phase 5) is its own message.
 
 A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
 tests, or anything you worked around rather than solved — report it and stop. If stopping raises a
 question, that question is its own message, sent after the report.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+```!
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
+```
+
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### Read-only commands against the live cloud and Cognito — permitted without asking
 
@@ -123,7 +136,7 @@ re-run "just to confirm" makes the outage longer. The Cognito budget in the veri
 exists for the same reason.
 
 
-## Phase 4 — Checkpoints
+## Phase 5 — Checkpoints
 
 When the plan contains a review checkpoint, **stop completely** and hand back. Show what the
 checkpoint task says to show, framed as the *Presenting Rule for the One Ask and the One Topic you
@@ -136,9 +149,9 @@ decision the user could "answer at the same time". Those each get their own mess
 if one of them must be settled *before* continuing, ask it first, on its own, and hold the
 checkpoint question until it is resolved.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
-## Phase 5 — Verify before marking done
+## Phase 6 — Verify before marking done
 Four tiers, ordered by how much **live Cognito** they spend. They are **not** interchangeable, and the
 ordering is the point: you climb it only as far as the change requires.
 
@@ -174,7 +187,7 @@ Never substitute a higher tier for the 1-A loop (too slow, and it burns Cognito 
 a lint error would have). Never let 1-A stand in for Tier 2 (different environment, no live Cognito,
 no clean-room build).
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### The Cognito budget
 
@@ -554,7 +567,7 @@ aws dynamodb list-tables --endpoint-url http://localhost:8000
 
 Fix what you break. If verification will not go green, the sub-task is not done.
 
-## Phase 6 — Work summary report
+## Phase 7 — Work summary report
 
 Maintained at
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/work-summary.md` —
@@ -572,11 +585,11 @@ One section per completed sub-task:
 
 Keep entries short. A reviewer should be able to read the whole report before opening the diff.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
-## Phase 7 — Retrospect
+## Phase 8 — Retrospect
 
-Review how task execution phases 1–6 actually went and fold anything durable back into
+Review how task execution phases 1–7 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
 
 
@@ -590,7 +603,7 @@ time.
 injected from that one shared file; editing it in place either silently diverges the four skills
 or is discarded the next time the file is read. Open the shared file and change it there, once.
 
-## Phase 8 — Close
+## Phase 9 — Close
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -601,9 +614,6 @@ or is discarded the next time the file is read. Open the shared file and change 
 Say also that compacting is optional and the hand-off does not depend on it: the plan and the work
 summary are on disk, and those files — not this conversation — are what `coding-task-review` reads.
 
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
-```
 
 ## Standing rules
 
@@ -622,7 +632,7 @@ a plan you now know to be wrong. Record the resolution in the plan's progress lo
 **Scope.** The plan defines the work. Do not widen it, do not fold in unrelated cleanups noticed in
 passing, and do not narrow it because a step looks awkward.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 
 ## Anti-patterns

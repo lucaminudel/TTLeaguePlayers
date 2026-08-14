@@ -1,4 +1,4 @@
-## Sub-agents and orchestration
+### Sub-agents and orchestration
 
 **The conversation is always the main agent's.** Whatever gathers the raw material, findings,
 options and questions are synthesised and presented by the main agent, one point per message. Fan
@@ -27,7 +27,7 @@ passes `model`. Set it deliberately:
 without the conversation history, and all four are conversational — they depend on what the user
 said three messages ago. Do not "optimise" any of them into a fork.
 
-## Where the work lands
+#### Where the work lands
 
 **All code changes go in the main working tree, on the branch the user already has checked out.**
 Never create a git worktree to do the task's work in, and never move to another branch to do it.

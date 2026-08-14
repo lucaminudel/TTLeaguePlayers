@@ -76,7 +76,7 @@ matches:
     label: 5e. SKILL HELPER - One rule
     replace: |
       Please try again applying the 'One Ask Per Message Rule' or 'the One Point Per Message Rule' and 
-      the 'Presenting Rule for the One Ask and the One Topic you do send' 
+      the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message' 
       from: ~/Code/TTLeaguePlayers/..claude/skills/shared/interaction-protocol.md
 
   #

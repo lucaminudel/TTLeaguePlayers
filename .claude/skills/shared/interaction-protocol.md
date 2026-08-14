@@ -1,86 +1,3 @@
-## One Ask Per Message Rule 
-
-### What an *ask* is
-
-An **ask** is any part of a message that the model cannot proceed past without the user
-replying.
-
-**The test:** *would I act differently depending on what the user says to this?* If yes,
-it is an ask. If the user could ignore it entirely and nothing about the work would
-change, it is not.
-
-**These all count as asks, and each one alone fills the quota for a message:**
-
-| Form | Example |
-|---|---|
-| A direct question, however small | "does that look right?", "anything else?", "shall I continue?" |
-| A choice between options | "A or B?", a list of alternatives with a recommendation |
-| A request to confirm, approve or reject | "approve this fix?", "is this the right list?" |
-| A request that the user do something | run a command, supply a file, check a value, make a decision |
-| **An announcement where silence would count as consent** | "I'll proceed with X unless you object", "otherwise I'll save it as is", "let me know if not" |
-| An `AskUserQuestion` call | **one question per call, never two to four — and one call per message** |
-
-**These are not asks** (and a message made only of these carries zero asks): statements of
-fact, findings, a status update, a report, a summary of work already done, a link to a
-document you produced.
-
-**Size is irrelevant.** Two small asks in one message is the same violation as ten. A
-second ask does not become acceptable because it is short, obvious, related to the first,
-or phrased without a question mark.
-
-### The rule
-
-**A message may contain at most ONE ask.**
-
-Reports, overviews, findings lists, status updates, plans and document hand-overs carry
-**zero** asks — not one. Post them, stop, and put the first decision in its own later
-message.
-
-### Why
-
-Every ask is work handed to the user: they have to understand it, weigh it against the
-rest of the change, and answer it. Bundling asks does three things, all bad:
-
-1. **It overwhelms.** The user has to hold every unresolved item in their head at once
-   just to answer any of them.
-2. **It confuses.** With several asks in flight it stops being clear which part of their
-   reply answers which ask — and a partial reply leaves the rest silently unresolved,
-   usually decided by default rather than by them.
-3. **It makes reacting properly impossible.** A user who wants to reshape the third ask
-   has to either write an essay addressing all of them or let it go. Letting it go is what
-   actually happens — which means a bundled ask quietly extracts agreement to something
-   the user would have changed.
-
-That last one is the real cost. Sequencing costs a round-trip. Bundling costs the user's
-actual input, which was the whole reason for asking.
-
-### The pre-send gate — run on every message, without exception
-
-1. Re-read the message you are about to send, from the top.
-2. **Count the asks.** Count the question marks first. Then count the sentences that need
-   a response without one: "let me know if…", "I'll proceed with X unless…", "confirm and
-   I'll start".
-3. **Count 0** → send it and **stop there**. Do not append a question to save a
-   round-trip; the next message carries the ask.
-4. **Count 1** → check that everything else in the message is what the user needs *in
-   order to answer that one ask*. Cut the rest; it belongs in its own message.
-5. **Count 2 or more** → keep the first, move the others to later messages.
-   **Never drop an ask to get the count down.** Retracting is not the fix — every ask
-   still gets asked, one message at a time.
-6. **Last check:** the one ask sits in its own clearly-marked section at the end,
-   visually separated from the information above it. **If that section needs a second
-   bullet, the message is carrying two asks — split it.**
-
-### The shape of the loop
-
-**Ask → wait → act on the answer → then the next ask.**
-
-Where several asks share the same background, send that background **once, in a message
-with no ask in it**, then take the asks one at a time — each carrying enough context to
-be answered without re-reading the transcript.
-
----
-
 ## One Point Per Message Rule
 
 
@@ -171,15 +88,98 @@ Batching is the reliable way to lose it.
 
 ---
 
-## Presenting Rule for the One Ask and the One Topic you do send
+## One Ask Per Message Rule 
+
+### What an *ask* is
+
+An **ask** is any part of a message that the model cannot proceed past without the user
+replying.
+
+**The test:** *would I act differently depending on what the user says to this?* If yes,
+it is an ask. If the user could ignore it entirely and nothing about the work would
+change, it is not.
+
+**These all count as asks, and each one alone fills the quota for a message:**
+
+| Form | Example |
+|---|---|
+| A direct question, however small | "does that look right?", "anything else?", "shall I continue?" |
+| A choice between options | "A or B?", a list of alternatives with a recommendation |
+| A request to confirm, approve or reject | "approve this fix?", "is this the right list?" |
+| A request that the user do something | run a command, supply a file, check a value, make a decision |
+| **An announcement where silence would count as consent** | "I'll proceed with X unless you object", "otherwise I'll save it as is", "let me know if not" |
+| An `AskUserQuestion` call | **one question per call, never two to four — and one call per message** |
+
+**These are not asks** (and a message made only of these carries zero asks): statements of
+fact, findings, a status update, a report, a summary of work already done, a link to a
+document you produced, a poing as described before in the 'One Point Per Message Rule'.
+
+**Size is irrelevant.** Two small asks in one message is the same violation as ten. A
+second ask does not become acceptable because it is short, obvious, related to the first,
+or phrased without a question mark.
+
+### The rule
+
+**A message may contain at most ONE ask.**
+
+Reports, overviews, findings lists, status updates, plans and document hand-overs carry
+**zero** asks — not one. Post them, stop, and put the first decision in its own later
+message.
+
+### Why
+
+Every ask is work handed to the user: they have to understand it, weigh it against the
+rest of the change, and answer it. Bundling asks does three things, all bad:
+
+1. **It overwhelms.** The user has to hold every unresolved item in their head at once
+   just to answer any of them.
+2. **It confuses.** With several asks in flight it stops being clear which part of their
+   reply answers which ask — and a partial reply leaves the rest silently unresolved,
+   usually decided by default rather than by them.
+3. **It makes reacting properly impossible.** A user who wants to reshape the third ask
+   has to either write an essay addressing all of them or let it go. Letting it go is what
+   actually happens — which means a bundled ask quietly extracts agreement to something
+   the user would have changed.
+
+That last one is the real cost. Sequencing costs a round-trip. Bundling costs the user's
+actual input, which was the whole reason for asking.
+
+### The pre-send gate — run on every message, without exception
+
+1. Re-read the message you are about to send, from the top.
+2. **Count the asks.** Count the question marks first. Then count the sentences that need
+   a response without one: "let me know if…", "I'll proceed with X unless…", "confirm and
+   I'll start".
+3. **Count 0** → send it and **stop there**. Do not append a question to save a
+   round-trip; the next message carries the ask.
+4. **Count 1** → check that everything else in the message is what the user needs *in
+   order to answer that one ask*. Cut the rest; it belongs in its own message.
+5. **Count 2 or more** → keep the first, move the others to later messages.
+   **Never drop an ask to get the count down.** Retracting is not the fix — every ask
+   still gets asked, one message at a time.
+6. **Last check:** the one ask sits in its own clearly-marked section at the end,
+   visually separated from the information above it. **If that section needs a second
+   bullet, the message is carrying two asks — split it.**
+
+### The shape of the loop
+
+**Ask → wait → act on the answer → then the next ask.**
+
+Where several asks share the same background, send that background **once, in a message
+with no ask in it**, then take the asks one at a time — each carrying enough context to
+be answered without re-reading the transcript.
+
+---
+
+## Presenting Rule for the One Ask Per Message and the One Topic Per Message
 
 The two rules above govern *how many*. This one governs *what the one you send must contain*.
 
-**Every time you stop, the user is arriving cold** — presenting findings, hitting a blocker,
-reaching a checkpoint, reporting plan drift, asking permission before a long or shared-environment
-run. They have not read the transcript, do not remember the last twenty tool calls, and have not
+**Every time you stop, the user is arriving cold** — when you are making an ask or presenting one point.
+They have not read the transcript, do not remember the last twenty tool calls, and have not
 opened the diff. Lead with a clear short summary as if the user knew noghing about what you are doing and where you are:
 
+- **What is the current overall task and goal and the specific current sub-task** — where are you coming from with this.
 - **What you were doing** — which topic, question, phase, files or commands are the subject, and
   which sources you used.
 - **The root cause** — why you are stopping. Not the symptom: the actual reason the problem, need
@@ -194,8 +194,7 @@ opened the diff. Lead with a clear short summary as if the user knew noghing abo
 about, what they can do, and what each choice costs. A bare "should I proceed?", or a question that
 assumes they remember the last twenty tool calls, fails that test.
 
-**Visually separate in clear way the information from the ask or point and what the user has to do with it.
-** Make a clear distinction between what you are
-telling them and what you need back. That separation is also the **last check of the pre-send
-gate**: the one ask sits in its own clearly-marked section at the end. If that section needs a
-second bullet, the message is carrying two asks — split it.
+**Visually separate in clear and obvious way the above information presented to the user from what the ask or comment request/opportunity presented to the user.** 
+Make a clear visual distinction between what you are telling them and what you need back. For example put the two section under a   different top-level headers, use a different colour or icon for the final question to the user, etc.
+Put  headers of a higher level, use a different colour for the 
+That separation is also the **last check of the pre-send gate**: it in its own clearly-marked section at the end. If that section needs a second bullet, the message is carrying two asks — split it.

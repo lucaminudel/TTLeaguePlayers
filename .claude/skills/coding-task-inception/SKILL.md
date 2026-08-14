@@ -39,7 +39,7 @@ Always read, whether or not they are named:
 
 If the user asks a question mid-brief, answer it, but do not start planning.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 2 — Receive the specification
 
@@ -49,7 +49,7 @@ yet; collect everything, then note conflicts for phase 5.
 A gap you find between the user's brief and the Discovery findings report is **itself a topic**, not a
 preamble to append to a question about something else. Raise it alone.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 3 — Research
 
@@ -76,7 +76,7 @@ contains dead ends of exactly that kind.
 intended structure that the code has not grown yet — including inside mermaid diagrams. Read them
 before proposing architecture; you may be re-deriving a decision already made.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 4 — Build the plan
 
@@ -102,7 +102,7 @@ before the next layer goes on. Place each one at a state that compiles and runs;
 order prevents that, say so and propose the split that fixes it rather than parking the user in
 front of a half-wired tree.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 5 — Question the gaps
 
@@ -121,12 +121,15 @@ class to modify. If research says otherwise, present the trade-off with costs, f
 from what they wrote, and get explicit confirmation. Do not silently comply, and do not silently
 deviate.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 6 — Review the plan for completeness
 Double-ckeck the plan decisions and sub-tasks making sure they are sufficiently detailed and have all the information required for  the agent to implement the plan-subtasks minimising the interruptions such as additional asks or reviews that need to be presented to the user.
 
 Where you can anticipate a gap and a missing information or a decision or a confirmation required, bridge the gap now with the user so the plan execution will have much much less interruptions
+
+Walk the sub-task list and list every point where the executing agent would have to stop: a
+permission gate, an unverified precondition, a detail left to judgement. Close and document each one now.
 
 
 ## Phase 7 — Present, amend, confirm, persist
@@ -159,7 +162,7 @@ task artifacts are found by path, not by recall. The file must carry:
 - standing assumptions and accepted risks
 - a dated progress log, and instructions that any agent may update it
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 8 — Retrospect
 
@@ -208,4 +211,4 @@ cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 
 - **Commands against live cloud and Cognito environment** Running a read-only command against the cloud environment, and Cognito is permitted. Running during this Incpetion a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. It is ok for that to be part of the plan the inception creates.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask and the One Topic you do send'.
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
