@@ -99,12 +99,13 @@ export const ManagedClubsCard: React.FC<ManagedClubsCardProps> = ({
     }, [managedClubs, groupByLocation]);
 
     // Auto-select when there's only one button and no selection exists
+    const soleButtonKey = buttons.length === 1 ? buttons[0].key : null;
     useEffect(() => {
-        if (buttons.length === 1 && !selectedClubKey) {
-            onSelectClub(buttons[0].key);
+        if (soleButtonKey && !selectedClubKey) {
+            onSelectClub(soleButtonKey);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [buttons.length, selectedClubKey]);
+
+    }, [soleButtonKey, selectedClubKey, onSelectClub]);
 
 
     return (
