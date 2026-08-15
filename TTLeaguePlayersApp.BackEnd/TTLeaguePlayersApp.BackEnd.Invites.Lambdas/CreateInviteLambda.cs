@@ -140,22 +140,23 @@ public class CreateInviteLambda
 
         if (invite is ClubManagerInvite clubManagerInvite)
         {
-            var subject = $"Invite to manage {clubManagerInvite.InviteeClub} on TT League Players App";
+            var subject = $"Invite to manage {clubManagerInvite.InviteeClub} on TT League Players Web-App";
             var body = $@"Hi {invite.InviteeName},
 
-As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join this new Unofficial web-app designed to promote inclusivity and fair play in table tennis league matches, provide a modern digital experience and support local leagues.
+As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join this new Unofficial web-app.
 
-Our core values are: 
+These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - Fair play & positive, inclusive behaviour
 - A modern digital experience
-- Supporting local leagues.
+- Supporting local clubs & leagues.
 
-With the TT League Players app, you can:
+
+With the TT League Players app, you can now:
 - Promote your club and upcoming tournaments
 - Monitor your club teams' registration to this app
 - Monitor the Kudos received by your teams.
 
-To unlock all these features, on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
+To unlock all these features on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
 
 _______________________
@@ -184,25 +185,25 @@ Luca Minudel
         if (invite is CaptainOrPlayerInvite captainOrPlayerInvite)
         {
             var roleLabel = invite.InviteeRole == Role.CAPTAIN ? "team captain" : "player";
-            var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join TT League Players App";
+            var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join TT League Players Web-App";
             var body = $@"Hi {invite.InviteeName},
 
-As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join our new Unofficial web-app designed designed to promote inclusivity and fair play in table tennis league matches, provide a modern digital experience and support local leagues.
+As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join the new season {invite.Season} of the {invite.League} on our new Unofficial web-app.
 
-Our core values are: 
+These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - Fair play & positive, inclusive behaviour
 - A modern digital experience
-- Supporting local leagues.
+- Supporting local clubs & leagues.
 
 
-With the TT League Players app, you can:
+With the Unoficial TT League Players web-app, you can now:
 - Find local clubs & tournaments
-- Reward fair play & positive behaviour
-- Check your next match date, time, location
+- Reward fair play & positive, inclusive behaviour
+- Check your next match date, time, and location
 - View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
-In the future, new features will allow you to manage your team formations, record the match scorecard in real time, on your phone.
+In the future, new features will allow you to manage your team formations and record the match scorecard in real time on your phone.
 
-To unlock all these features, on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
+To unlock all these features on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
 
 _______________________

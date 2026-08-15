@@ -37,7 +37,7 @@ export const Home: React.FC = () => {
                 }
             >
                 <p>
-                    <b>Unofficial</b> Table Tennis local leagues' App
+                    <b>Unofficial</b> Table Tennis local leagues' Web-App
                 </p>
 
                 <img
@@ -47,9 +47,9 @@ export const Home: React.FC = () => {
                 />
 
                 <p className="text-base sm:text-lg leading-relaxed">
-                    <b>We promote fair play &amp; positive behaviour</b><br />
+                    We promote fair play &amp; inclusive behaviour<br />
                      We provide a modern digital experience<br />
-                    We support local leagues
+                    We support local clubs &amp; leagues
                     <br />
                     <br />
                     <b>What Now</b><br />
