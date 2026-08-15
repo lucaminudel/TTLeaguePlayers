@@ -20,14 +20,14 @@ export const AboutAndContactUs: React.FC = () => {
                         <br/>
                         <h2 className="text-2xl font-bold text-main-text mb-4">Built by Players, for Players</h2>
                         <p className="text-main-text">
-                            This <b>Unofficial</b> App 
+                            This <b>Unofficial</b> Web-App 
                             operates independently of any local Table Tennis league organisations.
                             <br/>
                             <br/>
                             <b>Our core values are</b>:<br/>
                             - fair play, positive, inclusive behaviour<br />
                             - a modern digital experience<br />
-                            - supporting local leagues  
+                            - supporting local clubs &amp; leagues  
                         </p>
                     </section>
 
