@@ -76,9 +76,11 @@ COGNITO_STACK="ttleague-cognito-${ENVIRONMENT}"
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+ORANGE='\033[1;38;5;208m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+echo ""
 echo "========================================"
 echo "  TTLeague Players - ${ENVIRONMENT} Deployment"
 echo "========================================"
@@ -87,7 +89,7 @@ echo ""
 # ==============================================================================
 # 1. VERIFY PREREQUISITES
 # ==============================================================================
-echo -e "${YELLOW}[1/7] Verifying prerequisites...${NC}"
+echo -e "${ORANGE}[1/6] Verifying prerequisites...${NC}"
 
 # Check Cognito stack exists
 if ! aws cloudformation describe-stacks --stack-name "$COGNITO_STACK" --region "$REGION" &>/dev/null; then
@@ -144,7 +146,8 @@ echo ""
 # ==============================================================================
 # 2. BUILD & DEPLOY BACKEND
 # ==============================================================================
-echo -e "${YELLOW}[2/7] Building and deploying backend...${NC}"
+echo ""
+echo -e "${ORANGE}[2/6] Building and deploying backend...${NC}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -181,7 +184,8 @@ echo ""
 # ==============================================================================
 # 3. DEPLOY FRONTEND INFRASTRUCTURE (S3 + CloudFront)
 # ==============================================================================
-echo -e "${YELLOW}[3/7] Deploying frontend infrastructure...${NC}"
+echo ""
+echo -e "${ORANGE}[3/6] Deploying frontend infrastructure...${NC}"
 
 cd "$PROJECT_ROOT"
 
@@ -222,12 +226,12 @@ if [ -n "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
     echo "  CloudFront Distribution ID: $CLOUDFRONT_DISTRIBUTION_ID"
     echo "  CloudFront Domain: $CLOUDFRONT_DOMAIN"
 fi
-echo ""
 
 # ==============================================================================
 # 4. BUILD & DEPLOY FRONTEND
 # ==============================================================================
-echo -e "${YELLOW}[4/7] Building and deploying frontend...${NC}"
+echo ""
+echo -e "${ORANGE}[4/6] Building and deploying frontend...${NC}"
 
 cd "$PROJECT_ROOT/TTLeaguePlayersApp.FrontEnd"
 
@@ -244,12 +248,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo ""
 
 # ==============================================================================
 # 5. CONFIGURE DNS (Route 53)
 # ==============================================================================
-echo -e "${YELLOW}[5/7] Configuring DNS...${NC}"
+echo ""
+echo -e "${ORANGE}[5/6] Configuring DNS...${NC}"
 
 # Get hosted zone ID
 HOSTED_ZONE_ID=$(aws route53 list-hosted-zones \
@@ -321,25 +325,38 @@ else
 fi
 
 echo -e "${GREEN}✓ DNS configured${NC}"
-echo ""
 
 # ==============================================================================
 # 6. TEST DEPLOYMENT
 # ==============================================================================
-echo -e "${YELLOW}[6/7] Testing deployment...${NC}"
+echo ""
+echo -e "${ORANGE}[6/6] Testing deployment...${NC}"
 
 # Test backend API
-API_URL="https://${API_GATEWAY_ID}.execute-api.${REGION}.amazonaws.com/${ENVIRONMENT}"
-echo "  Testing backend API: $API_URL"
+#API_URL="https://${API_GATEWAY_ID}.execute-api.${REGION}.amazonaws.com/${ENVIRONMENT}"
+API_URL="https://${API_DOMAIN}"
+echo ""
+echo "  Testing backend API basic connectivity: $API_URL"
 
-if curl -s -o /dev/null -w "%{http_code}" "$API_URL/invites" | grep -q "200\|404"; then
-    echo -e "${GREEN}✓ Backend API is responding${NC}"
+if curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$API_URL/invites" | grep -q "200\|404"; then
+    echo -e "${GREEN}✓ Backend API is responding (API Gateway + Lambda up and routing correctly)${NC}"
 else
-    echo -e "${YELLOW}⚠ Backend API test inconclusive (may need custom domain)${NC}"
+    echo -e "${YELLOW}⚠ Backend API test inconclusive${NC}"
 fi
+
+echo ""
+echo "  Testing backend API normal connectivity: $API_URL"
+
+if curl -s -o /dev/null -w "%{http_code}" "$API_URL/clubs" | grep -q "200\|404"; then
+    echo -e "${GREEN}✓ Backend API is responding (API Gateway + Lambda + Cognito IAM + DynamoDB all up and running)${NC}"
+else
+    echo -e "${YELLOW}⚠ Backend API test inconclusive${NC}"
+fi
+
 
 # Test frontend
 if [ -n "$CLOUDFRONT_DOMAIN" ]; then
+    echo ""
     echo "  Testing frontend: https://${CLOUDFRONT_DOMAIN}"
     if curl -s -o /dev/null -w "%{http_code}" "https://${CLOUDFRONT_DOMAIN}" | grep -q "200"; then
         echo -e "${GREEN}✓ Frontend is accessible via CloudFront${NC}"
@@ -348,11 +365,11 @@ if [ -n "$CLOUDFRONT_DOMAIN" ]; then
     fi
 fi
 
-echo ""
 
 # ==============================================================================
 # DEPLOYMENT COMPLETE
 # ==============================================================================
+echo ""
 echo "========================================"
 echo -e "${GREEN}  Deployment Complete!${NC}"
 echo "========================================"

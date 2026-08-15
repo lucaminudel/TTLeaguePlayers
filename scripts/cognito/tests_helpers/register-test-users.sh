@@ -78,7 +78,6 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     register_user "$EMAIL1" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON1"
     echo "Cognito Test user '$EMAIL1' registered and confirmed successfully with CLTT, BCS, and FLICK leagues!"
 
-
     # 2. User pending invite acceptance (not confirmed)
     EMAIL2="test_ready_for_accept_invite_api_call@user.test"
     register_user "$EMAIL2" "$COMMON_PASSWORD" "false"
@@ -109,22 +108,14 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     register_user "$EMAIL6" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON6"
     echo "Cognito Test user '$EMAIL6' registered and confirmed successfully with multiple Managed Clubs!"
 
-    # 7. User Salvatore Bollito
-    #    SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts (Steps 2 and 3, which award kudos as
-    #    this user) and kudos.spec.ts (the Rate info-modal cross-user suppression test, which stops
-    #    at the modal and so writes nothing at all - no kudos, no Cognito change). Safe only because
-    #    the second one is strictly read-only. See WriteTestsGuidelines.md.
+    # 7. User Salvatore Bollito, SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts and kudos.spec.ts
     EMAIL7="test_kudos_wt@user.test"
     ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
     register_user "$EMAIL7" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON7"
     echo "Cognito Test user '$EMAIL7' registered and confirmed successfully!"
 
 
-    # 8. User Charlie Boom
-    #    SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts (Steps 2 and 3, which award kudos as
-    #    this user) and kudos.spec.ts (the Rate info-modal cross-user suppression test, which stops
-    #    at the modal and so writes nothing at all - no kudos, no Cognito change). Safe only because
-    #    the second one is strictly read-only. See WriteTestsGuidelines.md.
+    # 8. User Charlie Boom SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts and kudos.spec.ts
     EMAIL8="test_kudos_f5@user.test"
     ACTIVE_SEASONS_JSON8='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
     register_user "$EMAIL8" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON8"
@@ -136,19 +127,6 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     echo "Cognito Test user '$EMAIL9' registered and confirmed successfully as the team-registrations invitee!"
 
     # 10. Manager for the My Club Teams AND My Club Standings pages.
-    #     SHARED BY TWO SPECS: MyClubTeams.spec.ts (asserts on Walworth) and
-    #     MyClubStandings.spec.ts (asserts on Highbury). Safe only because BOTH use it strictly
-    #     read-only - they log in and never write to Cognito. Adding a spec that accepts an invite
-    #     as this user would break the other one. See WriteTestsGuidelines.md, "Reusing a read-only
-    #     static user, or adding a new one".
-    #     Both club_name values must appear VERBATIM in club_teams in config/*.env.json, or
-    #     getUrlFromSource throws before any fetch - mocking the club page does not help there.
-    #     Walworth and Highbury are used by no other spec, so nothing races on them.
-    #     Two DIFFERENT locations on purpose: the button label is "location / league", so equal
-    #     locations would render two identical buttons (and now log a console.error).
-    #     Known and accepted: two clubs in one league+season trips the integrity check in
-    #     AuthContextParsers, so this user logs a console.error on every login. Only CLTTL has
-    #     club_teams configured, so a second league is not an option.
     EMAIL10="test_my_club_teams_manager@user.test"
     MANAGED_CLUBS_JSON10='[{"league":"CLTTL","season":"2025-2026","club_name":"Walworth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2025-2026","club_name":"Highbury Table Tennis Club","club_location":"Islington","manager_name":"Luca Minudel"}]'
     register_user "$EMAIL10" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON10"
