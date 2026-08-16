@@ -1,7 +1,7 @@
 {
   "name": "ttleagueplayersap_frontend",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "type": "module",
   "scripts": {
     "copy-config": "node scripts/copy-config.js",

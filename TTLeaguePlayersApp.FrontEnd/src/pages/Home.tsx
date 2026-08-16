@@ -60,6 +60,7 @@ export const Home: React.FC = () => {
                     <b>What's Next</b><br />
                     Manage team formations<br />
                     Record match scorecard in real time<br />
+                    <br />
                 </p>
 
             </PageContainer>
