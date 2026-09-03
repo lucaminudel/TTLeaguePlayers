@@ -3,7 +3,7 @@ name: coding-task-discovery
 description: Explore the business-domain concepts and technical implementation details behind a coding task, and persist a Discovery findings report that feeds the Coding Task Inception. Use when the user says "Coding Task Discovery", or asks to explore or research a task before planning it.
 model: opus
 effort: medium
-allowed-tools: Bash(cat:*)
+allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), Bash(grep:*), Bash(sed -n:*), Bash(git show:*), Bash(git log:*), Bash(git status:*), Bash(git diff:*), SendUserFile
 ---
 
 # Coding Task Discovery

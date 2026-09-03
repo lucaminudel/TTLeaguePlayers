@@ -3,7 +3,7 @@ name: coding-task-inception
 description: Turn a coding task brief into a researched, questioned, confirmed and persisted implementation plan before any code is written. Use when the user says "Coding Task Inception".
 model: opus
 effort: high
-allowed-tools: Bash(cat:*)
+allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), Bash(grep:*), Bash(sed -n:*), Bash(git show:*), Bash(git log:*), Bash(git status:*), Bash(git diff:*), SendUserFile
 ---
 
 # Coding Task Inception
