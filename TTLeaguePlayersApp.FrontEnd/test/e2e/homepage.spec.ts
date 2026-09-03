@@ -17,7 +17,7 @@ test.describe('Homepage', () => {
         await expect(page.locator('h2')).toHaveText('Welcome');
 
         // checks that the is the welcome sub-message
-        await expect(page.locator('main')).toContainText("Unofficial Table Tennis local leagues' App");
+        await expect(page.locator('main')).toContainText("Unofficial Table Tennis local leagues' Web-App");
 
         // checks that the Enter button is present (use stable test id, not label)
         const enterButton = page.getByTestId('home-enter-button');
