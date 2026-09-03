@@ -136,6 +136,7 @@ The component is implemented in:
   * The match timestamp must not exist in the active user's `latest_kudos` array (already rated).
   * The match timestamp must be strictly greater than the maximum timestamp in `latest_kudos` (enforcing ratings are submitted in chronological order), or the `latest_kudos` list must be empty.
 * **Navigation Context Passing**: Clicking the Rate button routes the user to `/award-kudos` with navigation state properties containing: `league`, `season`, `teamDivision`, `teamName`, `personName`, `opponentTeam`, `matchDateTime`, `isHome`, and `venue`.
+* **Info modal before navigation**: unless the user has already opted out, clicking Rate first shows a shared `InfoModal` (see `InfoModal.tsx` in the technical architecture doc) with information on dispute responsibilities and a "don't show this message again" checkbox; only after it is dismissed does the navigation above happen. The same component and message are reused, with a different GUID, on the Kudos Standings and My Club Standings pages after a successful load.
 
 ---
 
@@ -167,6 +168,7 @@ graph TD
         ASC -->|Expand & Lazy Load| F[Fetch Fixtures]
         F -->|Select Matches| PM[Prev Match / Next Match]
         ASC -->|Kudos check: match time vs latest_kudos| RB{Show Rate Button?}
-        RB -->|Yes| RM[Click Rate -> Navigate /award-kudos]
+        RB -->|Yes| IM[Click Rate -> InfoModal, unless opted out]
+        IM -->|OK| RM[Navigate /award-kudos]
     end
 ```
