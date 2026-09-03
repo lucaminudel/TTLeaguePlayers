@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -8,6 +8,9 @@ import { type KudosResponse, type KudosSummaryResponse, type KudosStandingsRespo
 import { getCachedPlayerKudos, getCachedTeamKudos, getCachedKudosStandings } from '../api/cachedKudosApi';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { shortFormatFixtureDate } from '../utils/DateUtils';
+import { InfoModal } from '../components/common/InfoModal';
+import { useInfoModalSuppression } from '../hooks/useInfoModalSuppression';
+import { STANDINGS_INFO_MODAL_GUID, DISPUTES_INFO_TITLE, DisputesInfoBody } from '../components/common/infoModalMessages';
 
 interface KudosStandingsLocationState {
     league: string;
@@ -47,6 +50,19 @@ export const KudosStandings: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const { isSuppressed } = useInfoModalSuppression(STANDINGS_INFO_MODAL_GUID);
+    const infoModalShownThisVisitRef = useRef(false);
+    const [infoModalOpen, setInfoModalOpen] = useState(false);
+
+    const handleLoadSucceeded = () => {
+        if (infoModalShownThisVisitRef.current) return;
+        infoModalShownThisVisitRef.current = true;
+        if (!isSuppressed()) setInfoModalOpen(true);
+    };
+
+    const handleLoadSucceededRef = useRef(handleLoadSucceeded);
+    useEffect(() => { handleLoadSucceededRef.current = handleLoadSucceeded; });
+
     useEffect(() => {
         const locState = location.state as KudosStandingsLocationState | null;
 
@@ -81,6 +97,7 @@ export const KudosStandings: React.FC = () => {
                     giverPersonSub: userId,
                 }, (freshData) => { setKudosList(freshData); });
                 setKudosList(data);
+                handleLoadSucceededRef.current();
             } catch (err) {
                 setError('Failed to fetch kudos history');
                 console.error(err);
@@ -101,6 +118,7 @@ export const KudosStandings: React.FC = () => {
                     teamName: state.team_name,
                 }, (freshData) => { setTeamKudosList(freshData); });
                 setTeamKudosList(data);
+                handleLoadSucceededRef.current();
             } catch (err) {
                 setError('Failed to fetch team kudos');
                 console.error(err);
@@ -120,6 +138,7 @@ export const KudosStandings: React.FC = () => {
                     teamDivision: state.team_division,
                 }, (freshData) => { setStandingsData(freshData); });
                 setStandingsData(data);
+                handleLoadSucceededRef.current();
             } catch (err) {
                 setError('Failed to fetch kudos standings');
                 console.error(err);
@@ -431,6 +450,16 @@ export const KudosStandings: React.FC = () => {
                             )}
                         </div>
                     </div>
+
+                    {infoModalOpen && (
+                        <InfoModal
+                            guid={STANDINGS_INFO_MODAL_GUID}
+                            title={DISPUTES_INFO_TITLE}
+                            body={<DisputesInfoBody />}
+                            testId="standings-info-modal"
+                            onOk={() => { setInfoModalOpen(false); }}
+                        />
+                    )}
                 </PageContainer>
             </MobileLayout>
         </ProtectedRoute>

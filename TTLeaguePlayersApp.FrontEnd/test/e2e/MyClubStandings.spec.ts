@@ -126,7 +126,8 @@ test.describe('My Club Standings Page', () => {
         await loginPage.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
 
         const myClubStandingsPage = await user.navigateToMyClubStandings();
-        await myClubStandingsPage.selectClub('Islington', 'CLTTL', 'Highbury Table Tennis Club');
+        // The club page cannot be read, so the load fails (D2: no modal on a failed load).
+        await myClubStandingsPage.selectClub('Islington', 'CLTTL', 'Highbury Table Tennis Club', 'expect-absent');
 
         // Deliberately UNLIKE My Club Teams, which renders blank and logs to the console: a blank
         // standings area is indistinguishable from a club with nothing to show.
@@ -136,5 +137,75 @@ test.describe('My Club Standings Page', () => {
         // WORDING: a club with no club_teams entry in the config throws into this same branch, so
         // this message must never assert anything about the club's teams.
         await expect(page.getByText('No teams found for this club.')).toHaveCount(0);
+    });
+});
+
+// Own describe, own fixture route mock: this test is unrelated to the suite above and needs a
+// second manager whose club (Morpeth) is not otherwise mocked in this file.
+test.describe('My Club Standings Page - standings info modal', () => {
+    // Shares this identity read-only with ClubsAndTournamentsCaching.spec.ts and homepage.spec.ts,
+    // which write tournaments as this user in parallel workers. Nothing here writes as this user;
+    // local storage is per-browser-context, which is the case WriteTestsGuidelines permits sharing.
+    const USER_B_EMAIL = 'test_already_registered3@user.test';
+    const USER_B_PASSWORD = 'aA1!56789012';
+
+    const MORPETH_CLUB_URL_FRAGMENT = 'Club/392';
+
+    const morpethFixtureHtml = fs.readFileSync(
+        path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data/club_teams_morpeth.html'),
+        'utf-8'
+    );
+
+    async function mockMorpethClubPage(page: Page): Promise<void> {
+        const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
+            if (route.request().url().includes(MORPETH_CLUB_URL_FRAGMENT)) {
+                await route.fulfill({ status: 200, contentType: 'text/html', body: morpethFixtureHtml });
+            } else {
+                await route.continue();
+            }
+        };
+
+        await page.route('**/tabletennis365.com/**', serveFixtureOrContinue);
+        await page.route('**/go.x2u.in**', serveFixtureOrContinue);
+    }
+
+    test.beforeEach(async ({ page }) => {
+        await page.addInitScript(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+        });
+
+        // Both mocks are needed: user A (Highbury) then user B (Morpeth) in the same test.
+        await mockHighburyClubPage(page);
+        await mockMorpethClubPage(page);
+    });
+
+    test('stays hidden for the manager who suppressed it, but still appears for another manager on the same browser', async ({ page }) => {
+        test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+
+        const user = new User(page);
+
+        // User A: dismiss the standings info modal ticking "Don't show this message again", on
+        // Highbury (not Walworth - see the comment on HIGHBURY_CLUB_URL_FRAGMENT above).
+        await user.setFixedClockTime(FIXED_CLOCK_TIME);
+        const loginPageA = await user.navigateToLogin();
+        await loginPageA.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
+
+        const myClubStandingsPageA = await user.navigateToMyClubStandings();
+        await myClubStandingsPageA.selectClub('Islington', 'CLTTL', 'Highbury Table Tennis Club', 'tick-and-ok');
+
+        await user.menu.open();
+        await user.menu.logout();
+
+        // User B, same browser and so the same local storage: the preference is scoped to user A's
+        // Cognito sub, so the modal must still appear. Selects Morpeth, not the other managed club
+        // (Caching Check Club, Brighton), which has no club_teams entry and would error instead.
+        const loginPageB = await user.navigateToLogin();
+        await loginPageB.loginAndWaitForHome(USER_B_EMAIL, USER_B_PASSWORD);
+
+        const myClubStandingsPageB = await user.navigateToMyClubStandings();
+        // selectClub's default 'ok' mode asserts the modal is visible before dismissing it, which
+        // is the proof that it appeared for user B despite user A's suppression.
+        await myClubStandingsPageB.selectClub('London', 'CLTTL', 'Morpeth Table Tennis Club');
     });
 });

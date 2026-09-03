@@ -55,7 +55,12 @@ describe('ClubStandingsList', () => {
         kudosApiMocks.getCachedClubKudosStandings.mockResolvedValue(response);
     }
 
-    function listFor(processor: ManagedClubProcessor, clubName = CLUB_NAME, clubLocation = CLUB_LOCATION) {
+    function listFor(
+        processor: ManagedClubProcessor,
+        clubName = CLUB_NAME,
+        clubLocation = CLUB_LOCATION,
+        onStandingsLoaded?: () => void
+    ) {
         return (
             <ClubStandingsList
                 processor={processor}
@@ -63,6 +68,7 @@ describe('ClubStandingsList', () => {
                 season={SEASON}
                 clubName={clubName}
                 clubLocation={clubLocation}
+                onStandingsLoaded={onStandingsLoaded}
             />
         );
     }
@@ -244,5 +250,55 @@ describe('ClubStandingsList', () => {
         await waitFor(() => { expect(screen.getByTestId('club-standings-error')).toBeInTheDocument(); });
 
         expect(screen.queryAllByTestId('club-standing-name')).toHaveLength(0);
+    });
+
+    // onStandingsLoaded is the page's only success signal for the shared info modal (see InfoModal).
+    it('fires onStandingsLoaded once after a successful fetch', async () => {
+        respondWith([entry('Highbury 2', 3)]);
+        const onStandingsLoaded = vi.fn();
+
+        render(listFor(
+            stubProcessor([{ team_name: 'Highbury 2', team_division: 'Division 4' }]),
+            CLUB_NAME,
+            CLUB_LOCATION,
+            onStandingsLoaded
+        ));
+
+        await waitFor(() => { expect(screen.getAllByTestId('club-standing-name')).toHaveLength(1); });
+
+        expect(onStandingsLoaded).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT fire onStandingsLoaded when every team lacks a division', async () => {
+        const onStandingsLoaded = vi.fn();
+
+        render(listFor(
+            stubProcessor([{ team_name: 'Odd Team', team_division: '' }]),
+            CLUB_NAME,
+            CLUB_LOCATION,
+            onStandingsLoaded
+        ));
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('club-standings-loading')).not.toBeInTheDocument();
+        });
+
+        expect(onStandingsLoaded).not.toHaveBeenCalled();
+    });
+
+    it('does NOT fire onStandingsLoaded when the load throws', async () => {
+        kudosApiMocks.getCachedClubKudosStandings.mockRejectedValue(new Error('boom'));
+        const onStandingsLoaded = vi.fn();
+
+        render(listFor(
+            stubProcessor([{ team_name: 'Highbury 2', team_division: 'Division 4' }]),
+            CLUB_NAME,
+            CLUB_LOCATION,
+            onStandingsLoaded
+        ));
+
+        await waitFor(() => { expect(screen.getByTestId('club-standings-error')).toBeInTheDocument(); });
+
+        expect(onStandingsLoaded).not.toHaveBeenCalled();
     });
 });

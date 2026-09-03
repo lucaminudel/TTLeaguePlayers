@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { MyClubStandings } from '../../../src/pages/MyClubStandings';
 import { setUnitFixedClockTime } from '../TestClockUtils';
 import type { EnvironmentConfig } from '../../../src/config/environment';
+import { STANDINGS_INFO_MODAL_GUID } from '../../../src/components/common/infoModalMessages';
 
 const mockUseAuth = vi.fn();
 vi.mock('../../../src/hooks/useAuth', () => ({
@@ -24,11 +25,18 @@ vi.mock('../../../src/service/active-season-processors/ManagedClubProcessorFacto
 }));
 
 // The list has its own spec; here it is a marker, so the page's own wiring is what is under test.
+// Exposes onStandingsLoaded via a button so a test can fire it, mirroring a successful load.
 const clubStandingsListMocks = vi.hoisted(() => ({ render: vi.fn() }));
 vi.mock('../../../src/components/ui/ClubStandingsList', () => ({
-    ClubStandingsList: (props: Record<string, unknown>) => {
+    ClubStandingsList: (props: { onStandingsLoaded?: () => void } & Record<string, unknown>) => {
         clubStandingsListMocks.render(props);
-        return <div data-testid="club-standings-list" />;
+        return (
+            <div data-testid="club-standings-list">
+                <button data-testid="fire-standings-loaded" onClick={() => { props.onStandingsLoaded?.(); }}>
+                    fire onStandingsLoaded
+                </button>
+            </div>
+        );
     },
 }));
 
@@ -72,6 +80,7 @@ describe('MyClubStandings', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        localStorage.clear();
         setUnitFixedClockTime(FIXED_CLOCK);
         consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -93,6 +102,7 @@ describe('MyClubStandings', () => {
             isAuthenticated: true,
             email: 'manager@example.test',
             username: 'Luca',
+            userId: 'test-user-sub',
             activeSeasons: [],
             managedClubs,
             isPlayerOrCaptain: false,
@@ -215,5 +225,49 @@ describe('MyClubStandings', () => {
 
         expect(screen.getByTestId('no-active-season')).toBeInTheDocument();
         expect(consoleInfoSpy).toHaveBeenCalled();
+    });
+
+    // ------------------------------------------------------------ info modal
+
+    describe('standings info modal', () => {
+        it('appears after the standings load callback fires', () => {
+            renderPage();
+
+            expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+            expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
+        });
+
+        it('does not appear when the callback never fires', () => {
+            renderPage();
+
+            expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+        });
+
+        it('does not appear when the preference is already suppressed', () => {
+            localStorage.setItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`, 'true');
+
+            renderPage();
+            fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+            expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+        });
+
+        // Mirrors a club switch: ClubStandingsList calls onStandingsLoaded again for the newly
+        // selected club, but D1's once-per-visit guard means the modal opens only the first time.
+        it('appears only once even when the callback fires twice', () => {
+            renderPage();
+
+            fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+            expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('standings-info-modal-ok'));
+            expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+            expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+        });
     });
 });

@@ -1,4 +1,12 @@
-import { type Page, expect } from '@playwright/test';
+import { type Page, type Locator, expect } from '@playwright/test';
+
+/**
+ * How a club selection should treat the shared standings info modal.
+ * - 'ok'            dismiss it, leaving it to show again next visit
+ * - 'tick-and-ok'   tick "Don't show this message again", then dismiss it
+ * - 'expect-absent' assert it does not appear, because it was suppressed earlier
+ */
+type InfoModalMode = 'ok' | 'tick-and-ok' | 'expect-absent';
 
 /**
  * Lean by design: actions and stability checks only, no assertion methods.
@@ -9,6 +17,21 @@ export class MyClubStandingsPage {
 
     constructor(page: Page) {
         this.page = page;
+    }
+
+    infoModal(): Locator {
+        return this.page.getByTestId('standings-info-modal');
+    }
+
+    async dismissInfoModal(tickDontShowAgain: boolean): Promise<void> {
+        await expect(this.infoModal()).toBeVisible({ timeout: 10000 });
+
+        if (tickDontShowAgain) {
+            await this.page.getByTestId('standings-info-modal-dont-show-again').check();
+        }
+
+        await this.page.getByTestId('standings-info-modal-ok').click();
+        await expect(this.infoModal()).toBeHidden();
     }
 
     /**
@@ -32,7 +55,7 @@ export class MyClubStandingsPage {
      * The default-mode card labels its buttons "location / league".
      * Verifies the selection took and the card heading followed, then waits for the load to settle.
      */
-    async selectClub(location: string, league: string, clubName: string): Promise<void> {
+    async selectClub(location: string, league: string, clubName: string, infoModal: InfoModalMode = 'ok'): Promise<void> {
         const clubButton = this.page.getByRole('button', { name: `${location} / ${league}` });
         await clubButton.click();
 
@@ -40,5 +63,14 @@ export class MyClubStandingsPage {
         await expect(this.page.getByRole('heading', { name: new RegExp(`My Club: ${clubName}`, 'i') })).toBeVisible();
 
         await this.expectLoaded();
+
+        if (infoModal === 'expect-absent') {
+            // expectLoaded() above is the positive signal: toBeHidden() alone is satisfied at t=0,
+            // before React could have rendered the modal, so it would pass even if the modal did
+            // appear.
+            await expect(this.infoModal()).toBeHidden();
+        } else {
+            await this.dismissInfoModal(infoModal === 'tick-and-ok');
+        }
     }
 }

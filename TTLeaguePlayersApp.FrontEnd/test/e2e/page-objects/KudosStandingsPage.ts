@@ -1,4 +1,12 @@
-import { type Page, expect } from '@playwright/test';
+import { type Page, type Locator, expect } from '@playwright/test';
+
+/**
+ * How a season selection should treat the shared standings info modal.
+ * - 'ok'            dismiss it, leaving it to show again next visit
+ * - 'tick-and-ok'   tick "Don't show this message again", then dismiss it
+ * - 'expect-absent' assert it does not appear, because it was suppressed earlier
+ */
+type InfoModalMode = 'ok' | 'tick-and-ok' | 'expect-absent';
 
 export class KudosStandingsPage {
     private page: Page;
@@ -7,7 +15,22 @@ export class KudosStandingsPage {
         this.page = page;
     }
 
-    async selectActiveSeason(league: string, season: string, teamName: string): Promise<void> {
+    infoModal(): Locator {
+        return this.page.getByTestId('standings-info-modal');
+    }
+
+    async dismissInfoModal(tickDontShowAgain: boolean): Promise<void> {
+        await expect(this.infoModal()).toBeVisible({ timeout: 10000 });
+
+        if (tickDontShowAgain) {
+            await this.page.getByTestId('standings-info-modal-dont-show-again').check();
+        }
+
+        await this.page.getByTestId('standings-info-modal-ok').click();
+        await expect(this.infoModal()).toBeHidden();
+    }
+
+    async selectActiveSeason(league: string, season: string, teamName: string, infoModal: InfoModalMode = 'ok'): Promise<void> {
         // Check if season is already selected (displayed in header)
         const header = this.page.getByTestId('active-season-header');
         if ((await header.count()) > 0) {
@@ -34,6 +57,15 @@ export class KudosStandingsPage {
 
         // Wait for the season to be selected (header should show the team name)
         await expect(this.page.getByTestId('active-season-header')).toContainText(teamName);
+
+        if (infoModal === 'expect-absent') {
+            // The header assertion above is the positive signal: toBeHidden() alone is satisfied
+            // at t=0, before React could have rendered the modal, so it would pass even if the
+            // modal did appear.
+            await expect(this.infoModal()).toBeHidden();
+        } else {
+            await this.dismissInfoModal(infoModal === 'tick-and-ok');
+        }
     }
 
     async myKudosItemsCount() {

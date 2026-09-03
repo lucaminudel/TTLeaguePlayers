@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -9,6 +9,9 @@ import { getConfig } from '../config/environment';
 import { createManagedClubProcessor } from '../service/active-season-processors/ManagedClubProcessorFactory';
 import { createManagedClubKey, selectActiveManagedClubs } from '../utils/clubUtils';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
+import { InfoModal } from '../components/common/InfoModal';
+import { useInfoModalSuppression } from '../hooks/useInfoModalSuppression';
+import { STANDINGS_INFO_MODAL_GUID, DISPUTES_INFO_TITLE, DisputesInfoBody } from '../components/common/infoModalMessages';
 
 export const MyClubStandings: React.FC = () => {
     const { managedClubs: allManagedClubs } = useAuth();
@@ -43,6 +46,16 @@ export const MyClubStandings: React.FC = () => {
             true
         );
     }, [selected]);
+
+    const { isSuppressed } = useInfoModalSuppression(STANDINGS_INFO_MODAL_GUID);
+    const infoModalShownThisVisitRef = useRef(false);
+    const [infoModalOpen, setInfoModalOpen] = useState(false);
+
+    const handleLoadSucceeded = () => {
+        if (infoModalShownThisVisitRef.current) return;
+        infoModalShownThisVisitRef.current = true;
+        if (!isSuppressed()) setInfoModalOpen(true);
+    };
 
     return (
         <ProtectedRoute>
@@ -97,12 +110,23 @@ export const MyClubStandings: React.FC = () => {
                                             season={selected.club.season}
                                             clubName={selected.club.club_name}
                                             clubLocation={selected.club.club_location}
+                                            onStandingsLoaded={handleLoadSucceeded}
                                         />
                                     </div>
                                 ) : null}
                             </>
                         )}
                     </div>
+
+                    {infoModalOpen && (
+                        <InfoModal
+                            guid={STANDINGS_INFO_MODAL_GUID}
+                            title={DISPUTES_INFO_TITLE}
+                            body={<DisputesInfoBody />}
+                            testId="standings-info-modal"
+                            onOk={() => { setInfoModalOpen(false); }}
+                        />
+                    )}
                 </PageContainer>
             </MobileLayout>
         </ProtectedRoute>

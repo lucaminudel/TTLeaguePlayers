@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { ManagedClubProcessor } from '../../service/active-season-processors/ManagedClubProcessor';
 import type { ClubKudosStandingsEntry } from '../../api/kudosApi';
 import { getCachedClubKudosStandings } from '../../api/cachedKudosApi';
@@ -11,6 +11,9 @@ interface ClubStandingsListProps {
     season: string;
     clubName: string;
     clubLocation: string;
+    /** Fired once per successful load, after the fetched teams are set. Held in a ref internally
+     * so passing a fresh inline arrow on every render cannot trigger a refetch loop. */
+    onStandingsLoaded?: () => void;
 }
 
 // Same palette as the Kudos standings pills, so a count reads the same way across the app.
@@ -43,10 +46,14 @@ export const ClubStandingsList: React.FC<ClubStandingsListProps> = ({
     season,
     clubName,
     clubLocation,
+    onStandingsLoaded,
 }) => {
     const [teams, setTeams] = useState<ClubKudosStandingsEntry[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [hasFailed, setHasFailed] = useState(false);
+
+    const onStandingsLoadedRef = useRef(onStandingsLoaded);
+    useEffect(() => { onStandingsLoadedRef.current = onStandingsLoaded; }, [onStandingsLoaded]);
 
     useEffect(() => {
         let cancelled = false;
@@ -87,7 +94,10 @@ export const ClubStandingsList: React.FC<ClubStandingsListProps> = ({
                 // Rendered in the order returned: the response carries one entry per requested team,
                 // in the order they were sent. A left join, not a filter — no client-side join and
                 // NO SORTING, so the page mirrors the club page.
-                if (!cancelled) setTeams(response.teams);
+                if (!cancelled) {
+                    setTeams(response.teams);
+                    onStandingsLoadedRef.current?.();
+                }
             } catch (error) {
                 // Unlike ClubTeamsList, which fails silently to the console: a blank standings area
                 // is indistinguishable from a club with nothing to show, so this one says so.
