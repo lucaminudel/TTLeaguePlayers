@@ -117,7 +117,7 @@ The implementation files of this logic are located in:
 * [PromoteMyClub Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyClub.tsx) — implemented
 * [PromoteMyTournaments Page](TTLeaguePlayersApp.FrontEnd/src/pages/PromoteMyTournaments.tsx) — implemented
 * [MyClubTeams Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubTeams.tsx) — **implemented** (read-only); this is the page the `ManagedClubProcessor` of section 5 exists to serve
-* [MyClubStandings Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubStandings.tsx) — **implemented**: once a club is selected and its standings load successfully, `ClubStandingsList` renders each team's match tally of extra/standard/fewer kudos. On a successful load the page also shows the shared info modal (see `InfoModal.tsx` in the technical architecture doc), once per visit, unless the user has opted out
+* [MyClubStandings Page](TTLeaguePlayersApp.FrontEnd/src/pages/MyClubStandings.tsx) — **implemented**: once a club is selected and its standings load successfully, `ClubStandingsList` renders each team's match tally of extra/standard/fewer kudos. On a successful load the page also shows two shared info modals in sequence (see `InfoModal.tsx` in the technical architecture doc) — first the league-website message, then the dispute-responsibilities message — once per visit as a pair, unless the user has opted out of one or both independently
 
 ### Additional Details For The Agent
 * **System Time Fetching**: Current time is checked by retrieving epoch seconds using `getClockTimeInEpochSeconds()` from [DateUtils.ts](TTLeaguePlayersApp.FrontEnd/src/utils/DateUtils.ts).
