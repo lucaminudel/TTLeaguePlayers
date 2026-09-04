@@ -1,11 +1,5 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
-/**
- * How a season selection should treat the shared standings info modal.
- * - 'ok'            dismiss it, leaving it to show again next visit
- * - 'tick-and-ok'   tick "Don't show this message again", then dismiss it
- * - 'expect-absent' assert it does not appear, because it was suppressed earlier
- */
 type InfoModalMode = 'ok' | 'tick-and-ok' | 'expect-absent';
 
 export class KudosStandingsPage {
@@ -19,13 +13,22 @@ export class KudosStandingsPage {
         return this.page.getByTestId('standings-info-modal');
     }
 
-    async dismissInfoModal(tickDontShowAgain: boolean): Promise<void> {
-        await expect(this.infoModal()).toBeVisible({ timeout: 10000 });
+    websiteInfoModal(): Locator {
+        return this.page.getByTestId('standings-website-info-modal');
+    }
 
+    async dismissInfoModal(tickDontShowAgain: boolean): Promise<void> {
+        await expect(this.websiteInfoModal()).toBeVisible({ timeout: 10000 });
+        if (tickDontShowAgain) {
+            await this.page.getByTestId('standings-website-info-modal-dont-show-again').check();
+        }
+        await this.page.getByTestId('standings-website-info-modal-ok').click();
+        await expect(this.websiteInfoModal()).toBeHidden();
+
+        await expect(this.infoModal()).toBeVisible({ timeout: 10000 });
         if (tickDontShowAgain) {
             await this.page.getByTestId('standings-info-modal-dont-show-again').check();
         }
-
         await this.page.getByTestId('standings-info-modal-ok').click();
         await expect(this.infoModal()).toBeHidden();
     }
@@ -62,6 +65,7 @@ export class KudosStandingsPage {
             // The header assertion above is the positive signal: toBeHidden() alone is satisfied
             // at t=0, before React could have rendered the modal, so it would pass even if the
             // modal did appear.
+            await expect(this.websiteInfoModal()).toBeHidden();
             await expect(this.infoModal()).toBeHidden();
         } else {
             await this.dismissInfoModal(infoModal === 'tick-and-ok');

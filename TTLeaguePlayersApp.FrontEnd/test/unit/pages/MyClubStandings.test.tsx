@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { MyClubStandings } from '../../../src/pages/MyClubStandings';
 import { setUnitFixedClockTime } from '../TestClockUtils';
 import type { EnvironmentConfig } from '../../../src/config/environment';
-import { STANDINGS_INFO_MODAL_GUID } from '../../../src/components/common/infoModalMessages';
+import { STANDINGS_INFO_MODAL_GUID, WEBSITE_INFO_MODAL_GUID } from '../../../src/components/common/infoModalMessages';
 
 const mockUseAuth = vi.fn();
 vi.mock('../../../src/hooks/useAuth', () => ({
@@ -233,9 +233,12 @@ describe('MyClubStandings', () => {
         it('appears after the standings load callback fires', () => {
             renderPage();
 
-            expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
 
             fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+            expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('standings-website-info-modal-ok'));
 
             expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
         });
@@ -243,31 +246,106 @@ describe('MyClubStandings', () => {
         it('does not appear when the callback never fires', () => {
             renderPage();
 
+            expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
             expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
         });
 
-        it('does not appear when the preference is already suppressed', () => {
+        it('shows the website modal when only the disputes preference is already suppressed', () => {
             localStorage.setItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`, 'true');
 
             renderPage();
             fireEvent.click(screen.getByTestId('fire-standings-loaded'));
 
+            expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument();
             expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
         });
 
         // Mirrors a club switch: ClubStandingsList calls onStandingsLoaded again for the newly
-        // selected club, but D1's once-per-visit guard means the modal opens only the first time.
-        it('appears only once even when the callback fires twice', () => {
+        // selected club, but D1's once-per-visit guard means the pair opens only the first time.
+        it('the pair appears only once even when the callback fires twice', () => {
             renderPage();
 
             fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+            expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('standings-website-info-modal-ok'));
             expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
             fireEvent.click(screen.getByTestId('standings-info-modal-ok'));
+            expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
             expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
 
             fireEvent.click(screen.getByTestId('fire-standings-loaded'));
 
+            expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
             expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+        });
+
+        describe('suppression combinations', () => {
+            it('neither suppressed: shows the website modal, then the disputes modal, in that order', () => {
+                renderPage();
+                fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+                expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument();
+                expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+
+                fireEvent.click(screen.getByTestId('standings-website-info-modal-ok'));
+
+                expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
+                expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
+            });
+
+            it('website suppressed: the disputes modal opens directly', () => {
+                localStorage.setItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_test-user-sub`, 'true');
+
+                renderPage();
+                fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+                expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
+                expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
+            });
+
+            it('disputes suppressed: the website modal opens and its OK closes everything', () => {
+                localStorage.setItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`, 'true');
+
+                renderPage();
+                fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+                expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument();
+
+                fireEvent.click(screen.getByTestId('standings-website-info-modal-ok'));
+
+                expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
+                expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+            });
+
+            it('both suppressed: nothing opens', () => {
+                localStorage.setItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_test-user-sub`, 'true');
+                localStorage.setItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`, 'true');
+
+                renderPage();
+                fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+                expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
+                expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
+            });
+        });
+
+        // Guards E6: rendering both modals from one JSX position would let React preserve InfoModal's
+        // internal `dontShowAgain` state across the two, carrying a tick on the website modal into
+        // the disputes modal and silently suppressing a message the user never agreed to hide.
+        it('does not carry a ticked "don\'t show again" checkbox from the website modal into the disputes modal', () => {
+            renderPage();
+            fireEvent.click(screen.getByTestId('fire-standings-loaded'));
+
+            expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('standings-website-info-modal-dont-show-again'));
+            fireEvent.click(screen.getByTestId('standings-website-info-modal-ok'));
+
+            expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
+            expect(screen.getByTestId('standings-info-modal-dont-show-again')).not.toBeChecked();
+
+            fireEvent.click(screen.getByTestId('standings-info-modal-ok'));
+
+            expect(localStorage.getItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
         });
     });
 });

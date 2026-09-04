@@ -190,8 +190,8 @@ test.describe('Kudos Standings', () => {
         await kudosPageWT.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
 
         // Rate the match with Morpeth 10, and give a Positive Kudos. This lands on Kudos Standings
-        // (a first visit for this user in this test), so the standings info modal is up and would
-        // block the menu click below - dismiss it first.
+        // (a first visit for this user in this test), so both info modals are up and would block
+        // the menu click below - dismiss them first.
         const kudosStandingsPageWT = await kudosPageWT.ratePositiveKudosFromOpenCard('Morpeth 10');
         await kudosStandingsPageWT.dismissInfoModal(false);
 
@@ -212,7 +212,7 @@ test.describe('Kudos Standings', () => {
         await kudosPageF5.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Fusion 5');
 
         // Rate the match with Morpeth 10, and give a Positive Kudos. Same reason as user 1 above:
-        // dismiss the standings info modal (a fresh visit) before the menu click.
+        // dismiss both info modals (a fresh visit) before the menu click.
         const kudosStandingsPageF5 = await kudosPageF5.ratePositiveKudosFromOpenCard('Morpeth 10');
         await kudosStandingsPageF5.dismissInfoModal(false);
 
@@ -278,7 +278,7 @@ test.describe('Kudos Standings', () => {
         await kudosPageWT.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
 
         // Rate the match with Fusion 6 Jr, and give a Negative Kudos. Lands on Kudos Standings (a
-        // fresh mount), so dismiss the standings info modal before the menu click below.
+        // fresh mount), so dismiss both info modals before the menu click below.
         const kudosStandingsPageWT = await kudosPageWT.RateNegativeKudosFromOpenCard('Fusion 6 Jr');
         await kudosStandingsPageWT.dismissInfoModal(false);
 
@@ -316,8 +316,8 @@ test.describe('Kudos Standings', () => {
         // Navigate to Kudos Standings
         const kudosStandingsPage = await user.navigateToKudosStandings();
 
-        // This is a fresh mount of the page (a new visit), so the standings info modal
-        // appears here again and would block openTableTab() below.
+        // This is a fresh mount of the page (a new visit), so both info modals
+        // appear here again and would block openTableTab() below.
         await kudosStandingsPage.dismissInfoModal(false);
 
         // Open the Table tab

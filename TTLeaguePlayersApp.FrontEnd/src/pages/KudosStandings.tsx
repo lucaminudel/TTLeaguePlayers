@@ -9,8 +9,17 @@ import { getCachedPlayerKudos, getCachedTeamKudos, getCachedKudosStandings } fro
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { shortFormatFixtureDate } from '../utils/DateUtils';
 import { InfoModal } from '../components/common/InfoModal';
-import { useInfoModalSuppression } from '../hooks/useInfoModalSuppression';
-import { STANDINGS_INFO_MODAL_GUID, DISPUTES_INFO_TITLE, DisputesInfoBody } from '../components/common/infoModalMessages';
+import { useInfoModalSequence } from '../hooks/useInfoModalSequence';
+import {
+    STANDINGS_INFO_MODAL_GUID,
+    DISPUTES_INFO_TITLE,
+    DisputesInfoBody,
+    WEBSITE_INFO_MODAL_GUID,
+    WEBSITE_INFO_TITLE,
+    WebsiteInfoBody,
+} from '../components/common/infoModalMessages';
+
+const STANDINGS_INFO_MODAL_GUIDS = [WEBSITE_INFO_MODAL_GUID, STANDINGS_INFO_MODAL_GUID];
 
 interface KudosStandingsLocationState {
     league: string;
@@ -50,15 +59,8 @@ export const KudosStandings: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { isSuppressed } = useInfoModalSuppression(STANDINGS_INFO_MODAL_GUID);
-    const infoModalShownThisVisitRef = useRef(false);
-    const [infoModalOpen, setInfoModalOpen] = useState(false);
-
-    const handleLoadSucceeded = () => {
-        if (infoModalShownThisVisitRef.current) return;
-        infoModalShownThisVisitRef.current = true;
-        if (!isSuppressed()) setInfoModalOpen(true);
-    };
+    const { onTrigger, currentGuid, dismissCurrent } = useInfoModalSequence(STANDINGS_INFO_MODAL_GUIDS);
+    const handleLoadSucceeded = onTrigger;
 
     const handleLoadSucceededRef = useRef(handleLoadSucceeded);
     useEffect(() => { handleLoadSucceededRef.current = handleLoadSucceeded; });
@@ -451,13 +453,22 @@ export const KudosStandings: React.FC = () => {
                         </div>
                     </div>
 
-                    {infoModalOpen && (
+                    {currentGuid === WEBSITE_INFO_MODAL_GUID && (
+                        <InfoModal
+                            guid={WEBSITE_INFO_MODAL_GUID}
+                            title={WEBSITE_INFO_TITLE}
+                            body={<WebsiteInfoBody />}
+                            testId="standings-website-info-modal"
+                            onOk={dismissCurrent}
+                        />
+                    )}
+                    {currentGuid === STANDINGS_INFO_MODAL_GUID && (
                         <InfoModal
                             guid={STANDINGS_INFO_MODAL_GUID}
                             title={DISPUTES_INFO_TITLE}
                             body={<DisputesInfoBody />}
                             testId="standings-info-modal"
-                            onOk={() => { setInfoModalOpen(false); }}
+                            onOk={dismissCurrent}
                         />
                     )}
                 </PageContainer>

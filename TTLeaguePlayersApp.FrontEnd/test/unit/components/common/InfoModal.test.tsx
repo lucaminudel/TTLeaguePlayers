@@ -5,6 +5,7 @@ import { InfoModal } from '../../../../src/components/common/InfoModal';
 import {
     RATE_INFO_MODAL_GUID,
     STANDINGS_INFO_MODAL_GUID,
+    WEBSITE_INFO_MODAL_GUID,
 } from '../../../../src/components/common/infoModalMessages';
 
 const authMocks = vi.hoisted(() => ({
@@ -178,7 +179,7 @@ describe('InfoModal', () => {
     // Sub-task 9: the (d) requirement that the Kudos page checkbox does not affect the standings
     // pages, and vice versa — the D10 substitute for an e2e run across both standings pages.
     describe('cross-GUID key independence', () => {
-        it('ticking under the Rate GUID leaves the standings GUID key absent', async () => {
+        it('ticking under the Rate GUID leaves the standings and website GUID keys absent', async () => {
             await openModal({ guid: RATE_INFO_MODAL_GUID });
 
             fireEvent.click(screen.getByTestId('test-info-modal-dont-show-again'));
@@ -186,9 +187,10 @@ describe('InfoModal', () => {
 
             expect(localStorage.getItem(`hide_modal_${RATE_INFO_MODAL_GUID}_test-user-sub`)).toBe('true');
             expect(localStorage.getItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
+            expect(localStorage.getItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
         });
 
-        it('ticking under the standings GUID leaves the Rate GUID key absent', async () => {
+        it('ticking under the standings GUID leaves the Rate and website GUID keys absent', async () => {
             await openModal({ guid: STANDINGS_INFO_MODAL_GUID });
 
             fireEvent.click(screen.getByTestId('test-info-modal-dont-show-again'));
@@ -196,6 +198,18 @@ describe('InfoModal', () => {
 
             expect(localStorage.getItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`)).toBe('true');
             expect(localStorage.getItem(`hide_modal_${RATE_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
+            expect(localStorage.getItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
+        });
+
+        it('ticking under the website GUID leaves the Rate and standings GUID keys absent', async () => {
+            await openModal({ guid: WEBSITE_INFO_MODAL_GUID });
+
+            fireEvent.click(screen.getByTestId('test-info-modal-dont-show-again'));
+            fireEvent.click(screen.getByTestId('test-info-modal-ok'));
+
+            expect(localStorage.getItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_test-user-sub`)).toBe('true');
+            expect(localStorage.getItem(`hide_modal_${RATE_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
+            expect(localStorage.getItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`)).toBeNull();
         });
     });
 });

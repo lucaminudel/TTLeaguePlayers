@@ -126,7 +126,8 @@ test.describe('My Club Standings Page', () => {
         await loginPage.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
 
         const myClubStandingsPage = await user.navigateToMyClubStandings();
-        // The club page cannot be read, so the load fails (D2: no modal on a failed load).
+        // The club page cannot be read, so the load fails (D2: no modal on a failed load) - neither
+        // the website nor the disputes info modal appears.
         await myClubStandingsPage.selectClub('Islington', 'CLTTL', 'Highbury Table Tennis Club', 'expect-absent');
 
         // Deliberately UNLIKE My Club Teams, which renders blank and logs to the console: a blank
@@ -185,27 +186,29 @@ test.describe('My Club Standings Page - standings info modal', () => {
 
         const user = new User(page);
 
-        // User A: dismiss the standings info modal ticking "Don't show this message again", on
+        // User A: dismiss both standings info modals ticking "Don't show this message again", on
         // Highbury (not Walworth - see the comment on HIGHBURY_CLUB_URL_FRAGMENT above).
         await user.setFixedClockTime(FIXED_CLOCK_TIME);
         const loginPageA = await user.navigateToLogin();
         await loginPageA.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
 
         const myClubStandingsPageA = await user.navigateToMyClubStandings();
+        // 'tick-and-ok' ticks and dismisses both info modals in sequence (E8: the mode applies to
+        // the pair), so both are suppressed for user A.
         await myClubStandingsPageA.selectClub('Islington', 'CLTTL', 'Highbury Table Tennis Club', 'tick-and-ok');
 
         await user.menu.open();
         await user.menu.logout();
 
         // User B, same browser and so the same local storage: the preference is scoped to user A's
-        // Cognito sub, so the modal must still appear. Selects Morpeth, not the other managed club
+        // Cognito sub, so both modals must still appear. Selects Morpeth, not the other managed club
         // (Caching Check Club, Brighton), which has no club_teams entry and would error instead.
         const loginPageB = await user.navigateToLogin();
         await loginPageB.loginAndWaitForHome(USER_B_EMAIL, USER_B_PASSWORD);
 
         const myClubStandingsPageB = await user.navigateToMyClubStandings();
-        // selectClub's default 'ok' mode asserts the modal is visible before dismissing it, which
-        // is the proof that it appeared for user B despite user A's suppression.
+        // selectClub's default 'ok' mode asserts each modal is visible before dismissing it, which
+        // is the proof that both appeared for user B despite user A's suppression of both.
         await myClubStandingsPageB.selectClub('London', 'CLTTL', 'Morpeth Table Tennis Club');
     });
 });

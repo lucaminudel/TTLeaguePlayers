@@ -70,9 +70,6 @@ test.describe('Kudos Caching E2E', () => {
         // This method clicks "Rate", "Confirm", and waits for redirect
         await kudosPage.ratePositiveKudosFromOpenCard('Fusion 5');
 
-        // The redirect above is a second mount of Kudos Standings (a second visit), so the
-        // standings info modal reappears here. That is expected, not a bug in the once-per-visit
-        // guard - nothing below clicks on the page, so it is left undismissed.
 
         // 9. Verify localStorage is cleared (the 5s delay on GET ensures it stays empty for this check)
         const cacheKeysAfter = await page.evaluate(() => {

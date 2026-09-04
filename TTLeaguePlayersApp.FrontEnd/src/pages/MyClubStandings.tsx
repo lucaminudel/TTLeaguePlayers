@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -10,8 +10,17 @@ import { createManagedClubProcessor } from '../service/active-season-processors/
 import { createManagedClubKey, selectActiveManagedClubs } from '../utils/clubUtils';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 import { InfoModal } from '../components/common/InfoModal';
-import { useInfoModalSuppression } from '../hooks/useInfoModalSuppression';
-import { STANDINGS_INFO_MODAL_GUID, DISPUTES_INFO_TITLE, DisputesInfoBody } from '../components/common/infoModalMessages';
+import { useInfoModalSequence } from '../hooks/useInfoModalSequence';
+import {
+    STANDINGS_INFO_MODAL_GUID,
+    DISPUTES_INFO_TITLE,
+    DisputesInfoBody,
+    WEBSITE_INFO_MODAL_GUID,
+    WEBSITE_INFO_TITLE,
+    WebsiteInfoBody,
+} from '../components/common/infoModalMessages';
+
+const STANDINGS_INFO_MODAL_GUIDS = [WEBSITE_INFO_MODAL_GUID, STANDINGS_INFO_MODAL_GUID];
 
 export const MyClubStandings: React.FC = () => {
     const { managedClubs: allManagedClubs } = useAuth();
@@ -47,15 +56,7 @@ export const MyClubStandings: React.FC = () => {
         );
     }, [selected]);
 
-    const { isSuppressed } = useInfoModalSuppression(STANDINGS_INFO_MODAL_GUID);
-    const infoModalShownThisVisitRef = useRef(false);
-    const [infoModalOpen, setInfoModalOpen] = useState(false);
-
-    const handleLoadSucceeded = () => {
-        if (infoModalShownThisVisitRef.current) return;
-        infoModalShownThisVisitRef.current = true;
-        if (!isSuppressed()) setInfoModalOpen(true);
-    };
+    const { onTrigger, currentGuid, dismissCurrent } = useInfoModalSequence(STANDINGS_INFO_MODAL_GUIDS);
 
     return (
         <ProtectedRoute>
@@ -110,7 +111,7 @@ export const MyClubStandings: React.FC = () => {
                                             season={selected.club.season}
                                             clubName={selected.club.club_name}
                                             clubLocation={selected.club.club_location}
-                                            onStandingsLoaded={handleLoadSucceeded}
+                                            onStandingsLoaded={onTrigger}
                                         />
                                     </div>
                                 ) : null}
@@ -118,13 +119,22 @@ export const MyClubStandings: React.FC = () => {
                         )}
                     </div>
 
-                    {infoModalOpen && (
+                    {currentGuid === WEBSITE_INFO_MODAL_GUID && (
+                        <InfoModal
+                            guid={WEBSITE_INFO_MODAL_GUID}
+                            title={WEBSITE_INFO_TITLE}
+                            body={<WebsiteInfoBody />}
+                            testId="standings-website-info-modal"
+                            onOk={dismissCurrent}
+                        />
+                    )}
+                    {currentGuid === STANDINGS_INFO_MODAL_GUID && (
                         <InfoModal
                             guid={STANDINGS_INFO_MODAL_GUID}
                             title={DISPUTES_INFO_TITLE}
                             body={<DisputesInfoBody />}
                             testId="standings-info-modal"
-                            onOk={() => { setInfoModalOpen(false); }}
+                            onOk={dismissCurrent}
                         />
                     )}
                 </PageContainer>

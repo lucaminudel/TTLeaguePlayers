@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import { DISPUTES_INFO_TITLE } from '../../../../src/components/common/infoModalMessages';
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -229,7 +230,7 @@ describe('ActiveSeasonCard Rate info modal', () => {
 
         // toHaveAccessibleName resolves aria-labelledby against the document, so this fails both
         // when the attribute is missing and when it points at an id that does not exist.
-        expect(modal).toHaveAccessibleName('Please be aware that:');
+        expect(modal).toHaveAccessibleName(DISPUTES_INFO_TITLE);
     });
 
     it('moves focus to the OK button when the modal opens', async () => {
