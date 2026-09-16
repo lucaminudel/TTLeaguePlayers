@@ -156,7 +156,6 @@ The component is implemented in:
 * **No season filtering is applied.** The club page's second column shows a season label such as `"Winter 2025-26"`, which does not textually match the config's `season` (`"2025-2026"`), and the page carries no season in its URL. Every listed team is returned.
 * **A club with no configured page throws before any network call**: `Club "<name>" not found in data source.` This also covers leagues configured with an empty `club_teams`, such as BCS and FLICK.
 * **Test coverage is deliberately split.** [CLTTLManagedClub2025Processor.integration.test.ts](TTLeaguePlayersApp.FrontEnd/test/unit/service/active-season-processors/CLTTLManagedClub2025Processor.integration.test.ts) pins exact team names against HTML captured under `clttl-2025/data/`, while the e2e spec asserts only that the live page still contains `id="TeamsList"` — the live page has no archived version, so a season rollover must not turn the build red.
-* **Captured fixtures must be scrubbed before committing.** The live pages carry club contacts, team captains' mobile numbers and email addresses, and a third-party Google Maps API key. Run [scrub_clttl_fixtures.py](scripts/test_fixtures/scrub_clttl_fixtures.py) over any freshly captured fixture; it preserves every structure the parser navigates and reports anything sensitive left behind.
 
 ---
 
