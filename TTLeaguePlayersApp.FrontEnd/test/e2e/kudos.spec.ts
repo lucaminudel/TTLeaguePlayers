@@ -337,12 +337,12 @@ test.describe('Kudos', () => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new UserFlow(page);
-            // Morpeth 10 has a match on Friday 16th January 2026 at 18:45
-            // Set clock to 20:46 (2h1min after the match start time)
+            // Morpeth 10 has a match on Friday 16th January 2026 at 19:00
+            // Set clock to 21:00 (exactly 2h after the match start time)
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
-            // At 20:46, now - 2h = 18:46, so 18:45 < 18:46, making it the previous match
-            // Since the previous match is on the same day, it shows "Today's Match"
-            await user.setFixedClockTime('2026-01-16T20:45:00Z');
+            // At 21:00, now - 2h = 19:00, so 19:00 >= 19:00, making it still the next match
+            // Since the next match is on the same day, it shows "Today's Match"
+            await user.setFixedClockTime('2026-01-16T21:00:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -383,14 +383,14 @@ test.describe('Kudos', () => {
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-prev-match')).toBeVisible();
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-next-match')).toBeVisible();
 
-            // Verify the previous match (Today's Match) shows the correct date (Friday 16th Jan 18:45)
+            // Verify the previous match shows the correct date (Friday 12th Dec 19:00)
             const prevMatchText = await cards.nth(clttlCardIndex).getByTestId('active-season-prev-match').textContent();
-            expect(prevMatchText).toContain('Fri 12th Dec 18:45');
+            expect(prevMatchText).toContain('Fri 12th Dec 19:00');
             expect(prevMatchText).toContain('Vs Irving 4');
 
-            // Verify the next match shows the upcoming fixture (Tuesday 20th Jan)
+            // Verify the next match (Today's Match) shows the correct date (Friday 16th Jan 19:00)
             const nextMatchText = await cards.nth(clttlCardIndex).getByTestId('active-season-next-match').textContent();
-            expect(nextMatchText).toContain('Fri 16th Jan 18:45');
+            expect(nextMatchText).toContain('Fri 16th Jan 19:00');
             expect(nextMatchText).toContain('Vs Fusion 5');
         });
 
@@ -398,12 +398,12 @@ test.describe('Kudos', () => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new UserFlow(page);
-            // Morpeth 10 has a match on Friday 16th January 2026 at 18:45
-            // Set clock to 20:46 (2h1min after the match start time)
+            // Morpeth 10 has a match on Friday 16th January 2026 at 19:00
+            // Set clock to 21:01 (2h1min after the match start time)
             // Per the logic: Next fixture is where startDateTime >= (now - 2 hours)
-            // At 20:46, now - 2h = 18:46, so 18:45 < 18:46, making it the previous match
+            // At 21:01, now - 2h = 19:01, so 19:00 < 19:01, making it the previous match
             // Since the previous match is on the same day, it shows "Today's Match"
-            await user.setFixedClockTime('2026-01-16T20:46:00Z');
+            await user.setFixedClockTime('2026-01-16T21:01:00Z');
             await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
 
             const kudosPage = await user.navigateToKudos();
@@ -444,9 +444,9 @@ test.describe('Kudos', () => {
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-prev-match')).toBeVisible();
             await expect(cards.nth(clttlCardIndex).getByTestId('active-season-next-match')).toBeVisible();
 
-            // Verify the previous match (Today's Match) shows the correct date (Friday 16th Jan 18:45)
+            // Verify the previous match (Today's Match) shows the correct date (Friday 16th Jan 19:00)
             const prevMatchText = await cards.nth(clttlCardIndex).getByTestId('active-season-prev-match').textContent();
-            expect(prevMatchText).toContain('Fri 16th Jan 18:45');
+            expect(prevMatchText).toContain('Fri 16th Jan 19:00');
             expect(prevMatchText).toContain('Vs Fusion 5');
 
             // Verify the next match shows the upcoming fixture (Tuesday 20th Jan)
