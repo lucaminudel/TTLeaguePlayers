@@ -36,8 +36,8 @@ export function createActiveSeasonProcessor(
 
     const realProcessor = new ActiveSeasonProcessorClass(dataSource, division, team, avoidCORS);
 
-    // Create a unique cache key
-    const uniqueKey = `cache_${dataSource.league}_${dataSource.season}_${division}_${team}`;
+    // Identity prefix only - the decorator appends a per-method suffix (_fixtures, _players)
+    const cacheKeyPrefix = `cache_${dataSource.league}_${dataSource.season}_${division}_${team}`;
 
-    return new ActiveSeasonProcessorWithLocalStorageCache(realProcessor, uniqueKey);
+    return new ActiveSeasonProcessorWithLocalStorageCache(realProcessor, cacheKeyPrefix);
 }

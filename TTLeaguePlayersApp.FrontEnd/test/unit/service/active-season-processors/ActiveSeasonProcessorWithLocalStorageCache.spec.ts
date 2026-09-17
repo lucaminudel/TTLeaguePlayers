@@ -35,7 +35,12 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         club_teams: []
     };
 
-    const CACHE_KEY = 'cache_TEST_2025_Div1_TeamA';
+    // The factory supplies the identity prefix; the decorator appends one suffix per method so
+    // fixtures and players never share a localStorage entry.
+    const FIXTURES_CACHE_KEY = 'cache_TEST_2025_Div1_TeamA_fixtures';
+    const PLAYERS_CACHE_KEY = 'cache_TEST_2025_Div1_TeamA_players';
+
+    const mockPlayers = ['Luca Minudel', 'Kevin Ji'];
 
     beforeEach(() => {
         localStorage.clear();
@@ -50,19 +55,23 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
     // Helper to spy on the "Real" processor instance
     // Since createActiveSeasonProcessor instantiates it internally, we mock the class implementation
-    const setupMockProcessor = (fixturesToReturn: Fixture[]) => {
+    const setupMockProcessor = (fixturesToReturn: Fixture[], playersToReturn: string[] = []) => {
         vi.mocked(CLTTLActiveSeason2025Processor).mockImplementation(function () {
             return {
-                getTeamFixtures: vi.fn().mockResolvedValue(fixturesToReturn)
+                getTeamFixtures: vi.fn().mockResolvedValue(fixturesToReturn),
+                getTeamPlayers: vi.fn().mockResolvedValue(playersToReturn)
             } as unknown as CLTTLActiveSeason2025Processor;
         });
     };
 
-    const getMockedGetTeamFixtures = (): MockInstance => {
-        // Get the instance created by the factory
-        const mockInstance = vi.mocked(CLTTLActiveSeason2025Processor).mock.results[0].value as { getTeamFixtures: MockInstance };
-        return mockInstance.getTeamFixtures;
-    };
+    interface MockedProcessorMethods { getTeamFixtures: MockInstance; getTeamPlayers: MockInstance }
+
+    // Get the instance created by the factory
+    const getMockedProcessor = (): MockedProcessorMethods =>
+        vi.mocked(CLTTLActiveSeason2025Processor).mock.results[0].value as MockedProcessorMethods;
+
+    const getMockedGetTeamFixtures = (): MockInstance => getMockedProcessor().getTeamFixtures;
+    const getMockedGetTeamPlayers = (): MockInstance => getMockedProcessor().getTeamPlayers;
 
 
     it('Cold Start: Fetches from network and caches result', async () => {
@@ -81,7 +90,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(getFixturesSpy).toHaveBeenCalledTimes(1);
 
         // 3. Check cache was written
-        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        const cachedRaw = localStorage.getItem(FIXTURES_CACHE_KEY);
         if (cachedRaw === null) throw new Error('Cache missing');
         const entry = JSON.parse(cachedRaw) as CacheEntry<Fixture[]>;
         expect(entry.data).toHaveLength(1);
@@ -142,7 +151,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(spy2).toHaveBeenCalledTimes(1);
 
         // Expect Cache to be updated for NEXT time
-        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        const cachedRaw = localStorage.getItem(FIXTURES_CACHE_KEY);
         if (cachedRaw === null) throw new Error('Cache missing');
         const entry = JSON.parse(cachedRaw) as CacheEntry<Fixture[]>;
         expect(entry.data[0].venue).toBe('New Data');
@@ -181,7 +190,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         await processor.getTeamFixtures();
 
         // Read directly from cache
-        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        const cachedRaw = localStorage.getItem(FIXTURES_CACHE_KEY);
         if (cachedRaw === null) throw new Error('Cache missing');
         const entry = JSON.parse(cachedRaw) as CacheEntry<{ startDateTime: string }[]>;
         // JSON stores dates as strings
@@ -241,5 +250,98 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
             expect.stringContaining('Background cache refresh failed'),
             expect.any(Error)
         );
+    });
+
+    it('Players Cold Start: fetches from network and caches under the players key', async () => {
+        setupMockProcessor([], mockPlayers);
+
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+
+        const result = await processor.getTeamPlayers();
+
+        expect(result).toEqual(mockPlayers);
+        expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
+
+        // Written under the players key only, as a raw string[] (no transformer needed)
+        const cachedRaw = localStorage.getItem(PLAYERS_CACHE_KEY);
+        if (cachedRaw === null) throw new Error('Cache missing');
+        const entry = JSON.parse(cachedRaw) as CacheEntry<string[]>;
+        expect(entry.data).toEqual(mockPlayers);
+        expect(localStorage.getItem(FIXTURES_CACHE_KEY)).toBeNull();
+    });
+
+    it('Players Fresh Cache: returns cached data immediately, no network call', async () => {
+        setupMockProcessor([], mockPlayers);
+
+        // 1. Seed Cache (Time: T0)
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        await processor1.getTeamPlayers();
+        expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
+
+        // 2. Advance time by 1 hour (Fresh < 72h)
+        setUnitFixedClockTime('2025-01-01T11:00:00Z');
+
+        vi.clearAllMocks();
+        setupMockProcessor([], ['New Player']);
+
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const result = await processor2.getTeamPlayers();
+
+        expect(result).toEqual(mockPlayers);
+        expect(getMockedGetTeamPlayers()).not.toHaveBeenCalled();
+    });
+
+    it('Players Stale Cache (< 6 days): returns cached data AND refreshes in background', async () => {
+        // 1. Seed Cache
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
+        setupMockProcessor([], mockPlayers);
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        await processor1.getTeamPlayers();
+
+        // 2. Advance time by 4 days (72h < 96h < 144h) -> Stale
+        setUnitFixedClockTime('2025-01-05T10:00:00Z');
+
+        vi.clearAllMocks();
+        setupMockProcessor([], ['New Player']);
+
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const result = await processor2.getTeamPlayers();
+
+        // Old data immediately (stale-while-revalidate)
+        expect(result).toEqual(mockPlayers);
+
+        // Background refresh happened and the cache now holds the new data
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
+
+        const cachedRaw = localStorage.getItem(PLAYERS_CACHE_KEY);
+        if (cachedRaw === null) throw new Error('Cache missing');
+        const entry = JSON.parse(cachedRaw) as CacheEntry<string[]>;
+        expect(entry.data).toEqual(['New Player']);
+        expect(entry.timestamp).toBe(new Date('2025-01-05T10:00:00Z').getTime());
+    });
+
+    it('Fixtures and players are cached under distinct keys', async () => {
+        setupMockProcessor([mockFixture], mockPlayers);
+
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+
+        await processor.getTeamFixtures();
+        await processor.getTeamPlayers();
+
+        // Two entries, two different keys
+        expect(FIXTURES_CACHE_KEY).not.toBe(PLAYERS_CACHE_KEY);
+        expect(localStorage.getItem(FIXTURES_CACHE_KEY)).not.toBeNull();
+        expect(localStorage.getItem(PLAYERS_CACHE_KEY)).not.toBeNull();
+
+        // A fresh read of each returns its own data, with no further network call:
+        // this is the case a shared key would break (fixtures read back as players, or vice-versa).
+        const fixtures = await processor.getTeamFixtures();
+        const players = await processor.getTeamPlayers();
+        expect(fixtures[0].venue).toBe('Test Venue');
+        expect(players).toEqual(mockPlayers);
+        expect(getMockedGetTeamFixtures()).toHaveBeenCalledTimes(1);
+        expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
     });
 });

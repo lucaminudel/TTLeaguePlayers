@@ -58,7 +58,8 @@ describe('ActiveSeasonCard Error Handling', () => {
 
     it('should display "No fixture found" when processor throws error', async () => {
         const mockProcessor: ActiveSeasonProcessor = {
-            getTeamFixtures: vi.fn().mockRejectedValue(new Error('Network error'))
+            getTeamFixtures: vi.fn().mockRejectedValue(new Error('Network error')),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
         };
 
         render(
@@ -86,7 +87,8 @@ describe('ActiveSeasonCard Error Handling', () => {
     it('should not fetch data when not expanded', async () => {
         const getTeamFixturesMock = vi.fn().mockRejectedValue(new Error('Should not be called'));
         const mockProcessor: ActiveSeasonProcessor = {
-            getTeamFixtures: getTeamFixturesMock
+            getTeamFixtures: getTeamFixturesMock,
+            getTeamPlayers: vi.fn().mockResolvedValue([])
         };
 
         render(
@@ -117,7 +119,8 @@ describe('ActiveSeasonCard Error Handling', () => {
                         reject(new Error('Delayed error'));
                     }, 50);
                 })
-            )
+            ),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
         };
 
         const { rerender } = render(
@@ -186,7 +189,8 @@ describe('ActiveSeasonCard Rate info modal', () => {
 
     const renderExpandedCard = async () => {
         const mockProcessor: ActiveSeasonProcessor = {
-            getTeamFixtures: vi.fn().mockResolvedValue(fixtures)
+            getTeamFixtures: vi.fn().mockResolvedValue(fixtures),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
         };
 
         render(

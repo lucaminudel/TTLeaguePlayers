@@ -40,7 +40,6 @@ export class CLTTLActiveSeason2025Processor implements ActiveSeasonProcessor {
     /**
      * Fetches the players for the current team.
      * Orchestrates multiple calls: gets team IDs first, finds current team ID, then fetches players.
-     * Currently, this method is not used in the application, but it can be useful for future features.
      */
     public async getTeamPlayers(): Promise<string[]> {
         const allPlayersHtml = await this.fetcher.getTeamIds(this.division);

@@ -7,19 +7,25 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
     private DOUBLE_EXPIRATION_MS = 2 * this.CACHE_DURATION_MS; // 6 days
 
     private realProcessor: ActiveSeasonProcessor;
-    private cacheKey: string;
+
+    // The factory supplies the identity prefix (cache_<league>_<season>_<division>_<team>); this
+    // class appends one suffix per method so that two methods never share a localStorage entry -
+    // withSWR stores {timestamp, data} and cannot tell a Fixture[] from a string[].
+    private fixturesCacheKey: string;
+    private playersCacheKey: string;
 
     constructor(
         realProcessor: ActiveSeasonProcessor,
-        cacheKey: string
+        cacheKeyPrefix: string
     ) {
         this.realProcessor = realProcessor;
-        this.cacheKey = cacheKey;
+        this.fixturesCacheKey = `${cacheKeyPrefix}_fixtures`;
+        this.playersCacheKey = `${cacheKeyPrefix}_players`;
     }
 
     async getTeamFixtures(): Promise<Fixture[]> {
         return withSWR(
-            this.cacheKey,
+            this.fixturesCacheKey,
             () => this.realProcessor.getTeamFixtures(),
             {
                 freshDurationMs: this.CACHE_DURATION_MS,
@@ -31,6 +37,18 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
                     ...f,
                     startDateTime: new Date(f.startDateTime)
                 }));
+            }
+        );
+    }
+
+    async getTeamPlayers(): Promise<string[]> {
+        // No transformer: a string[] round-trips JSON unchanged.
+        return withSWR(
+            this.playersCacheKey,
+            () => this.realProcessor.getTeamPlayers(),
+            {
+                freshDurationMs: this.CACHE_DURATION_MS,
+                staleDurationMs: this.DOUBLE_EXPIRATION_MS
             }
         );
     }

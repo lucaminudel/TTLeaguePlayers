@@ -79,18 +79,13 @@ export class CLTTLActiveSeason2025PagesFetcher {
     }
 
     /**
-     * Extracts the players page link for players of the team and concatenates the team id.
-     * @param team The division name (used to find the base URL in division_players)
-     * @param id The team ID
+     * Downloads the division's players average page filtered to one team.
+     * @param division The division name (key into division_players)
+     * @param id The team id, as read from the division page's `select#t` by the parser's getTeamIds
      */
-    public async getTeamPlayers(team: string, id: number): Promise<string> {
-        const baseUrl = this.getUrlFromSource(this.dataSource.division_players, team);
-        // Requirement: concatenate "?stx=&swp=&spp=&t=<team_id>"
-        // If the URL already has parameters (e.g., ?d=9445), we should use & if it has ? already, 
-        // but the prompt explicitly says to use "?stx=&swp=&spp=&t=<team_id>"
-        // I will check if "?" already exists and decide, or just follow the prompt literally.
-        // Usually concatenating "?..." to a URL with parameters is wrong.
-        // Let's check the base URL format: "All_Divisions?d=9445"
+    public async getTeamPlayers(division: string, id: number): Promise<string> {
+        const baseUrl = this.getUrlFromSource(this.dataSource.division_players, division);
+        // The configured URL normally already carries a query string (e.g. "All_Divisions?d=9445")
         const separator = baseUrl.includes('?') ? '&' : '?';
         const url = baseUrl + separator + 'stx=&swp=&spp=&t=' + String(id);
 
