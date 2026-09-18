@@ -177,14 +177,14 @@ describe('inviteApi', () => {
       team_names: ['Morpeth 9', "St Katharine's Trust 2"],
     };
 
-    it('should POST to /invites/registrations', async () => {
+    it('should POST to /invites/registrations/club-teams', async () => {
       vi.mocked(apiFetch).mockResolvedValue({ teams: [] });
 
       await inviteApi.getTeamRegistrations(request);
 
       expect(apiFetch).toHaveBeenCalledWith(
         'https://api.example.com',
-        '/invites/registrations',
+        '/invites/registrations/club-teams',
         expect.objectContaining({ method: 'POST' })
       );
     });
@@ -198,7 +198,7 @@ describe('inviteApi', () => {
 
       expect(apiFetch).toHaveBeenCalledWith(
         'https://api.example.com',
-        '/invites/registrations',
+        '/invites/registrations/club-teams',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify(request),
@@ -212,7 +212,7 @@ describe('inviteApi', () => {
       await inviteApi.getTeamRegistrations(request);
 
       const [, path] = vi.mocked(apiFetch).mock.calls[0];
-      expect(path).toBe('/invites/registrations');
+      expect(path).toBe('/invites/registrations/club-teams');
       expect(path).not.toContain('Morpeth');
       expect(path).not.toContain('Katharine');
     });

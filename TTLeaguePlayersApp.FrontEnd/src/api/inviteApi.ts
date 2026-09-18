@@ -60,11 +60,11 @@ export const inviteApi = {
 
     /**
      * Registration status for a club's teams in one league and season.
-     * POST /invites/registrations
+     * POST /invites/registrations/club-teams
      */
     async getTeamRegistrations(request: TeamRegistrationsRequest): Promise<TeamRegistrationsResponse> {
         const baseUrl = getConfig().ApiGateWay.ApiBaseUrl;
-        return apiFetch<TeamRegistrationsResponse>(baseUrl, '/invites/registrations', {
+        return apiFetch<TeamRegistrationsResponse>(baseUrl, '/invites/registrations/club-teams', {
             method: 'POST',
             body: JSON.stringify(request),
         });

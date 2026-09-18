@@ -92,8 +92,8 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
                     club_name: clubName,
                     club_location: clubLocation,
                     // This page needs only the names. The division now travelling alongside each
-                    // team is for the club-standings endpoint; the /invites/registrations contract
-                    // is deliberately unchanged.
+                    // team is for the club-standings endpoint; the /invites/registrations/club-teams
+                    // contract is deliberately unchanged.
                     team_names: clubTeams.map((team) => team.team_name),
                 });
 

@@ -61,7 +61,7 @@ export interface ClubManagerInvite extends BaseInvite {
 export type Invite = CaptainOrPlayerInvite | ClubManagerInvite;
 
 /**
- * Registration status of a team, as reported by POST /invites/registrations.
+ * Registration status of a team, as reported by POST /invites/registrations/club-teams.
  */
 export const TeamRegistrationStatus = {
     ACCEPTED: 'ACCEPTED',

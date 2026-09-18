@@ -263,17 +263,17 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
-        InvitesRegistrations:
+        InvitesRegistrationsClubTeams:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
-            Path: /invites/registrations
+            Path: /invites/registrations/club-teams
             Method: POST
-        InvitesRegistrationsOptions:
+        InvitesRegistrationsClubTeamsOptions:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
-            Path: /invites/registrations
+            Path: /invites/registrations/club-teams
             Method: OPTIONS
             Auth:
               Authorizer: NONE

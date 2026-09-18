@@ -9,12 +9,19 @@ using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 
-// Acceptance tests for POST /invites/registrations.
+// Acceptance tests for POST /invites/registrations/club-teams.
 //
-// This is the ONLY route under /invites that the API Gateway authorizer protects
+// One of the two registrations routes under /invites that the API Gateway authorizer protects
+// (the other is /invites/registrations/team-players).
 [Trait("Environment", "Staging")]
 public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
 {
+    private const string RoutePath = "/invites/registrations/club-teams";
+
+    // The path this operation lived at before it moved to /club-teams. Kept only to pin that it is
+    // no longer served (see POST_OldRegistrationsPath_Should_Return_405).
+    private const string OldRoutePath = "/invites/registrations";
+
     private const string League = "CLTTL";
     private const string Season = "2025-2026";
     private const string ClubName = "Morpeth Table Tennis Club";
@@ -235,7 +242,7 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
     [Fact]
     public async Task OPTIONS_TeamRegistrations_Should_Allow_POST()
     {
-        var request = new HttpRequestMessage(HttpMethod.Options, "/invites/registrations");
+        var request = new HttpRequestMessage(HttpMethod.Options, RoutePath);
         request.Headers.Add("Origin", "https://example.com");
 
         var response = await _httpClient.SendAsync(request);
@@ -247,12 +254,12 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
         allowedMethods.Should().Contain("POST");
     }
 
-    // /invites/registrations must NOT be parsed as /invites/{nano_id}. "registrations" is 14
-    // characters, so the nano-id validator rejects it — which is what a 400 here proves.
+    // /invites/registrations/club-teams must NOT be parsed as /invites/{nano_id}. The path has three
+    // segments, so the nano-id extraction finds none — which is what a 400 mentioning nano_id proves.
     [Fact]
     public async Task GET_TeamRegistrations_Should_Not_Be_Treated_As_An_Invite_Id()
     {
-        var response = await _httpClient.GetAsync("/invites/registrations");
+        var response = await _httpClient.GetAsync(RoutePath);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
@@ -285,7 +292,7 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
         }
 
         var content = new StringContent("not json", Encoding.UTF8, "text/plain");
-        var response = await _httpClient.PostAsync("/invites/registrations", content);
+        var response = await _httpClient.PostAsync(RoutePath, content);
 
         response.StatusCode.Should().Be(HttpStatusCode.UnsupportedMediaType);
     }
@@ -299,9 +306,31 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
         }
 
         var content = new StringContent("{ not json", Encoding.UTF8, "application/json");
-        var response = await _httpClient.PostAsync("/invites/registrations", content);
+        var response = await _httpClient.PostAsync(RoutePath, content);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // The old path is no longer served: with no explicit dispatcher arm it falls through to the
+    // /invites/ prefix fallback, which answers 405 to a POST. The same 405 is expected in the
+    // cloud, where the path is reached unauthenticated via /invites/{proxy+} (Authorizer: NONE),
+    // so this case needs no environment branch.
+    [Fact]
+    public async Task POST_OldRegistrationsPath_Should_Return_405()
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            league = League,
+            season = Season,
+            club_name = ClubName,
+            club_location = ClubLocation,
+            team_names = new[] { "Any Team" }
+        });
+
+        var response = await _httpClient.PostAsync(OldRoutePath,
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -317,7 +346,7 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
             team_names = teamNames
         });
 
-        return await _httpClient.PostAsync("/invites/registrations",
+        return await _httpClient.PostAsync(RoutePath,
             new StringContent(payload, Encoding.UTF8, "application/json"));
     }
 

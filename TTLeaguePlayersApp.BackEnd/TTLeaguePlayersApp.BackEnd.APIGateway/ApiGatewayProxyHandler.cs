@@ -146,11 +146,11 @@ public partial class ApiGatewayProxyHandler
                 // Method not allowed for /invites
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
-                // Team registration status: POST /invites/registrations
+                // Team registration status for a club's teams: POST /invites/registrations/club-teams
                 // BOTH arms below MUST stay ahead of the /invites/ prefix group that follows. 
-                ("OPTIONS", "/invites/registrations") => CreatePreflightResponse("OPTIONS,POST", request),
+                ("OPTIONS", "/invites/registrations/club-teams") => CreatePreflightResponse("OPTIONS,POST", request),
 
-                ("POST", "/invites/registrations") => await HandleGetTeamRegistrations(request, context),
+                ("POST", "/invites/registrations/club-teams") => await HandleGetTeamRegistrations(request, context),
 
                 // Preflight for /invites/{nano_id}
                 ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH,DELETE", request),

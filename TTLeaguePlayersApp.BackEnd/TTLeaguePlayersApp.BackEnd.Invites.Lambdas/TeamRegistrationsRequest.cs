@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 
-// Body of POST /invites/registrations. 
+// Body of POST /invites/registrations/club-teams. 
 public class TeamRegistrationsRequest
 {
     [JsonPropertyName("league")]

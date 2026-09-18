@@ -18,7 +18,7 @@ public class RetrieveClubKudosStandingsLambda
     public async Task<ClubKudosStandingsResponse> HandleAsync(
         ClubKudosStandingsRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
-        // ADVISORY, exactly as POST /invites/registrations does it: the failure is logged and the
+        // ADVISORY, exactly as POST /invites/registrations/club-teams does it: the failure is logged and the
         // request continues to a normal 200. Do not turn this into a 403 without deciding the same
         // for every other endpoint in the codebase — see the plan's decision 7.
         // Season-scoped: standings are season data, so managing this club in a DIFFERENT season
