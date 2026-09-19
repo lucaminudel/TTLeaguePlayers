@@ -36,7 +36,7 @@ public class RetrieveTeamRegistrationsLambda
 
         ValidateRequest(request);
 
-        List<CaptainInviteSummary> invites;
+        List<CaptainOrPlayerInviteSummary> invites;
         try
         {
             invites = await _invitesDataTable.RetrieveCaptainInvitesForTeams(
@@ -80,7 +80,7 @@ public class RetrieveTeamRegistrationsLambda
 
     private List<TeamRegistrationEntry> BuildEntries(
         TeamRegistrationsRequest request,
-        List<CaptainInviteSummary> invites,
+        List<CaptainOrPlayerInviteSummary> invites,
         Dictionary<string, string> userClaims,
         ILambdaContext context)
     {

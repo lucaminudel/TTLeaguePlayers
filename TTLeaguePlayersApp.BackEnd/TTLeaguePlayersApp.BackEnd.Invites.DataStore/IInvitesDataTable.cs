@@ -7,6 +7,8 @@ public interface IInvitesDataTable
     void Dispose();
     Task MarkInviteAccepted(string nanoId, long acceptedAt);
     Task<Invite> RetrieveInvite(string nanoId);
-    Task<List<CaptainInviteSummary>> RetrieveCaptainInvitesForTeams(
+    Task<List<CaptainOrPlayerInviteSummary>> RetrieveCaptainInvitesForTeams(
         string league, string season, IReadOnlyList<string> teamNames);
+    Task<List<CaptainOrPlayerInviteSummary>> RetrievePlayersInvitesForTeam(
+        string league, string season, string teamName);
 }

@@ -279,7 +279,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         await processor1.getTeamPlayers();
         expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
 
-        // 2. Advance time by 1 hour (Fresh < 72h)
+        // 2. Advance time by 1 hour (Fresh < 24h)
         setUnitFixedClockTime('2025-01-01T11:00:00Z');
 
         vi.clearAllMocks();
@@ -292,15 +292,17 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(getMockedGetTeamPlayers()).not.toHaveBeenCalled();
     });
 
-    it('Players Stale Cache (< 6 days): returns cached data AND refreshes in background', async () => {
+    // The players window is SHORTER than the fixtures one (24h fresh / 3d stale vs 72h / 6d): the
+    // roster is what the captain's invitation-status view is keyed on.
+    it('Players Stale Cache (< 3 days): returns cached data AND refreshes in background', async () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([], mockPlayers);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamPlayers();
 
-        // 2. Advance time by 4 days (72h < 96h < 144h) -> Stale
-        setUnitFixedClockTime('2025-01-05T10:00:00Z');
+        // 2. Advance time by 2 days (24h < 48h < 72h) -> Stale
+        setUnitFixedClockTime('2025-01-03T10:00:00Z');
 
         vi.clearAllMocks();
         setupMockProcessor([], ['New Player']);
@@ -319,7 +321,29 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         if (cachedRaw === null) throw new Error('Cache missing');
         const entry = JSON.parse(cachedRaw) as CacheEntry<string[]>;
         expect(entry.data).toEqual(['New Player']);
-        expect(entry.timestamp).toBe(new Date('2025-01-05T10:00:00Z').getTime());
+        expect(entry.timestamp).toBe(new Date('2025-01-03T10:00:00Z').getTime());
+    });
+
+    it('Players Expired Cache (> 3 days): fetches new data and returns it', async () => {
+        // 1. Seed Cache
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
+        setupMockProcessor([], mockPlayers);
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        await processor1.getTeamPlayers();
+
+        // 2. Advance time by 4 days (> 72h) -> Expired. The FIXTURES cache would still be stale-but-
+        // served at this age; the players cache is not.
+        setUnitFixedClockTime('2025-01-05T10:00:00Z');
+
+        vi.clearAllMocks();
+        setupMockProcessor([], ['New Player']);
+
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const result = await processor2.getTeamPlayers();
+
+        // New data, fetched synchronously — not the stale roster
+        expect(result).toEqual(['New Player']);
+        expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
     });
 
     it('Fixtures and players are cached under distinct keys', async () => {

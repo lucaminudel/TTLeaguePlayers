@@ -1,5 +1,8 @@
 import { inviteApi } from './inviteApi';
 import type {
+    PlayerRegistrationEntry,
+    TeamPlayersRegistrationsRequest,
+    TeamPlayersRegistrationsResponse,
     TeamRegistrationEntry,
     TeamRegistrationsRequest,
     TeamRegistrationsResponse
@@ -13,6 +16,10 @@ const CACHE_CONFIG = {
     TEAM_REGISTRATIONS: {
         freshDurationMs: ONE_DAY,
         staleDurationMs: 6 * ONE_DAY,
+    },
+    TEAM_PLAYERS_REGISTRATIONS: {
+        freshDurationMs: ONE_DAY,
+        staleDurationMs: 3 * ONE_DAY,
     }
 };
 
@@ -41,7 +48,7 @@ export async function getCachedTeamRegistrations(
 }
 
 function discardCachedEntryThatCannotAnswer(cacheKey: string, request: TeamRegistrationsRequest): void {
-    const cachedTeamNames = readCachedTeamNames(cacheKey);
+    const cachedTeamNames = readCachedNames(cacheKey, 'teams', 'team_name');
     if (cachedTeamNames === null) {
         return;
     }
@@ -53,7 +60,47 @@ function discardCachedEntryThatCannotAnswer(cacheKey: string, request: TeamRegis
     }
 }
 
-function readCachedTeamNames(cacheKey: string): Set<string> | null {
+/**
+ * Cached version of getTeamPlayersRegistrations. Its own key (one entry per team), a shorter stale
+ * window than the club twin (1 day fresh / 3 days stale) and its own fitness rule: judged on the REQUESTED names only, because the extras
+ * are whatever the backend found and say nothing about what the caller asked for.
+ */
+export async function getCachedTeamPlayersRegistrations(
+    request: TeamPlayersRegistrationsRequest,
+    onDataUpdate?: (data: TeamPlayersRegistrationsResponse) => void
+): Promise<TeamPlayersRegistrationsResponse> {
+    const cacheKey = `${INVITE_CACHE_PREFIX}players_${request.league}_${request.season}_${request.team_division}_${request.team_name}`;
+
+    discardCachedPlayersEntryThatCannotAnswer(cacheKey, request);
+
+    const response = await withSWR(
+        cacheKey,
+        () => inviteApi.getTeamPlayersRegistrations(request),
+        CACHE_CONFIG.TEAM_PLAYERS_REGISTRATIONS,
+        undefined,
+        onDataUpdate
+    );
+
+    return projectOntoRequestedPlayers(response, request);
+}
+
+function discardCachedPlayersEntryThatCannotAnswer(cacheKey: string, request: TeamPlayersRegistrationsRequest): void {
+    // Extras have no player_name and are skipped by the reader, so an extra never "covers" a name.
+    const cachedPlayerNames = readCachedNames(cacheKey, 'players', 'player_name');
+    if (cachedPlayerNames === null) {
+        return;
+    }
+
+    const coversEveryRequestedPlayer = request.player_names.every((name) => cachedPlayerNames.has(name));
+
+    if (!coversEveryRequestedPlayer) {
+        invalidateCache(cacheKey);
+    }
+}
+
+// The names a cached entry can answer for: the `nameField` of every element of `data.<listField>`
+// that has one (a string). Shared by the two twins, which differ only in those two field names.
+function readCachedNames(cacheKey: string, listField: string, nameField: string): Set<string> | null {
     const raw = localStorage.getItem(cacheKey);
     if (raw === null) {
         return null;
@@ -71,19 +118,19 @@ function readCachedTeamNames(cacheKey: string): Set<string> | null {
     }
     const data: unknown = (parsed as { data: unknown }).data;
 
-    if (typeof data !== 'object' || data === null || !('teams' in data)) {
+    if (typeof data !== 'object' || data === null || !(listField in data)) {
         return null;
     }
-    const teams: unknown = (data as { teams: unknown }).teams;
+    const list: unknown = (data as Record<string, unknown>)[listField];
 
-    if (!Array.isArray(teams)) {
+    if (!Array.isArray(list)) {
         return null;
     }
 
     const names = new Set<string>();
-    for (const team of teams as unknown[]) {
-        if (typeof team === 'object' && team !== null && 'team_name' in team) {
-            const name: unknown = (team as { team_name: unknown }).team_name;
+    for (const element of list as unknown[]) {
+        if (typeof element === 'object' && element !== null && nameField in element) {
+            const name: unknown = (element as Record<string, unknown>)[nameField];
             if (typeof name === 'string') {
                 names.add(name);
             }
@@ -110,4 +157,33 @@ function projectOntoRequestedTeams(
     }
 
     return { ...response, teams };
+}
+
+// The requested entries in THIS caller's order, followed by every extra (no player_name) as the
+// backend returned them. A cached entry that passed the fitness check always has a row for each
+// requested name; if it somehow does not, the response is returned as is rather than mangled.
+function projectOntoRequestedPlayers(
+    response: TeamPlayersRegistrationsResponse,
+    request: TeamPlayersRegistrationsRequest
+): TeamPlayersRegistrationsResponse {
+    const entriesByPlayerName = new Map<string, PlayerRegistrationEntry>();
+    const extras: PlayerRegistrationEntry[] = [];
+    for (const entry of response.players) {
+        if (entry.player_name === undefined) {
+            extras.push(entry);
+        } else {
+            entriesByPlayerName.set(entry.player_name, entry);
+        }
+    }
+
+    const players: PlayerRegistrationEntry[] = [];
+    for (const playerName of request.player_names) {
+        const entry = entriesByPlayerName.get(playerName);
+        if (entry === undefined) {
+            return response;
+        }
+        players.push(entry);
+    }
+
+    return { ...response, players: [...players, ...extras] };
 }

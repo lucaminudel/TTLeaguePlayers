@@ -1,6 +1,8 @@
 import type {
     CreateInviteRequest,
     Invite,
+    TeamPlayersRegistrationsRequest,
+    TeamPlayersRegistrationsResponse,
     TeamRegistrationsRequest,
     TeamRegistrationsResponse
 } from '../types/invite';
@@ -65,6 +67,19 @@ export const inviteApi = {
     async getTeamRegistrations(request: TeamRegistrationsRequest): Promise<TeamRegistrationsResponse> {
         const baseUrl = getConfig().ApiGateWay.ApiBaseUrl;
         return apiFetch<TeamRegistrationsResponse>(baseUrl, '/invites/registrations/club-teams', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    },
+
+    /**
+     * Registration status of one team's players in one league and season — a full outer join of the
+     * requested names and the team's invites (see TeamPlayersRegistrationsResponse).
+     * POST /invites/registrations/team-players
+     */
+    async getTeamPlayersRegistrations(request: TeamPlayersRegistrationsRequest): Promise<TeamPlayersRegistrationsResponse> {
+        const baseUrl = getConfig().ApiGateWay.ApiBaseUrl;
+        return apiFetch<TeamPlayersRegistrationsResponse>(baseUrl, '/invites/registrations/team-players', {
             method: 'POST',
             body: JSON.stringify(request),
         });

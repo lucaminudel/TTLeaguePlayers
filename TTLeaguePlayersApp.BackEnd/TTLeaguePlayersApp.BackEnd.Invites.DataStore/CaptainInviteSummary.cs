@@ -2,7 +2,7 @@ namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 
 // No [JsonPropertyName] attributes on purpose: this is an internal read model, never serialised to
 // the wire. The HTTP shape is TeamRegistrationsResponse, and the lambda maps between them.
-public class CaptainInviteSummary
+public class CaptainOrPlayerInviteSummary
 {
     // Index RANGE key.
     public required string InviteeTeam { get; set; }

@@ -65,7 +65,7 @@ class FakeInvitesDataTable : IInvitesDataTable
 
     public Exception? ThrowOnceOnRetrieveCaptainInvitesForTeams { get; set; }
 
-    public Task<List<CaptainInviteSummary>> RetrieveCaptainInvitesForTeams(
+    public Task<List<CaptainOrPlayerInviteSummary>> RetrieveCaptainInvitesForTeams(
         string league, string season, IReadOnlyList<string> teamNames)
     {
         if (ThrowOnceOnRetrieveCaptainInvitesForTeams != null)
@@ -78,15 +78,15 @@ class FakeInvitesDataTable : IInvitesDataTable
         // Mirrors the real guards. A fake that accepted these would let a caller ship a request the
         // live datastore rejects.
         var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(league)) errors.Add("league is required");
-        if (string.IsNullOrWhiteSpace(season)) errors.Add("season is required");
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.League))} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.Season))} is required");
         if (teamNames is null || teamNames.Count == 0)
         {
-            errors.Add("team_names is required and must contain at least one team name");
+            errors.Add($"at least one {JsonFieldName.For<CaptainOrPlayerInvite>(nameof(CaptainOrPlayerInvite.InviteeTeam))} is required");
         }
         else if (teamNames.Any(string.IsNullOrWhiteSpace))
         {
-            errors.Add("team_names must not contain empty team names");
+            errors.Add($"{JsonFieldName.For<CaptainOrPlayerInvite>(nameof(CaptainOrPlayerInvite.InviteeTeam))} must not be empty");
         }
         if (errors.Count > 0) throw new ValidationException(errors);
 
@@ -100,7 +100,53 @@ class FakeInvitesDataTable : IInvitesDataTable
                      && i.Season == season
                      && i.InviteeRole == Role.CAPTAIN
                      && requested.Contains(i.InviteeTeam.Trim()))
-            .Select(i => new CaptainInviteSummary
+            .Select(i => new CaptainOrPlayerInviteSummary
+            {
+                NanoId = i.NanoId,
+                InviteeTeam = i.InviteeTeam,
+                InviteeRole = i.InviteeRole,
+                InviteeName = i.InviteeName,
+                InviteeEmailId = i.InviteeEmailId,
+                TeamDivision = i.TeamDivision,
+                League = i.League,
+                Season = i.Season,
+                CreatedAt = i.CreatedAt,
+                AcceptedAt = i.AcceptedAt
+            })
+            .ToList();
+
+        return Task.FromResult(found);
+    }
+
+    public Exception? ThrowOnceOnRetrievePlayersInvitesForTeam { get; set; }
+
+    public Task<List<CaptainOrPlayerInviteSummary>> RetrievePlayersInvitesForTeam(string league, string season, string teamName)
+    {
+        if (ThrowOnceOnRetrievePlayersInvitesForTeam != null)
+        {
+            var ex = ThrowOnceOnRetrievePlayersInvitesForTeam;
+            ThrowOnceOnRetrievePlayersInvitesForTeam = null;
+            throw ex;
+        }
+
+        // Mirrors the real guards, as above.
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.League))} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.Season))} is required");
+        if (string.IsNullOrWhiteSpace(teamName)) errors.Add($"{JsonFieldName.For<CaptainOrPlayerInvite>(nameof(CaptainOrPlayerInvite.InviteeTeam))} is required");
+        if (errors.Count > 0) throw new ValidationException(errors);
+
+        // Mirrors the real rule: CAPTAIN and PLAYER invites of the one team, matched
+        // case-insensitively with surrounding whitespace ignored; no name filter.
+        var requestedTeam = teamName.Trim();
+
+        var found = Invites.Values
+            .OfType<CaptainOrPlayerInvite>()
+            .Where(i => i.League == league
+                     && i.Season == season
+                     && (i.InviteeRole == Role.CAPTAIN || i.InviteeRole == Role.PLAYER)
+                     && string.Equals(i.InviteeTeam.Trim(), requestedTeam, StringComparison.OrdinalIgnoreCase))
+            .Select(i => new CaptainOrPlayerInviteSummary
             {
                 NanoId = i.NanoId,
                 InviteeTeam = i.InviteeTeam,

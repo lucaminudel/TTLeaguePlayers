@@ -26,6 +26,7 @@ public partial class ApiGatewayProxyHandler
     private readonly AccepteInviteLambda _acceptInviteLambda;
     private readonly DeleteInviteLambda _deleteInviteLambda;
     private readonly RetrieveTeamRegistrationsLambda _retrieveTeamRegistrationsLambda;
+    private readonly RetrieveTeamPlayersRegistrationsLambda _retrieveTeamPlayersRegistrationsLambda;
     private readonly CreateKudosLambda _createKudosLambda;
     private readonly DeleteKudosLambda _deleteKudosLambda;
     private readonly RetrieveKudosGivenByPlayerLambda _retrieveKudosGivenByPlayerLambda;
@@ -69,6 +70,7 @@ public partial class ApiGatewayProxyHandler
         _acceptInviteLambda = new AccepteInviteLambda(_observer, invitesDataTable, cognitoUsers);
         _deleteInviteLambda = new DeleteInviteLambda(_observer, invitesDataTable);
         _retrieveTeamRegistrationsLambda = new RetrieveTeamRegistrationsLambda(_observer, invitesDataTable);
+        _retrieveTeamPlayersRegistrationsLambda = new RetrieveTeamPlayersRegistrationsLambda(_observer, invitesDataTable);
 
         var kudosDataTable = new KudosDataTable(config.DynamoDB.ServiceLocalUrl, region, config.DynamoDB.TablesNameSuffix);
         _createKudosLambda = new CreateKudosLambda(_observer, kudosDataTable, cognitoUsers);
@@ -100,6 +102,7 @@ public partial class ApiGatewayProxyHandler
         _acceptInviteLambda = markInviteAcceptedLambda;
         _deleteInviteLambda = deleteInviteLambda;
         _retrieveTeamRegistrationsLambda = new RetrieveTeamRegistrationsLambda(new LoggerObserver(), invitesDataTable);
+        _retrieveTeamPlayersRegistrationsLambda = new RetrieveTeamPlayersRegistrationsLambda(new LoggerObserver(), invitesDataTable);
         _createKudosLambda = createKudosLambda;
         _deleteKudosLambda = deleteKudosLambda;
         _retrieveKudosGivenByPlayerLambda = retrieveKudosGivenByPlayerLambda;
@@ -147,10 +150,15 @@ public partial class ApiGatewayProxyHandler
                 (var m, "/invites") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
                 // Team registration status for a club's teams: POST /invites/registrations/club-teams
-                // BOTH arms below MUST stay ahead of the /invites/ prefix group that follows. 
+                // ALL FOUR registrations arms below MUST stay ahead of the /invites/ prefix group that follows. 
                 ("OPTIONS", "/invites/registrations/club-teams") => CreatePreflightResponse("OPTIONS,POST", request),
 
                 ("POST", "/invites/registrations/club-teams") => await HandleGetTeamRegistrations(request, context),
+
+                // Registration status of a team's players: POST /invites/registrations/team-players
+                ("OPTIONS", "/invites/registrations/team-players") => CreatePreflightResponse("OPTIONS,POST", request),
+
+                ("POST", "/invites/registrations/team-players") => await HandleGetTeamPlayersRegistrations(request, context),
 
                 // Preflight for /invites/{nano_id}
                 ("OPTIONS", var p) when p.StartsWith("/invites/") => CreatePreflightResponse("OPTIONS,GET,PATCH,DELETE", request),
@@ -537,6 +545,40 @@ public partial class ApiGatewayProxyHandler
             var errorMessage = "Validation failed";
 
             _observer.OnRuntimeRegularEvent("GET TEAM REGISTRATIONS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
+
+            return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleGetTeamPlayersRegistrations(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var fromHere = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleGetTeamPlayersRegistrations));
+        var inParameters = GetInputParameters(request);
+
+        _observer.OnBusinessEvent("GET TEAM PLAYERS REGISTRATIONS", context, inParameters);
+
+        // POST for the same reason as the club-teams route: the player-name list travels in the body.
+        ExtractBodyOrCreateResponseAndNotifyObserver("GET TEAM PLAYERS REGISTRATIONS COMPLETED", context, request.Headers, request.Body, fromHere, inParameters,
+                                                     out TeamPlayersRegistrationsRequest? registrationsRequest, out APIGatewayProxyResponse? extractResponse);
+        if (registrationsRequest is null)
+            return extractResponse!;
+
+        Dictionary<string, string> userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+
+        try
+        {
+            var registrations = await _retrieveTeamPlayersRegistrationsLambda.HandleAsync(registrationsRequest, userClaims, context);
+
+            _observer.OnRuntimeRegularEvent("GET TEAM PLAYERS REGISTRATIONS COMPLETED", fromHere, context, inParameters.With(HttpStatusCode.OK));
+
+            return CreateResponse(HttpStatusCode.OK, registrations);
+        }
+        catch (ValidationException ex)
+        {
+            var responseStatusCode = HttpStatusCode.BadRequest;
+            var errorMessage = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("GET TEAM PLAYERS REGISTRATIONS COMPLETED", fromHere, context, inParameters.With(responseStatusCode, errorMessage));
 
             return CreateResponse(responseStatusCode, new { message = errorMessage, errors = ex.Errors });
         }

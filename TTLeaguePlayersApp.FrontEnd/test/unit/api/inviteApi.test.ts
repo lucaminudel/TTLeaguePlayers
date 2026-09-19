@@ -6,6 +6,8 @@ import {
   type CreateInviteRequest,
   type TeamRegistrationsRequest,
   type TeamRegistrationsResponse,
+  type TeamPlayersRegistrationsRequest,
+  type TeamPlayersRegistrationsResponse,
   Role,
 } from '../../../src/types/invite';
 import { invalidateCacheByPrefix } from '../../../src/utils/CacheUtils';
@@ -243,6 +245,89 @@ describe('inviteApi', () => {
       vi.mocked(apiFetch).mockResolvedValue({ teams: [] });
 
       await inviteApi.getTeamRegistrations(request);
+
+      expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getTeamPlayersRegistrations', () => {
+    const request: TeamPlayersRegistrationsRequest = {
+      league: 'CLTTL',
+      season: '2025-2026',
+      team_division: 'Division 4',
+      team_name: 'Morpeth 10',
+      player_names: ['Luca Minudel', 'Michele De Giovanni'],
+    };
+
+    it('should POST to /invites/registrations/team-players', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ players: [] });
+
+      await inviteApi.getTeamPlayersRegistrations(request);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites/registrations/team-players',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should send the whole request in the body', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ players: [] });
+
+      await inviteApi.getTeamPlayersRegistrations(request);
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        'https://api.example.com',
+        '/invites/registrations/team-players',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(request),
+        })
+      );
+    });
+
+    it('should not put player names or the team in the path', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ players: [] });
+
+      await inviteApi.getTeamPlayersRegistrations(request);
+
+      const [, path] = vi.mocked(apiFetch).mock.calls[0];
+      expect(path).toBe('/invites/registrations/team-players');
+      expect(path).not.toContain('Minudel');
+      expect(path).not.toContain('Morpeth');
+    });
+
+    // The response is a FULL OUTER JOIN: requested names first, then the extras with no player_name.
+    it('should return the response unchanged, extras included', async () => {
+      const response: TeamPlayersRegistrationsResponse = {
+        league: 'CLTTL',
+        season: '2025-2026',
+        team_division: 'Division 4',
+        team_name: 'Morpeth 10',
+        players: [
+          { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234' },
+          { player_name: 'Michele De Giovanni', status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'efgh5678' },
+          { player_name: 'Nobody Yet', status: 'NOT_INVITED', accepted_at: null },
+          { status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'ijkl9012', invitee_name: 'Someone Who Left' },
+        ],
+      };
+      vi.mocked(apiFetch).mockResolvedValue(response);
+
+      const result = await inviteApi.getTeamPlayersRegistrations(request);
+
+      expect(result).toEqual(response);
+      // NOT_INVITED entries carry accepted_at: null and neither invitee_role nor nano_id.
+      expect(result.players[2].accepted_at).toBeNull();
+      expect(result.players[2].invitee_role).toBeUndefined();
+      expect(result.players[2].nano_id).toBeUndefined();
+      // An extra has no player_name — that absence is what marks it.
+      expect(result.players[3].player_name).toBeUndefined();
+    });
+
+    it('should not invalidate the cache — it is a read', async () => {
+      vi.mocked(apiFetch).mockResolvedValue({ players: [] });
+
+      await inviteApi.getTeamPlayersRegistrations(request);
 
       expect(invalidateCacheByPrefix).not.toHaveBeenCalled();
     });

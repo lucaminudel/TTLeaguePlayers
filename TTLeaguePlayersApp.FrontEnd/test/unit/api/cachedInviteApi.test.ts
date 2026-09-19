@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getCachedTeamRegistrations, INVITE_CACHE_PREFIX } from '../../../src/api/cachedInviteApi';
-import type { TeamRegistrationsRequest, TeamRegistrationsResponse } from '../../../src/types/invite';
+import {
+    getCachedTeamPlayersRegistrations,
+    getCachedTeamRegistrations,
+    INVITE_CACHE_PREFIX
+} from '../../../src/api/cachedInviteApi';
+import type {
+    TeamPlayersRegistrationsRequest,
+    TeamPlayersRegistrationsResponse,
+    TeamRegistrationsRequest,
+    TeamRegistrationsResponse
+} from '../../../src/types/invite';
 import { setUnitFixedClockTime } from '../TestClockUtils';
 
 const inviteApiMocks = vi.hoisted(() => ({
     getTeamRegistrations: vi.fn(),
+    getTeamPlayersRegistrations: vi.fn(),
 }));
 
 vi.mock('../../../src/api/inviteApi', async () => {
@@ -14,6 +24,7 @@ vi.mock('../../../src/api/inviteApi', async () => {
         inviteApi: {
             ...actual.inviteApi,
             getTeamRegistrations: inviteApiMocks.getTeamRegistrations,
+            getTeamPlayersRegistrations: inviteApiMocks.getTeamPlayersRegistrations,
         },
     };
 });
@@ -282,5 +293,256 @@ describe('cachedInviteApi', () => {
         expect(cached.teams[1].status).toBe('NOT_INVITED');
         expect(cached.teams[1].accepted_at).toBeNull();
         expect('accepted_at' in cached.teams[1]).toBe(true);
+    });
+});
+
+describe('getCachedTeamPlayersRegistrations', () => {
+    const request: TeamPlayersRegistrationsRequest = {
+        league: 'CLTTL',
+        season: '2025-2026',
+        team_division: 'Division 4',
+        team_name: 'Morpeth 10',
+        player_names: ['Luca Minudel', 'Michele De Giovanni'],
+    };
+
+    const CACHE_KEY = `${INVITE_CACHE_PREFIX}players_CLTTL_2025-2026_Division 4_Morpeth 10`;
+
+    // Requested entries first, then one EXTRA (no player_name) — the shape the endpoint returns.
+    const buildResponse = (overrides: Partial<TeamPlayersRegistrationsResponse> = {}): TeamPlayersRegistrationsResponse => ({
+        league: 'CLTTL',
+        season: '2025-2026',
+        team_division: 'Division 4',
+        team_name: 'Morpeth 10',
+        players: [
+            { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234' },
+            { player_name: 'Michele De Giovanni', status: 'NOT_INVITED', accepted_at: null },
+            { status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'xtra0001', invitee_name: 'Someone Who Left', created_at: 1000 },
+        ],
+        ...overrides,
+    });
+
+    beforeEach(() => {
+        localStorage.clear();
+        vi.clearAllMocks();
+        setUnitFixedClockTime(undefined);
+    });
+
+    afterEach(() => {
+        setUnitFixedClockTime(undefined);
+    });
+
+    it('should fetch and cache on a miss', async () => {
+        const response = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(response);
+
+        const result = await getCachedTeamPlayersRegistrations(request);
+
+        expect(result).toEqual(response);
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+        expect(localStorage.getItem(CACHE_KEY)).not.toBeNull();
+    });
+
+    it('should serve from cache without refetching while fresh', async () => {
+        setUnitFixedClockTime('2026-08-07T10:00:00Z');
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+        await getCachedTeamPlayersRegistrations(request);
+
+        // 12 hours later — inside the 1 day fresh window.
+        setUnitFixedClockTime('2026-08-07T22:00:00Z');
+        const result = await getCachedTeamPlayersRegistrations(request);
+
+        expect(result.players).toHaveLength(3);
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+    });
+
+    it('should serve stale data and refresh in the background after the fresh window', async () => {
+        setUnitFixedClockTime('2026-08-01T10:00:00Z');
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+        await getCachedTeamPlayersRegistrations(request);
+
+        // 2 days later — past 1 day fresh, inside 3 days stale (the club twin's window is 6 days).
+        setUnitFixedClockTime('2026-08-03T10:00:00Z');
+        const refreshed = buildResponse({
+            players: [
+                { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234' },
+                { player_name: 'Michele De Giovanni', status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'zzzz9999' },
+            ],
+        });
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        const onDataUpdate = vi.fn();
+        const result = await getCachedTeamPlayersRegistrations(request, onDataUpdate);
+
+        // The stale value comes back immediately...
+        expect(result.players).toHaveLength(3);
+        // ...and a refresh was triggered behind it.
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+
+        await vi.waitFor(() => {
+            expect(onDataUpdate).toHaveBeenCalledWith(refreshed);
+        });
+    });
+
+    it('should refetch once the stale window has passed', async () => {
+        setUnitFixedClockTime('2026-08-01T10:00:00Z');
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+        await getCachedTeamPlayersRegistrations(request);
+
+        // 4 days later — beyond the 3 day stale window (the club twin would still serve stale here).
+        setUnitFixedClockTime('2026-08-05T10:00:00Z');
+        const refreshed = buildResponse({ players: [] });
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        const result = await getCachedTeamPlayersRegistrations(request);
+
+        expect(result.players).toEqual([]);
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+    });
+
+    describe('cache key', () => {
+        it('should be keyed on league, season, division and team', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+
+            expect(Object.keys(localStorage)).toContain(CACHE_KEY);
+        });
+
+        // The player list is NOT part of the key — one entry per team, checked for fitness instead.
+        it('should keep a single entry per team whatever the player list', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            await getCachedTeamPlayersRegistrations({ ...request, player_names: ['Michele De Giovanni', 'Luca Minudel'] });
+            await getCachedTeamPlayersRegistrations({ ...request, player_names: ['Luca Minudel', 'New Player'] });
+
+            expect(Object.keys(localStorage).filter(k => k.startsWith(INVITE_CACHE_PREFIX))).toHaveLength(1);
+        });
+
+        it('should not share a cache entry across teams', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            await getCachedTeamPlayersRegistrations({ ...request, team_name: 'Morpeth 9' });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not share a cache entry across seasons', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            await getCachedTeamPlayersRegistrations({ ...request, season: '2024-2025' });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+        });
+
+        // The club-teams cache is a different entry: the two twins must never read each other's data.
+        it('should not collide with the club-teams cache prefix', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+
+            expect(Object.keys(localStorage).filter(k => k.startsWith(`${INVITE_CACHE_PREFIX}registrations_`))).toHaveLength(0);
+        });
+    });
+
+    // Fitness is judged on the REQUESTED names only: the extras are whatever the backend found and
+    // say nothing about what the caller asked for.
+    describe('cached entry fitness', () => {
+        it('should reuse the entry when only the order of the player list changed, keeping the extras at the tail', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            const result = await getCachedTeamPlayersRegistrations({
+                ...request,
+                player_names: ['Michele De Giovanni', 'Luca Minudel'],
+            });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+            expect(result.players.map(p => p.player_name)).toEqual(['Michele De Giovanni', 'Luca Minudel', undefined]);
+            expect(result.players[2].nano_id).toBe('xtra0001');
+        });
+
+        it('should reuse the entry when a player was removed, dropping the surplus but keeping the extras', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            const result = await getCachedTeamPlayersRegistrations({ ...request, player_names: ['Luca Minudel'] });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+            expect(result.players.map(p => p.player_name)).toEqual(['Luca Minudel', undefined]);
+        });
+
+        it('should discard the entry and refetch when a player was added', async () => {
+            setUnitFixedClockTime('2026-08-07T10:00:00Z');
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+
+            const withNewPlayer = { ...request, player_names: ['Luca Minudel', 'Michele De Giovanni', 'New Player'] };
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse({
+                players: [
+                    { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234' },
+                    { player_name: 'Michele De Giovanni', status: 'NOT_INVITED', accepted_at: null },
+                    { player_name: 'New Player', status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'wxyz5678' },
+                ],
+            }));
+
+            // One minute later — freshness alone would have served the entry. Fitness decides.
+            setUnitFixedClockTime('2026-08-07T10:01:00Z');
+            const result = await getCachedTeamPlayersRegistrations(withNewPlayer);
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+            expect(result.players.map(p => p.player_name)).toEqual(['Luca Minudel', 'Michele De Giovanni', 'New Player']);
+            expect(result.players[2].status).toBe('PENDING');
+        });
+
+        // Byte-exact on the client, as for teams: a re-cased name is a different key here even
+        // though the backend would have matched it.
+        it('should discard the entry when a requested player differs only by case', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            await getCachedTeamPlayersRegistrations({ ...request, player_names: ['luca minudel', 'Michele De Giovanni'] });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+        });
+
+        // An extra's invitee_name is not a requested name: asking for that person by name must NOT be
+        // answered from the cache, because the cached entry has no player_name row for them.
+        it('should not treat an extra as covering a requested name', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            await getCachedTeamPlayersRegistrations({ ...request, player_names: ['Luca Minudel', 'Someone Who Left'] });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+        });
+
+        it('should return the requested players in the requested order, then the extras, on a cache hit', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+            await getCachedTeamPlayersRegistrations(request);
+            const cached = await getCachedTeamPlayersRegistrations(request);
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+            expect(cached.players.slice(0, 2).map(p => p.player_name)).toEqual(request.player_names);
+            expect(cached.players[2].player_name).toBeUndefined();
+        });
+    });
+
+    it('should preserve a null accepted_at through the cache', async () => {
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
+
+        await getCachedTeamPlayersRegistrations(request);
+        const cached = await getCachedTeamPlayersRegistrations(request);
+
+        expect(cached.players[1].status).toBe('NOT_INVITED');
+        expect(cached.players[1].accepted_at).toBeNull();
+        expect('accepted_at' in cached.players[1]).toBe(true);
     });
 });

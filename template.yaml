@@ -277,6 +277,20 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+        InvitesRegistrationsTeamPlayers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites/registrations/team-players
+            Method: POST
+        InvitesRegistrationsTeamPlayersOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /invites/registrations/team-players
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         # Read-only listing of clubs and their active tournaments, shown on the public
         # Clubs & Tournaments page to visitors who are not logged in.
         ClubsGet:

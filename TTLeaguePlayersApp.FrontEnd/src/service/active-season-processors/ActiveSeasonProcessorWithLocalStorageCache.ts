@@ -6,6 +6,9 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
     private CACHE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours
     private DOUBLE_EXPIRATION_MS = 2 * this.CACHE_DURATION_MS; // 6 days
 
+    private PLAYERS_CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    private PLAYERS_EXPIRATION_MS = 3 * this.PLAYERS_CACHE_DURATION_MS; // 3 days
+
     private realProcessor: ActiveSeasonProcessor;
 
     // The factory supplies the identity prefix (cache_<league>_<season>_<division>_<team>); this
@@ -47,8 +50,8 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
             this.playersCacheKey,
             () => this.realProcessor.getTeamPlayers(),
             {
-                freshDurationMs: this.CACHE_DURATION_MS,
-                staleDurationMs: this.DOUBLE_EXPIRATION_MS
+                freshDurationMs: this.PLAYERS_CACHE_DURATION_MS,
+                staleDurationMs: this.PLAYERS_EXPIRATION_MS
             }
         );
     }

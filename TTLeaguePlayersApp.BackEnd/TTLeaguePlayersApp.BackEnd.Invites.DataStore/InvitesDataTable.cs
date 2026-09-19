@@ -93,26 +93,46 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
         await _table.DeleteItemAsync(nanoId);
     }
 
-    public async Task<List<CaptainInviteSummary>> RetrieveCaptainInvitesForTeams(
+    public async Task<List<CaptainOrPlayerInviteSummary>> RetrieveCaptainInvitesForTeams(
         string league, string season, IReadOnlyList<string> teamNames)
     {
         ValidateRetrieveCaptainInvitesForTeamsParameters(league, season, teamNames);
 
-        // Team names are matched case-insensitively and with surrounding whitespace ignored.
-        // No frontend feature currently implemented in this codebase creates invites, so invitee_team
-        // is hand-typed and has only ever had a non-empty rule applied to it (CreateInviteLambda
-        // stores it verbatim) — a casing or padding difference is a data-entry slip,
-        // not a different team. Matching stops being forgiving there: it is NOT a prefix match, and
-        // punctuation still counts (a curly apostrophe is a different team from a straight one).
         var requestedTeams = new HashSet<string>(teamNames.Select(name => name.Trim()), StringComparer.OrdinalIgnoreCase);
 
         var values = new Dictionary<string, AttributeValue>
         {
-            [":league_season"] = new AttributeValue { S = LeagueSeasonKey(league, season) },
             [":captain"] = new AttributeValue { S = nameof(Role.CAPTAIN) }
         };
 
-        var invites = new List<CaptainInviteSummary>();
+        return await QueryLeagueSeasonInvites(league, season, "invitee_role = :captain", values,
+            invite => requestedTeams.Contains(invite.InviteeTeam.Trim()));
+    }
+
+    public async Task<List<CaptainOrPlayerInviteSummary>> RetrievePlayersInvitesForTeam(
+        string league, string season, string teamName)
+    {
+        ValidateRetrievePlayersInvitesForTeamParameters(league, season, teamName);
+
+        var requestedTeam = teamName.Trim();
+
+        var values = new Dictionary<string, AttributeValue>
+        {
+            [":captain"] = new AttributeValue { S = nameof(Role.CAPTAIN) },
+            [":player"] = new AttributeValue { S = nameof(Role.PLAYER) }
+        };
+
+        return await QueryLeagueSeasonInvites(league, season, "invitee_role IN (:captain, :player)", values,
+            invite => string.Equals(invite.InviteeTeam.Trim(), requestedTeam, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<List<CaptainOrPlayerInviteSummary>> QueryLeagueSeasonInvites(
+        string league, string season, string roleFilterExpression,
+        Dictionary<string, AttributeValue> values, Func<CaptainOrPlayerInviteSummary, bool> keep)
+    {
+        values[":league_season"] = new AttributeValue { S = LeagueSeasonKey(league, season) };
+
+        var invites = new List<CaptainOrPlayerInviteSummary>();
         Dictionary<string, AttributeValue>? exclusiveStartKey = null;
 
         do
@@ -122,7 +142,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
                 TableName = _tableName,
                 IndexName = "LeagueSeasonTeamIndex",
                 KeyConditionExpression = "league_season = :league_season",
-                FilterExpression = "invitee_role = :captain",
+                FilterExpression = roleFilterExpression,
                 ExpressionAttributeValues = values,
                 ExclusiveStartKey = exclusiveStartKey
             };
@@ -132,7 +152,7 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
             foreach (var item in response.Items)
             {
                 var invite = ToCaptainInviteSummary(item);
-                if (requestedTeams.Contains(invite.InviteeTeam.Trim()))
+                if (keep(invite))
                 {
                     invites.Add(invite);
                 }
@@ -148,9 +168,9 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
         return invites;
     }
 
-    private static CaptainInviteSummary ToCaptainInviteSummary(Dictionary<string, AttributeValue> item)
+    private static CaptainOrPlayerInviteSummary ToCaptainInviteSummary(Dictionary<string, AttributeValue> item)
     {
-        return new CaptainInviteSummary
+        return new CaptainOrPlayerInviteSummary
         {
             NanoId = GetString(item, "nano_id"),
             InviteeName = GetString(item, "invitee_name"),
@@ -182,17 +202,33 @@ public class InvitesDataTable : IDisposable, IInvitesDataTable
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(league)) errors.Add("league is required");
-        if (string.IsNullOrWhiteSpace(season)) errors.Add("season is required");
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.League))} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.Season))} is required");
 
+        // The requested names are matched against the stored invitee_team attribute, so the message
+        // names that field rather than the request's own field (which the lambda reports separately).
         if (teamNames is null || teamNames.Count == 0)
         {
-            errors.Add("team_names is required and must contain at least one team name");
+            errors.Add($"at least one {JsonFieldName.For<CaptainOrPlayerInvite>(nameof(CaptainOrPlayerInvite.InviteeTeam))} is required");
         }
         else if (teamNames.Any(string.IsNullOrWhiteSpace))
         {
-            errors.Add("team_names must not contain empty team names");
+            errors.Add($"{JsonFieldName.For<CaptainOrPlayerInvite>(nameof(CaptainOrPlayerInvite.InviteeTeam))} must not be empty");
         }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateRetrievePlayersInvitesForTeamParameters(string league, string season, string teamName)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(league)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.League))} is required");
+        if (string.IsNullOrWhiteSpace(season)) errors.Add($"{JsonFieldName.For<Invite>(nameof(Invite.Season))} is required");
+        if (string.IsNullOrWhiteSpace(teamName)) errors.Add($"{JsonFieldName.For<CaptainOrPlayerInvite>(nameof(CaptainOrPlayerInvite.InviteeTeam))} is required");
 
         if (errors.Count > 0)
         {

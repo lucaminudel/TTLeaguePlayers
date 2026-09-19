@@ -116,3 +116,52 @@ export interface TeamRegistrationsResponse {
     /** One entry per REQUESTED team, in the order they were sent. A left join, not a filter. */
     teams: TeamRegistrationEntry[];
 }
+
+/**
+ * Registration status of a team's players, as reported by POST /invites/registrations/team-players.
+ */
+export interface TeamPlayersRegistrationsRequest {
+    league: string;
+    season: string;
+    team_division: string;
+    team_name: string;
+    /**
+     * The players as the league site spells them. Matched against the stored invitee_name. At least one, none blank.
+     */
+    player_names: string[];
+}
+
+export interface PlayerRegistrationEntry {
+    /**
+     * Echoes the spelling that was SENT, so the caller can join this back to its own player list.
+     */
+    player_name?: string;
+    status: TeamRegistrationStatus;
+    /** CAPTAIN or PLAYER, from the invite. Absent on NOT_INVITED. */
+    invitee_role?: 'CAPTAIN' | 'PLAYER';
+
+    /**
+     * Always present. A number when ACCEPTED, and explicitly null on both PENDING and NOT_INVITED —
+     * so its null does NOT distinguish the two. Branch on `status`, never on field presence.
+     */
+    accepted_at: number | null;
+
+    /**
+     * The four fields below come from the invite record, so they are ABSENT on NOT_INVITED entries.
+     */
+    nano_id?: string;
+    invitee_name?: string;
+    invitee_email_id?: string;
+    created_at?: number;
+}
+
+export interface TeamPlayersRegistrationsResponse {
+    league: string;
+    season: string;
+    team_division: string;
+    team_name: string;
+    /**
+     * A FULL OUTER JOIN between the requested player_names and the team's invites
+     */
+    players: PlayerRegistrationEntry[];
+}
