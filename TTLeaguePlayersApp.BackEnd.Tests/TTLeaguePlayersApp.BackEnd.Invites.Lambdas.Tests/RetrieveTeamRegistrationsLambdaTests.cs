@@ -214,21 +214,6 @@ public class RetrieveTeamRegistrationsLambdaTests
     }
 
     [Fact]
-    public async Task WhenTwoCaptainInvitesExist_EmitsAWarningNamingTheTeamAndBothIds()
-    {
-        _dataTable.Seed(CreateCaptainInvite("11111111", "Morpeth 9", acceptedAt: null, createdAt: 1000));
-        _dataTable.Seed(CreateCaptainInvite("22222222", "Morpeth 9", acceptedAt: null, createdAt: 2000));
-
-        await CreateLambda().HandleAsync(CreateRequest("Morpeth 9"), ManagerClaims(), _context);
-
-        var warning = _observer.RuntimeIrregularEvents.Should().ContainSingle().Subject;
-        warning.EventName.Should().Be("DUPLICATE CAPTAIN INVITES FOR TEAM");
-        warning.Parameters!["team_name"].Should().Be("Morpeth 9");
-        warning.Parameters["invites_count"].Should().Be("2");
-        warning.Parameters["nano_ids"].Should().Be("11111111,22222222");
-    }
-
-    [Fact]
     public async Task WhenOnlyOneCaptainInviteExists_EmitsNoWarning()
     {
         _dataTable.Seed(CreateCaptainInvite("11111111", "Morpeth 9", acceptedAt: null));

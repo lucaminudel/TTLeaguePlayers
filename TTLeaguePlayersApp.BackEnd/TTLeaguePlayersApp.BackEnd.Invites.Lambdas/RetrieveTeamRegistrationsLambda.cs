@@ -107,22 +107,6 @@ public class RetrieveTeamRegistrationsLambda
                 continue;
             }
 
-            if (teamInvites.Count > 1)
-            {
-                // The stored data is inconsistent: a team should have at most one captain invite.
-                _observer.OnRuntimeIrregularEvent("DUPLICATE CAPTAIN INVITES FOR TEAM",
-                    source: new() { ["Class"] = nameof(RetrieveTeamRegistrationsLambda), ["Method"] = nameof(BuildEntries) },
-                    context,
-                    parameters: new()
-                    {
-                        ["league"] = request.League,
-                        ["season"] = request.Season,
-                        ["team_name"] = teamName,
-                        ["invites_count"] = teamInvites.Count.ToString(),
-                        ["nano_ids"] = string.Join(",", teamInvites.Select(i => i.NanoId).OrderBy(id => id, StringComparer.Ordinal))
-                    }, userClaims);
-            }
-
             // Prefer an accepted invite; among equals, the most recently created. Sorted explicitly
             // because neither the datastore nor the fake promises an order.
             var invite = teamInvites
