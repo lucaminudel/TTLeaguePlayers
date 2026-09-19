@@ -15,6 +15,12 @@ produced in the working tree:
 - `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md`
 - `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/work-summary.md`
 
+Read also, when it exists, the Discovery findings report `coding-task-discovery` persisted in the
+same directory — `<slug>/discovery.md`. It is not needed to *check* the diff (the plan and the work
+summary are what the diff is reviewed against) but it is the richest source of the **intent** the
+PR-review guide has to explain in Phase 5: the bigger picture the task serves, the domain glossary,
+the live-source evidence, and the decisions that were deliberately left out.
+
 List the `coding-tasks/` directory to find the slug rather than guessing it: one match, use it;
 several, ask the user which.
 
@@ -288,25 +294,53 @@ summary exists so the user can decide whether to open it now or when they sit do
 right?" and not with the commit message. Phases 5, 6 and 7 are three separate messages in that
 order: the guide, then the proposed commit message, then the retrospect question.
 
+**Explain the intent, not just the diff — and take it from the persisted files, not from memory.**
+A reviewer reading cold needs to know *why* this change exists before they can judge whether it is
+right. The three earlier skills already wrote that down; the guide's job is to distil it, not to
+re-derive it or to leave it out:
+
+| Source | What to draw from it for the guide |
+|---|---|
+| `discovery.md` | the **bigger picture** (which end-user feature or outcome the task serves) and **what this task contributes** to it; the **domain vocabulary** the reviewer needs (its glossary, in the app's own terms); the **live-source facts** the change rests on (URLs fetched, values seen, dated); the **contradictions and gaps** found |
+| `plan.md` | the **goal** and the explicit **out-of-scope**; the **decision table with its whys** — every design choice the reviewer will otherwise question; the **research findings** that justify the shape of the change; assumptions and accepted risks; the "left for later" note |
+| `work-summary.md` | per file, **why it changed** and the sub-task that owns it; what was **verified** and how; every item flagged **needs human review** |
+
+Use them where they help the reader and nowhere else: a one-line feature context beats a pasted
+framing section, and a decision's *why* belongs next to the file that embodies it. Cite the domain
+docs under `prompts/codebase_info/` when a concept needs more than a sentence, rather than restating
+them. If a persisted file is missing, say in the guide which one, and that its part of the intent
+is reconstructed from the diff and therefore weaker.
+
 The document carries:
 
 - **What this change does** — a short paragraph, in the terms of the app rather than of the code:
-  the user-visible or behavioural outcome, and the shape of the solution. Enough that the rest of
-  the guide lands.
+  the feature or outcome it serves (from the discovery framing), the user-visible or behavioural
+  outcome, and the shape of the solution. Enough that the rest of the guide lands.
+- **Decisions the reviewer would otherwise question** — the plan's decision table, condensed to the
+  ones visible in the diff, each with its *why* and, where the diff diverges from the obvious or
+  from what a brief might have said, the alternative that was rejected and its cost. Deferred
+  scope (the plan's "left for later") goes here too, so the reviewer does not flag as missing what
+  was deliberately not built.
 - **Verification status** — the tier-2 run and outcome, dated.
 - **Findings** — high-priority ones with their resolution; noted-not-actioned ones as a list. Keep
   dismissed findings and *why* they were dismissed; that is what a later session needs most.
-- **What to review, in what order** — the reading order that makes the change comprehensible, not
-  alphabetical. Start with the port or the contract, then the implementation, then the wiring, then
-  the tests. Say which files are mechanical (a field added in six call sites) so the reviewer can
-  skim them.
-- **Per file: context, change, and what to look for** — for every reviewed file, enough that the
-  diff is readable without hunting for surrounding code:
-  - what that file is and where it sits in the design, for a reviewer who has not opened it before;
-  - what changed in it and *why*, tied to its sub-task;
-  - what specifically to look for while reading it — the risk in this change, the invariant it must
-    hold, the neighbouring code it has to stay consistent with, or "mechanical, skim" when there is
-    genuinely nothing.
+- **What to review, in what order** — a short numbered index of the reading order that makes the
+  change comprehensible, not alphabetical: the port or the contract first, then the implementation,
+  then the wiring, then the tests. Say which steps are mechanical so the reviewer can skim them.
+- **Walkthrough, in reading order** — the per-file content, **organised under the steps of that
+  index** (one sub-section per step, the files of that step beneath it), never as a flat file list.
+  The user asked for exactly this shape (2026-09-19) because a flat per-file section forces the
+  reader to reconstruct the order themselves. Each file is presented in the same three labelled
+  parts, so the eye finds them without reading prose:
+  - **What it is** — what the file is and where it sits in the design, for a reviewer who has not
+    opened it before (the discovery report's technical findings and the domain docs are the source);
+  - **What changed** — what changed in it and *why*, tied to its sub-task in the work summary and,
+    where a plan decision shaped it, to that decision;
+  - **Look for** — what specifically to look for while reading it, as a short bullet list: the risk
+    in this change, the invariant it must hold, the neighbouring code it has to stay consistent
+    with, or "mechanical" when there is genuinely nothing.
+  Do not keep a separate flat "per file" section beside the walkthrough — it doubles the length
+  and the two drift apart.
 - **What to check** — the specific things a human should verify that tests do not: values against
   the live external source, config values per environment, judgement calls, anything the work
   summary flagged as needing human review, and every assumption baked into code.
@@ -394,6 +428,9 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
 - Ending the two-list overview with a question. The overview carries no ask at all.
 - Moving to the next finding before the current one is decided, fixed and verified.
 - Writing a PR guide that restates the diff instead of directing attention within it.
+- Writing a PR guide that explains *what* changed but not *why* — the feature it serves, the
+  decisions behind its shape, the scope left out — when `discovery.md`, `plan.md` and
+  `work-summary.md` already hold that intent and were not read for it.
 - Listing a file in the PR guide without saying what it is, why it changed, and what to look for in
   it.
 - Appending the PR guide to the work summary instead of giving it its own `review-<slug>.md`.
