@@ -1,176 +1,127 @@
 import type { ClubTeamWithDivision } from '../../../types/clubTeam';
 
+/**
+ * One row of the league site's fixtures page in its Simple view (`&vm=2`).
+ *
+ * That view carries the date, time, the two teams and the venue — no players, no score, no
+ * completion state — and it is the only division-wide view small enough for the CORS proxy. Nothing
+ * in the app read the players or the completion flag, so the shape is deliberately these four.
+ *
+ * `startDateTime` is the page's wall-clock time labelled as UTC ("19:30" -> "T19:30:00Z"): it is
+ * the key under which kudos are stored, so this reading must never change.
+ */
 export interface Fixture {
     startDateTime: Date;
     venue: string;
     homeTeam: string;
-    homeTeamPlayers: string[];
     awayTeam: string;
-    awayTeamPlayers: string[];
-    isCompleted: boolean;
 }
 
-// The league site writes divisions as URL slugs - "Division_Four"
-const NUMBER_WORDS: Record<string, string> = {
-    one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9'
+const MONTHS: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
 };
 
 /**
- * Turns a division URL slug into the spelling kudos are stored under.
- *
- *   Division_Four    ->  Division 4
- *   Division_Premier ->  Division Premier
- *   division_one     ->  Division 1
+ * The fixtures page prints dates without a year ("Mon 29 Sep"). A season runs from the autumn of
+ * one year into the spring of the next, so the year is the season's first year from August to
+ * December and its second year from January to July.
  */
-function divisionFromSlug(slug: string): string {
-    return slug
-        .split('_')
-        .map((word) => NUMBER_WORDS[word.toLowerCase()] ?? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
+function yearFor(month: string, seasonStartYear: number): number {
+    return parseInt(month, 10) >= 8 ? seasonStartYear : seasonStartYear + 1;
 }
 
 export class CLTTLActiveSeason2025PagesParser {
     /**
-     * Extracts the list of team names by parsing the division table's HTML page.
+     * Extracts the list of team names by parsing the division table's HTML page, in table order.
      * @param tableHtmlPage The HTML content of the division table page.
      * @returns An array of team names.
      */
     public getTeams(tableHtmlPage: string): string[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(tableHtmlPage, 'text/html');
-        const tableDiv = doc.getElementById('Tables');
+        const table = doc.querySelector('table.tt-league-table');
 
-        if (!tableDiv) {
+        if (!table) {
             return [];
         }
 
-        const teamCells = tableDiv.querySelectorAll('td.teamName');
         const teams: string[] = [];
-
-        teamCells.forEach((cell) => {
-            // Look for span.visible-xs, if not found try span.hidden-xs
-            let span = cell.querySelector('span.visible-xs');
-            span ??= cell.querySelector('span.hidden-xs');
-
-            if (span) {
-                const anchor = span.querySelector('a');
-                if (anchor?.textContent) {
-                    teams.push(anchor.textContent.trim());
-                }
+        table.querySelectorAll('tbody tr td.tt-table-col-team a.tt-team-link').forEach((anchor) => {
+            const name = anchor.textContent.trim();
+            if (name) {
+                teams.push(name);
             }
         });
 
         return teams;
     }
 
+    /**
+     * Extracts every fixture of the division from the fixtures page in its Simple view (`&vm=2`).
+     *
+     * The page is one table per week; each row is date | time | home | away | venue. The date cell
+     * reads "Mon 29 Sep" and may also carry a badge ("R" rearranged, "P" postponed, "V" void);
+     * only the "DD Mon" part is read, so the day name and any badge letter are ignored.
+     */
     public getTeamFixtures(fixturesHtmlPage: string): Fixture[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(fixturesHtmlPage, 'text/html');
-        // Search inside the fixturesHtmsPage all the fixtures inside the element <div id="Fixtures" class="fixtures divStyle">
-        const fixturesDiv = doc.getElementById('Fixtures');
 
-        if (!fixturesDiv) {
+        if (!doc.querySelector('table.tt-fixture-table')) {
             return [];
         }
 
-        // Changed from .fixture.complete to .fixture to include unplayed fixtures
-        const fixtureElements = fixturesDiv.querySelectorAll('.fixture');
+        // The page names its own season ("Winter 2025-26"); its first year dates the fixtures.
+        const seasonName = doc.querySelector('input[name="leagueName"]')?.getAttribute('value') ?? '';
+        const seasonMatch = /(\d{4})/.exec(seasonName);
+        const seasonStartYear = seasonMatch ? parseInt(seasonMatch[1], 10) : new Date().getFullYear();
+
         const fixtures: Fixture[] = [];
 
-        fixtureElements.forEach((fixtureEl) => {
-            // inside <div class="date" itemprop="startDate"> you find info on the fixture start date and time
-            const dateEl = fixtureEl.querySelector('.date[itemprop="startDate"]');
+        doc.querySelectorAll('table.tt-fixture-table tbody tr').forEach((row) => {
+            const dateText = (row.querySelector('td.tt-fixture-date')?.textContent ?? '').trim();
+            const timeText = (row.querySelector('td.tt-fixture-time')?.textContent ?? '').trim();
 
-            const timeTag = dateEl?.querySelector('time');
+            const dateMatch = /(\d{1,2}) ([A-Za-z]{3})/.exec(dateText);
+            const timeMatch = /(\d{2}):(\d{2})/.exec(timeText);
+            const month = dateMatch ? MONTHS[dateMatch[2].toLowerCase()] : undefined;
+
             let startDateTime = new Date();
-            if (dateEl && timeTag) {
-                const dateStr = timeTag.getAttribute('datetime'); // "2025-09-29"
-                const fullText = dateEl.textContent;
-                const timeMatch = fullText ? /(\d{2}:\d{2})/.exec(fullText) : null;
-
-                if (dateStr && timeMatch) {
-                    startDateTime = new Date(`${dateStr}T${timeMatch[1]}:00Z`);
-                } else if (dateStr) {
-                    // Note: date-only strings like "2025-09-29" are already parsed as UTC midnight per spec
-                    startDateTime = new Date(dateStr);
-                }
+            if (dateMatch && month && timeMatch) {
+                const day = dateMatch[1].padStart(2, '0');
+                const year = yearFor(month, seasonStartYear);
+                startDateTime = new Date(`${String(year)}-${month}-${day}T${timeMatch[1]}:${timeMatch[2]}:00Z`);
             }
 
-            // then you find the <venueName> string
-            const venueEl = fixtureEl.querySelector('.venue span a') ?? fixtureEl.querySelector('.venue span');
-            const venue = (venueEl?.textContent ?? '').trim();
+            const teamLinks = row.querySelectorAll('a.tt-team-link');
+            const homeTeam = teamLinks.length > 0 ? teamLinks[0].textContent.trim() : '';
+            const awayTeam = teamLinks.length > 1 ? teamLinks[1].textContent.trim() : '';
 
-            // then insid <div class="homeTeam"> you find the name of the <homeTeam>
-            const homeTeamDiv = fixtureEl.querySelector('.homeTeam');
-            const homeTeamEl = homeTeamDiv?.querySelector('.teamName span a') ?? homeTeamDiv?.querySelector('.teamName');
-            const homeTeam = (homeTeamEl?.textContent ?? '').trim();
+            const venue = (row.querySelector('td.tt-fixture-venue')?.textContent ?? '').trim();
 
-            const homePlayerEls = homeTeamDiv?.querySelectorAll('.playerName span a');
-            const homeTeamPlayers: string[] = [];
-            if (homePlayerEls && homePlayerEls.length > 0) {
-                homePlayerEls.forEach(el => {
-                    const text = (el.textContent).trim();
-                    if (text) homeTeamPlayers.push(text);
-                });
-            } else {
-                const spans = homeTeamDiv?.querySelectorAll('.playerName span');
-                spans?.forEach(el => {
-                    const text = (el.textContent).trim();
-                    if (text) homeTeamPlayers.push(text);
-                });
-            }
-
-            // then insid <div class="awayTeam"> you find the name of the <awayTeam>
-            const awayTeamDiv = fixtureEl.querySelector('.awayTeam');
-            const awayTeamEl = awayTeamDiv?.querySelector('.teamName span a') ?? awayTeamDiv?.querySelector('.teamName');
-            const awayTeam = (awayTeamEl?.textContent ?? '').trim();
-
-            const awayPlayerEls = awayTeamDiv?.querySelectorAll('.playerName span a');
-            const awayTeamPlayers: string[] = [];
-            if (awayPlayerEls && awayPlayerEls.length > 0) {
-                awayPlayerEls.forEach(el => {
-                    const text = (el.textContent).trim();
-                    if (text) awayTeamPlayers.push(text);
-                });
-            } else {
-                const spans = awayTeamDiv?.querySelectorAll('.playerName span');
-                spans?.forEach(el => {
-                    const text = (el.textContent).trim();
-                    if (text) awayTeamPlayers.push(text);
-                });
-            }
-
-            const isCompleted = fixtureEl.classList.contains('complete');
-
-            fixtures.push({
-                startDateTime,
-                venue,
-                homeTeam,
-                homeTeamPlayers,
-                awayTeam,
-                awayTeamPlayers,
-                isCompleted
-            });
-
+            fixtures.push({ startDateTime, venue, homeTeam, awayTeam });
         });
 
         return fixtures;
     }
 
+    /**
+     * Extracts the players listed on the division's averages page filtered to one team (`&t=<id>`).
+     * A team with no averages yet gets a page without the table, hence `[]`.
+     */
     public getTeamPlayers(playersHtmlPage: string): string[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(playersHtmlPage, 'text/html');
-        const averagesDiv = doc.getElementById('Averages');
+        const table = doc.querySelector('table.tt-averages-table');
 
-        if (!averagesDiv) {
+        if (!table) {
             return [];
         }
 
-        const playerLinks = averagesDiv.querySelectorAll('a[title="View player statistics"]');
         const players: string[] = [];
-
-        playerLinks.forEach((link) => {
-            const name = (link.textContent).trim();
+        table.querySelectorAll('td.tt-averages-col-player a.tt-player-link').forEach((link) => {
+            const name = link.textContent.trim();
             if (name) {
                 players.push(name);
             }
@@ -180,37 +131,33 @@ export class CLTTLActiveSeason2025PagesParser {
     }
 
     /**
-     * Extracts the teams by parsing a club's page, each with the division it plays in.
-     * Every team listed is returned: the page shows only the current season and carries no
-     * season in its URL, so there is nothing to filter on.
+     * Extracts the teams of a club, each with its division, from the club's page.
+     * Every row of the Teams table is returned: the page shows the season the site considers
+     * current, and its League column is not used to filter.
      *
-     * The division is NOT a column on the page - it is only in the team link's href:
-     *   /CentralLondon/Results/Team/Statistics/Winter_2025-26/Division_Four/Morpeth_10
+     * The division is a column of that table, already spelled as the app spells it
+     * ("Premier", "Division 4"), so it is taken verbatim.
      */
     public getClubTeams(clubHtmlPage: string): ClubTeamWithDivision[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(clubHtmlPage, 'text/html');
-        const teamsDiv = doc.getElementById('TeamsList');
+        const table = doc.querySelector('table.tt-contact-table');
 
-        if (!teamsDiv) {
+        if (!table) {
             return [];
         }
 
-        const rows = teamsDiv.querySelectorAll('tbody tr');
         const teams: ClubTeamWithDivision[] = [];
 
-        rows.forEach((row) => {
-            // The team name is the first cell; later cells hold the season and the captain.
-            const anchor = row.querySelector('td:first-child a');
-            const team = (anchor?.textContent ?? '').trim();
+        table.querySelectorAll('tbody tr').forEach((row) => {
+            // League | Division | Team | Captain
+            const cells = row.querySelectorAll('td');
+            const team = cells.length > 2 ? cells[2].textContent.trim() : '';
 
             if (team) {
-                const segments = (anchor?.getAttribute('href') ?? '').split('/').filter(Boolean);
-                const divisionSlug = segments.length >= 2 ? segments[segments.length - 2] : '';
-
                 teams.push({
                     team_name: team,
-                    team_division: divisionSlug ? divisionFromSlug(divisionSlug) : ''
+                    team_division: cells[1].textContent.trim()
                 });
             }
         });
@@ -218,23 +165,26 @@ export class CLTTLActiveSeason2025PagesParser {
         return teams;
     }
 
+    /**
+     * Extracts the team ids from the team filter of the division's averages page. The select lists
+     * only that division's teams; the empty "All Teams" option is skipped.
+     */
     public getTeamIds(allPlayersHtmlPage: string): { team: string; id: number }[] {
         const parser = new DOMParser();
         const doc = parser.parseFromString(allPlayersHtmlPage, 'text/html');
-        const teamSelect = doc.querySelector('select#t');
+        const teamSelect = doc.querySelector('select#filterTeam');
 
         if (!teamSelect) {
             return [];
         }
 
-        const options = teamSelect.querySelectorAll('option');
         const teamIds: { team: string; id: number }[] = [];
 
-        options.forEach((option) => {
+        teamSelect.querySelectorAll('option').forEach((option) => {
             const idValue = option.getAttribute('value');
-            if (idValue && idValue !== '') {
+            if (idValue && /^\d+$/.test(idValue)) {
                 teamIds.push({
-                    team: (option.textContent).trim(),
+                    team: option.textContent.trim(),
                     id: parseInt(idValue, 10)
                 });
             }
@@ -242,4 +192,5 @@ export class CLTTLActiveSeason2025PagesParser {
 
         return teamIds;
     }
+
 }

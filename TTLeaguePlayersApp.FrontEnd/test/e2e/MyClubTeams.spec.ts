@@ -18,8 +18,11 @@ const MANAGER_PASSWORD = 'aA1!56789012';
 // Walworth's entry in club_teams. The club page is MOCKED because a club's team list genuinely
 // changes over time, unlike the historic pages the other specs fetch for real. The parser's contract
 // against the live site is covered by the processor's own integration tests.
-const WALWORTH_CLUB_URL_FRAGMENT = 'Club/6008';
-const EXPECTED_TEAMS = ['Walworth Enigma', 'Walworth Gainsford', 'Walworth Tigers', 'Walworth Wonderers'];
+// The club page's path on the league site. With avoidCORS the browser sends it URL-ENCODED inside
+// the proxy's url= parameter, so the match is done on the decoded request url.
+const WALWORTH_CLUB_URL_FRAGMENT = 'Clubs/TSPxHAtVSl';
+// From the fixture, in club-page order (the page lists teams by division, not alphabetically).
+const EXPECTED_TEAMS = ['Walworth Gainsford', 'Walworth Enigma', 'Walworth Tigers', 'Walworth Wonderers'];
 
 const fixtureHtml = fs.readFileSync(
     path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data/club_teams_walworth.html'),
@@ -32,7 +35,7 @@ const fixtureHtml = fs.readFileSync(
  */
 async function mockWalworthClubPage(page: Page): Promise<void> {
     const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
-        if (route.request().url().includes(WALWORTH_CLUB_URL_FRAGMENT)) {
+        if (decodeURIComponent(route.request().url()).includes(WALWORTH_CLUB_URL_FRAGMENT)) {
             await route.fulfill({ status: 200, contentType: 'text/html', body: fixtureHtml });
         } else {
             await route.continue();

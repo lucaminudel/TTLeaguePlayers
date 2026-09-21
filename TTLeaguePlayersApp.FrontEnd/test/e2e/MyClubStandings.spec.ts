@@ -19,13 +19,15 @@ const MANAGER_PASSWORD = 'aA1!56789012';
 // HIGHBURY, not Walworth. KudosAwardAndStanding.spec.ts awards kudos to "Walworth Tigers" and
 // deletes them in teardown, and spec files run in parallel workers — asserting on Walworth here
 // would race with it. Highbury is used by no other spec.
-const HIGHBURY_CLUB_URL_FRAGMENT = 'Club/359';
+// The club page's path on the league site. With avoidCORS the browser sends it URL-ENCODED inside
+// the proxy's url= parameter, so the match is done on the decoded request url.
+const HIGHBURY_CLUB_URL_FRAGMENT = 'Clubs/Highbury';
 
-// From the fixture, in club-page order. Nine teams across FIVE divisions, which is what makes this
+// From the fixture, in club-page order. Eight teams across FIVE divisions, which is what makes this
 // club worth using: the fan-out has to reach five different partitions to answer.
 const EXPECTED_TEAMS = [
     'Highbury 1', 'Highbury 2', 'Highbury 3', 'Highbury 4', 'Highbury 5',
-    'Highbury 6', 'Highbury 7', 'Highbury 8', 'Highbury 9'
+    'Highbury 6', 'Highbury 7', 'Highbury 8'
 ];
 
 const fixtureHtml = fs.readFileSync(
@@ -39,7 +41,7 @@ const fixtureHtml = fs.readFileSync(
  */
 async function mockHighburyClubPage(page: Page): Promise<void> {
     const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
-        if (route.request().url().includes(HIGHBURY_CLUB_URL_FRAGMENT)) {
+        if (decodeURIComponent(route.request().url()).includes(HIGHBURY_CLUB_URL_FRAGMENT)) {
             await route.fulfill({ status: 200, contentType: 'text/html', body: fixtureHtml });
         } else {
             await route.continue();
@@ -94,7 +96,7 @@ test.describe('My Club Standings Page', () => {
         await test.step('And each team shows an empty slot for all three counts', async () => {
             // No kudos exist for any Highbury team, so every count is zero and a zero renders as an
             // empty slot rather than a pill. The rows themselves still being here is the seeded left
-            // join doing its job: without it the table would be EMPTY rather than nine rows, and a
+            // join doing its job: without it the table would be EMPTY rather than eight rows, and a
             // manager would see their club as having no teams.
             const zeros = EXPECTED_TEAMS.map(() => '');
 
@@ -150,7 +152,7 @@ test.describe('My Club Standings Page - standings info modal', () => {
     const USER_B_EMAIL = 'test_already_registered3@user.test';
     const USER_B_PASSWORD = 'aA1!56789012';
 
-    const MORPETH_CLUB_URL_FRAGMENT = 'Club/392';
+    const MORPETH_CLUB_URL_FRAGMENT = 'Clubs/Morpeth';
 
     const morpethFixtureHtml = fs.readFileSync(
         path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data/club_teams_morpeth.html'),
@@ -159,7 +161,7 @@ test.describe('My Club Standings Page - standings info modal', () => {
 
     async function mockMorpethClubPage(page: Page): Promise<void> {
         const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
-            if (route.request().url().includes(MORPETH_CLUB_URL_FRAGMENT)) {
+            if (decodeURIComponent(route.request().url()).includes(MORPETH_CLUB_URL_FRAGMENT)) {
                 await route.fulfill({ status: 200, contentType: 'text/html', body: morpethFixtureHtml });
             } else {
                 await route.continue();

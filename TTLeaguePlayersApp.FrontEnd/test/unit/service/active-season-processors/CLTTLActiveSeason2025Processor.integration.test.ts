@@ -29,7 +29,7 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
     });
 
     it('should successfully get teams', async () => {
-        const mockHtml = '<div id="Tables"><table><td class="teamName"><span class="visible-xs"><a>Morpeth 10</a></span></td></table></div>';
+        const mockHtml = '<table class="table tt-league-table"><tbody><tr><td class="tt-table-col-team"><a class="tt-team-link">Morpeth 10</a></td></tr></tbody></table>';
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
             text: () => Promise.resolve(mockHtml),
@@ -41,45 +41,25 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
     });
 
     it('should successfully get fixtures, filtered by team and sorted by date', async () => {
+        // The Simple view (&vm=2) of the division fixtures page: date | time | home | away | venue
+        const row = (date: string, time: string, home: string, away: string) => `
+            <tr class="">
+                <td class="tt-fixture-date">${date}</td>
+                <td class="tt-fixture-time">${time}</td>
+                <td><a href="/x" class="tt-team-link">${home}</a></td>
+                <td><a href="/x" class="tt-team-link">${away}</a></td>
+                <td class="tt-fixture-venue">Somewhere</td>
+            </tr>`;
         const mockHtml = `
-            <div id="Fixtures">
+            <input type="hidden" name="leagueName" value="Winter 2025-26" />
+            <table class="table table-sm tt-fixture-table"><tbody>
                 <!-- Fixture 1: Later date, matches team -->
-                <div class="fixture complete">
-                    <div class="date" itemprop="startDate">
-                        <time datetime="2025-10-05">Sun 05 Oct 19:30</time>
-                    </div>
-                    <div class="homeTeam">
-                        <div class="teamName">Fusion 5</div>
-                    </div>
-                    <div class="awayTeam">
-                        <div class="teamName">Morpeth 10</div>
-                    </div>
-                </div>
+                ${row('Sun 05 Oct', '19:30', 'Fusion 5', 'Morpeth 10')}
                 <!-- Fixture 2: Earlier date, matches team -->
-                <div class="fixture complete">
-                    <div class="date" itemprop="startDate">
-                        <time datetime="2025-09-29">Mon 29 Sep 19:30</time>
-                    </div>
-                    <div class="homeTeam">
-                        <div class="teamName">Morpeth 10</div>
-                    </div>
-                    <div class="awayTeam">
-                        <div class="teamName">Fusion 6 Jr</div>
-                    </div>
-                </div>
+                ${row('Mon 29 Sep', '19:30', 'Morpeth 10', 'Fusion 6 Jr')}
                 <!-- Fixture 3: Doesn't match team -->
-                <div class="fixture complete">
-                    <div class="date" itemprop="startDate">
-                        <time datetime="2025-10-01">Wed 01 Oct 19:00</time>
-                    </div>
-                    <div class="homeTeam">
-                        <div class="teamName">Apex 4</div>
-                    </div>
-                    <div class="awayTeam">
-                        <div class="teamName">Irving 4</div>
-                    </div>
-                </div>
-            </div>`;
+                ${row('Wed 01 Oct', '19:00', 'Apex 4', 'Irving 4')}
+            </tbody></table>`;
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
             text: () => Promise.resolve(mockHtml),
@@ -99,8 +79,8 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
     });
 
     it('should successfully get team players', async () => {
-        const mockAllPlayersHtml = '<select id="t"><option value="73142">Morpeth 10</option></select>';
-        const mockTeamPlayersHtml = '<div id="Averages"><a title="View player statistics">Luca Minudel</a></div>';
+        const mockAllPlayersHtml = '<select id="filterTeam" name="t"><option value="">All Teams</option><option value="73142"> Morpeth 10 </option></select>';
+        const mockTeamPlayersHtml = '<table class="table tt-averages-table"><tbody><tr><td class="tt-averages-col-player"><a class="tt-player-link">Luca Minudel</a></td></tr></tbody></table>';
 
         vi.mocked(fetch)
             .mockResolvedValueOnce({
@@ -116,11 +96,11 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
         expect(players).toEqual(['Luca Minudel']);
         expect(fetch).toHaveBeenCalledTimes(2);
         // Verify URL construction for players page
-        expect(fetch).toHaveBeenLastCalledWith('http://players/div1?stx=&swp=&spp=&t=73142');
+        expect(fetch).toHaveBeenLastCalledWith('http://players/div1?t=73142');
     });
 
     it('should throw error if team is not found in division', async () => {
-        const mockAllPlayersHtml = '<select id="t"><option value="123">Other Team</option></select>';
+        const mockAllPlayersHtml = '<select id="filterTeam" name="t"><option value="123">Other Team</option></select>';
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
             text: () => Promise.resolve(mockAllPlayersHtml),

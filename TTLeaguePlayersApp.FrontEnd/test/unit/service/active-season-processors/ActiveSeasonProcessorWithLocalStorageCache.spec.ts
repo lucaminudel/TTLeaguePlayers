@@ -16,10 +16,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         startDateTime: new Date('2025-01-01T12:00:00Z'),
         venue: 'Test Venue',
         homeTeam: 'Home',
-        awayTeam: 'Away',
-        homeTeamPlayers: [],
-        awayTeamPlayers: [],
-        isCompleted: false
+        awayTeam: 'Away'
     };
 
     const mockDataSource: ActiveSeasonDataSource = {

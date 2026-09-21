@@ -6,10 +6,10 @@ import type { ActiveSeasonDataSource } from '../../../../src/config/environment'
 
 /**
  * These tests run against the HTML captured from the live site and persisted under
- * clttl-2025/data/, so they prove the code keeps working against the pages as they were
- * when the feature was written. The complementary live check is in the e2e specs, and it
- * deliberately asserts less, because the club page carries no season in its URL and no
- * archived version: a new season silently changes its content.
+ * clttl-2025/data/ (captured 2026-09-21, after the site's re-platforming), so they prove the code
+ * keeps working against the pages as they were when captured. The complementary live check is in
+ * the e2e specs, and it deliberately asserts less, because the club page carries no season in its
+ * URL and no archived version: a new season silently changes its content.
  */
 describe('CLTTLManagedClub2025Processor Integration', () => {
     const mockDataSource: ActiveSeasonDataSource = {
@@ -23,9 +23,9 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1' }],
         division_players: [{ 'Division 1': 'http://players/div1' }],
         club_teams: [
-            { 'Morpeth Table Tennis Club': 'https://www.tabletennis365.com/CentralLondon/Club/392/Morpeth' },
-            { 'Walworth Table Tennis Club': 'https://www.tabletennis365.com/CentralLondon/Club/6008/TSPxHAtVSl' },
-            { 'AA Academy @ SJoA': 'https://www.tabletennis365.com/CentralLondon/Club/6167/ouFtRhLIFg' }
+            { 'Morpeth Table Tennis Club': 'https://www.tabletennis365.com/CentralLondon/Clubs/Morpeth' },
+            { 'Walworth Table Tennis Club': 'https://www.tabletennis365.com/CentralLondon/Clubs/TSPxHAtVSl' },
+            { 'AA Academy @ SJoA': 'https://www.tabletennis365.com/CentralLondon/Clubs/ouFtRhLIFg' }
         ],
     };
 
@@ -56,25 +56,25 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
 
         const teams = await processor.getClubTeams();
 
-        // The cheapest end-to-end proof of the division transform: Morpeth's 12 teams carry four
-        // different division slugs, and this asserts on the processor's output rather than the
-        // parser's, so it also covers the fetcher-parser wiring.
+        // Morpeth is the widest page available: 12 teams over six divisions, Premier included, and
+        // this asserts on the processor's output rather than the parser's, so it also covers the
+        // fetcher-parser wiring. Page order; the division is the table's own column.
         expect(teams).toEqual([
-            { team_name: 'Morpeth 1', team_division: 'Division 1' },
-            { team_name: 'Morpeth 10', team_division: 'Division 4' },
-            { team_name: 'Morpeth 11', team_division: 'Division 5' },
-            { team_name: 'Morpeth 12 Jr', team_division: 'Division 5' },
-            { team_name: 'Morpeth 2', team_division: 'Division 1' },
-            { team_name: 'Morpeth 3', team_division: 'Division 1' },
-            { team_name: 'Morpeth 4', team_division: 'Division 1' },
+            { team_name: 'Morpeth 1', team_division: 'Premier' },
+            { team_name: 'Morpeth 2', team_division: 'Premier' },
+            { team_name: 'Morpeth 3', team_division: 'Premier' },
             { team_name: 'Morpeth 5', team_division: 'Division 1' },
             { team_name: 'Morpeth 6', team_division: 'Division 1' },
-            { team_name: 'Morpeth 7', team_division: 'Division 2' },
+            { team_name: 'Morpeth 7', team_division: 'Division 1' },
             { team_name: 'Morpeth 8', team_division: 'Division 2' },
-            { team_name: 'Morpeth 9', team_division: 'Division 4' }
+            { team_name: 'Morpeth 9', team_division: 'Division 4' },
+            { team_name: 'Morpeth 10', team_division: 'Division 4' },
+            { team_name: 'Morpeth 11 Jr', team_division: 'Division 4' },
+            { team_name: 'Morpeth 12', team_division: 'Division 5' },
+            { team_name: 'Morpeth 13 Jr', team_division: 'Division 6' }
         ]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Club/392/Morpeth');
+        expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Clubs/Morpeth');
     });
 
     it('should get the teams of a club whose teams are named rather than numbered', async () => {
@@ -84,12 +84,12 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
         const teams = await walworth.getClubTeams();
 
         expect(teams).toEqual([
-            { team_name: 'Walworth Enigma', team_division: 'Division 3' },
             { team_name: 'Walworth Gainsford', team_division: 'Division 2' },
-            { team_name: 'Walworth Tigers', team_division: 'Division 4' },
+            { team_name: 'Walworth Enigma', team_division: 'Division 3' },
+            { team_name: 'Walworth Tigers', team_division: 'Division 3' },
             { team_name: 'Walworth Wonderers', team_division: 'Division 7' }
         ]);
-        expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Club/6008/TSPxHAtVSl');
+        expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Clubs/TSPxHAtVSl');
     });
 
     it('should look the club up by its configured name, punctuation included', async () => {
@@ -98,14 +98,14 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
         const aaAcademy = new CLTTLManagedClub2025Processor(mockDataSource, 'AA Academy @ SJoA');
         const teams = await aaAcademy.getClubTeams();
 
-        // The site is inconsistent about the capitalisation of "SJoA"; it is not normalised.
+        // The team names are taken exactly as the site spells them; nothing is normalised.
         expect(teams.map((team) => team.team_name)).toEqual([
-            'AA Academy SJoA 1',
-            'AA Academy SJoA 2',
-            'AA Academy Sjoa 3',
-            'AA Academy Sjoa 4'
+            'AA Academy 1',
+            'AA Academy 2',
+            'AA Academy 3',
+            'AA Academy 4'
         ]);
-        expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Club/6167/ouFtRhLIFg');
+        expect(fetch).toHaveBeenCalledWith('https://www.tabletennis365.com/CentralLondon/Clubs/ouFtRhLIFg');
     });
 
     it('should throw error if the club has no page configured', async () => {

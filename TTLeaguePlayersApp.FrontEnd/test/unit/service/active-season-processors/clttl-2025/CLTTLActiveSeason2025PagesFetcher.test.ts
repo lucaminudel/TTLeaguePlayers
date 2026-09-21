@@ -110,16 +110,51 @@ describe('CLTTLActiveSeason2025PagesFetcher', () => {
 
         // Case 1: Base URL without query string
         await fetcher.getTeamPlayers('Division 1', 123);
-        expect(fetch).toHaveBeenCalledWith('http://players/div1?stx=&swp=&spp=&t=123');
+        expect(fetch).toHaveBeenCalledWith('http://players/div1?t=123');
 
-        // Case 2: Base URL with query string
+        // Case 2: Base URL with query string (the configured Averages URL always carries one)
         const mockDataSourceWithQuery: ActiveSeasonDataSource = {
             ...mockDataSource,
-            division_players: [{ 'Division 1': 'http://players/div1?d=9445' }]
+            division_players: [{ 'Division 1': 'http://players/div1?leagueName=Winter%202025-26&divisionName=Division%20One' }]
         };
         const fetcherWithQuery = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithQuery);
         await fetcherWithQuery.getTeamPlayers('Division 1', 456);
-        expect(fetch).toHaveBeenCalledWith('http://players/div1?d=9445&stx=&swp=&spp=&t=456');
+        expect(fetch).toHaveBeenCalledWith('http://players/div1?leagueName=Winter%202025-26&divisionName=Division%20One&t=456');
+    });
+
+    it('should URL-encode the target page when going through the CORS proxy', async () => {
+        // The proxy reads its own query string, so an unencoded "&" in the target URL would end the
+        // url= parameter early and silently drop every parameter after it (divisionName, t, vm).
+        const mockResponse = { ok: true, text: () => Promise.resolve('success') };
+        vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+        const mockDataSourceWithQuery: ActiveSeasonDataSource = {
+            ...mockDataSource,
+            division_fixtures: [{ 'Division 1': 'http://fixtures/div1?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2' }]
+        };
+        const proxiedFetcher = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithQuery, true);
+
+        await proxiedFetcher.getTeamFixtures('Division 1');
+
+        expect(fetch).toHaveBeenCalledWith(
+            'https://go.x2u.in/proxy?email=contact_us@ttleagueplayers.uk&apiKey=307a1c8f&url='
+            + encodeURIComponent('http://fixtures/div1?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2')
+        );
+    });
+
+    it('should not encode the target page when fetching directly', async () => {
+        const mockResponse = { ok: true, text: () => Promise.resolve('success') };
+        vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+        const mockDataSourceWithQuery: ActiveSeasonDataSource = {
+            ...mockDataSource,
+            division_fixtures: [{ 'Division 1': 'http://fixtures/div1?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2' }]
+        };
+        const directFetcher = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithQuery, false);
+
+        await directFetcher.getTeamFixtures('Division 1');
+
+        expect(fetch).toHaveBeenCalledWith('http://fixtures/div1?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2');
     });
 
     it('should fetch the club page from the url configured for that club', async () => {

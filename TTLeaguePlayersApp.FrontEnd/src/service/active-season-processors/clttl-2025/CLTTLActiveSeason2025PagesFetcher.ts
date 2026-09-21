@@ -25,9 +25,12 @@ export class CLTTLActiveSeason2025PagesFetcher {
     }
 
     private async fetchWithRetry(url: string, retries = 2, delay = 2000): Promise<string> {
+        // The proxy takes the target as its own url= query parameter, so the target must be encoded:
+        // sent raw, its first "&" ends that parameter and every later one (divisionName, vm, t) is lost.
+        const target = this.corsAnyWherePrefix ? this.corsAnyWherePrefix + encodeURIComponent(url) : url;
         for (let i = 0; i <= retries; i++) {
             try {
-                const response = await fetch(this.corsAnyWherePrefix + url);
+                const response = await fetch(target);
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + String(response.status));
                 }
@@ -81,13 +84,13 @@ export class CLTTLActiveSeason2025PagesFetcher {
     /**
      * Downloads the division's players average page filtered to one team.
      * @param division The division name (key into division_players)
-     * @param id The team id, as read from the division page's `select#t` by the parser's getTeamIds
+     * @param id The team id, as read from the division page's `select#filterTeam` by the parser's getTeamIds
      */
     public async getTeamPlayers(division: string, id: number): Promise<string> {
         const baseUrl = this.getUrlFromSource(this.dataSource.division_players, division);
-        // The configured URL normally already carries a query string (e.g. "All_Divisions?d=9445")
+        // The configured URL normally already carries a query string ("Averages?leagueName=...&divisionName=...")
         const separator = baseUrl.includes('?') ? '&' : '?';
-        const url = baseUrl + separator + 'stx=&swp=&spp=&t=' + String(id);
+        const url = baseUrl + separator + 't=' + String(id);
 
         return this.fetchWithRetry(url);
     }
