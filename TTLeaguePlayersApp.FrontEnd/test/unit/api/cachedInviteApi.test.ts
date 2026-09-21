@@ -467,7 +467,9 @@ describe('getCachedTeamPlayersRegistrations', () => {
             expect(result.players[2].nano_id).toBe('xtra0001');
         });
 
-        it('should reuse the entry when a player was removed, dropping the surplus but keeping the extras', async () => {
+        // A removed player who was NOT_INVITED is a left-join miss: a fresh call would return nothing
+        // for them, so the cached row is simply dropped.
+        it('should reuse the entry when a never-invited player was removed, dropping the surplus but keeping the extras', async () => {
             inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
 
             await getCachedTeamPlayersRegistrations(request);
@@ -475,6 +477,32 @@ describe('getCachedTeamPlayersRegistrations', () => {
 
             expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
             expect(result.players.map(p => p.player_name)).toEqual(['Luca Minudel', undefined]);
+        });
+
+        // A removed player who still HAS an invite is what a fresh call would report as an extra
+        // (an invite of the team matching no requested name). The cached row is demoted the same
+        // way — player_name stripped, placed among the extras by created_at — so a cache hit is
+        // indistinguishable from a fresh call and the orphaned invite stays visible.
+        it('should demote a removed player who still has an invite to the extras tail', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse({
+                players: [
+                    { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234', created_at: 500 },
+                    { player_name: 'Michele De Giovanni', status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'efgh5678', invitee_name: 'Michele De Giovanni', created_at: 2000 },
+                    { status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'xtra0001', invitee_name: 'Someone Who Left', created_at: 1000 },
+                ],
+            }));
+
+            await getCachedTeamPlayersRegistrations(request);
+            const result = await getCachedTeamPlayersRegistrations({ ...request, player_names: ['Luca Minudel'] });
+
+            expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+            expect(result.players.map(p => p.player_name)).toEqual(['Luca Minudel', undefined, undefined]);
+            // Extras ordered by created_at: the pre-existing extra (1000) before the demoted one (2000).
+            expect(result.players.slice(1).map(p => p.nano_id)).toEqual(['xtra0001', 'efgh5678']);
+            const demoted = result.players[2];
+            expect(demoted.status).toBe('PENDING');
+            expect(demoted.invitee_name).toBe('Michele De Giovanni');
+            expect('player_name' in demoted).toBe(false);
         });
 
         it('should discard the entry and refetch when a player was added', async () => {
