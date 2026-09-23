@@ -357,7 +357,7 @@ A few tests related go Club Manager Invites all accept using the same **fixed**-
 
 
 ### Mechanism 4 — Frontend: brand-new dynamic identities instead of the static pool
-Where a test needs a genuinely fresh, unregistered user (e.g. registration flow), it doesn't touch the static pool at all but generates a `test_<epoch-ms>@delete.me` on every run. 
+Where a test needs a genuinely fresh, unregistered user (e.g. registration flow), it doesn't touch the static pool at all but generates a `test_<epoch-ms>_<workerIndex>@delete.me` on every run. 
 
 ### Mechanism 5 — Frontend: neutralizing derived/computed state via response mocking, not real resets
 Kudos-rating specs face a subtler problem: the UI disables re-rating a match based on `latest_kudos` inside the static user's Cognito attributes, which would look "already done" on a re-run. Rather than resetting real Cognito state, the test intercepts the `GetUser` network response and forces `latest_kudos: []` client-side before each test.
@@ -371,7 +371,7 @@ Kudos-rating specs face a subtler problem: the UI disables re-rating a match bas
 | 1 | Static users used read-only | **Both** backend acceptance tests **and** frontend e2e specs  |
 | 2 | Group A (reads Cognito at most, never writes it)  | Backend acceptance tests only  |
 | 3 | Group B.1 (Captain-Player, fixed key "update attributes" test) / Group B.2 (Club Manager: fixed-key "update attributes" test) | Backend acceptance tests only  |
-| 4 | Fresh dynamic `test_<epoch>@delete.me` identities | Frontend e2e only |
+| 4 | Fresh dynamic `test_<epoch>_<workerIndex>@delete.me` identities | Frontend e2e only |
 | 5 | Mocking `GetUser` to neutralize `latest_kudos` | Frontend e2e only  |
 
 

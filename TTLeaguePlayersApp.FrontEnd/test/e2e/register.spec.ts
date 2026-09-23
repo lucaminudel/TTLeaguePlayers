@@ -9,13 +9,20 @@ import { RegisterPage, User } from './page-objects/User';
  */
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
+// Playwright runs these tests across several WORKER PROCESSES (fullyParallel, and `workers` is
+// undefined outside CI, so it defaults to half the cores). The monotonic guard below lives in ONE
+// process and cannot see the others, so two tests reaching Date.now() in the same millisecond in
+// different workers produced the SAME address: one registration succeeded and the other came back
+// UsernameExistsException, failing a test that had nothing wrong with it. The worker index is what
+// makes the address unique ACROSS processes; the guard keeps it unique WITHIN one.
+const workerIndex = process.env.TEST_WORKER_INDEX ?? '0';
 let lastEpochMs = 0;
 const uniqueTestEmail = (): string => {
-  // Requested format: test_<epoch timestamps in milliseconds>@delete.me
-  // Ensure uniqueness even if multiple tests run within the same millisecond.
+  // Format: test_<epoch milliseconds>_<worker index>@delete.me - still `test_`-prefixed, which is
+  // the whole of what delete-test-users.sh matches on when it cleans the pool.
   const now = Date.now();
   lastEpochMs = now <= lastEpochMs ? lastEpochMs + 1 : now;
-  return `test_${String(lastEpochMs)}@delete.me`;
+  return `test_${String(lastEpochMs)}_${workerIndex}@delete.me`;
 };
 
 const validPassword = 'aA1!56789012';

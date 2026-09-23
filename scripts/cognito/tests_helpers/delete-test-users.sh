@@ -49,7 +49,7 @@ if [[ "$FORCE_DELETE" == "force" ]]; then
     E10=""
 else
     # Emails to exclude from deletion
-    echo "Only dynamically created test_{number} users will be deleted ..."
+    echo "Only dynamically created test_{number}_{worker} users will be deleted ..."
 
     E1="test_already_registered@user.test"
     E2="test_ready_for_accept_invite_api_call@user.test"
