@@ -14,6 +14,7 @@ import { MyClubStandings } from './pages/MyClubStandings';
 import { PromoteMyClub } from './pages/PromoteMyClub';
 import { PromoteMyTournaments } from './pages/PromoteMyTournaments';
 import { MyClubTeams } from './pages/MyClubTeams';
+import { InviteTeamMembers } from './pages/InviteTeamMembers';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 /**
@@ -38,6 +39,9 @@ function InitializationGate() {
   }
 
   // Only render routes after auth state is determined
+  // ProtectedRoute only checks that the user is logged in; 
+  // the role gating is inside the page itself
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
@@ -98,6 +102,14 @@ function InitializationGate() {
         element={
           <ProtectedRoute>
             <MyClubTeams />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invite-team-members"
+        element={
+          <ProtectedRoute>
+            <InviteTeamMembers />
           </ProtectedRoute>
         }
       />

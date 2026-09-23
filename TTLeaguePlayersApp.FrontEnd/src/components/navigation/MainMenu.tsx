@@ -6,15 +6,16 @@ interface MenuItem {
     label: string;
     path?: string;
     visibleToAuthenticatedPlayerOrCaptain: boolean;
-    visibleToAllAuthenticated: boolean;    
+    visibleToAllAuthenticated: boolean;
     visibleToAuthenticatedClubManager: boolean;
+    visibleToAuthenticatedCaptain: boolean;
     visibleToUnauthenticated: boolean;
 }
 
 export const MainMenu: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
-    const { isAuthenticated, isPlayerOrCaptain, isClubManager, username, activeSeasons, managedClubs, signOut } = useAuth();
+    const { isAuthenticated, isPlayerOrCaptain, isClubManager, isCaptain, username, activeSeasons, managedClubs, signOut } = useAuth();
 
     const menuItems: MenuItem[] = [
         {
@@ -22,6 +23,7 @@ export const MainMenu: React.FC = () => {
             path: '/',
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: true,
             visibleToAllAuthenticated: true,
             visibleToUnauthenticated: true
         },
@@ -31,6 +33,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: false,
+            visibleToAuthenticatedCaptain: false,
             visibleToUnauthenticated: false
         },
         {
@@ -39,6 +42,16 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: false,
+            visibleToAuthenticatedCaptain: false,
+            visibleToUnauthenticated: false
+        },
+        {
+            label: 'Invite Team Members',
+            path: '/invite-team-members',
+            visibleToAuthenticatedPlayerOrCaptain: false,
+            visibleToAllAuthenticated: false,
+            visibleToAuthenticatedClubManager: false,
+            visibleToAuthenticatedCaptain: true,
             visibleToUnauthenticated: false
         },
         {
@@ -47,6 +60,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: false,
             visibleToUnauthenticated: false
         },
         {
@@ -55,6 +69,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: false,
             visibleToUnauthenticated: false
         },
         {
@@ -63,6 +78,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: false,
             visibleToUnauthenticated: false
         },
         {
@@ -71,6 +87,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: false,
             visibleToAllAuthenticated: false,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: false,
             visibleToUnauthenticated: false
         },
         {
@@ -79,6 +96,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: true,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: true,
             visibleToUnauthenticated: true
         },
         {
@@ -87,6 +105,7 @@ export const MainMenu: React.FC = () => {
             visibleToAuthenticatedPlayerOrCaptain: true,
             visibleToAllAuthenticated: true,
             visibleToAuthenticatedClubManager: true,
+            visibleToAuthenticatedCaptain: true,
             visibleToUnauthenticated: true
         }
     ];
@@ -182,7 +201,7 @@ export const MainMenu: React.FC = () => {
                         )}
                         {menuItems.map((item) => {
                             const isVisible = isAuthenticated
-                                ? item.visibleToAllAuthenticated || (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager)
+                                ? item.visibleToAllAuthenticated || (isPlayerOrCaptain && item.visibleToAuthenticatedPlayerOrCaptain) || (isClubManager && item.visibleToAuthenticatedClubManager) || (isCaptain && item.visibleToAuthenticatedCaptain)
 
                                 : item.visibleToUnauthenticated;
 
@@ -191,6 +210,7 @@ export const MainMenu: React.FC = () => {
                             const isClubManagerOnly = item.visibleToAuthenticatedClubManager
                                 && !item.visibleToAuthenticatedPlayerOrCaptain
                                 && !item.visibleToAllAuthenticated
+                                && !item.visibleToAuthenticatedCaptain
                                 && !item.visibleToUnauthenticated;
 
                             return (

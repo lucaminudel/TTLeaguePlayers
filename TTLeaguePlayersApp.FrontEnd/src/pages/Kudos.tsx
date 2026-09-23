@@ -88,7 +88,7 @@ export const Kudos: React.FC = () => {
                   👉 Open your invite link again to complete this second part of the registration and then come back here.
                 </p>
                 <p className="text-base sm:text-lg leading-relaxed pt-4">
-                  ❌ Otherwise ask your captain to send you an invite (this feature that allows team captains to invite other team members will arrive soon).
+                  ❌ Otherwise ask your captain to send you an invite from the Invite Team Members page of this app.
                 </p>
               </div>
             )}

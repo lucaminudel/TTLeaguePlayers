@@ -9,6 +9,7 @@ import {
 import { getConfig } from '../config/environment';
 import { AuthContext, type ActiveSeason, type ManagedClub } from './AuthContextDefinition';
 import { parseActiveSeasonsJson, parseManagedClubsJson } from './AuthContextParsers';
+import { hasCaptainRole } from '../utils/activeSeasonUtils';
 import { setAuthTokenProvider } from '../api/api';
 
 interface AuthProviderProps {
@@ -466,6 +467,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         managedClubs,
         isPlayerOrCaptain: activeSeasons.length > 0,
         isClubManager: managedClubs.length > 0,
+        isCaptain: hasCaptainRole(activeSeasons),
         authInitialisationError,
         signIn,
         signUp,

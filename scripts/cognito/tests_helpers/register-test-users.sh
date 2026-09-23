@@ -73,6 +73,7 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     COMMON_PASSWORD="aA1!56789012"
 
     # 1. User with CLTT, BCS, and FLICK leagues
+    # SHARED by: homepage.spec.ts, login.spec.ts, InviteTeamMembers.spec.ts, and TeamPlayersRegistrationsAcceptanceTests.cs
     EMAIL1="test_already_registered@user.test"
     ACTIVE_SEASONS_JSON1='[{"league": "CLTTL", "season": "2025-2026","team_name": "Morpeth 10","team_division": "Division 4","person_name": "Luca Minudel","role": "CAPTAIN"},{"league": "BCS","season": "2025-2026","team_name": "Morpeth B","team_division": "Division 2","person_name": "Luca Minudel","role": "CAPTAIN"},{"league": "FLICK","season": "2025-Nov","team_name": "Indiidual","team_division": "Division 1","person_name": "Luca Sr Minudel","role": "CAPTAIN"}]'
     register_user "$EMAIL1" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON1"
@@ -115,7 +116,7 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     echo "Cognito Test user '$EMAIL7' registered and confirmed successfully!"
 
 
-    # 8. User Charlie Boom SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts and kudos.spec.ts
+    # 8. User Charlie Boom SHARED BY: KudosAwardAndStanding.spec.ts and kudos.spec.ts and TeamPlayersRegistrationsAcceptanceTests.cs
     EMAIL8="test_kudos_f5@user.test"
     ACTIVE_SEASONS_JSON8='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
     register_user "$EMAIL8" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON8"

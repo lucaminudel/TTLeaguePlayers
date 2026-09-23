@@ -145,7 +145,8 @@ test.describe('Homepage', () => {
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
                 { name: 'Promote My Club', testId: 'main-menu-nav-promote-my-club' },
-                { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' }
+                { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' },
+                { name: 'Invite Team Members', testId: 'main-menu-nav-invite-team-members' }
             ];
  
             for (const item of playerCaptainClubManagerOnlyAndNotLoggedInItems) {
@@ -190,9 +191,10 @@ test.describe('Homepage', () => {
                 { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
                 { name: 'My Club Standings', testId: 'main-menu-nav-my-club-standings' },
                 { name: 'Promote My Club & Tournaments', testId: 'main-menu-nav-promote-my-club-and-tournaments' },
-                { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' }
+                { name: 'My Club Teams', testId: 'main-menu-nav-my-club-teams' },
+                { name: 'Invite Team Members', testId: 'main-menu-nav-invite-team-members' }
             ];
- 
+
             for (const item of captainOnlyAndNotLoggedInItems) {
                 await expect(page.getByTestId(item.testId)).not.toBeVisible();
             }
@@ -222,7 +224,9 @@ test.describe('Homepage', () => {
                 { name: 'Clubs & Tournaments', testId: 'main-menu-nav-clubs-and-tournaments' },
                 { name: 'About & Contact Us', testId: 'main-menu-nav-about-and-contact-us' },
                 { name: 'Kudos', testId: 'main-menu-nav-matches-and-kudos' },
-                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' }
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                // This user is the CAPTAIN of Morpeth 10, so the captain-only item is theirs.
+                { name: 'Invite Team Members', testId: 'main-menu-nav-invite-team-members' }
             ];
 
             for (const item of menuItems) {
@@ -278,7 +282,8 @@ test.describe('Homepage', () => {
             const playerCaptainOnlyAndNotLoggedInItems = [
                 { name: 'Log in', testId: 'main-menu-login-link' },
                 { name: 'Kudos', testId: 'main-menu-nav-matches-and-kudos' },
-                { name: 'Kudos Standings', testId: 'main-menu-nav-and-kudos-standings' },
+                { name: 'Kudos Standings', testId: 'main-menu-nav-kudos-standings' },
+                { name: 'Invite Team Members', testId: 'main-menu-nav-invite-team-members' },
             ];
  
             for (const item of playerCaptainOnlyAndNotLoggedInItems) {

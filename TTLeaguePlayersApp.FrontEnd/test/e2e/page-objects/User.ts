@@ -12,8 +12,9 @@ import { PromoteMyClubPage } from './PromoteMyClubPage';
 import { PromoteMyTournamentsPage } from './PromoteMyTournamentsPage';
 import { MyClubTeamsPage } from './MyClubTeamsPage';
 import { MyClubStandingsPage } from './MyClubStandingsPage';
+import { InviteTeamMembersPage } from './InviteTeamMembersPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage, PromoteMyTournamentsPage, MyClubTeamsPage, MyClubStandingsPage };
+export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage, PromoteMyTournamentsPage, MyClubTeamsPage, MyClubStandingsPage, InviteTeamMembersPage };
 
 export class User {
   private page: Page;
@@ -110,6 +111,13 @@ export class User {
     await this.page.goto('/#/my-club-teams');
     await myClubTeamsPage.expectLoaded();
     return myClubTeamsPage;
+  }
+
+  async navigateToInviteTeamMembers(): Promise<InviteTeamMembersPage> {
+    const inviteTeamMembersPage = new InviteTeamMembersPage(this.page);
+    await this.page.goto('/#/invite-team-members');
+    await inviteTeamMembersPage.expectLoaded();
+    return inviteTeamMembersPage;
   }
 
   async navigateToMyClubStandings(): Promise<MyClubStandingsPage> {

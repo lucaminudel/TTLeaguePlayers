@@ -9,6 +9,7 @@ import { FormField } from '../components/common/FormField';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { FieldError } from '../components/common/FieldError';
 import { useAcceptInvite } from '../hooks/useAcceptInvite';
+import { isValidEmail } from '../utils/emailUtils';
 import type { Invite } from '../types/invite';
 
 const AUTH_INIT_FAILED_PREFIX = 'AuthProvider.initAuth() has failed.';
@@ -36,10 +37,6 @@ export const Register: React.FC = () => {
       : undefined;
 
     return typeof message === 'string' && message.startsWith(AUTH_INIT_FAILED_PREFIX);
-  };
-
-  const isValidEmail = (emailToValidate: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToValidate);
   };
 
   useEffect(() => {
