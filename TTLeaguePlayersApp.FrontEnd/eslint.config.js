@@ -20,6 +20,9 @@ export default tseslint.config(
       reactDom.configs.recommended,
     ],
     files: ['**/*.{ts,tsx}'],
+    linterOptions: {
+      noInlineConfig: true,
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
