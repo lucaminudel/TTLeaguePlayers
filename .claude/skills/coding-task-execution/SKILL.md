@@ -93,7 +93,8 @@ For each sub-task, in order:
 2. Do the work as the sub-task describes.
 3. Verify it (Phase 6).
 4. Set Status to `done` and append a dated line to the plan's progress log.
-5. Write its entry in the work summary report (Phase 7) and post that entry in the chat — as a
+5. **Replace the comments you just wrote with self-explaining code (Phase 7), then re-verify.**
+6. Write its entry in the work summary report (Phase 8) and post that entry in the chat — as a
    report, with **no question appended**, not even "shall I move on to sub-task 4?". Moving on to
    the next unblocked sub-task needs no permission; a checkpoint (Phase 5) is its own message.
 
@@ -567,7 +568,78 @@ aws dynamodb list-tables --endpoint-url http://localhost:8000
 
 Fix what you break. If verification will not go green, the sub-task is not done.
 
-## Phase 7 — Work summary report
+## Phase 7 — Replace the comments with self-explaining code
+
+Runs **after** the sub-task is marked `done` and green, on **only the comments this task added or
+modified** — never on comments the task did not touch.
+
+The goal: a comment earns its place only when what it says **cannot** be said by the code. Everything
+else is moved *into* the code, where it cannot drift out of date, cannot be trimmed away by a later
+reader, and cannot be wrong while the code is right.
+
+**Every change in this phase is a semantics-preserving refactoring.** Renaming, extracting a named
+function or variable, extracting a private local helper, nesting or renaming tests, naming a builder
+method. Nothing about behaviour changes, and the verification that was green before the phase must be
+green after it, unchanged — same tests, same count, same results. If a move would alter behaviour,
+the move is wrong, not the behaviour: abandon it and leave the comment.
+
+### In implementation code
+
+Express the intent through the code itself, by whatever means the language allows:
+
+- the **name** of a class, method or function;
+- the **name** of a parameter, and its type;
+- the **name** of a variable — a well-named intermediate variable replaces a comment explaining an
+  expression;
+- a **private local function** extracted for no reason other than to give a block a name, with
+  parameter names that say what it operates on;
+- a named constant in place of a literal, an enum or union in place of a magic string, a type that
+  makes the invalid state unrepresentable;
+- and any other viable way the language offers.
+
+### In test code
+
+The same, through the vocabulary tests have:
+
+- the **test name** — a full sentence about the behaviour, which is where the *why* belongs;
+- the **nesting** of tests, and the sibling cases around one case: a rule and its boundaries read as
+  a group, so the group's shape says what the single name cannot;
+- the **names of the variables** in the test, and of the values in them;
+- **test-data builders** and their method names, so the payload's meaning is in the call, not in a
+  comment above a literal;
+- **page-object** names and their method names;
+- a **private local helper** in the spec, extracted to give a setup or an assertion block a name;
+- and any other viable way.
+
+### What must remain, and where
+
+- **Keep a comment whose content is not in the code**: a decision and its *why*, a constraint from
+  outside the file (a backend rule, a proxy limit, a browser behaviour, a lint rule that forced the
+  shape), a warning about a trap, a dated live-source fact, a reference to a decision id.
+- **Delete a comment that only restates what the code now says.**
+- **Complex domain or logic an LLM cannot deduce from the code** does not belong in a comment either:
+  document it in the relevant `prompts/codebase_info/*.md`, and reference that file from the code if a
+  pointer is needed. Prefer extending an existing doc's section over inventing a new file.
+
+### The three rules, stated as prohibitions
+
+1. **Do not remove a comment whose information is not expressed in the code.**
+2. **Do not leave a comment whose information can be deduced from the code.**
+3. **Do not make a refactoring that changes the semantic behaviour of the code.**
+
+### Verify, then record
+
+Re-run the tier that covered the sub-task — at minimum Tier 1-A — and expect an **identical** result
+to the one already recorded. A changed test count, a changed assertion, or a newly red test means rule
+3 was broken: revert and say so.
+
+Note in the sub-task's work-summary entry which comments were absorbed into code, which were kept and
+why, and anything moved into a domain doc. A reviewer reading the diff later cannot tell a comment
+that was *answered by the code* from one that was simply *deleted* — this note is the difference.
+
+IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
+
+## Phase 8 — Work summary report
 
 Maintained at
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/work-summary.md` —
@@ -587,9 +659,9 @@ Keep entries short. A reviewer should be able to read the whole report before op
 
 IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
-## Phase 8 — Retrospect
+## Phase 9 — Retrospect
 
-Review how task execution phases 1–7 actually went and fold anything durable back into
+Review how task execution phases 1–8 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
 
 
@@ -603,7 +675,7 @@ time.
 injected from that one shared file; editing it in place either silently diverges the four skills
 or is discarded the next time the file is read. Open the shared file and change it there, once.
 
-## Phase 9 — Close
+## Phase 10 — Close
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -663,3 +735,12 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
 - Creating or reconfiguring a shared test record — a Cognito user above all — from a test or by hand,
   instead of declaring it in the provisioning scripts.
 - Marking a behaviour verified by a test that has never been observed failing.
+- Skipping the comment refactoring (Phase 7), or doing it *before* the sub-task is green — it is a
+  refactoring of working code, not a way of writing it.
+- Touching comments the task did not add or modify during Phase 7.
+- Deleting a comment in Phase 7 whose information is nowhere in the code, or keeping one whose
+  information the code now states.
+- Letting Phase 7 change behaviour: a different test count, a changed assertion or a newly red test
+  means the refactoring was not semantics-preserving. Revert it and say so.
+- Leaving a domain rule an LLM cannot deduce from the code in a comment, instead of documenting it in
+  `prompts/codebase_info/*.md`.

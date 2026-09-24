@@ -247,7 +247,7 @@ along the way — the diff must not grow during its own review.
 
 Verify with the commands and the **four-tier discipline** — 1-A (dev, no Cognito), 1-B (dev, scoped
 Cognito), 1-C (dev, full Cognito, ask first), 2 (test env, full pipeline, ask first) — defined in
-*Phase 5 — Verify before marking done* of the `coding-task-execution` skill.
+*Phase 6 — Verify before marking done* of the `coding-task-execution` skill.
 
 That content is **not** loaded into this session. Read it from disk before relying on it:
 `.claude/skills/coding-task-execution/SKILL.md`. Do not reconstruct the commands or the tier gates
@@ -326,12 +326,26 @@ The document carries:
   dismissed findings and *why* they were dismissed; that is what a later session needs most.
 - **What to review, in what order** — a short numbered index of the reading order that makes the
   change comprehensible, not alphabetical: the port or the contract first, then the implementation,
-  then the wiring, then the tests. Say which steps are mechanical so the reviewer can skim them.
+  then the wiring. **Tests are not a step of their own.** Each step carries the tests that cover it,
+  so the index counts them inside the step they belong to (the user asked for this on 2026-09-24,
+  after a guide that parked all nine specs in a final "the tests" step). The only tests that earn a
+  step of their own are the ones no single implementation file owns — see the walkthrough below. Say
+  which steps are mechanical so the reviewer can skim them, and make each step's stated file count
+  match the files the walkthrough actually lists under it.
 - **Walkthrough, in reading order** — the per-file content, **organised under the steps of that
   index** (one sub-section per step, the files of that step beneath it), never as a flat file list.
   The user asked for exactly this shape (2026-09-19) because a flat per-file section forces the
-  reader to reconstruct the order themselves. Each file is presented in the same three labelled
-  parts, so the eye finds them without reading prose:
+  reader to reconstruct the order themselves.
+
+  **Every step that contains implementation code is split into two labelled parts, in this order —
+  *Implementation* and *Related tests*** (the user asked for this on 2026-09-24). A reviewer judges a
+  behaviour and the proof of that behaviour together. Sending all the specs to a chapter at the end
+  means the reviewer either loses their place going back and forth, or never reads them — and the end
+  of the guide is exactly where a missing case, a vacuous assertion or a stub that should be a spy
+  hides best. So the spec that covers a file sits directly beneath that file, in the same step.
+
+  Under **Implementation**, each file gets the same three labelled parts, so the eye finds them
+  without reading prose:
   - **What it is** — what the file is and where it sits in the design, for a reviewer who has not
     opened it before (the discovery report's technical findings and the domain docs are the source);
   - **What changed** — what changed in it and *why*, tied to its sub-task in the work summary and,
@@ -339,6 +353,19 @@ The document carries:
   - **Look for** — what specifically to look for while reading it, as a short bullet list: the risk
     in this change, the invariant it must hold, the neighbouring code it has to stay consistent
     with, or "mechanical" when there is genuinely nothing.
+
+  Under **Related tests**, each spec covering this step's files gets three parts of its own:
+  - **What it covers** — the behaviours pinned here, and how many cases;
+  - **How it was proven** — seen red before the code existed, and which mutation failed which *named*
+    case (the work summary's verification notes are the source) — or plainly that it was not proven
+    that way, which is itself something to review;
+  - **Look for** — the behaviour with no case, the assertion that cannot fail, the mutable fixture
+    shared between spec files, the stub doing a spy's job, or "mechanical".
+
+  **Only tests that no single step owns get a step of their own, at the end**: an end-to-end spec that
+  spans the whole feature, a shared page object, a fixture several specs read. Say what they cover
+  across the change rather than per file, and say which of them has never been executed.
+
   Do not keep a separate flat "per file" section beside the walkthrough — it doubles the length
   and the two drift apart.
 - **What to check** — the specific things a human should verify that tests do not: values against
@@ -433,6 +460,11 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
   `work-summary.md` already hold that intent and were not read for it.
 - Listing a file in the PR guide without saying what it is, why it changed, and what to look for in
   it.
+- Parking every spec in a final "the tests" step of the walkthrough instead of presenting each spec
+  under the implementation step it covers, as that step's *Related tests* part. Only tests no single
+  step owns — an end-to-end spec, a shared page object, a shared fixture — belong in a step of their
+  own.
+- A step whose stated file count does not match the files the walkthrough lists beneath it.
 - Appending the PR guide to the work summary instead of giving it its own `review-<slug>.md`.
 - Pasting the whole guide into the chat, or ending the final message with anything other than the
   link to it.
