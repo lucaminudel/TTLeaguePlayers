@@ -59,11 +59,11 @@ describe('AuthProvider initAuth() (build-time config) error handling', () => {
 
     const ctx = requireContext(latestCtx);
 
-    await expect(ctx.signIn('a@b.com', 'pw')).rejects.toThrowError(
+    await expect(ctx.signIn('a@b.com', 'pw')).rejects.toThrow(
       /AuthProvider\.initAuth\(\) has failed\./
     );
 
-    await expect(ctx.signIn('a@b.com', 'pw')).rejects.toThrowError(
+    await expect(ctx.signIn('a@b.com', 'pw')).rejects.toThrow(
       /authInitialisationError:/
     );
   });
@@ -87,7 +87,7 @@ describe('AuthProvider initAuth() (build-time config) error handling', () => {
 
     const ctx = requireContext(latestCtx);
 
-    await expect(ctx.signUp('a@b.com', 'pw')).rejects.toThrowError(
+    await expect(ctx.signUp('a@b.com', 'pw')).rejects.toThrow(
       "AuthProvider.initAuth() has failed. authInitialisationError: Cognito config and/or ClientId info section is missing."
     );
   });
@@ -111,7 +111,7 @@ describe('AuthProvider initAuth() (build-time config) error handling', () => {
 
     const ctx = requireContext(latestCtx);
 
-    await expect(ctx.confirmSignUp('a@b.com', '1234')).rejects.toThrowError(
+    await expect(ctx.confirmSignUp('a@b.com', '1234')).rejects.toThrow(
       "AuthProvider.initAuth() has failed. authInitialisationError: Cognito config and/or ClientId info section is missing."
     );
   });
