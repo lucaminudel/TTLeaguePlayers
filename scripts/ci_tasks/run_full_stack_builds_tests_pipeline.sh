@@ -169,6 +169,15 @@ else
     echo "   ✅ API is ready."
 fi
 
+# Warm up the Lambda: the readiness check above is answered by SAM without invoking the Lambda, so the first
+# invocation (which may pull/rebuild the runtime image, taking longer than the tests' HttpClient timeout) is done here
+echo "   🔥 Warming up the Lambda (first invocation may update the runtime image)..."
+if ! curl -s -o /dev/null --max-time 180 "http://127.0.0.1:$API_PORT/clubs"; then
+    echo "   ❌ Lambda warm-up did not respond within 180 seconds."
+    exit 1
+fi
+echo "   ✅ Lambda is warm."
+
 echo ""
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [5/8] Backend: Unit - Integration - Acceptance Tests..."
