@@ -80,3 +80,4 @@ Library/Application Support
 .playwright-mcp
 worktrees/*
 original-logo-save.png
+.VSCodeCounter
