@@ -55,7 +55,7 @@
     "eslint-plugin-react-x": "^2.3.13",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.28",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
