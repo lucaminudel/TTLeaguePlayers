@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage, User as UserFlow } from './page-objects/User';
+import { uniqueTestEmail } from './helpers/testEmails';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
@@ -245,5 +246,34 @@ test.describe('Login Flow', () => {
         await expect(errorMessage).toBeVisible();
         await expect(errorMessage).toHaveText('Internal server error');
         await expect(page).toHaveURL('/#/login');
+    });
+
+    test('an auth error left by another page does not show up on Login - simulated UsernameExistsException on Register', async ({ page }) => {
+        await page.route('https://cognito-idp.*.amazonaws.com/', async (route) => {
+            const target = route.request().headers()['x-amz-target'] as string | undefined;
+
+            if (target?.endsWith('.SignUp')) {
+                await route.fulfill({
+                    status: 400,
+                    contentType: 'application/x-amz-json-1.1',
+                    body: JSON.stringify({
+                        __type: 'UsernameExistsException',
+                        message: 'User already exists'
+                    })
+                });
+                return;
+            }
+            await route.continue();
+        });
+
+        const user = new UserFlow(page);
+        const registerPage = await user.navigateToRegister();
+        await registerPage.tentativelyRegisterNewUser(uniqueTestEmail(), 'aA1!56789012');
+        await expect(page.getByTestId('register-error-message')).toHaveText('An account with this email already exists. Try logging in instead.');
+
+        await user.menu.open();
+        await user.menu.navigateToLogin();
+
+        await expect(page.getByTestId('login-error-message')).not.toBeVisible();
     });
 });

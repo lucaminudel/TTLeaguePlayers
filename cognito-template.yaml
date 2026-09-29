@@ -58,7 +58,7 @@ Resources:
         - IsProdOrStaging
         - DefaultEmailOption: CONFIRM_WITH_CODE
           EmailSubject: "Your TT League Players verification code"
-          EmailMessage: "Hello!<br><br>Your verification code for TT League Players is {####}.<br>It expires in 24 hours.<br><br>If you didn't create this account, you can ignore this email."
+          EmailMessage: "Hello!<br><br>Your verification code for TT League Players is {####}.<br>It expires in 24 hours for a new account registration.<br>It expires in 1 hour for a forgotten password reset.<br><br>If you didn't request a forgotten password reset or create this account, you can ignore this email."
         - !Ref "AWS::NoValue"
 
   TTLeagueCognitoUserPoolClient:

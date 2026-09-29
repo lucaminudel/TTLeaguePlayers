@@ -577,13 +577,8 @@ export const PromoteMyTournaments: React.FC = () => {
                                         value={editingTournament.tournament_name}
                                         onChange={(e) => { handleFieldChange('tournament_name', e.target.value); }}
                                         placeholder="Enter tournament name"
-                                        disabled={!isNewTournament}
-                                        className={[
-                                            // Same locked-field styling as the invite-bound email on Login and Register
-                                            !isNewTournament ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100' : '',
-                                            formErrors.tournament_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : '',
-                                        ].filter(Boolean).join(' ')}
-                                        style={!isNewTournament ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
+                                        locked={!isNewTournament}
+                                        className={formErrors.tournament_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}
                                     />
                                 </FormField>
 

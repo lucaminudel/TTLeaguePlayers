@@ -79,6 +79,8 @@ A test touches real Cognito when any of these is true **and no `page.route(...)`
 | `loginPage.loginAndWaitForHome(...)` | `InitiateAuth` + `GetUser` |
 | `registerPage.registerNewUser(email, password)` | `SignUp` (real, not mocked) |
 | `registerPage.tentativelyRegisterNewUser(email, password)` | `SignUp` (real, not mocked) |
+| `forgotPasswordPage.requestCode(...)` / `tentativelyRequestCode(...)` / `resendCode()` | `ForgotPassword` (real unless mocked) |
+| `forgotPasswordPage.setNewPassword(...)` / `tentativelySetNewPassword(...)` | `ConfirmForgotPassword` (real unless mocked) |
 | Navigation to a page that runs an auth-check `GetUser` for a logged-in user | `GetUser` |
 
 ### What does NOT count as "touching real Cognito"

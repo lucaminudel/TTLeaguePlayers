@@ -25,6 +25,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
    * Show password visibility toggle for password inputs.
    */
   showPasswordToggle?: boolean;
+
+  /**
+   * Read-only value the user must not change (e.g. the email bound to an invite):
+   * disables the input and greys it out.
+   */
+  locked?: boolean;
 }
 
 const sizeClassName: Record<InputSize, string> = {
@@ -32,11 +38,19 @@ const sizeClassName: Record<InputSize, string> = {
   md: 'px-3 py-2 text-base',
 };
 
+const lockedClassName = ' !bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100';
+const lockedStyle: React.CSSProperties = { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 };
+
 /**
  * Standard input textbox used across the app for consistent styling.
  */
-export function Input({ uiSize = 'sm', className = '', ref, showPasswordToggle, type, ...props }: InputProps) {
+export function Input({ uiSize = 'sm', className = '', ref, showPasswordToggle, type, locked = false, disabled, style, ...props }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const stateProps = {
+    disabled: locked || disabled,
+    style: locked ? { ...lockedStyle, ...style } : style,
+  };
+  const stateClassName = locked ? lockedClassName : '';
   
   const isPasswordInput = type === 'password';
   const shouldShowToggle = showPasswordToggle && isPasswordInput;
@@ -53,7 +67,9 @@ export function Input({ uiSize = 'sm', className = '', ref, showPasswordToggle, 
             + 'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 '
             + 'text-gray-900 bg-white '
             + className
+            + stateClassName
           }
+          {...stateProps}
           {...props}
         />
         <button
@@ -88,7 +104,9 @@ export function Input({ uiSize = 'sm', className = '', ref, showPasswordToggle, 
         + 'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 '
         + 'text-gray-900 bg-white '
         + className
+        + stateClassName
       }
+      {...stateProps}
       {...props}
     />
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -10,6 +10,10 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 
 const AUTH_INIT_FAILED_PREFIX = 'AuthProvider.initAuth() has failed.';
 
+export interface LoginNavigationState {
+  errorFromPreviousPage?: string;
+}
+
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +23,18 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const emailParam = searchParams.get('email');
+  const isPasswordJustReset = searchParams.get('reset') === 'success';
+  const location = useLocation();
+  const [errorFromPreviousPage, setErrorFromPreviousPage] = useState<string | null>(
+    () => (location.state as LoginNavigationState | null)?.errorFromPreviousPage ?? null
+  );
+  const shownError = localError ?? authError ?? errorFromPreviousPage;
+
+  // authError is shared: an error left by another page's auth call (e.g. Register) must not show here;
+  // a page that wants Login to show its error passes it in the navigation state instead.
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
 
   useEffect(() => {
     if (emailParam) {
@@ -38,11 +54,26 @@ export const Login: React.FC = () => {
     return '/';
   };
 
+  const getForgotPasswordUrl = (): string => {
+    const params: string[] = [];
+    if (emailParam) {
+      params.push(`email=${encodeURIComponent(emailParam)}`);
+    } else if (email) {
+      params.push(`prefillEmail=${encodeURIComponent(email)}`);
+    }
+    const returnUrl = searchParams.get('returnUrl');
+    if (returnUrl) {
+      params.push(`returnUrl=${encodeURIComponent(returnUrl)}`);
+    }
+    return params.length > 0 ? `/forgot-password?${params.join('&')}` : '/forgot-password';
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setIsLoading(true);
     setLocalError(null);
+    setErrorFromPreviousPage(null);
     clearAuthError();
 
     try {
@@ -96,9 +127,7 @@ export const Login: React.FC = () => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); }}
               required
-              disabled={!!emailParam}
-              className={emailParam ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100' : ''}
-              style={emailParam ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
+              locked={!!emailParam}
               placeholder="Enter your email"
             />
           </FormField>
@@ -113,11 +142,24 @@ export const Login: React.FC = () => {
               placeholder="Enter your password"
               showPasswordToggle
             />
+            <Link
+              data-testid="login-forgot-password-link"
+              to={getForgotPasswordUrl()}
+              className="text-action-accent hover:underline text-sm sm:text-base"
+            >
+              Forgot your password?
+            </Link>
           </FormField>
 
-          {(localError ?? authError) && (
+          {isPasswordJustReset && !shownError && (
+            <p className="text-secondary-text text-sm sm:text-base leading-tight" data-testid="login-success-message">
+              Your password has been reset. Log in with your new password.
+            </p>
+          )}
+
+          {shownError && (
             <ErrorMessage testId="login-error-message">
-              {localError ?? authError}
+              {shownError}
             </ErrorMessage>
           )}
         </div>

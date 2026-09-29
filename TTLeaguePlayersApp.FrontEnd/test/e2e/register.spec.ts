@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { RegisterPage, User } from './page-objects/User';
+import { uniqueTestEmail } from './helpers/testEmails';
 
 /**
  * Registration acceptance tests.
@@ -9,22 +10,6 @@ import { RegisterPage, User } from './page-objects/User';
  */
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
-// Playwright runs these tests across several WORKER PROCESSES (fullyParallel, and `workers` is
-// undefined outside CI, so it defaults to half the cores). The monotonic guard below lives in ONE
-// process and cannot see the others, so two tests reaching Date.now() in the same millisecond in
-// different workers produced the SAME address: one registration succeeded and the other came back
-// UsernameExistsException, failing a test that had nothing wrong with it. The worker index is what
-// makes the address unique ACROSS processes; the guard keeps it unique WITHIN one.
-const workerIndex = process.env.TEST_WORKER_INDEX ?? '0';
-let lastEpochMs = 0;
-const uniqueTestEmail = (): string => {
-  // Format: test_<epoch milliseconds>_<worker index>@delete.me - still `test_`-prefixed, which is
-  // the whole of what delete-test-users.sh matches on when it cleans the pool.
-  const now = Date.now();
-  lastEpochMs = now <= lastEpochMs ? lastEpochMs + 1 : now;
-  return `test_${String(lastEpochMs)}_${workerIndex}@delete.me`;
-};
-
 const validPassword = 'aA1!56789012';
 
 test.describe('Register Flow', () => {
@@ -922,7 +907,7 @@ test.describe('Register with Invite Flow', () => {
       await expect(page).toHaveURL('/#/login');
       await expect(page.locator('h2')).toHaveText('Log In');
 
-      // AuthProvider.signUp sets authError from the Cognito error message; Login shows authError in .error-message.
+      // Register hands the SignUp Cognito error message to Login in the navigation state; Login shows it in .error-message.
       const errorMessage = page.getByTestId('login-error-message');
       await expect(errorMessage).toBeVisible();
       await expect(errorMessage).toHaveText(expectedUserAlreadyRegisteredMessage);
