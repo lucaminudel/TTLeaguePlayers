@@ -5,6 +5,7 @@ import { Home } from './pages/Home';
 import { Join } from './pages/Join';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { Kudos } from './pages/Kudos';
 import { AwardKudos } from './pages/AwardKudos';
 import { KudosStandings } from './pages/KudosStandings';
@@ -49,6 +50,7 @@ function InitializationGate() {
       <Route path="/join/:inviteId" element={<Join />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route
         path="/kudos"
         element={

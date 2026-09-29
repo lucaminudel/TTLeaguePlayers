@@ -1,6 +1,7 @@
 import { type Page, expect } from '@playwright/test';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
+import { ForgotPasswordPage } from './ForgotPasswordPage';
 import { JoinPage } from './JoinPage';
 import { HomePage } from './HomePage';
 import { KudosAndAwardPages } from './KudosAndAwardPages';
@@ -14,7 +15,7 @@ import { MyClubTeamsPage } from './MyClubTeamsPage';
 import { MyClubStandingsPage } from './MyClubStandingsPage';
 import { InviteTeamMembersPage } from './InviteTeamMembersPage';
 
-export { LoginPage, RegisterPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage, PromoteMyTournamentsPage, MyClubTeamsPage, MyClubStandingsPage, InviteTeamMembersPage };
+export { LoginPage, RegisterPage, ForgotPasswordPage, JoinPage, HomePage, KudosAndAwardPages as KudosPage, KudosStandingsPage as KudosStandingPage, MenuPage, ClubsAndTournamentsPage, ForumsPage, PromoteMyClubPage, PromoteMyTournamentsPage, MyClubTeamsPage, MyClubStandingsPage, InviteTeamMembersPage };
 
 export class User {
   private page: Page;
@@ -25,9 +26,9 @@ export class User {
     this._menu = new MenuPage(page);
   }
 
-  async navigateToLogin(): Promise<LoginPage> {
+  async navigateToLogin(query = ''): Promise<LoginPage> {
     const loginPage = new LoginPage(this.page);
-    await this.page.goto('/#/login');
+    await this.page.goto(`/#/login${query}`);
     await expect(this.page.locator('h2')).toHaveText('Log In');
     return loginPage;
   }
@@ -59,6 +60,13 @@ export class User {
     await this.page.goto('/#/register');
     await expect(this.page.locator('h2')).toHaveText('Register');
     return registerPage;
+  }
+
+  async navigateToForgotPassword(query = ''): Promise<ForgotPasswordPage> {
+    const forgotPasswordPage = new ForgotPasswordPage(this.page);
+    await this.page.goto(`/#/forgot-password${query}`);
+    await expect(this.page.locator('h2')).toHaveText('Forgot Password');
+    return forgotPasswordPage;
   }
 
   async navigateToJoin(inviteId: string, email?: string): Promise<JoinPage> {

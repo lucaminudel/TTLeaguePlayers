@@ -10,10 +10,9 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { FieldError } from '../components/common/FieldError';
 import { useAcceptInvite } from '../hooks/useAcceptInvite';
 import { isValidEmail } from '../utils/emailUtils';
+import { USER_INIT_ERROR_MESSAGE, isAuthInitFailure, getUserFriendlyCognitoError } from '../utils/cognitoErrorUtils';
 import type { Invite } from '../types/invite';
-
-const AUTH_INIT_FAILED_PREFIX = 'AuthProvider.initAuth() has failed.';
-const USER_INIT_ERROR_MESSAGE = 'Unexpected authentication initialisation error: reload the page and try again.';
+import type { LoginNavigationState } from './Login';
 
 export const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -30,14 +29,6 @@ export const Register: React.FC = () => {
   const inviteState = location.state as { invite?: Invite } | null;
   const invite = inviteState?.invite;
   const passwordInputRef = useRef<HTMLInputElement>(null);
-
-  const isAuthInitFailure = (error: unknown): boolean => {
-    const message = (typeof error === 'object' && error !== null && 'message' in error)
-      ? (error as { message?: unknown }).message
-      : undefined;
-
-    return typeof message === 'string' && message.startsWith(AUTH_INIT_FAILED_PREFIX);
-  };
 
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -63,33 +54,6 @@ export const Register: React.FC = () => {
     if (role === 'PLAYER') return 'Player';
     if (role === 'CLUB_MANAGER') return 'Club Manager';
     return role;
-  };
-
-  const getUserFriendlyError = (error: unknown): string => {
-    const errorRecord = error as Record<string, unknown>;
-    const errorType = errorRecord.__type ?? errorRecord.code ?? errorRecord.name;
-    const message = (errorRecord.message as string) || '';
-
-    switch (errorType) {
-      case 'InvalidPasswordException':
-        return 'Password must be at least 12 characters with uppercase, lowercase, number, and symbol.';
-      case 'UsernameExistsException':
-        return 'An account with this email already exists. Try logging in instead.';
-      case 'InvalidParameterException':
-        if (message.includes('email')) {
-          return 'Please enter a valid email address.';
-        }
-        return 'Invalid input. Please check your information.';
-      case 'CodeMismatchException':
-        return 'The verification code is incorrect. Please try again.';
-      case 'ExpiredCodeException':
-        return 'The verification code has expired. Please request a new one.';
-      case 'TooManyRequestsException':
-      case 'LimitExceededException':
-        return 'Too many attempts. Please wait an hour before trying again. Additional attempts will extend the wait time.';
-      default:
-        return (errorRecord.message as string) || 'An unexpected error occurred. Please try again.';
-    }
   };
 
   const [userAlreadyExists, setUserAlreadyExists] = useState(false);
@@ -144,11 +108,12 @@ export const Register: React.FC = () => {
         setUserAlreadyExists(true);
         const accepted = await acceptInvite(invite.nano_id);
         if (accepted) {
-          void navigate('/login');
+          const loginState: LoginNavigationState = { errorFromPreviousPage: (errorRecord.message as string) || 'Registration failed' };
+          void navigate('/login', { state: loginState });
         }
         // If failed, same as above: stay on page with error.
       } else {
-        setLocalError(getUserFriendlyError(error));
+        setLocalError(getUserFriendlyCognitoError(error));
       }
     } finally {
       setIsLoading(false);
@@ -160,7 +125,7 @@ export const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await confirmSignUp(email, verificationCode);
+      await confirmSignUp(email, verificationCode.trim());
       const returnUrl = searchParams.get('returnUrl');
       const returnUrlParam = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : '';
       void navigate(`/login${returnUrlParam}`);
@@ -169,7 +134,7 @@ export const Register: React.FC = () => {
         setLocalError(USER_INIT_ERROR_MESSAGE);
         return;
       }
-      setLocalError(getUserFriendlyError(error));
+      setLocalError(getUserFriendlyCognitoError(error));
     } finally {
       setIsLoading(false);
     }
@@ -187,7 +152,7 @@ export const Register: React.FC = () => {
         setLocalError(USER_INIT_ERROR_MESSAGE);
         return;
       }
-      setLocalError(getUserFriendlyError(error));
+      setLocalError(getUserFriendlyCognitoError(error));
     } finally {
       setIsLoading(false);
     }
@@ -302,11 +267,7 @@ export const Register: React.FC = () => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); }}
               required
-              disabled={!!invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'}
-              className={invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'
-                ? '!bg-gray-400 !text-gray-800 cursor-not-allowed !opacity-100'
-                : ''}
-              style={invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry' ? { backgroundColor: '#9ca3af !important', color: '#1f2937', opacity: 1 } : undefined}
+              locked={!!invite || acceptInviteStatus === 'failed' || acceptInviteStatus === 'waiting_to_retry'}
               placeholder="Enter your email"
             />
             {email && !isValidEmail(email) && (

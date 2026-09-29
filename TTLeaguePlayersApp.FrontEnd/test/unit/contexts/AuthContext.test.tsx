@@ -115,4 +115,28 @@ describe('AuthProvider initAuth() (build-time config) error handling', () => {
       "AuthProvider.initAuth() has failed. authInitialisationError: Cognito config and/or ClientId info section is missing."
     );
   });
+
+  it('rejects the password-reset methods with the init failed error when Cognito ClientId is missing', async () => {
+    (getConfig as unknown as GetConfigMock).mockReturnValueOnce({
+      Cognito: { UserPoolId: 'pool', ClientId: '' }
+    } as unknown);
+
+    let latestCtx: ReturnType<typeof useAuth> | null = null;
+
+    render(
+      <AuthProvider>
+        <Harness onContext={(ctx) => { latestCtx = ctx; }} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(latestCtx?.authInitialisationError).toBe('Cognito config and/or ClientId info section is missing.');
+    });
+
+    const ctx = requireContext(latestCtx);
+    const expectedInitFailedError = "AuthProvider.initAuth() has failed. authInitialisationError: Cognito config and/or ClientId info section is missing.";
+
+    await expect(ctx.forgotPassword('a@b.com')).rejects.toThrow(expectedInitFailedError);
+    await expect(ctx.confirmForgotPassword('a@b.com', '123456', 'aA1!56789012')).rejects.toThrow(expectedInitFailedError);
+  });
 });

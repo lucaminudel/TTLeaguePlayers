@@ -253,10 +253,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [userPool, authInitialisationError]);
 
   const signIn = async (emailInput: string, password: string): Promise<{ seasons: ActiveSeason[]; clubs: ManagedClub[] }> => {
-    if (authInitialisationError) {
-      throwInitAuthFailed();
-    }
-
     const pool = assertAuthReady();
 
     setAuthError(null);
@@ -302,10 +298,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signUp = async (emailInput: string, password: string): Promise<void> => {
-    if (authInitialisationError) {
-      throwInitAuthFailed();
-    }
-
     const pool = assertAuthReady();
 
     setAuthError(null);
@@ -325,10 +317,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const confirmSignUp = async (emailInput: string, code: string): Promise<void> => {
-    if (authInitialisationError) {
-      throwInitAuthFailed();
-    }
-
     const pool = assertAuthReady();
 
     setAuthError(null);
@@ -348,10 +336,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const resendConfirmationCode = async (emailInput: string): Promise<void> => {
-    if (authInitialisationError) {
-      throwInitAuthFailed();
-    }
-
     const pool = assertAuthReady();
 
     setAuthError(null);
@@ -366,6 +350,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else {
           resolve();
         }
+      });
+    });
+  };
+
+  const forgotPassword = async (emailInput: string): Promise<void> => {
+    const pool = assertAuthReady();
+
+    const cognitoUser = new CognitoUser({ Username: emailInput, Pool: pool });
+
+    return new Promise((resolve, reject) => {
+      cognitoUser.forgotPassword({
+        onSuccess: () => { resolve(); },
+        onFailure: (err: Error) => { reject(err); }
+      });
+    });
+  };
+
+  const confirmForgotPassword = async (emailInput: string, code: string, newPassword: string): Promise<void> => {
+    const pool = assertAuthReady();
+
+    const cognitoUser = new CognitoUser({ Username: emailInput, Pool: pool });
+
+    return new Promise((resolve, reject) => {
+      cognitoUser.confirmPassword(code, newPassword, {
+        onSuccess: () => { resolve(); },
+        onFailure: (err: Error) => { reject(err); }
       });
     });
   };
@@ -394,9 +404,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthTokenProvider(getIdToken);
   }, [getIdToken]);
 
-  const clearAuthError = () => {
+  const clearAuthError = useCallback(() => {
     setAuthError(null);
-  };
+  }, []);
 
   const refreshActiveSeasons = useCallback(async (): Promise<void> => {
     if (!userPool || !isAuthenticated) {
@@ -473,6 +483,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signUp,
         confirmSignUp,
         resendConfirmationCode,
+        forgotPassword,
+        confirmForgotPassword,
         signOut,
         getIdToken,
         authError,

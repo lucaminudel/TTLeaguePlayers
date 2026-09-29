@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test';
 import { HomePage } from './HomePage';
 import { JoinPage } from './JoinPage';
+import { ForgotPasswordPage } from './ForgotPasswordPage';
 import { expect } from '@playwright/test';
 
 export class LoginPage {
@@ -17,6 +18,12 @@ export class LoginPage {
 
         // Wait for navigation to complete
         await this.page.waitForLoadState('networkidle');
+    }
+
+    async clickForgotPasswordLink(): Promise<ForgotPasswordPage> {
+        await this.page.getByTestId('login-forgot-password-link').click();
+        await expect(this.page.locator('h2')).toHaveText('Forgot Password');
+        return new ForgotPasswordPage(this.page);
     }
 
     async loginAndWaitForHome(email: string, validPassword: string): Promise<HomePage>  {

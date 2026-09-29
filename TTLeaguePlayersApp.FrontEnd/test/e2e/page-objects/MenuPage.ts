@@ -1,5 +1,6 @@
 import { type Page, expect } from '@playwright/test';
 import { HomePage } from './HomePage';
+import { LoginPage } from './LoginPage';
 import { ClubsAndTournamentsPage } from './ClubsAndTournamentsPage';
 import { ForumsPage } from './ForumsPage';
 import { AboutAndContactUsPage } from './AboutAndContactUsPage';
@@ -57,6 +58,14 @@ export class MenuPage {
         // Wait for redirect to homepage
         await expect(this.page).toHaveURL('/#/');
         await expect(this.page.locator('h1')).toHaveText('TT League Players');
+    }
+
+    async navigateToLogin(): Promise<LoginPage> {
+        const link = this.page.getByTestId('main-menu-login-link');
+        await link.click();
+
+        await expect(this.page.locator('h2')).toHaveText('Log In');
+        return new LoginPage(this.page);
     }
 
     async navigateToHome(): Promise<HomePage> {
