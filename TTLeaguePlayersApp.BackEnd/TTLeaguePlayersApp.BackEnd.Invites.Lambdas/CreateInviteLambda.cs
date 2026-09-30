@@ -204,7 +204,7 @@ With the Unoficial TT League Players web-app, you can now:
 - Reward fair play & positive, inclusive behaviour
 - Check your next match date, time, and location
 - View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
-In the future, new features will allow you to manage your team formations and record the match scorecard in real time on your phone.
+In the future, new features will allow you to easily organise common training and match related activities from the app.
 
 To unlock all these features on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
