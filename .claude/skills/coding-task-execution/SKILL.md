@@ -43,9 +43,15 @@ Reconcile it against reality before doing anything:
 Mirror the plan into the in-session task list if it helps you work, but the persisted file is what
 you update.
 
+**Establish where the e2e tests may run — by asking.** Every e2e test, Cognito-free or live, needs a
+clean DB, and the local dev DynamoDB is where manual use leaves data behind. Ask the user whether the
+local dev DB is clean enough to run e2e tests on dev. The answer fixes the **e2e environment** for the
+whole execution (see *Where the e2e tests run* in Phase 6): **test** unless the user confirms the dev
+DB is clean. One ask, in its own message.
+
 **Establish the baseline before changing any code — by asking, not by running.** Ask the user to
-confirm that all three suites (C#, Vitest unit, Playwright e2e) are currently passing on the local dev
-environment. Do **not** run them yourself to find out: the e2e suite spends live Cognito, which is the
+confirm that all three suites are currently passing: C# and Vitest unit on the local dev environment,
+Playwright e2e on the e2e environment. Do **not** run them yourself to find out: the e2e suite spends live Cognito, which is the
 scarce resource this skill exists to protect (see *The Cognito budget*). Without a confirmed baseline
 you cannot tell your own regressions from failures that were already there — which is the whole
 purpose of asking.
@@ -156,37 +162,49 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
 Four tiers, ordered by how much **live Cognito** they spend. They are **not** interchangeable, and the
 ordering is the point: you climb it only as far as the change requires.
 
-| Tier | Environment | Cognito | Gate |
-|---|---|---|---|
-| **1-A** | dev | **none** — excluded by filter | run freely, constantly |
-| **1-B** | dev | scoped — only the individual tests relevant to the changed files | counts against the budget |
-| **1-C** | dev | **full** — whole backend suite + whole e2e suite with live Cognito | **ask first** |
-| **2** | test | **full**, plus Cognito user cleanup | **ask first** |
+| Tier | Build, lint, Vitest, C# | e2e | Cognito | Gate |
+|---|---|---|---|---|
+| **1-A** | dev | the **e2e environment** | **none** — excluded by filter / flag | run freely, constantly |
+| **1-B** | dev | the **e2e environment** | scoped — only the individual tests relevant to the changed files | counts against the budget |
+| **1-C** | dev | dev — **exists only if the user confirmed the dev DB is clean** | **full** — whole backend suite + whole e2e suite with live Cognito | **ask first** |
+| **2** | test (clean-room) | test | **full**, plus Cognito user cleanup | **ask first**, at the end of execution |
 
-**Tier 1-A — the fast feedback loop, Cognito-free.** Runs on **dev**, reusing the local web server and
-SAM already started. Seconds to a couple of minutes. **This is the loop you live in.** Run it after
-every change, and get it green before climbing any higher.
+**Where the e2e tests run.** Every e2e test — Cognito-free or live — needs a clean DB; on a dev DB with
+leftover data they fail for reasons unrelated to the change. So the **e2e environment** is the **test**
+environment (web on 4173, SAM on 3003, DynamoDB on 8001) unless the user confirmed in Phase 1 that the
+local dev DB is clean, in which case it is dev. Build, lint, Vitest and the C# suite always run on
+**dev**, whatever the DB state: the Lambda unit tests use fakes, and the acceptance tests create
+GUID-unique rows and tear them down. If the test-env services are not running, start them yourself —
+see *Starting the services* — and stop what you started.
+
+**Tier 1-A — the fast feedback loop, Cognito-free.** Build, lint, Vitest and the filtered C# suite on
+**dev**; Cognito-free e2e on the e2e environment. Seconds to a couple of minutes. **This is the loop you
+live in.** Run it after every change, and get it green before climbing any higher.
 
 **Tier 1-B — scoped Cognito, after 1-A is green.** Only the *individual* tests that cover the files the
-sub-task touched, run without the Cognito exclusion so the Cognito-dependent ones actually execute.
-Still on dev.
+sub-task touched, run without the Cognito exclusion so the Cognito-dependent ones actually execute:
+C# test classes on dev, e2e specs on the e2e environment.
 
-**Tier 1-C — the fast pre-final verification.** Everything, on dev, with live Cognito. Effectively a
-faster Tier 2 with richer local logs and artefacts. **Confirm with the user before launching.** Run it:
+**Tier 1-C — the fast local full run, only with a clean dev DB.** Everything, on dev, with live
+Cognito. It exists **only if the user confirmed the dev DB is clean**: on the test environment the same
+run would be Tier 2 without the clean-room build, so it adds a Cognito-heavy run and tells you almost
+nothing new. **Confirm with the user before launching.** When it exists, run it:
 
-- at a plan checkpoint;
-- after the application code is finished and **before** starting on its tests, so the baseline is green
-  and only the new tests can be red;
-- after finishing a sub-task, before the complete verification on the test environment;
-- to collect evidence a pipeline run cannot give you — Playwright screenshots, traces and videos land
-  locally on a dev run but not from inside the pipeline.
+- to confirm the initial green state quickly;
+- after long changes that also affect the frontend, before the final Tier 2 — it runs faster locally,
+  and Playwright screenshots, traces and videos land locally.
+
+Without a clean dev DB there is no 1-C: checkpoints and "application code finished" gates use 1-B, and
+the whole e2e suite runs only in Tier 2.
 
 **Tier 2 — the complete verification.** On the **test** environment, with live Cognito and a clean-room
-build. Minutes. **Confirm with the user before launching.**
+build. Minutes. **Left for the end of execution, and started only after asking the user.** Before it
+starts, stop any test-env services you started yourself: the pipeline reuses a SAM already listening on
+3003 instead of its own clean-room build.
 
 Never substitute a higher tier for the 1-A loop (too slow, and it burns Cognito to tell you something
-a lint error would have). Never let 1-A stand in for Tier 2 (different environment, no live Cognito,
-no clean-room build).
+a lint error would have). Never let 1-A stand in for Tier 2 (no live Cognito, no
+clean-room build, not the whole suite in one run).
 
 IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
@@ -259,9 +277,9 @@ than reaching for a second mutation that flatters the original guess.
 | `config/*.env.json` | **1-A backend** — `LoaderTest` is a Theory over dev/test/staging/prod and parses all four |
 | Test or fixture only | just that suite, at the lowest tier that runs it |
 | Either, once 1-A is green **and** the change touches a Cognito-dependent path | **1-B**, narrowed to the relevant tests — counts against the budget |
-| Gate: plan verification sub-tasks, and **every checkpoint** | **1-C**, front and back — **ask first** |
-| Application code finished, before writing its tests | **1-C** — establish the green baseline — **ask first** |
-| Plan's final sub-task | **Tier 2** — **ask first** |
+| Gate: plan verification sub-tasks, and **every checkpoint** | **1-C** front and back if the dev DB is clean — **ask first**; otherwise **1-B** |
+| Application code finished, before writing its tests | same as the row above — establish the green baseline |
+| Plan's final sub-task, at the end of execution | **Tier 2** — **ask first** |
 
 ---
 
@@ -308,7 +326,7 @@ In Tier 1-A, never use a `C+` script.
 
 ---
 
-### Tier 1-A — fast feedback loop, no Cognito (dev)
+### Tier 1-A — fast feedback loop, no Cognito (dev; e2e on the e2e environment)
 
 **Working directory matters.** Frontend `npm` commands run from
 `TTLeaguePlayersApp.FrontEnd/`; `sam`, `dotnet` and `./scripts/...` run from the repo root.
@@ -358,23 +376,24 @@ A single spec, much faster while iterating on one file:
 npx vitest run test/unit/<path-to-the-spec>.spec.ts
 ```
 
-e2e with the live Cognito tests skipped. **Set the flag explicitly** — the non-`C+` script only omits
-it, so it inherits whatever the shell already has, and an inherited `true` would turn this into a
+e2e with the live Cognito tests skipped, on the **e2e environment** — `test-env` below; use `dev-env`
+only if the user confirmed the dev DB is clean. **Set the flag explicitly** — the non-`C+` script only
+omits it, so it inherits whatever the shell already has, and an inherited `true` would turn this into a
 Cognito run without changing a character of the command:
 
 ```bash
-EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run dev-env"
+EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run test-env"
 ```
 
 Narrow it to one spec, with readable output:
 
 ```bash
-EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run dev-env" -- test/e2e/<path-to-the-spec>.spec.ts --reporter=list
+EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run test-env" -- test/e2e/<path-to-the-spec>.spec.ts --reporter=list
 ```
 
 ---
 
-### Tier 1-B — scoped Cognito (dev) · counts against the budget
+### Tier 1-B — scoped Cognito (dev; e2e on the e2e environment) · counts against the budget
 
 Only after the matching 1-A is green. Run **individual** tests relevant to the changed files, dropping
 the Cognito exclusion so the Cognito-dependent ones actually execute. Never the whole suite — that is
@@ -386,20 +405,22 @@ the Cognito exclusion so the Cognito-dependent ones actually execute. Never the 
 ENVIRONMENT=dev dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --filter "FullyQualifiedName~<TestClass>" --logger "console;verbosity=normal"
 ```
 
-**1-B frontend** — the `C+` script, narrowed to the specs the change affects. Relevant to frontend
-changes **and** to backend changes that surface in the UI:
+**1-B frontend** — the `C+` script on the e2e environment (`test-env`; `dev-env` only with a confirmed
+clean dev DB), narrowed to the specs the change affects. Relevant to frontend changes **and** to
+backend changes that surface in the UI:
 
 ```bash
-npm run "C+ e2e-tests-web:run dev-env" -- test/e2e/<path-to-the-spec>.spec.ts --reporter=list
+npm run "C+ e2e-tests-web:run test-env" -- test/e2e/<path-to-the-spec>.spec.ts --reporter=list
 ```
 
 Each invocation is one unit of the budget. At 10, stop and ask.
 
 ---
 
-### Tier 1-C — full local verification with live Cognito (dev) · **ask first**
+### Tier 1-C — full local verification with live Cognito (dev, clean dev DB only) · **ask first**
 
-A faster Tier 2 with local artefacts. **Confirm with the user before launching.**
+Only if the user confirmed in Phase 1 that the dev DB is clean. A faster Tier 2 with local artefacts.
+**Confirm with the user before launching.**
 
 Backend, whole suite, no filter:
 
@@ -429,6 +450,9 @@ Configured in `playwright.config.ts`: `trace: 'retain-on-failure'`, `screenshot:
 | `test-results/<spec>-<test>-<project>/error-context.md` | page snapshot at failure |
 | `test-results/results.json` | machine-readable results for all tests |
 | `playwright-report/index.html` | the HTML report |
+
+A run with `--reporter=list` replaces the configured reporters and does not write `results.json`;
+capture the list output in full (no `tail`) or omit the flag.
 
 Open a trace, which is usually faster than re-running to diagnose:
 
@@ -488,7 +512,7 @@ All three of these mutate Cognito: their cleanup deletes the dynamically created
 
 ### Starting the services, when they are not already up
 
-Normally the user already has these running; start them only if they are not.
+**Dev** (web 5173, SAM 3000): normally the user already has these running; start them only if they are not.
 
 ```bash
 sam local start-api --warm-containers LAZY --config-env dev --port 3000
@@ -497,6 +521,38 @@ sam local start-api --warm-containers LAZY --config-env dev --port 3000
 ```bash
 npm run "run-web:dev-env"
 ```
+
+**Test environment for e2e** (web 4173, SAM 3003, DynamoDB 8001). Check first:
+
+```bash
+lsof -nP -iTCP:4173 -sTCP:LISTEN; lsof -nP -iTCP:3003 -sTCP:LISTEN; lsof -nP -iTCP:8001 -sTCP:LISTEN
+```
+
+If web or SAM is missing, start it yourself, as the VS Code task `sam-start test-env` and the npm script
+`run-web:test-env` do — each with Bash `run_in_background`, from the right directory:
+
+```bash
+sam build --config-env test && sam local start-api --warm-containers LAZY --config-env test --port 3003
+```
+
+```bash
+npm run "run-web:test-env"
+```
+
+Then wait for SAM and **warm up the Lambda**, as `run_full_stack_builds_tests_pipeline.sh` does: SAM
+answers the readiness check without invoking the Lambda, and the first invocation (which may pull or
+rebuild the runtime image) can outlast the tests' timeouts:
+
+```bash
+until curl -s -o /dev/null http://127.0.0.1:3003/; do sleep 1; done; curl -s -o /dev/null --max-time 180 http://127.0.0.1:3003/clubs
+```
+
+- **Stop what you started, and only that** — when no more e2e runs are needed, and always before Tier 2
+  (the pipeline would reuse your SAM instead of its clean-room build). Never stop a process the user started.
+- `sam build --config-env test` rewrites the shared `.aws-sam/build`, which a running dev SAM on 3000
+  also serves. Tell the user; their dev SAM may need restarting after a `sam build --config-env dev`.
+- If DynamoDB on 8001 (`ttlp-dynamodb-test`, `scripts/local_dynamodb_setup/docker-compose.yml`) is not
+  listening, stop and ask the user.
 
 The static Cognito users are created **once, manually, with `force`**. The pipeline calls
 `register-test-users.sh` without `force`, which is a no-op — it relies on them already existing.
@@ -730,6 +786,8 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
   trace, screenshot or `error-context.md` already on disk.
 - Losing count of the Cognito budget, or continuing past 10 without asking.
 - Re-running anything after the "Too many attempts" lockout message, which extends the wait.
+- Running e2e tests on dev without the user's confirmation that the dev DB is clean.
+- Leaving test-env services you started running, or stopping ones the user started.
 - Starting work without a confirmed green baseline — or establishing one by running the suites yourself
   rather than asking the user.
 - Creating or reconfiguring a shared test record — a Cognito user above all — from a test or by hand,
