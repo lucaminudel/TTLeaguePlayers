@@ -4,8 +4,21 @@ import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
 
-function loadBuildTimeConfig(): Record<string, unknown> {
+const ENVIRONMENTS = ['dev', 'test', 'staging', 'prod']
+
+// An exact match is required: macOS's case-insensitive filesystem would otherwise let a value
+// such as "Prod" load prod.env.json.
+function resolveEnvironment(): string {
   const environment = process.env.ENVIRONMENT ?? 'dev'
+  if (!ENVIRONMENTS.includes(environment)) {
+    throw new Error(
+      `Unknown ENVIRONMENT ${JSON.stringify(environment)}: expected one of ${ENVIRONMENTS.join(' | ')}`
+    )
+  }
+  return environment
+}
+
+function loadBuildTimeConfig(environment: string): Record<string, unknown> {
   const frontEndRoot = process.cwd()
   // config/*.env.json lives at repo root (one level up from TTLeaguePlayersApp.FrontEnd)
   const configPath = path.resolve(frontEndRoot, '..', 'config', `${environment}.env.json`)
@@ -20,7 +33,8 @@ function loadBuildTimeConfig(): Record<string, unknown> {
   }
 }
 
-const appConfig = loadBuildTimeConfig()
+const environment = resolveEnvironment()
+const appConfig = loadBuildTimeConfig(environment)
 
 // Fixed version, maintained by hand in package.json.
 const appVersion = (JSON.parse(
@@ -47,7 +61,7 @@ export default defineConfig({
   })],
   define: {
     // Expose ENVIRONMENT and config to the browser at build time.
-    'import.meta.env.ENVIRONMENT': JSON.stringify(process.env.ENVIRONMENT ?? 'dev'),
+    'import.meta.env.ENVIRONMENT': JSON.stringify(environment),
     'import.meta.env.APP_CONFIG': JSON.stringify(appConfig),
 
     // App version and build stamp, shown on the About & Contact Us page.
