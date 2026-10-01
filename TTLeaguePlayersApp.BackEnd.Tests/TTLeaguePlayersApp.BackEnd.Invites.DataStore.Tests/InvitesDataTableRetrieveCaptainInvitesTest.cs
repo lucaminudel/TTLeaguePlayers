@@ -1,5 +1,6 @@
 using FluentAssertions;
 using System.Collections.Concurrent;
+using TTLeaguePlayersApp.BackEnd.Tests;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Invites.DataStore.Tests;
@@ -46,7 +47,7 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     {
         var invite = await TrackedCreate(CaptainInvite("Alpha 1", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Alpha 1" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "Alpha 1" }, invite);
 
         var result = found.Should().ContainSingle().Subject;
         result.NanoId.Should().Be(invite.NanoId);
@@ -62,7 +63,7 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
         var invite = await TrackedCreate(CaptainInvite("Alpha 2", accepted: false));
         await _db.MarkInviteAccepted(invite.NanoId, 1786000000);
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Alpha 2" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "Alpha 2" }, invite);
 
         found.Should().ContainSingle().Which.AcceptedAt.Should().Be(1786000000);
     }
@@ -72,7 +73,7 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     {
         var invite = await TrackedCreate(CaptainInvite("Alpha 3", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Alpha 3" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "Alpha 3" }, invite);
 
         var result = found.Should().ContainSingle().Subject;
         result.NanoId.Should().Be(invite.NanoId);
@@ -121,10 +122,10 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     [Fact]
     public async Task ExcludesAnUnrequestedTeam_TheTeamMatch()
     {
-        await TrackedCreate(CaptainInvite("Beta 4", accepted: false));
+        var requestedInvite = await TrackedCreate(CaptainInvite("Beta 4", accepted: false));
         await TrackedCreate(CaptainInvite("Beta 5", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Beta 4" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "Beta 4" }, requestedInvite);
 
         found.Should().ContainSingle().Which.InviteeTeam.Should().Be("Beta 4");
     }
@@ -146,9 +147,9 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     [Fact]
     public async Task TeamMatchingIsCaseInsensitive()
     {
-        await TrackedCreate(CaptainInvite("Gamma 1", accepted: false));
+        var invite = await TrackedCreate(CaptainInvite("Gamma 1", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "gamma 1" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "gamma 1" }, invite);
 
         found.Should().ContainSingle().Which.InviteeTeam.Should().Be("Gamma 1");
     }
@@ -156,9 +157,9 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     [Fact]
     public async Task TeamMatchingIgnoresWhitespaceAroundTheRequestedName()
     {
-        await TrackedCreate(CaptainInvite("Gamma 3", accepted: false));
+        var invite = await TrackedCreate(CaptainInvite("Gamma 3", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "  Gamma 3  " });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "  Gamma 3  " }, invite);
 
         found.Should().ContainSingle().Which.InviteeTeam.Should().Be("Gamma 3");
     }
@@ -168,9 +169,9 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     {
         // No frontend feature currently implemented in this codebase creates invites, so the stored
         // spelling is hand-typed and only ever had a non-empty rule applied to it.
-        await TrackedCreate(CaptainInvite("  Gamma 4  ", accepted: false));
+        var invite = await TrackedCreate(CaptainInvite("  Gamma 4  ", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Gamma 4" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "Gamma 4" }, invite);
 
         found.Should().ContainSingle().Which.InviteeTeam.Should().Be("  Gamma 4  ");
     }
@@ -190,9 +191,9 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     {
         // Real configured club names look like this, and they are the reason the team list travels
         // in a request body rather than a query string.
-        await TrackedCreate(CaptainInvite("St Katharine's Trust 2", accepted: false));
+        var invite = await TrackedCreate(CaptainInvite("St Katharine's Trust 2", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "St Katharine's Trust 2" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "St Katharine's Trust 2" }, invite);
 
         found.Should().ContainSingle().Which.InviteeTeam.Should().Be("St Katharine's Trust 2");
     }
@@ -200,12 +201,11 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     [Fact]
     public async Task RetrievesSeveralTeamsInOneQuery()
     {
-        await TrackedCreate(CaptainInvite("Delta 1", accepted: false));
-        await TrackedCreate(CaptainInvite("Delta 2", accepted: false));
-        await TrackedCreate(CaptainInvite("Delta 3", accepted: false));
+        var firstInvite = await TrackedCreate(CaptainInvite("Delta 1", accepted: false));
+        var thirdInvite = await TrackedCreate(CaptainInvite("Delta 3", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(
-            _league, Season, new[] { "Delta 1", "Delta 3", "Delta 99" });
+        var found = await ReadUntilExpectedInvitesAreVisible(
+            new[] { "Delta 1", "Delta 3", "Delta 99" }, firstInvite, thirdInvite);
 
         found.Select(i => i.InviteeTeam).Should().BeEquivalentTo("Delta 1", "Delta 3");
     }
@@ -215,10 +215,10 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     {
         // The datastore does not resolve duplicates — it returns what is stored, and the lambda
         // decides. Production contains a real instance of this.
-        await TrackedCreate(CaptainInvite("Delta 4", accepted: false));
-        await TrackedCreate(CaptainInvite("Delta 4", accepted: false));
+        var firstInvite = await TrackedCreate(CaptainInvite("Delta 4", accepted: false));
+        var secondInvite = await TrackedCreate(CaptainInvite("Delta 4", accepted: false));
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, new[] { "Delta 4" });
+        var found = await ReadUntilExpectedInvitesAreVisible(new[] { "Delta 4" }, firstInvite, secondInvite);
 
         found.Should().HaveCount(2);
         found.Select(i => i.NanoId).Distinct().Should().HaveCount(2);
@@ -286,16 +286,22 @@ public class InvitesDataTableRetrieveCaptainInvitesTest : IAsyncLifetime
     [Fact]
     public async Task AcceptsMoreThanOneHundredTeamNames()
     {
-        await TrackedCreate(CaptainInvite("Epsilon 1", accepted: false));
+        var invite = await TrackedCreate(CaptainInvite("Epsilon 1", accepted: false));
 
         var teamNames = Enumerable.Range(0, 150).Select(i => $"Filler {i}").Append("Epsilon 1").ToList();
 
-        var found = await _db.RetrieveCaptainInvitesForTeams(_league, Season, teamNames);
+        var found = await ReadUntilExpectedInvitesAreVisible(teamNames, invite);
 
         found.Should().ContainSingle().Which.InviteeTeam.Should().Be("Epsilon 1");
     }
 
     // ------------------------------------------------------------------ test data
+
+    private Task<List<CaptainOrPlayerInviteSummary>> ReadUntilExpectedInvitesAreVisible(
+        IReadOnlyList<string> teamNames, params CaptainOrPlayerInvite[] expectedInvites)
+        => EventualConsistency.ReadUntilAsync(
+            () => _db.RetrieveCaptainInvitesForTeams(_league, Season, teamNames),
+            found => expectedInvites.All(expected => found.Any(invite => invite.NanoId == expected.NanoId)));
 
     private async Task<T> TrackedCreate<T>(T invite) where T : Invite
     {

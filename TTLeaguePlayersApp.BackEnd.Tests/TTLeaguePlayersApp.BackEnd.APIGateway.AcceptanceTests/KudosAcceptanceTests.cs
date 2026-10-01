@@ -594,10 +594,13 @@ public class KudosAcceptanceTests: IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact(Skip = "Currently security check just generates a log")]
+    [Fact]
     [Trait("Cognito", "Live")]
-    public async Task GET_Kudos_Should_Return_403_When_Requesting_For_Different_User()
+    public async Task GET_Kudos_Returns_200_When_Requesting_For_Different_User_AndSecurityCheckLogs()
     {
+        // Currently security check just generates a log
+        // Otherwise it should return 403 when requesting for a different user
+
         // Arrange
         var idToken = await LoginAndGetIdTokenAsync(TestUserEmail, TestUserPassword);
         var sub = await GetUserSubByEmail(TestUserEmail);
