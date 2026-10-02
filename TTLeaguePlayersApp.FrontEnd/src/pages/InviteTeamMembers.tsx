@@ -86,7 +86,9 @@ export const InviteTeamMembers: React.FC = () => {
                         ) : captainSeasons.length === 0 ? (
                             <div className="rounded-lg border border-gray-600 bg-primary p-4" data-testid="no-active-season">
                                 <p className="text-base sm:text-lg leading-relaxed">
-                                    ⚠️ None of the teams you captain has an active season right now.
+                                    ⚠️ None of the teams you captain has an active season right now.<br/>
+                                    <br/>
+                                    Check your Inbox or Spam folder for the new season invite, or contact us.
                                 </p>
                             </div>
                         ) : (
