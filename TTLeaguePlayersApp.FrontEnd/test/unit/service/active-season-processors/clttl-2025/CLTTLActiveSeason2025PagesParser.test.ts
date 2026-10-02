@@ -128,33 +128,29 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
     });
 
     describe('getTeamPlayers', () => {
-        it('should extract players from team players html', () => {
+        it('should extract player names from the team checker API response', () => {
             const parser = new CLTTLActiveSeason2025PagesParser();
-            const players = parser.getTeamPlayers(readSnapshot('division_team_players.html'));
+            const players = parser.getTeamPlayers(JSON.stringify({
+                teamPlayers: [
+                    { playerName: 'Luca Minudel' },
+                    { name: 'Michele de Giovanni' },
+                    { fullName: 'Dave Mesfin' }
+                ],
+                otherPlayers: [{ name: 'Other Eligible Player' }]
+            }));
 
-            // Spelled exactly as the site spells them ("de Giovanni", lower-case particle).
-            expect(players.length).toBe(7);
-            expect(players).toEqual([
-                'Katrina Yiwen Sun',
-                'Ke Xin Li',
-                'Kevin Ji',
-                'Luca Minudel',
-                'Suzy Song',
-                'Michele de Giovanni',
-                'Dave Mesfin'
-            ]);
+            expect(players).toEqual(['Luca Minudel', 'Michele de Giovanni', 'Dave Mesfin']);
         });
 
-        it('should return empty array if the averages table is missing', () => {
-            // What the site serves for a team with no averages yet: the filters, no table.
+        it('should support a legacy bare array and return empty for an invalid response', () => {
             const parser = new CLTTLActiveSeason2025PagesParser();
-            const players = parser.getTeamPlayers('<html><body><select id="filterTeam"></select></body></html>');
-            expect(players).toEqual([]);
+            expect(parser.getTeamPlayers(JSON.stringify(['Luca Minudel', '']))).toEqual(['Luca Minudel']);
+            expect(parser.getTeamPlayers('<html><body></body></html>')).toEqual([]);
         });
     });
 
     describe('getTeamIds', () => {
-        it('should extract team names and IDs from the division averages html', () => {
+        it('should extract team names and IDs from the team checker html', () => {
             const parser = new CLTTLActiveSeason2025PagesParser();
             const teamIds = parser.getTeamIds(readSnapshot('division_all_players.html'));
 
@@ -173,6 +169,13 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
                 { team: 'St Katharines Trust 6', id: 73160 },
                 { team: 'Walworth Tigers', id: 73249 }
             ]);
+        });
+
+        it('should prefer the team checker teamSelect selector', () => {
+            const parser = new CLTTLActiveSeason2025PagesParser();
+            const teamIds = parser.getTeamIds('<select id="teamSelect"><option value="73142">Morpeth 10</option></select>');
+
+            expect(teamIds).toEqual([{ team: 'Morpeth 10', id: 73142 }]);
         });
 
         it('should return empty array if the team select is missing', () => {

@@ -107,27 +107,40 @@ export class CLTTLActiveSeason2025PagesParser {
     }
 
     /**
-     * Extracts the players listed on the division's averages page filtered to one team (`&t=<id>`).
-     * A team with no averages yet gets a page without the table, hence `[]`.
+     * Extracts player names from the team checker API response.
+     * The handler returns an object containing `teamPlayers` and `otherPlayers`; only
+     * `teamPlayers` belongs in the team's roster.
      */
-    public getTeamPlayers(playersHtmlPage: string): string[] {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(playersHtmlPage, 'text/html');
-        const table = doc.querySelector('table.tt-averages-table');
-
-        if (!table) {
+    public getTeamPlayers(playersApiResponse: string): string[] {
+        let response: unknown;
+        try {
+            response = JSON.parse(playersApiResponse) as unknown;
+        } catch {
             return [];
         }
 
-        const players: string[] = [];
-        table.querySelectorAll('td.tt-averages-col-player a.tt-player-link').forEach((link) => {
-            const name = link.textContent.trim();
-            if (name) {
-                players.push(name);
-            }
-        });
+        const playerEntries = response && typeof response === 'object' && Array.isArray((response as { teamPlayers?: unknown }).teamPlayers)
+            ? (response as { teamPlayers: unknown[] }).teamPlayers
+            : response && typeof response === 'object' && Array.isArray((response as { players?: unknown }).players)
+                ? (response as { players: unknown[] }).players
+                : Array.isArray(response)
+                    ? response
+                    : [];
 
-        return players;
+        return playerEntries.flatMap((entry) => {
+            if (typeof entry === 'string') {
+                return entry.trim() ? [entry.trim()] : [];
+            }
+            if (!entry || typeof entry !== 'object') {
+                return [];
+            }
+
+            const player = entry as { name?: unknown; playerName?: unknown; fullName?: unknown };
+            const name = [player.playerName, player.name, player.fullName]
+                .find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+            return name ? [name.trim()] : [];
+        });
     }
 
     /**
@@ -166,13 +179,15 @@ export class CLTTLActiveSeason2025PagesParser {
     }
 
     /**
-     * Extracts the team ids from the team filter of the division's averages page. The select lists
+     * Extracts the team ids from the team filter of the team checker page. The select lists
      * only that division's teams; the empty "All Teams" option is skipped.
      */
-    public getTeamIds(allPlayersHtmlPage: string): { team: string; id: number }[] {
+    public getTeamIds(teamCheckerHtmlPage: string): { team: string; id: number }[] {
         const parser = new DOMParser();
-        const doc = parser.parseFromString(allPlayersHtmlPage, 'text/html');
-        const teamSelect = doc.querySelector('select#filterTeam');
+        const doc = parser.parseFromString(teamCheckerHtmlPage, 'text/html');
+        // The team checker calls this control teamSelect. Keep the former averages-page ids as
+        // fallbacks for older cached pages and fixtures.
+        const teamSelect = doc.querySelector('select#teamSelect, select#teamId, select#filterTeam');
 
         if (!teamSelect) {
             return [];

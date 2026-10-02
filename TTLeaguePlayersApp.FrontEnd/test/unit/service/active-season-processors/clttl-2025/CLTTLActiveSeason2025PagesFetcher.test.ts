@@ -104,22 +104,15 @@ describe('CLTTLActiveSeason2025PagesFetcher', () => {
         await expect(fetcher.getTeams('Unknown Division')).rejects.toThrow('Division "Unknown Division" not found');
     });
 
-    it('should correctly construct URL for getTeamPlayers', async () => {
+    it('should correctly construct the team checker API URL for getTeamPlayers', async () => {
         const mockResponse = { ok: true, text: () => Promise.resolve('success') };
         vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
 
-        // Case 1: Base URL without query string
         await fetcher.getTeamPlayers('Division 1', 123);
-        expect(fetch).toHaveBeenCalledWith('http://players/div1?t=123');
+        expect(fetch).toHaveBeenCalledWith('http://players/div1?handler=Players&leagueId=4760&teamId=123');
 
-        // Case 2: Base URL with query string (the configured Averages URL always carries one)
-        const mockDataSourceWithQuery: ActiveSeasonDataSource = {
-            ...mockDataSource,
-            division_players: [{ 'Division 1': 'http://players/div1?leagueName=Winter%202025-26&divisionName=Division%20One' }]
-        };
-        const fetcherWithQuery = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithQuery);
-        await fetcherWithQuery.getTeamPlayers('Division 1', 456);
-        expect(fetch).toHaveBeenCalledWith('http://players/div1?leagueName=Winter%202025-26&divisionName=Division%20One&t=456');
+        await fetcher.getTeamPlayers('Division 1', 456);
+        expect(fetch).toHaveBeenLastCalledWith('http://players/div1?handler=Players&leagueId=4760&teamId=456');
     });
 
     it('should URL-encode the target page when going through the CORS proxy', async () => {

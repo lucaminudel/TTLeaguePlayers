@@ -1,97 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { User } from './page-objects/User';
 import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
+import { deleteCreatedKudos, trackCreatedKudos, type CreatedKudos } from './helpers/created-kudos-cleanup';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
 test.describe.configure({ mode: 'serial' });
 
-interface KudosIdentifier {
-    league: string;
-    season: string;
-    division: string;
-    receiving_team: string;
-    home_team: string;
-    away_team: string;
-    giver_person_sub: string;
-}
-
 test.describe('Kudos Standings', () => {
-    const createdKudos: { body: KudosIdentifier; auth: string; url: string }[] = [];
+    const createdKudos: CreatedKudos[] = [];
 
     test.beforeEach(({ page }) => {
-        page.on('request', (request) => {
-            if (request.url().includes('/kudos') && request.method() === 'POST') {
-                const body = request.postDataJSON() as KudosIdentifier | null;
-                const auth = request.headers().authorization as string | undefined;
-                if (body !== null && auth !== undefined) {
-                    createdKudos.push({
-                        body: {
-                            league: body.league,
-                            season: body.season,
-                            division: body.division,
-                            receiving_team: body.receiving_team,
-                            home_team: body.home_team,
-                            away_team: body.away_team,
-                            giver_person_sub: body.giver_person_sub
-                        },
-                        auth,
-                        url: request.url()
-                    });
-                }
-            }
-        });
+        trackCreatedKudos(page, createdKudos);
     });
 
     test.afterAll(async ({ request }) => {
-        if (createdKudos.length === 0) return;
-
-        console.log(`\n🧹 [Cleanup] Starting deletion of ${String(createdKudos.length)} created Kudos...`);
-        let successCount = 0;
-        let failCount = 0;
-
-        // Clean up created kudos in reverse order
-        for (const item of [...createdKudos].reverse()) {
-            let attempts = 0;
-            const maxAttempts = 3;
-            let deleted = false;
-
-            while (attempts < maxAttempts && !deleted) {
-                attempts++;
-                try {
-                    const response = await request.delete(item.url, {
-                        data: item.body,
-                        headers: {
-                            'Authorization': item.auth
-                        }
-                    });
-
-                    if (response.ok()) {
-                        deleted = true;
-                        successCount++;
-                    } else {
-                        const status = response.status();
-                        const text = await response.text();
-                        throw new Error(`Status ${String(status)}: ${text}`);
-                    }
-                } catch (error) {
-                    if (attempts < maxAttempts) {
-                        const delay = attempts * 1000;
-                        console.warn(`⚠️ [Cleanup] Attempt ${String(attempts)} failed for Kudos to ${item.body.receiving_team}. Retrying in ${String(delay)}ms...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        console.error(`❌ [Cleanup] Failed to delete Kudos to ${item.body.receiving_team} after ${String(maxAttempts)} attempts:`, error instanceof Error ? error.message : error);
-                        failCount++;
-                    }
-                }
-            }
-        }
-
-        if (failCount > 0) {
-            console.error(`\n⚠️ [Cleanup] Finished with ${String(failCount)} failures and ${String(successCount)} successes. Please check the datastore for stale items.`);
-        } else {
-            console.log(`\n✅ [Cleanup] Successfully deleted all ${String(successCount)} created Kudos.`);
-        }
+        await deleteCreatedKudos(request, createdKudos);
     });
 
 

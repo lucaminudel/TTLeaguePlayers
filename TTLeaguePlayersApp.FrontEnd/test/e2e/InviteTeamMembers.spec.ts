@@ -1,7 +1,4 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { User, InviteTeamMembersPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
@@ -15,32 +12,39 @@ const LEAGUE = 'CLTTL';
 const SEASON = '2025-2026';
 const TEAM = 'Morpeth 10';
 
-const MORPETH_10_TEAM_ID = 't=73142';
-const DIVISION_PAGE_FRAGMENT = 'Averages?leagueName=Winter 2025-26&divisionName=Division Four';
+const MORPETH_10_TEAM_ID = 'teamId=73142';
 
 const RUN_ID = Date.now().toString(36);
 const playerName = (ordinal: string) => `E2E Player ${RUN_ID} ${ordinal}`;
 const EXPECTED_PLAYERS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN'].map(playerName);
 
-const fixturesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data');
-const divisionPageHtml = fs.readFileSync(path.join(fixturesDir, 'division_all_players.html'), 'utf-8');
-const teamPageHtml = fs
-    .readFileSync(path.join(fixturesDir, 'division_team_players_morpeth10.html'), 'utf-8')
-    .replaceAll('E2E-PLAYER-', `E2E Player ${RUN_ID} `);
+const teamCheckerHtml = `<!DOCTYPE html>
+<html><body>
+    <select id="teamSelect">
+        <option value="">-- Select Team --</option>
+        <option value="73142">Morpeth 10</option>
+    </select>
+</body></html>`;
+
+const teamPlayersApiResponse = JSON.stringify({
+    teamPlayers: EXPECTED_PLAYERS.map((name, index) => ({ id: String(index + 1), name })),
+    otherPlayers: []
+});
 
 /**
- * Two routes, not one: with avoidCORS the browser issues the PROXY url and carries the league site in a query parameter
+ * Two routes, not one: with avoidCORS the browser issues the PROXY url and carries the league site in a query parameter.
+ * The Team Checker page supplies the team id; its Players handler supplies the roster JSON.
  */
 async function mockMorpethPlayerPages(page: Page): Promise<void> {
     const serveFixtureOrContinue = async (route: Route) => {
         const url = decodeURIComponent(route.request().url());
 
-        if (url.includes(MORPETH_10_TEAM_ID)) {
-            await route.fulfill({ status: 200, contentType: 'text/html', body: teamPageHtml });
+        if (url.includes('/Team/Eligibility') && url.includes('handler=Players') && url.includes(MORPETH_10_TEAM_ID)) {
+            await route.fulfill({ status: 200, contentType: 'application/json', body: teamPlayersApiResponse });
             return;
         }
-        if (url.includes(DIVISION_PAGE_FRAGMENT)) {
-            await route.fulfill({ status: 200, contentType: 'text/html', body: divisionPageHtml });
+        if (url.includes('/Team/Eligibility')) {
+            await route.fulfill({ status: 200, contentType: 'text/html', body: teamCheckerHtml });
             return;
         }
         await route.continue();
@@ -126,17 +130,20 @@ test.describe('Invite Team Members Page', () => {
         });
 
         await test.step('Then every player on the league site is listed, in the site order', async () => {
-            await expect(page.getByTestId('team-player-name')).toHaveText(EXPECTED_PLAYERS);
+            const rosterRows = page.locator('[data-testid^="team-player-row-"]');
+            await expect(rosterRows.getByTestId('team-player-name')).toHaveText(EXPECTED_PLAYERS);
         });
 
         await test.step('And none of them is invited yet, so no row carries a date or an e-mail', async () => {
-            await expect(page.getByTestId('team-player-date')).toHaveText(EXPECTED_PLAYERS.map(() => ''));
-            await expect(page.getByTestId('team-player-email')).toHaveText(EXPECTED_PLAYERS.map(() => ''));
+            const rosterRows = page.locator('[data-testid^="team-player-row-"]');
+            await expect(rosterRows.getByTestId('team-player-date')).toHaveText(EXPECTED_PLAYERS.map(() => ''));
+            await expect(rosterRows.getByTestId('team-player-email')).toHaveText(EXPECTED_PLAYERS.map(() => ''));
         });
 
         await test.step('And every row offers Invite in place of a status label', async () => {
-            await expect(page.getByTestId('team-player-invite-button')).toHaveText(EXPECTED_PLAYERS.map(() => 'Invite'));
-            await expect(page.getByTestId('team-player-status')).toHaveCount(0);
+            const rosterRows = page.locator('[data-testid^="team-player-row-"]');
+            await expect(rosterRows.getByTestId('team-player-invite-button')).toHaveText(EXPECTED_PLAYERS.map(() => 'Invite'));
+            await expect(rosterRows.getByTestId('team-player-status')).toHaveCount(0);
         });
     });
 

@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { User } from './page-objects/User';
 import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
+import { deleteCreatedKudos, trackCreatedKudos, type CreatedKudos } from './helpers/created-kudos-cleanup';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
 test.describe('Kudos Caching E2E', () => {
+    const createdKudos: CreatedKudos[] = [];
+
+    test.beforeEach(({ page }) => {
+        trackCreatedKudos(page, createdKudos);
+    });
+
+    test.afterAll(async ({ request }) => {
+        await deleteCreatedKudos(request, createdKudos);
+    });
+
     test('Verify standings are cached and invalidated on award', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
         test.setTimeout(90000);

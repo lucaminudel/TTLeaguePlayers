@@ -67,7 +67,6 @@ nunit-*.xml
 !.vscode/launch.json
 !.vscode/tasks.json
 .aws-sam
-TTLeaguePlayersApp.FrontEnd/public/assets
 TTLeaguePlayersApp.FrontEnd/playwright-report
 TTLeaguePlayersApp.FrontEnd/test-results
 sam_local_fullstack.log
@@ -81,3 +80,4 @@ Library/Application Support
 worktrees/*
 original-logo-save.png
 .VSCodeCounter
+.venv

@@ -32,20 +32,20 @@ const DATA_SOURCE: ActiveSeasonDataSource = {
         { "Division 7": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Seven&vm=2" }
     ],
     "division_players": [
-        { "Division 1": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20One" },
-        { "Division 2": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20Two" },
-        { "Division 3": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20Three" },
-        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20Four" },
-        { "Division 5": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20Five" },
-        { "Division 6": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20Six" },
-        { "Division 7": "https://www.tabletennis365.com/CentralLondon/Averages?leagueName=Winter%202025-26&divisionName=Division%20Seven" }
+        { "Division 1": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
+        { "Division 2": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
+        { "Division 3": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
+        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
+        { "Division 5": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
+        { "Division 6": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
+        { "Division 7": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" }
     ],
     "club_teams": [
         { "Morpeth Table Tennis Club": "https://www.tabletennis365.com/CentralLondon/Clubs/Morpeth" }
     ]
 };
 
-// Morpeth 10's team id in Winter 2025-26, as listed by the Division 4 averages page's select#filterTeam.
+// Morpeth 10's team id in Winter 2025-26, as listed by the team checker page's select#teamSelect.
 const MORPETH_10_TEAM_ID = 73142;
 
 test.describe('CLTTLActiveSeason2025PagesFetcher E2E', () => {
@@ -67,17 +67,17 @@ test.describe('CLTTLActiveSeason2025PagesFetcher E2E', () => {
         expect(html).toContain('tt-fixture-table');
     });
 
-    test('getTeamIds should return HTML containing select#filterTeam', async () => {
+    test('getTeamIds should return HTML containing the team checker selector', async () => {
         test.slow();
         const html = await fetcher.getTeamIds('Division 4');
-        expect(html).toContain('id="filterTeam"');
+        expect(html).toContain('id="teamSelect"');
         expect(html.toLowerCase()).toContain('<select');
     });
 
-    test('getTeamPlayers should return HTML containing the averages table', async () => {
+    test('getTeamPlayers should return a non-empty team checker API response', async () => {
         test.slow();
-        const html = await fetcher.getTeamPlayers('Division 4', MORPETH_10_TEAM_ID);
-        expect(html).toContain('tt-averages-table');
+        const response = await fetcher.getTeamPlayers('Division 4', MORPETH_10_TEAM_ID);
+        expect(response.trim()).not.toBe('');
     });
 
     test('getClubTeams should return HTML containing the club teams table', async () => {

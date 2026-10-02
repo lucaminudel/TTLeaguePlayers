@@ -66,7 +66,7 @@ export class CLTTLActiveSeason2025PagesFetcher {
     }
 
     /**
-     * Extracts the players average page link for the division and downloads the HTML.
+     * Downloads the team checker page. Its team selector is the source of team names and IDs.
      */
     public async getTeamIds(division: string): Promise<string> {
         const url = this.getUrlFromSource(this.dataSource.division_players, division);
@@ -82,15 +82,13 @@ export class CLTTLActiveSeason2025PagesFetcher {
     }
 
     /**
-     * Downloads the division's players average page filtered to one team.
+     * Downloads the team checker API response for one team.
      * @param division The division name (key into division_players)
-     * @param id The team id, as read from the division page's `select#filterTeam` by the parser's getTeamIds
+     * @param id The team id, as read from the team checker page's `select#teamSelect`
      */
     public async getTeamPlayers(division: string, id: number): Promise<string> {
         const baseUrl = this.getUrlFromSource(this.dataSource.division_players, division);
-        // The configured URL normally already carries a query string ("Averages?leagueName=...&divisionName=...")
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        const url = baseUrl + separator + 't=' + String(id);
+        const url = baseUrl + '?handler=Players&leagueId=4760&teamId=' + String(id);
 
         return this.fetchWithRetry(url);
     }

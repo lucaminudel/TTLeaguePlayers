@@ -79,31 +79,34 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
     });
 
     it('should successfully get team players', async () => {
-        const mockAllPlayersHtml = '<select id="filterTeam" name="t"><option value="">All Teams</option><option value="73142"> Morpeth 10 </option></select>';
-        const mockTeamPlayersHtml = '<table class="table tt-averages-table"><tbody><tr><td class="tt-averages-col-player"><a class="tt-player-link">Luca Minudel</a></td></tr></tbody></table>';
+        const mockTeamCheckerHtml = '<select id="teamSelect"><option value="">-- Select Team --</option><option value="73142">Morpeth 10</option></select>';
+        const mockTeamPlayersApiResponse = JSON.stringify({
+            teamPlayers: [{ name: 'Luca Minudel' }],
+            otherPlayers: [{ name: 'Other Eligible Player' }]
+        });
 
         vi.mocked(fetch)
             .mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve(mockAllPlayersHtml),
+                text: () => Promise.resolve(mockTeamCheckerHtml),
             } as Response)
             .mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve(mockTeamPlayersHtml),
+                text: () => Promise.resolve(mockTeamPlayersApiResponse),
             } as Response);
 
         const players = await processor.getTeamPlayers();
         expect(players).toEqual(['Luca Minudel']);
         expect(fetch).toHaveBeenCalledTimes(2);
-        // Verify URL construction for players page
-        expect(fetch).toHaveBeenLastCalledWith('http://players/div1?t=73142');
+        // Verify URL construction for the team checker API
+        expect(fetch).toHaveBeenLastCalledWith('http://players/div1?handler=Players&leagueId=4760&teamId=73142');
     });
 
     it('should throw error if team is not found in division', async () => {
-        const mockAllPlayersHtml = '<select id="filterTeam" name="t"><option value="123">Other Team</option></select>';
+        const mockTeamCheckerHtml = '<select id="teamSelect"><option value="123">Other Team</option></select>';
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
-            text: () => Promise.resolve(mockAllPlayersHtml),
+            text: () => Promise.resolve(mockTeamCheckerHtml),
         } as Response);
 
         await expect(processor.getTeamPlayers()).rejects.toThrow('Team "Morpeth 10" not found in division "Division 1".');

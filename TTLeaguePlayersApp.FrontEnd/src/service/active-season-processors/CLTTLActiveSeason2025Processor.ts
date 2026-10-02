@@ -42,15 +42,15 @@ export class CLTTLActiveSeason2025Processor implements ActiveSeasonProcessor {
      * Orchestrates multiple calls: gets team IDs first, finds current team ID, then fetches players.
      */
     public async getTeamPlayers(): Promise<string[]> {
-        const allPlayersHtml = await this.fetcher.getTeamIds(this.division);
-        const teamIds = this.parser.getTeamIds(allPlayersHtml);
+        const teamCheckerHtml = await this.fetcher.getTeamIds(this.division);
+        const teamIds = this.parser.getTeamIds(teamCheckerHtml);
 
         const teamEntry = teamIds.find(t => t.team.toLowerCase() === this.team.toLowerCase());
         if (!teamEntry) {
             throw new Error('Team "' + this.team + '" not found in division "' + this.division + '".');
         }
 
-        const playersHtml = await this.fetcher.getTeamPlayers(this.division, teamEntry.id);
-        return this.parser.getTeamPlayers(playersHtml);
+        const playersApiResponse = await this.fetcher.getTeamPlayers(this.division, teamEntry.id);
+        return this.parser.getTeamPlayers(playersApiResponse);
     }
 }
