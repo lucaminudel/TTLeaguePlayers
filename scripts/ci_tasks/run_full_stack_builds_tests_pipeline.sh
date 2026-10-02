@@ -233,20 +233,36 @@ fi
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
 echo "🔹 [7/8] Frontend: Starting Web Server..."
 echo -e "${CYAN}# ------------------------------------------------------------------------------------------------------------${NC}"
-# Start the preview server for the built artifacts
-# Note: "npm run run-web:test-env" usually runs "vite" (dev server). 
-# For a "reliable build check", running "vite preview" on the build output is often better,
-# BUT the user requested "start the web server for test (as in package.json)".
-# package.json "run-web:test-env" -> "cross-env ENVIRONMENT=test vite --port 4173"
-# This is a dev server. We will stick to the user's request to use the script from package.json.
-npm run run-web:test-env -- --host > /dev/null 2>&1 &
+# Do not let an already-running server satisfy the readiness check. The frontend config is
+# injected when Vite starts, so an old process here can serve the wrong environment forever.
+if lsof -i ":$WEB_PORT" >/dev/null 2>&1; then
+    echo "   ❌ Port $WEB_PORT is already in use. Stop the existing web server before running the pipeline."
+    exit 1
+fi
+
+WEB_LOG_FILE="scripts/ci_tasks/web_test_env.log"
+echo "   📝 Logs: $WEB_LOG_FILE"
+npm run run-web:test-env -- --host > "$WEB_LOG_FILE" 2>&1 &
 WEB_PID=$!
+
+# With --strictPort, a failed Vite start must not be mistaken for a healthy old server.
+sleep 1
+if ! kill -0 "$WEB_PID" 2>/dev/null; then
+    echo "   ❌ Web server failed to start."
+    cat "$WEB_LOG_FILE"
+    exit 1
+fi
 
 # Wait for Web Server
 echo "   ⏳ Waiting for Web Server on port $WEB_PORT..."
 MAX_RETRIES=30
 count=0
 until curl -s "http://localhost:$WEB_PORT/" > /dev/null || [ $count -eq $MAX_RETRIES ]; do
+    if ! kill -0 "$WEB_PID" 2>/dev/null; then
+        echo "   ❌ Web server stopped before becoming ready."
+        cat "$WEB_LOG_FILE"
+        exit 1
+    fi
     sleep 1
     count=$((count+1))
     printf "."
