@@ -11,10 +11,12 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 An nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
 not code. Write no application code during phases 1–8.
 
-
 ```!
+# Claude specific
 cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
 ```
+
+Read the shared interaction protocol at [../shared/interaction-protocol.md](../shared/interaction-protocol.md).
 
 
 ## Phase 1 — Receive the general information
@@ -29,6 +31,13 @@ several, ask the user which; none, say so. It carries
 the framing, the domain concepts, the technical implementation details, the contradictions found,
 and the open questions it deliberately left for this phase. If it does not exist, say so and ask
 whether to run discovery first or proceed without it.
+
+### Codex-specific retrieval
+
+In Codex, resolve the task state by inspecting `.codex/coding-tasks/` and reusing the matching
+`task.md`. Read the Discovery report from `.codex/coding-tasks/<task-slug>/discovery.md`. If several
+task directories match, ask the user which one; if none matches, report that Discovery has not been
+completed rather than guessing a path.
 
 Always read, whether or not they are named:
 - `prompts/codebase_info/ArchitectureAndTechStack.md` — stack, environments, known debt
@@ -152,6 +161,12 @@ Persist only after explicit confirmation, to
 session and agent, which the in-session task list is not. **Do not add a pointer to `MEMORY.md`**;
 task artifacts are found by path, not by recall. The file must carry:
 
+### Codex-specific persistence
+
+After explicit confirmation, also write the plan to `.codex/coding-tasks/<task-slug>/plan.md`, using
+the same Codex task directory that contains `discovery.md`. Keep the Codex path as the cross-session
+source of truth for later Execution and Review skills.
+
 - frontmatter with `name`, `description`, `metadata.type: project`
 - goal and explicit out-of-scope
 - the decision table, with the *why* for each
@@ -207,6 +222,8 @@ and that file — not this conversation — is what `coding-task-execution` read
 ```!
 cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 ```
+
+Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
 
 ## Standing rules
 

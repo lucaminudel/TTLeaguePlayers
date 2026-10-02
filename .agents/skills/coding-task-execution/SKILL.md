@@ -16,12 +16,20 @@ the user which; none, there is no plan.
 
 If no such plan exists, stop and say so — run `coding-task-inception` first. Do not improvise one.
 
----
+### Codex-specific retrieval
+
+In Codex, resolve the task state by inspecting `.codex/coding-tasks/` and reusing the matching
+`task.md`. Read the confirmed plan from `.codex/coding-tasks/<task-slug>/plan.md`. If no matching
+plan exists, stop and report that Coding Task Inception must run first.
+
+
 ```!
+# Claude specific
 cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
 ```
 
----
+Read the shared interaction protocol at [../shared/interaction-protocol.md](../shared/interaction-protocol.md).
+
 
 ## Phase 1 — Load and reconcile
 
@@ -109,8 +117,11 @@ tests, or anything you worked around rather than solved — report it and stop. 
 question, that question is its own message, sent after the report.
 
 ```!
+# Claude specific
 cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 ```
+
+Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
 
 IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
@@ -492,6 +503,13 @@ on the output file filtering for step results and failure signatures — not raw
 tail -f <task-output-file> | grep -E --line-buffered "Build Succeeded|Build Failed|Test Run Successful|Test Run Failed|passed \(|failed|error TS|ALL TESTS PASSED|FAILURE"
 ```
 
+#### Codex-specific equivalent
+
+In Codex, run long-lived commands through a terminal session and retain the returned session
+identifier. Poll that session periodically for new output, filtering for readiness, completion, and
+failure signatures. Use the terminal-session polling tools available in the current Codex
+environment instead of `run_in_background` or `Monitor`.
+
 When the whole pipeline is more than you need, either half can be run alone — **still after asking**:
 
 Backend only, on the test environment, no filter:
@@ -538,6 +556,13 @@ sam build --config-env test && sam local start-api --warm-containers LAZY --conf
 ```bash
 npm run "run-web:test-env"
 ```
+
+#### Codex-specific equivalent
+
+In Codex, start each long-lived service in its own terminal session and retain its session identifier.
+Poll the sessions until the expected ports respond and the services report readiness. Stop the
+sessions after the dependent checks finish. Use the terminal-session tools available in the current
+Codex environment instead of `run_in_background` or `Monitor`.
 
 Then wait for SAM and **warm up the Lambda**, as `run_full_stack_builds_tests_pipeline.sh` does: SAM
 answers the readiness check without invoking the Lambda, and the first invocation (which may pull or
@@ -701,6 +726,12 @@ Maintained at
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/work-summary.md` —
 the same `<slug>` directory the plan came from — appended as each sub-task completes and **posted
 in the chat at the same time** so the user can follow along rather than reading it all at the end.
+
+### Codex-specific persistence
+
+In Codex, also append the work summary to `.codex/coding-tasks/<task-slug>/work-summary.md`, using
+the same task directory as `plan.md`. Record each completed sub-task, changed files, verification
+evidence, and any item requiring human review. Present the persisted file link when handing it off.
 
 One section per completed sub-task:
 
