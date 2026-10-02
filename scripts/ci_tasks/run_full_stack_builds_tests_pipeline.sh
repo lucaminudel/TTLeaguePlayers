@@ -240,7 +240,7 @@ if lsof -i ":$WEB_PORT" >/dev/null 2>&1; then
     exit 1
 fi
 
-WEB_LOG_FILE="scripts/ci_tasks/web_test_env.log"
+WEB_LOG_FILE="$PROJECT_ROOT/scripts/ci_tasks/web_test_env.log"
 echo "   📝 Logs: $WEB_LOG_FILE"
 npm run run-web:test-env -- --host > "$WEB_LOG_FILE" 2>&1 &
 WEB_PID=$!
