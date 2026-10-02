@@ -141,15 +141,15 @@ public class CreateInviteLambda
 
         if (invite is ClubManagerInvite clubManagerInvite)
         {
-            var subject = $"Invite to manage {clubManagerInvite.InviteeClub} on TT League Players Web-App";
+            var subject = $"Invite to manage {clubManagerInvite.InviteeClub} for the new {invite.League} {invite.Season} season on TT League Players Web-App";
             var body = $@"Hi {invite.InviteeName},
 
-As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join this new Unofficial web-app => {speedyInviteLink}
+As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join/activate the new {invite.League} {invite.Season} season on this new Unofficial web-app => {speedyInviteLink}
 
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
-- Fair play & positive, inclusive behaviour
 - A modern digital experience
+- Fair play & positive, inclusive behaviour
 - Supporting local clubs & leagues.
 
 
@@ -167,9 +167,9 @@ Instructions:
 
 1. Click 'Redeem your invite' at the bottom of the page, and sign up
 
-2. Complete your new account registration by entering the verification code you will receive via email
+2. If you are new to the app, complete your new account registration by entering the verification code you will receive via email
 
-3. Log in and enjoy the app!
+3. Log in and enjoy the new season on the app!
 
 _______________________
 
@@ -187,15 +187,15 @@ Luca Minudel
         if (invite is CaptainOrPlayerInvite captainOrPlayerInvite)
         {
             var roleLabel = invite.InviteeRole == Role.CAPTAIN ? "team captain" : "player";
-            var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join TT League Players Web-App";
+            var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join/activate the new {invite.League} {invite.Season} season on TT League Players Web-App";
             var body = $@"Hi {invite.InviteeName},
 
-As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join the new season {invite.Season} of the {invite.League} on our new Unofficial web-app => {speedyInviteLink}
+As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => {speedyInviteLink}
 
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
-- Fair play & positive, inclusive behaviour
 - A modern digital experience
+- Fair play & positive, inclusive behaviour
 - Supporting local clubs & leagues.
 
 
@@ -215,9 +215,9 @@ Instructions:
 
 1. Click 'Redeem your invite' at the bottom of the page, and sign up
 
-2. Complete your new account registration by entering the verification code you will receive via email
+2. If you are new to the app, complete your new account registration by entering the verification code you will receive via email
 
-3. Log in and enjoy the app!
+3. Log in and enjoy the new season on the app!
 
 _______________________
 

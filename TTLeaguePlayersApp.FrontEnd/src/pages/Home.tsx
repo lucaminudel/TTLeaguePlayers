@@ -47,8 +47,8 @@ export const Home: React.FC = () => {
                 />
 
                 <p className="text-base sm:text-lg leading-relaxed">
+                    We provide a modern digital experience<br />
                     We promote fair play &amp; inclusive behaviour<br />
-                     We provide a modern digital experience<br />
                     We support local clubs &amp; leagues
                     <br />
                     <br />
@@ -56,10 +56,8 @@ export const Home: React.FC = () => {
                     Find local clubs &amp; tournaments<br />
                     Reward fair play &amp; positive behaviour<br />
                     Check your next match date, time, location<br />
-                    <br />
-                    <b>What's Next</b><br />
-                    Manage team formations<br />
-                    Record match scorecard in real time<br />
+                    Captain: invite your team members<br />
+                    Club Manager: promote your club &amp; tournaments, monitor your teams<br />
                     <br />
                 </p>
 

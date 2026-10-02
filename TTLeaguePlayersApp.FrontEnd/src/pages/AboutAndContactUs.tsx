@@ -25,9 +25,9 @@ export const AboutAndContactUs: React.FC = () => {
                             <br/>
                             <br/>
                             <b>Our core values are</b>:<br/>
+                            - a modern digital experience<br />
                             - fair play, positive, inclusive behaviour<br />
-                            - supporting local clubs &amp; leagues<br />
-                            - a modern digital experience
+                            - supporting local clubs &amp; leagues
                         </p>
                     </section>
 
