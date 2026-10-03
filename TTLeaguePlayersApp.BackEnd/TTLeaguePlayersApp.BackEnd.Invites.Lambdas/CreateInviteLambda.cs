@@ -142,9 +142,10 @@ public class CreateInviteLambda
         if (invite is ClubManagerInvite clubManagerInvite)
         {
             var subject = $"Invite to manage {clubManagerInvite.InviteeClub} for the new {invite.League} {invite.Season} season on TT League Players Web-App";
+            var optionalByInfo = invite.InvitedBy.Trim().ToUpper() == "ADMIN" ? "" : $"by {invite.InvitedBy.Trim()} ";
             var body = $@"Hi {invite.InviteeName},
 
-As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join/activate the new {invite.League} {invite.Season} season on this new Unofficial web-app => click {speedyInviteLink}
+As Club Manager for {clubManagerInvite.InviteeClub}, you're invited {optionalByInfo}to join/activate the new {invite.League} {invite.Season} season on this new Unofficial web-app => click {speedyInviteLink}
 
 After joining/activating the new season, you will be able to:
 - Promote your club and upcoming tournaments
@@ -174,8 +175,8 @@ _______________________
 
 For any other questions or feedback, reply to this email.
 
-Ciao!
-Luca Minudel
+Cheers
+The Unofficial TT League Players web-app
 
 ";
             return (subject, body);
@@ -186,9 +187,10 @@ Luca Minudel
         {
             var roleLabel = invite.InviteeRole == Role.CAPTAIN ? "team captain" : "player";
             var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join/activate the new {invite.League} {invite.Season} season on TT League Players Web-App";
+            var optionalByInfo = invite.InvitedBy.Trim().ToUpper() == "ADMIN" ? "" : $"by {invite.InvitedBy} ";
             var body = $@"Hi {invite.InviteeName},
 
-As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => click {speedyInviteLink}
+As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited {optionalByInfo}to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => click {speedyInviteLink}
 
 After joining/activating the new season, you will be able to:
 - Discover upcoming tournaments & local clubs
@@ -218,8 +220,8 @@ _______________________
 
 For any other questions or feedback, reply to this email.
 
-Ciao!
-Luca Minudel
+Cheers
+The Unofficial TT League Players web-app
 
 ";
             return (subject, body);
