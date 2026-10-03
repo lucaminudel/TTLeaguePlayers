@@ -144,19 +144,17 @@ public class CreateInviteLambda
             var subject = $"Invite to manage {clubManagerInvite.InviteeClub} for the new {invite.League} {invite.Season} season on TT League Players Web-App";
             var body = $@"Hi {invite.InviteeName},
 
-As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join/activate the new {invite.League} {invite.Season} season on this new Unofficial web-app => {speedyInviteLink}
+As Club Manager for {clubManagerInvite.InviteeClub}, you're invited to join/activate the new {invite.League} {invite.Season} season on this new Unofficial web-app => click {speedyInviteLink}
 
+After joining/activating the new season, you will be able to:
+- Promote your club and upcoming tournaments
+- Monitor your club teams' registration
+- Monitor the Kudos received by your teams.
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - A modern digital experience
 - Fair play & positive, inclusive behaviour
 - Supporting local clubs & leagues.
-
-
-With the TT League Players app, you can now:
-- Promote your club and upcoming tournaments
-- Monitor your club teams' registration to this app
-- Monitor the Kudos received by your teams.
 
 To unlock all these features on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
@@ -190,21 +188,18 @@ Luca Minudel
             var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join/activate the new {invite.League} {invite.Season} season on TT League Players Web-App";
             var body = $@"Hi {invite.InviteeName},
 
-As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => {speedyInviteLink}
+As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => click {speedyInviteLink}
 
+After joining/activating the new season, you will be able to:
+- Discover upcoming tournaments & local clubs
+- Reward fair play & positive, inclusive behaviour
+- Check your next match date, time, and location
+- View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - A modern digital experience
 - Fair play & positive, inclusive behaviour
 - Supporting local clubs & leagues.
-
-
-With the Unoficial TT League Players web-app, you can now:
-- Find local clubs & tournaments
-- Reward fair play & positive, inclusive behaviour
-- Check your next match date, time, and location
-- View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
-In the future, new features will allow you to easily organise common training and match related activities from the app.
 
 To unlock all these features on your smartphone and desktop, follow the link below and the instructions (no installation required, just a modern web browser):
 => {baseInviteLink}
