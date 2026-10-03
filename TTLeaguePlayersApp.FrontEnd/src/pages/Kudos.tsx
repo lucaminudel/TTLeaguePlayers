@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
@@ -8,53 +8,50 @@ import { getConfig } from '../config/environment';
 import { createActiveSeasonProcessor } from '../service/active-season-processors/ActiveSeasonProcessorFactory';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 
+const getRenderableActiveSeasons = (activeSeasons: ReturnType<typeof useAuth>['activeSeasons']) => {
+  const config = getConfig();
+  const dataSourceList = config.active_seasons_data_source as typeof config.active_seasons_data_source | undefined;
+
+  if (!dataSourceList || dataSourceList.length === 0) {
+    console.error('Configuration error: active_seasons_data_source is missing from the environment config.');
+    return [];
+  }
+
+  const now = getClockTimeInEpochSeconds();
+
+  return activeSeasons.flatMap((season) => {
+    const dataSource = dataSourceList.find(
+      (candidate) => candidate.league === season.league && candidate.season === season.season
+    );
+
+    if (!dataSource) {
+      console.error(`Data source not found for league "${season.league}" and season "${season.season}".`);
+      return [];
+    }
+
+    const isWithinRatingWindow = now >= dataSource.registrations_start_date && now <= dataSource.ratings_end_date;
+    return isWithinRatingWindow ? [{ season, dataSource }] : [];
+  });
+};
+
 export const Kudos: React.FC = () => {
   const { activeSeasons } = useAuth();
-  const [expandedIndex, setExpandedIndex] = useState<number>(activeSeasons.length === 1 ? 0 : -1);
-
-  useEffect(() => {
-    if (activeSeasons.length === 1) {
-      setExpandedIndex(0);
-    }
-  }, [activeSeasons.length]);
-
-  const hasActiveSeasons = activeSeasons.length > 0;
+  const renderableActiveSeasons = getRenderableActiveSeasons(activeSeasons);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const displayedExpandedIndex = expandedIndex ?? (renderableActiveSeasons.length === 1 ? 0 : -1);
 
   return (
     <ProtectedRoute>
       <MobileLayout>
         <PageContainer title="Matches & Kudos">
           <div className="space-y-4 sm:space-y-6">
-            {hasActiveSeasons ? (
+            {renderableActiveSeasons.length > 0 ? (
               <div className="space-y-2" data-testid="active-seasons-list">
                 <p>
                 After every match, rate your experience!<br/>Award the opposition extra kudos for fair play &amp; positive behaviour.<br/><br/>
                 </p>
-                {activeSeasons.map((season, index) => {
+                {renderableActiveSeasons.map(({ season, dataSource }, index) => {
                   try {
-                    const config = getConfig();
-                    // Runtime check: config might be loaded from external JSON and could be incomplete
-                    // TypeScript knows this is always defined, but we check at runtime for safety
-                    const dataSourceList = config.active_seasons_data_source as typeof config.active_seasons_data_source | undefined;
-                    if (!dataSourceList || dataSourceList.length === 0) {
-                      throw new Error('Configuration error: active_seasons_data_source is missing from the environment config.');
-                    }
-                    const dataSource = dataSourceList.find(
-                      (ds) => ds.league === season.league && ds.season === season.season
-                    );
-
-                    if (!dataSource) {
-                      throw new Error(`Data source not found for league "${season.league}" and season "${season.season}".`);
-                    }
-
-                    const now = getClockTimeInEpochSeconds();
-                    const startDate = dataSource.registrations_start_date;
-                    const endDate = dataSource.ratings_end_date;
-
-                    if (now < startDate || now > endDate) {
-                      return null;
-                    }
-
                     const avoidCORS = true;
                     const processor = createActiveSeasonProcessor(
                       dataSource.custom_processor,
@@ -69,13 +66,12 @@ export const Kudos: React.FC = () => {
                         key={`${season.league}-${season.season}-${season.team_name}`}
                         season={season}
                         processor={processor}
-                        isExpanded={expandedIndex === index}
-                        onToggle={() => { setExpandedIndex(expandedIndex === index ? -1 : index); }}
+                        isExpanded={displayedExpandedIndex === index}
+                        onToggle={() => { setExpandedIndex(displayedExpandedIndex === index ? -1 : index); }}
                       />
                     );
                   } catch (err) {
                     console.error('❌ Error rendering active season card:', err);
-                    //throw err;
                   }
                 })}
               </div>
@@ -85,14 +81,10 @@ export const Kudos: React.FC = () => {
                   ⚠️ You are not currently registered to a league, a season, and a team.
                 </p>
                 <p className="text-base sm:text-lg leading-relaxed pt-4">
-                  👉 Open your invite link again to complete this second part of the registration and then come back here.
-                </p>
-                <p className="text-base sm:text-lg leading-relaxed pt-4">
-                  ❌ Otherwise ask your captain to send you an invite from the Invite Team Members page of this app.
+                Check your Inbox or Spam folder for the new season invite, or contact us.
                 </p>
               </div>
             )}
-            {/* TODO: Add kudos functionality - form to award kudos, leaderboard display, etc. */}
           </div>
         </PageContainer>
       </MobileLayout>

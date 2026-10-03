@@ -84,6 +84,57 @@ describe('ActiveSeasonCard Error Handling', () => {
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('No fixture found, retry later or tomorrow');
     });
 
+    it('should display "No previous match" when the first fixture is upcoming', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([{
+                homeTeam: 'Test Team',
+                awayTeam: 'Upcoming Opponent',
+                startDateTime: new Date('2025-01-15T13:00:00Z'),
+                venue: 'Test Venue'
+            }]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(
+            <ActiveSeasonCard
+                season={mockSeason}
+                processor={mockProcessor}
+                isExpanded={true}
+                onToggle={mockOnToggle}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Upcoming Opponent');
+    });
+
+    it('should display successful empty-fixture states instead of the fetch-failure message', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(
+            <ActiveSeasonCard
+                season={mockSeason}
+                processor={mockProcessor}
+                isExpanded={true}
+                onToggle={mockOnToggle}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+    });
+
     it('should not fetch data when not expanded', async () => {
         const getTeamFixturesMock = vi.fn().mockRejectedValue(new Error('Should not be called'));
         const mockProcessor: ActiveSeasonProcessor = {

@@ -65,7 +65,7 @@ export const MyClubTeams: React.FC = () => {
                                     ⚠️ You are not currently registered as a club manager.
                                 </p>
                                 <p className="mt-2 text-sm text-secondary-text">
-                                    Ask the league team for manager access so you can see your club&apos;s teams here
+                                    Check your Inbox or Spam folder for the new season invite, or contact us.
                                 </p>
                             </div>
                         ) : clubsForCard.length === 0 ? (

@@ -185,7 +185,7 @@ describe('PromoteMyTournaments', () => {
             renderPage();
 
             expect(screen.getByText('⚠️ You are not currently registered as a club manager.')).toBeInTheDocument();
-            expect(screen.getByText('Ask the league team for manager access so you can promote your club here.')).toBeInTheDocument();
+            expect(screen.getByText('Check your Inbox or Spam folder for the new season invite, or contact us.')).toBeInTheDocument();
         });
 
         it('does not render ManagedClubsCard when no managed clubs', () => {

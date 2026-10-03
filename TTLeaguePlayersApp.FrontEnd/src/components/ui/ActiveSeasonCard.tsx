@@ -23,6 +23,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
     const [prevMatch, setPrevMatch] = useState<Fixture | null | -1>(null);
     const [nextMatch, setNextMatch] = useState<Fixture | null | -1>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
+    const [fixtureLoadStatus, setFixtureLoadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     // The fixture whose Rate button was clicked; non-null while the info modal is open.
     const [rateInfoModalFixture, setRateInfoModalFixture] = useState<Fixture | null>(null);
     const { isSuppressed } = useInfoModalSuppression(RATE_INFO_MODAL_GUID);
@@ -31,6 +32,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         if (isExpanded) {
             const fetchData = async () => {
                 setIsLoadingData(true);
+                setFixtureLoadStatus('loading');
                 try {
                     const fixtures = await processor.getTeamFixtures();
                     const now = getClockTime();
@@ -51,8 +53,10 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                         setNextMatch(fixtures.length > 0 ? -1 : null);
                         setPrevMatch(fixtures.length > 0 ? fixtures[fixtures.length - 1] : null);
                     }
+                    setFixtureLoadStatus('success');
                 } catch (error) {
                     console.error('Error fetching match data:', error);
+                    setFixtureLoadStatus('error');
                 } finally {
                     setIsLoadingData(false);
                 }
@@ -129,9 +133,14 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         navigateToAwardKudos(fixture);
     };
 
-    const renderFixture = (fixture: Fixture | null | -1, testId: string) => {
+    const renderFixture = (fixture: Fixture | null | -1, testId: string, isPreviousMatch: boolean) => {
         if (fixture === -1) return <p className="text-base sm:text-lg" data-testid={testId}>None</p>;
-        if (!fixture) return <p className="text-base sm:text-lg" data-testid={testId}>No fixture found, retry later or tomorrow</p>;
+        if (!fixture) {
+            const message = fixtureLoadStatus === 'success'
+                ? (isPreviousMatch ? 'No previous match' : 'None')
+                : 'No fixture found, retry later or tomorrow';
+            return <p className="text-base sm:text-lg" data-testid={testId}>{message}</p>;
+        }
 
         const isHome = fixture.homeTeam === season.team_name;
         const opponent = isHome ? fixture.awayTeam : fixture.homeTeam;
@@ -192,7 +201,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                                 <p data-testid="active-season-prev-match-header" className="text-secondary-text text-sm sm:text-base uppercase tracking-wide mt-2 font-bold">
                                     {prevMatchHeader}
                                 </p>
-                                {renderFixture(prevMatch, "active-season-prev-match")}
+                                {renderFixture(prevMatch, "active-season-prev-match", true)}
                                 {prevMatch && prevMatch !== -1 && shouldShowRateButton(prevMatch) && (
                                     <div className="mt-2 flex justify-center">
                                         <Button
@@ -217,7 +226,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                                 <p data-testid="active-season-next-match-header" className="text-secondary-text text-sm sm:text-base uppercase tracking-wide mt-2 font-bold">
                                     {nextMatchHeader}
                                 </p>
-                                {renderFixture(nextMatch, "active-season-next-match")}
+                                {renderFixture(nextMatch, "active-season-next-match", false)}
                             </div>
                         </>
                     )}

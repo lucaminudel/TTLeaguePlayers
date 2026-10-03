@@ -80,7 +80,7 @@ export const InviteTeamMembers: React.FC = () => {
                                     ⚠️ You are not currently registered as a team captain.
                                 </p>
                                 <p className="mt-2 text-sm text-secondary-text">
-                                    Ask the league team for a captain invite so you can invite your team members here
+                                    Check your Inbox or Spam folder for the new season invite, or contact us.
                                 </p>
                             </div>
                         ) : captainSeasons.length === 0 ? (
