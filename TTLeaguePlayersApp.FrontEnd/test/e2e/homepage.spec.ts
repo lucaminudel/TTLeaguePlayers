@@ -94,6 +94,7 @@ test.describe('Homepage', () => {
             await expect(page.locator('h2')).toHaveText('Log In');
 
             const loginPage = new LoginPage(page);
+            await user.setFixedClockTime('2026-01-15T12:00:00Z');
             await loginPage.tryToLogin('test_already_registered@user.test', 'aA1!56789012');
 
             await expect(page).toHaveURL('/#/kudos');
