@@ -188,6 +188,7 @@ The Unofficial TT League Players web-app
             var roleLabel = invite.InviteeRole == Role.CAPTAIN ? "team captain" : "player";
             var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join/activate the new {invite.League} {invite.Season} season on TT League Players Web-App";
             var optionalByInfo = invite.InvitedBy.Trim().ToUpper() == "ADMIN" ? "" : $"by {invite.InvitedBy} ";
+            var captainsFeature = invite.InviteeRole == Role.CAPTAIN ? "- Invite your team members to join the new season" : "";
             var body = $@"Hi {invite.InviteeName},
 
 As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited {optionalByInfo}to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => click {speedyInviteLink}
@@ -197,6 +198,7 @@ After joining/activating the new season, you will be able to:
 - Reward fair play & positive, inclusive behaviour
 - Check your next match date, time, and location
 - View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
+{captainsFeature}
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - A modern digital experience
