@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ActiveSeason } from '../../contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../service/active-season-processors/ActiveSeasonProcessor';
-import type { Fixture } from '../../service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesParser';
+import type { Fixture } from '../../service/active-season-processors/ActiveSeasonProcessor';
 import { getClockTime, formatFixtureDateTime, isSameDay } from '../../utils/DateUtils';
 import { Button } from '../common/Button';
 import { useAuth } from '../../hooks/useAuth';
@@ -145,12 +145,23 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         const isHome = fixture.homeTeam === season.team_name;
         const opponent = isHome ? fixture.awayTeam : fixture.homeTeam;
         const dateStr = formatFixtureDateTime(fixture.startDateTime);
+        const awayVenue = !isPreviousMatch && !isHome && fixture.googleMapsUrl ? (
+            <a
+                href={fixture.googleMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:opacity-80"
+                data-testid="fixture-venue-link"
+            >
+                {fixture.venue}
+            </a>
+        ) : fixture.venue;
 
         // Visualisation: Home game (if ...), Date Time ... or Away game, {venue} (if ...), Date Time ...
         // Vs Opponent
         return (
             <p className="text-base sm:text-lg" data-testid={testId}>
-                {isHome ? 'Home game' : `Away game, ${fixture.venue}`}, {dateStr}<br />
+                {isHome ? 'Home game' : <>Away game, {awayVenue}</>}, {dateStr}<br />
                 Vs {opponent}
             </p>
         );

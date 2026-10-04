@@ -1,16 +1,17 @@
 import type { ActiveSeasonDataSource } from '../../config/environment';
-import { CLTTLActiveSeason2025PagesFetcher } from './clttl-2025/CLTTLActiveSeason2025PagesFetcher';
-import { CLTTLActiveSeason2025PagesParser, type Fixture } from './clttl-2025/CLTTLActiveSeason2025PagesParser';
+import { CLTTLActiveSeason2026PagesFetcher } from './clttl-2026/CLTTLActiveSeason2026PagesFetcher';
+import { CLTTLActiveSeason2026PagesParser } from './clttl-2026/CLTTLActiveSeason2026PagesParser';
+import type { Fixture } from './ActiveSeasonProcessor';
 import type { ActiveSeasonProcessor } from './ActiveSeasonProcessor';
 
-export class CLTTLActiveSeason2025Processor implements ActiveSeasonProcessor {
-    private fetcher: CLTTLActiveSeason2025PagesFetcher;
-    private parser: CLTTLActiveSeason2025PagesParser;
+export class CLTTLActiveSeason2026Processor implements ActiveSeasonProcessor {
+    private fetcher: CLTTLActiveSeason2026PagesFetcher;
+    private parser: CLTTLActiveSeason2026PagesParser;
     private division: string;
     private team: string;
     constructor(dataSource: ActiveSeasonDataSource, division: string, team: string, avoidCORS = false) {
-        this.fetcher = new CLTTLActiveSeason2025PagesFetcher(dataSource, avoidCORS);
-        this.parser = new CLTTLActiveSeason2025PagesParser();
+        this.fetcher = new CLTTLActiveSeason2026PagesFetcher(dataSource, avoidCORS);
+        this.parser = new CLTTLActiveSeason2026PagesParser();
         this.division = division;
         this.team = team;
     }

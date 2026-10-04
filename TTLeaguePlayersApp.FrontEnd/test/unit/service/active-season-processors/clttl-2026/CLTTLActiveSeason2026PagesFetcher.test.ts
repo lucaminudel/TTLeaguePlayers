@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CLTTLActiveSeason2025PagesFetcher, PageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesFetcher';
+import { CLTTLActiveSeason2026PagesFetcher, PageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
-describe('CLTTLActiveSeason2025PagesFetcher', () => {
+describe('CLTTLActiveSeason2026PagesFetcher', () => {
     const mockDataSource: ActiveSeasonDataSource = {
         league: 'CLTTL',
         season: '2025-2026',
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
@@ -16,11 +16,11 @@ describe('CLTTLActiveSeason2025PagesFetcher', () => {
         club_teams: [{ 'Morpeth Table Tennis Club': 'http://clubs/morpeth' }],
     };
 
-    let fetcher: CLTTLActiveSeason2025PagesFetcher;
+    let fetcher: CLTTLActiveSeason2026PagesFetcher;
 
     beforeEach(() => {
         vi.useFakeTimers();
-        fetcher = new CLTTLActiveSeason2025PagesFetcher(mockDataSource);
+        fetcher = new CLTTLActiveSeason2026PagesFetcher(mockDataSource);
         vi.stubGlobal('fetch', vi.fn());
     });
 
@@ -125,7 +125,7 @@ describe('CLTTLActiveSeason2025PagesFetcher', () => {
             ...mockDataSource,
             division_fixtures: [{ 'Division 1': 'http://fixtures/div1?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2' }]
         };
-        const proxiedFetcher = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithQuery, true);
+        const proxiedFetcher = new CLTTLActiveSeason2026PagesFetcher(mockDataSourceWithQuery, true);
 
         await proxiedFetcher.getTeamFixtures('Division 1');
 
@@ -143,7 +143,7 @@ describe('CLTTLActiveSeason2025PagesFetcher', () => {
             ...mockDataSource,
             division_fixtures: [{ 'Division 1': 'http://fixtures/div1?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2' }]
         };
-        const directFetcher = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithQuery, false);
+        const directFetcher = new CLTTLActiveSeason2026PagesFetcher(mockDataSourceWithQuery, false);
 
         await directFetcher.getTeamFixtures('Division 1');
 
@@ -173,7 +173,7 @@ describe('CLTTLActiveSeason2025PagesFetcher', () => {
             league: 'BCS',
             club_teams: []
         };
-        const fetcherWithoutClubs = new CLTTLActiveSeason2025PagesFetcher(mockDataSourceWithoutClubs);
+        const fetcherWithoutClubs = new CLTTLActiveSeason2026PagesFetcher(mockDataSourceWithoutClubs);
 
         await expect(fetcherWithoutClubs.getClubTeams('Morpeth Table Tennis Club')).rejects.toThrow(
             'Club "Morpeth Table Tennis Club" not found in data source.'

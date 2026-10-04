@@ -15,7 +15,7 @@ export class MyClubTeamsPage {
      * Waits until the teams have loaded, so callers never assert against the loading state.
      *
      * The 15 s is NOT padding against flakiness - it is sized to outlast the club-page fetcher's own
-     * retry budget. CLTTLActiveSeason2025PagesFetcher.fetchWithRetry makes 3 attempts with a 2000 ms
+     * retry budget. CLTTLActiveSeason2026PagesFetcher.fetchWithRetry makes 3 attempts with a 2000 ms
      * sleep between them, so a club page that cannot be read keeps the spinner up for ~4 s BY
      * DESIGN. Playwright's implicit 5 s left under a second of headroom, and the
      * club-page-unreadable test at MyClubTeams.spec.ts:103 was passing on margin alone.

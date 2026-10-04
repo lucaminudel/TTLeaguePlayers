@@ -1,6 +1,6 @@
 import type { ActiveSeasonDataSource } from '../../config/environment';
 import type { ActiveSeasonProcessor } from './ActiveSeasonProcessor';
-import { CLTTLActiveSeason2025Processor } from './CLTTLActiveSeason2025Processor';
+import { CLTTLActiveSeason2026Processor } from './CLTTLActiveSeason2026Processor';
 
 import { ActiveSeasonProcessorWithLocalStorageCache } from './ActiveSeasonProcessorWithLocalStorageCache';
 
@@ -14,7 +14,7 @@ type ActiveSeasonProcessorConstructor = new (
 ) => ActiveSeasonProcessor;
 
 const processorRegistry: Record<string, ActiveSeasonProcessorConstructor> = {
-    'CLTTLActiveSeason2025Processor': CLTTLActiveSeason2025Processor,
+    'CLTTLActiveSeason2026Processor': CLTTLActiveSeason2026Processor,
     //    'DummyActiveSeasonProcessor': DummyActiveSeasonProcessor, // add here additiona ActiveSeasonProcessor
 };
 

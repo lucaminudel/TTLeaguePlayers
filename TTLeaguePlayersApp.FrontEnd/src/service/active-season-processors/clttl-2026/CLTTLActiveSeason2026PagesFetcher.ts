@@ -7,7 +7,7 @@ export class PageFetcherError extends Error {
     }
 }
 
-export class CLTTLActiveSeason2025PagesFetcher {
+export class CLTTLActiveSeason2026PagesFetcher {
     private dataSource: ActiveSeasonDataSource;
     private corsAnyWherePrefix: string;
 

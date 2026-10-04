@@ -1,21 +1,5 @@
 import type { ClubTeamWithDivision } from '../../../types/clubTeam';
-
-/**
- * One row of the league site's fixtures page in its Simple view (`&vm=2`).
- *
- * That view carries the date, time, the two teams and the venue — no players, no score, no
- * completion state — and it is the only division-wide view small enough for the CORS proxy. Nothing
- * in the app read the players or the completion flag, so the shape is deliberately these four.
- *
- * `startDateTime` is the page's wall-clock time labelled as UTC ("19:30" -> "T19:30:00Z"): it is
- * the key under which kudos are stored, so this reading must never change.
- */
-export interface Fixture {
-    startDateTime: Date;
-    venue: string;
-    homeTeam: string;
-    awayTeam: string;
-}
+import type { Fixture } from '../ActiveSeasonProcessor';
 
 const MONTHS: Record<string, string> = {
     jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
@@ -31,7 +15,7 @@ function yearFor(month: string, seasonStartYear: number): number {
     return parseInt(month, 10) >= 8 ? seasonStartYear : seasonStartYear + 1;
 }
 
-export class CLTTLActiveSeason2025PagesParser {
+export class CLTTLActiveSeason2026PagesParser {
     /**
      * Extracts the list of team names by parsing the division table's HTML page, in table order.
      * @param tableHtmlPage The HTML content of the division table page.
@@ -98,9 +82,19 @@ export class CLTTLActiveSeason2025PagesParser {
             const homeTeam = teamLinks.length > 0 ? teamLinks[0].textContent.trim() : '';
             const awayTeam = teamLinks.length > 1 ? teamLinks[1].textContent.trim() : '';
 
-            const venue = (row.querySelector('td.tt-fixture-venue')?.textContent ?? '').trim();
+            const venueCell = row.querySelector('td.tt-fixture-venue');
+            const venueLink = venueCell?.querySelector('a.tt-venue-link');
+            let venue = venueLink?.textContent.trim() ?? '';
 
-            fixtures.push({ startDateTime, venue, homeTeam, awayTeam });
+            if (!venue) {
+                const venueFallback = venueCell?.cloneNode(true) as HTMLElement | null;
+                venueFallback?.querySelector('a.tt-directions-link')?.remove();
+                venue = venueFallback?.textContent.trim() ?? '';
+            }
+
+            const googleMapsUrl = venueCell?.querySelector<HTMLAnchorElement>('a.tt-directions-link[href]')?.getAttribute('href') ?? null;
+
+            fixtures.push({ startDateTime, venue, googleMapsUrl, homeTeam, awayTeam });
         });
 
         return fixtures;

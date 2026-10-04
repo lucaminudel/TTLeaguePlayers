@@ -72,7 +72,7 @@ describe('PromoteMyClub', () => {
         active_seasons_data_source: [{
             league: 'CLTTL',
             season: '2025-2026',
-            custom_processor: 'CLTTLActiveSeason2025Processor',
+            custom_processor: 'CLTTLActiveSeason2026Processor',
             custom_club_processor: 'CLTTLManagedClub2025Processor',
             registrations_start_date: 1735689600,
             ratings_end_date: 1767139200,

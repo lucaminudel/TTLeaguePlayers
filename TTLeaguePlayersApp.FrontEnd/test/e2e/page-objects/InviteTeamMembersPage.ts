@@ -9,7 +9,7 @@ export class InviteTeamMembersPage {
 
     /**
      * The 15 s is NOT padding against flakiness - it is sized to outlast the league-site fetcher's
-     * own retry budget. CLTTLActiveSeason2025PagesFetcher.fetchWithRetry makes 3 attempts with a
+     * own retry budget. CLTTLActiveSeason2026PagesFetcher.fetchWithRetry makes 3 attempts with a
      * 2000 ms sleep between them, and this page makes TWO such calls in sequence (the division page
      * for the team id, then the team's own page), so an unreachable site keeps the spinner up for
      * ~8 s by design. Kept identical to MyClubTeamsPage, which hit exactly this.

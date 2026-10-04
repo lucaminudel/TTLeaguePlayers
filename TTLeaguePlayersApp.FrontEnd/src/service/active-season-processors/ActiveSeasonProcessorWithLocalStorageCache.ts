@@ -1,6 +1,6 @@
 import { withSWR } from '../../utils/CacheUtils';
 import type { ActiveSeasonProcessor } from './ActiveSeasonProcessor';
-import type { Fixture } from './clttl-2025/CLTTLActiveSeason2025PagesParser';
+import type { Fixture } from './ActiveSeasonProcessor';
 
 export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonProcessor {
     private CACHE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours

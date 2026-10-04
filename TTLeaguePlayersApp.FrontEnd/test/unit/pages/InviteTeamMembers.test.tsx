@@ -58,7 +58,7 @@ describe('InviteTeamMembers', () => {
     const clttlDataSource = {
         league: 'CLTTL',
         season: '2025-2026',
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: Math.floor(new Date('2025-08-20T00:00:00Z').getTime() / 1000),
         ratings_end_date: Math.floor(new Date('2026-04-30T00:00:00Z').getTime() / 1000),
@@ -148,7 +148,7 @@ describe('InviteTeamMembers', () => {
         renderPage();
 
         expect(processorFactoryMocks.createActiveSeasonProcessor).toHaveBeenCalledWith(
-            'CLTTLActiveSeason2025Processor',
+            'CLTTLActiveSeason2026Processor',
             clttlDataSource,
             'Division 4',
             'Morpeth 10',

@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import type { Fixture } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
 import { DISPUTES_INFO_TITLE } from '../../../../src/components/common/infoModalMessages';
 
 // Mock react-router-dom
@@ -36,6 +37,15 @@ vi.mock('../../../../src/utils/DateUtils', () => ({
     formatFixtureDateTime: (date: Date) => date.toISOString(),
     isSameDay: () => false
 }));
+
+const createFixture = (overrides: Partial<Fixture> = {}): Fixture => ({
+    homeTeam: 'Home Team',
+    awayTeam: 'Away Team',
+    startDateTime: new Date('2025-01-15T13:00:00Z'),
+    venue: 'Test Venue',
+    googleMapsUrl: null,
+    ...overrides
+});
 
 describe('ActiveSeasonCard Error Handling', () => {
     const mockSeason: ActiveSeason = {
@@ -86,12 +96,10 @@ describe('ActiveSeasonCard Error Handling', () => {
 
     it('should display "No previous match" when the first fixture is upcoming', async () => {
         const mockProcessor: ActiveSeasonProcessor = {
-            getTeamFixtures: vi.fn().mockResolvedValue([{
+            getTeamFixtures: vi.fn().mockResolvedValue([createFixture({
                 homeTeam: 'Test Team',
-                awayTeam: 'Upcoming Opponent',
-                startDateTime: new Date('2025-01-15T13:00:00Z'),
-                venue: 'Test Venue'
-            }]),
+                awayTeam: 'Upcoming Opponent'
+            })]),
             getTeamPlayers: vi.fn().mockResolvedValue([])
         };
 
@@ -133,6 +141,131 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+    });
+
+    it('should make an away venue clickable when a Google Maps URL is available', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([createFixture({
+                homeTeam: 'Opponent Team',
+                awayTeam: 'Test Team',
+                venue: 'Away Venue',
+                googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=1%2C2'
+            })]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(
+            <ActiveSeasonCard
+                season={mockSeason}
+                processor={mockProcessor}
+                isExpanded={true}
+                onToggle={mockOnToggle}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        const venueLink = screen.getByTestId('fixture-venue-link');
+        expect(venueLink).toHaveTextContent('Away Venue');
+        expect(venueLink).toHaveAttribute('href', 'https://www.google.com/maps/dir/?api=1&destination=1%2C2');
+        expect(venueLink).toHaveAttribute('target', '_blank');
+        expect(venueLink).toHaveAttribute('rel', 'noreferrer');
+        expect(venueLink).toHaveClass('underline', 'hover:opacity-80');
+    });
+
+    it('should keep a previous away venue as plain text even when a Google Maps URL is available', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([
+                createFixture({
+                    homeTeam: 'Opponent Team',
+                    awayTeam: 'Test Team',
+                    startDateTime: new Date('2025-01-15T09:00:00Z'),
+                    venue: 'Previous Away Venue',
+                    googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=3%2C4'
+                }),
+                createFixture({
+                    homeTeam: 'Opponent Team',
+                    awayTeam: 'Test Team',
+                    venue: 'Next Away Venue',
+                    googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=1%2C2'
+                })
+            ]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(
+            <ActiveSeasonCard
+                season={mockSeason}
+                processor={mockProcessor}
+                isExpanded={true}
+                onToggle={mockOnToggle}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('Previous Away Venue');
+        expect(screen.getByTestId('active-season-next-match')).toContainElement(screen.getByTestId('fixture-venue-link'));
+    });
+
+    it('should keep an away venue as plain text when no Google Maps URL is available', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([createFixture({
+                homeTeam: 'Opponent Team',
+                awayTeam: 'Test Team',
+                venue: 'Away Venue',
+                googleMapsUrl: null
+            })]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(
+            <ActiveSeasonCard
+                season={mockSeason}
+                processor={mockProcessor}
+                isExpanded={true}
+                onToggle={mockOnToggle}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Away game, Away Venue');
+        expect(screen.queryByTestId('fixture-venue-link')).not.toBeInTheDocument();
+    });
+
+    it('should keep a home game as non-link text even when a Google Maps URL is available', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([createFixture({
+                homeTeam: 'Test Team',
+                awayTeam: 'Opponent Team',
+                venue: 'Home Venue',
+                googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=1%2C2'
+            })]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(
+            <ActiveSeasonCard
+                season={mockSeason}
+                processor={mockProcessor}
+                isExpanded={true}
+                onToggle={mockOnToggle}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Home game');
+        expect(screen.queryByTestId('fixture-venue-link')).not.toBeInTheDocument();
     });
 
     it('should not fetch data when not expanded', async () => {
@@ -224,18 +357,20 @@ describe('ActiveSeasonCard Rate info modal', () => {
     // (now - 2h) becomes the next match, and the one before it becomes the previous match -
     // which is the one the Rate button belongs to.
     const fixtures = [
-        {
+        createFixture({
             homeTeam: 'Test Team',
             awayTeam: 'Previous Opponent',
             startDateTime: new Date('2025-01-08T19:00:00Z'),
-            venue: 'Home Venue'
-        },
-        {
+            venue: 'Home Venue',
+            googleMapsUrl: null
+        }),
+        createFixture({
             homeTeam: 'Next Opponent',
             awayTeam: 'Test Team',
             startDateTime: new Date('2025-01-22T19:00:00Z'),
-            venue: 'Away Venue'
-        }
+            venue: 'Away Venue',
+            googleMapsUrl: null
+        })
     ];
 
     const renderExpandedCard = async () => {

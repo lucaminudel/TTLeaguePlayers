@@ -1,20 +1,21 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { createActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessorFactory';
-import { CLTTLActiveSeason2025Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2025Processor';
-import type { Fixture } from '../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesParser';
+import { CLTTLActiveSeason2026Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2026Processor';
+import type { Fixture } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 import type { CacheEntry } from '../../../../src/utils/CacheUtils';
 import { setUnitFixedClockTime } from '../../TestClockUtils';
 
 // Mock the CLTTL processor so we can spy on it
-vi.mock('../../../../src/service/active-season-processors/CLTTLActiveSeason2025Processor');
+vi.mock('../../../../src/service/active-season-processors/CLTTLActiveSeason2026Processor');
 
 
 describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     const mockFixture: Fixture = {
         startDateTime: new Date('2025-01-01T12:00:00Z'),
         venue: 'Test Venue',
+        googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=1%2C2',
         homeTeam: 'Home',
         awayTeam: 'Away'
     };
@@ -24,7 +25,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         season: '2025',
         registrations_start_date: 0,
         ratings_end_date: 0,
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         division_tables: [{ 'Div1': 'http://test/tables' }],
         division_fixtures: [{ 'Div1': 'http://test/fixtures' }],
@@ -53,11 +54,11 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     // Helper to spy on the "Real" processor instance
     // Since createActiveSeasonProcessor instantiates it internally, we mock the class implementation
     const setupMockProcessor = (fixturesToReturn: Fixture[], playersToReturn: string[] = []) => {
-        vi.mocked(CLTTLActiveSeason2025Processor).mockImplementation(function () {
+        vi.mocked(CLTTLActiveSeason2026Processor).mockImplementation(function () {
             return {
                 getTeamFixtures: vi.fn().mockResolvedValue(fixturesToReturn),
                 getTeamPlayers: vi.fn().mockResolvedValue(playersToReturn)
-            } as unknown as CLTTLActiveSeason2025Processor;
+            } as unknown as CLTTLActiveSeason2026Processor;
         });
     };
 
@@ -65,7 +66,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
     // Get the instance created by the factory
     const getMockedProcessor = (): MockedProcessorMethods =>
-        vi.mocked(CLTTLActiveSeason2025Processor).mock.results[0].value as MockedProcessorMethods;
+        vi.mocked(CLTTLActiveSeason2026Processor).mock.results[0].value as MockedProcessorMethods;
 
     const getMockedGetTeamFixtures = (): MockInstance => getMockedProcessor().getTeamFixtures;
     const getMockedGetTeamPlayers = (): MockInstance => getMockedProcessor().getTeamPlayers;
@@ -74,7 +75,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     it('Cold Start: Fetches from network and caches result', async () => {
         setupMockProcessor([mockFixture]);
 
-        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
 
         const result = await processor.getTeamFixtures();
 
@@ -98,7 +99,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
         // 1. Seed Cache (Time: T0)
         setUnitFixedClockTime('2025-01-01T10:00:00Z'); // T0
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures(); // seeds cache
         const spy1 = getMockedGetTeamFixtures();
         expect(spy1).toHaveBeenCalledTimes(1);
@@ -110,7 +111,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'Fresh Data' }]); // New data on network
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamFixtures();
 
         // Expect Cached Data (Old Venue), NOT fresh data
@@ -125,7 +126,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
         // 2. Advance time by 4 days (72h < 96h < 144h) -> Stale
@@ -134,7 +135,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'New Data' }]);
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamFixtures();
 
         // Expect Old Data immediately (stale-while-revalidate)
@@ -160,7 +161,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
         // 2. Advance time by 7 days (> 144h) -> Expired / Missing
@@ -169,7 +170,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'Brand New Data' }]);
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamFixtures();
 
         // Expect New Data returned directly
@@ -183,7 +184,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     it('Handles Date deserialization correctly', async () => {
         setupMockProcessor([mockFixture]);
 
-        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor.getTeamFixtures();
 
         // Read directly from cache
@@ -201,15 +202,31 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(result[0].startDateTime.toISOString()).toBe(mockFixture.startDateTime.toISOString());
     });
 
+    it('preserves the optional Google Maps URL through localStorage', async () => {
+        setupMockProcessor([mockFixture]);
+
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
+        await processor1.getTeamFixtures();
+
+        vi.clearAllMocks();
+        setupMockProcessor([{ ...mockFixture, googleMapsUrl: null }]);
+
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
+        const result = await processor2.getTeamFixtures();
+
+        expect(result[0].googleMapsUrl).toBe(mockFixture.googleMapsUrl);
+        expect(getMockedGetTeamFixtures()).not.toHaveBeenCalled();
+    });
+
     it('should propagate error when refreshCache fails and no cache exists', async () => {
         const mockGetTeamFixtures = vi.fn().mockRejectedValue(new Error('Network failure'));
-        vi.mocked(CLTTLActiveSeason2025Processor).mockImplementation(function () {
+        vi.mocked(CLTTLActiveSeason2026Processor).mockImplementation(function () {
             return {
                 getTeamFixtures: mockGetTeamFixtures
-            } as unknown as CLTTLActiveSeason2025Processor;
+            } as unknown as CLTTLActiveSeason2026Processor;
         });
 
-        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
 
         await expect(processor.getTeamFixtures()).rejects.toThrow('Network failure');
     });
@@ -220,7 +237,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         // 1. Seed Cache with old data
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
         // 2. Advance time to make cache stale (4 days)
@@ -228,13 +245,13 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
         // 3. Create new processor with failing mock
         const mockGetTeamFixtures = vi.fn().mockRejectedValue(new Error('Refresh failed'));
-        vi.mocked(CLTTLActiveSeason2025Processor).mockImplementation(function () {
+        vi.mocked(CLTTLActiveSeason2026Processor).mockImplementation(function () {
             return {
                 getTeamFixtures: mockGetTeamFixtures
-            } as unknown as CLTTLActiveSeason2025Processor;
+            } as unknown as CLTTLActiveSeason2026Processor;
         });
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamFixtures();
 
         // Should return stale data (not throw error)
@@ -252,7 +269,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     it('Players Cold Start: fetches from network and caches under the players key', async () => {
         setupMockProcessor([], mockPlayers);
 
-        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
 
         const result = await processor.getTeamPlayers();
 
@@ -272,7 +289,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
 
         // 1. Seed Cache (Time: T0)
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamPlayers();
         expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
 
@@ -282,7 +299,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor([], ['New Player']);
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamPlayers();
 
         expect(result).toEqual(mockPlayers);
@@ -295,7 +312,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([], mockPlayers);
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamPlayers();
 
         // 2. Advance time by 2 days (24h < 48h < 72h) -> Stale
@@ -304,7 +321,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor([], ['New Player']);
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamPlayers();
 
         // Old data immediately (stale-while-revalidate)
@@ -325,7 +342,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([], mockPlayers);
-        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamPlayers();
 
         // 2. Advance time by 4 days (> 72h) -> Expired. The FIXTURES cache would still be stale-but-
@@ -335,7 +352,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         vi.clearAllMocks();
         setupMockProcessor([], ['New Player']);
 
-        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor2 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         const result = await processor2.getTeamPlayers();
 
         // New data, fetched synchronously — not the stale roster
@@ -346,7 +363,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
     it('Fixtures and players are cached under distinct keys', async () => {
         setupMockProcessor([mockFixture], mockPlayers);
 
-        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2025Processor', mockDataSource, 'Div1', 'TeamA');
+        const processor = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
 
         await processor.getTeamFixtures();
         await processor.getTeamPlayers();

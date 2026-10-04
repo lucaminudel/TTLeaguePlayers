@@ -19,7 +19,7 @@ describe('clubUtils.selectActiveManagedClubs', () => {
     const dataSource = (overrides: Partial<ActiveSeasonDataSource> = {}): ActiveSeasonDataSource => ({
         league: 'CLTTL',
         season: '2025-2026',
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: epochOf('2025-08-01T00:00:00Z'),
         ratings_end_date: epochOf('2026-05-01T00:00:00Z'),

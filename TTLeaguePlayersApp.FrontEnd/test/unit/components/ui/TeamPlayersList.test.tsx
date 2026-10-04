@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { TeamPlayersList } from '../../../../src/components/ui/TeamPlayersList';
 import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
 import type { PlayerRegistrationEntry, TeamPlayersRegistrationsResponse } from '../../../../src/types/invite';
-import { PageFetcherError } from '../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesFetcher';
+import { PageFetcherError } from '../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import { GeneralApiError } from '../../../../src/api/api';
 import { setUnitFixedClockTime } from '../../TestClockUtils';
 

@@ -5,7 +5,13 @@
  * implementation's constructor. Club-side capabilities belong to ManagedClubProcessor,
  * which is bound to a club instead.
  */
-import type { Fixture } from './clttl-2025/CLTTLActiveSeason2025PagesParser';
+export interface Fixture {
+    startDateTime: Date;
+    venue: string;
+    googleMapsUrl: string | null;
+    homeTeam: string;
+    awayTeam: string;
+}
 
 export interface ActiveSeasonProcessor {    
     getTeamFixtures(): Promise<Fixture[]>;

@@ -1,19 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { CLTTLActiveSeason2025PagesParser } from '../../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesParser';
+import { CLTTLActiveSeason2026PagesParser } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesParser';
 import fs from 'fs';
 import path from 'path';
 
-// The html files under data/ are live captures of the league site (2026-09-21, after its
-// re-platforming): Division Four of Winter 2025-26 for the division pages, and the club pages
-// (which list the season the site considers current, Winter 2026-27 at capture time).
+// The html files under data/ are sanitized captures of the league site's relevant table markup.
 function readSnapshot(name: string): string {
     return fs.readFileSync(path.resolve(__dirname, 'data', name), 'utf-8');
 }
 
-describe('CLTTLActiveSeason2025PagesParser', () => {
+describe('CLTTLActiveSeason2026PagesParser', () => {
     describe('getTeams', () => {
         it('should extract team names from division table html', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teams = parser.getTeams(readSnapshot('division_table.html'));
 
             // Table order (league position), not alphabetical.
@@ -36,7 +34,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should return empty array if the league table is missing', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teams = parser.getTeams('<html><body><div>No Tables here</div></body></html>');
             expect(teams).toEqual([]);
         });
@@ -44,10 +42,10 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
     describe('getTeamFixtures', () => {
         it('should extract fixtures from the division fixtures html (Simple view)', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const fixtures = parser.getTeamFixtures(readSnapshot('division_fixtures.html'));
 
-            expect(fixtures.length).toBe(110);
+            expect(fixtures.length).toBe(8);
 
             // First fixture: Fusion 5 v's Morpeth 10. The page shows "Mon 29 Sep" with no year: the
             // year comes from the page's season ("Winter 2025-26"), and the time is kept as the
@@ -56,6 +54,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             expect(firstFixture).toEqual({
                 startDateTime: new Date('2025-09-29T19:30:00Z'),
                 venue: 'Fusion',
+                googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=51.4848%2C-0.0512',
                 homeTeam: 'Fusion 5',
                 awayTeam: 'Morpeth 10'
             });
@@ -64,6 +63,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             const week2Fixture = fixtures[5];
             expect(week2Fixture.startDateTime).toEqual(new Date('2025-10-07T19:15:00Z'));
             expect(week2Fixture.venue).toBe('Bridge Academy');
+            expect(week2Fixture.googleMapsUrl).toBe('https://www.google.com/maps/dir/?api=1&destination=51.53566%2C-0.07264');
             expect(week2Fixture.homeTeam).toBe('Highbury 3');
             expect(week2Fixture.awayTeam).toBe('Fusion 5');
 
@@ -83,15 +83,49 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
             expect(lastFixture.awayTeam).toBe('Flick TTC 2');
         });
 
-        it('should expose exactly the four Fixture fields', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+        it('should expose exactly the five Fixture fields', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const fixtures = parser.getTeamFixtures(readSnapshot('division_fixtures.html'));
 
             // The Simple view carries no players, score or completion state, and nothing in the
-            // app reads them: the shape is deliberately date, venue, home team, away team.
+            // app reads them: the shape is deliberately date, venue, Google Maps URL, home team, away team.
             for (const fixture of fixtures) {
-                expect(Object.keys(fixture).sort()).toEqual(['awayTeam', 'homeTeam', 'startDateTime', 'venue']);
+                expect(Object.keys(fixture).sort()).toEqual(['awayTeam', 'googleMapsUrl', 'homeTeam', 'startDateTime', 'venue']);
             }
+        });
+
+        it('should parse only the Google directions URL and ignore the Apple URL', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(`<html><body>
+                <input type="hidden" name="leagueName" value="Winter 2027-28" />
+                <table class="tt-fixture-table"><tbody><tr>
+                    <td class="tt-fixture-date">Mon 03 Aug</td><td class="tt-fixture-time">18:45</td>
+                    <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td>
+                    <td class="tt-fixture-venue">
+                        <a class="tt-venue-link">Nested Venue</a>
+                        <a class="tt-directions-link" href="https://www.google.com/maps/dir/?api=1&amp;destination=1%2C2" data-apple-href="https://maps.apple.com/?daddr=1%2C2">Directions</a>
+                    </td>
+                </tr></tbody></table>
+            </body></html>`);
+
+            expect(fixtures[0].venue).toBe('Nested Venue');
+            expect(fixtures[0].googleMapsUrl).toBe('https://www.google.com/maps/dir/?api=1&destination=1%2C2');
+            expect(fixtures[0].googleMapsUrl).not.toContain('maps.apple.com');
+        });
+
+        it('should use plain venue text and null when no Google directions link exists', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(`<html><body>
+                <input type="hidden" name="leagueName" value="Winter 2027-28" />
+                <table class="tt-fixture-table"><tbody><tr>
+                    <td class="tt-fixture-date">Mon 03 Aug</td><td class="tt-fixture-time">18:45</td>
+                    <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td>
+                    <td class="tt-fixture-venue">Plain Venue</td>
+                </tr></tbody></table>
+            </body></html>`);
+
+            expect(fixtures[0].venue).toBe('Plain Venue');
+            expect(fixtures[0].googleMapsUrl).toBeNull();
         });
 
         it('should infer the year from the season on the page: Aug-Dec first year, Jan-Jul second', () => {
@@ -109,7 +143,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
                 </tbody></table>
             </body></html>`;
 
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const fixtures = parser.getTeamFixtures(html);
 
             expect(fixtures.map((f) => f.startDateTime)).toEqual([
@@ -121,7 +155,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should return empty array if the fixtures table is missing', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const fixtures = parser.getTeamFixtures('<html><body><div>No Fixtures here</div></body></html>');
             expect(fixtures).toEqual([]);
         });
@@ -129,7 +163,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
     describe('getTeamPlayers', () => {
         it('should extract player names from the team checker API response', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const players = parser.getTeamPlayers(JSON.stringify({
                 teamPlayers: [
                     { playerName: 'Luca Minudel' },
@@ -143,7 +177,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should support a legacy bare array and return empty for an invalid response', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             expect(parser.getTeamPlayers(JSON.stringify(['Luca Minudel', '']))).toEqual(['Luca Minudel']);
             expect(parser.getTeamPlayers('<html><body></body></html>')).toEqual([]);
         });
@@ -151,7 +185,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
     describe('getTeamIds', () => {
         it('should extract team names and IDs from the team checker html', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teamIds = parser.getTeamIds(readSnapshot('division_all_players.html'));
 
             // Select order (alphabetical), scoped to the division. The empty "All Teams" option is skipped.
@@ -172,14 +206,14 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should prefer the team checker teamSelect selector', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teamIds = parser.getTeamIds('<select id="teamSelect"><option value="73142">Morpeth 10</option></select>');
 
             expect(teamIds).toEqual([{ team: 'Morpeth 10', id: 73142 }]);
         });
 
         it('should return empty array if the team select is missing', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teamIds = parser.getTeamIds('<html><body></body></html>');
             expect(teamIds).toEqual([]);
         });
@@ -187,7 +221,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
 
     describe('getClubTeams', () => {
         it('should extract every team with its division from a club html page', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_morpeth.html'));
 
             // Page order. The division is a column of the Teams table, spelled as the app spells it
@@ -219,7 +253,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
                 <tr><td>Winter 2026-27</td><td></td><td>Odd Team</td><td>Someone</td></tr>
             </tbody></table></body></html>`;
 
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
 
             expect(parser.getClubTeams(html)).toEqual([
                 { team_name: 'Odd Team', team_division: '' }
@@ -232,7 +266,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
                 <tr><td>Winter 2026-27</td><td>Division 1</td><td>Real Team</td><td>Someone</td></tr>
             </tbody></table></body></html>`;
 
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
 
             expect(parser.getClubTeams(html)).toEqual([
                 { team_name: 'Real Team', team_division: 'Division 1' }
@@ -240,7 +274,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should preserve the team names exactly as the site spells them', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_aa_academy.html'));
 
             expect(teams).toEqual([
@@ -252,7 +286,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should extract named teams as well as numbered ones', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_walworth.html'));
 
             expect(teams).toEqual([
@@ -264,7 +298,7 @@ describe('CLTTLActiveSeason2025PagesParser', () => {
         });
 
         it('should return empty array if the teams table is missing', () => {
-            const parser = new CLTTLActiveSeason2025PagesParser();
+            const parser = new CLTTLActiveSeason2026PagesParser();
             const teams = parser.getClubTeams('<html><body></body></html>');
             expect(teams).toEqual([]);
         });

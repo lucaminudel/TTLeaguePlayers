@@ -6,7 +6,7 @@ import type { ActiveSeasonDataSource } from '../../../../src/config/environment'
 
 /**
  * These tests run against the HTML captured from the live site and persisted under
- * clttl-2025/data/ (captured 2026-09-21, after the site's re-platforming), so they prove the code
+ * clttl-2026/data/ (captured 2026-09-21, after the site's re-platforming), so they prove the code
  * keeps working against the pages as they were when captured. The complementary live check is in
  * the e2e specs, and it deliberately asserts less, because the club page carries no season in its
  * URL and no archived version: a new season silently changes its content.
@@ -15,7 +15,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     const mockDataSource: ActiveSeasonDataSource = {
         league: 'CLTTL',
         season: '2025-2026',
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
@@ -30,7 +30,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     };
 
     const readFixture = (name: string) =>
-        fs.readFileSync(path.resolve(__dirname, 'clttl-2025/data', name), 'utf-8');
+        fs.readFileSync(path.resolve(__dirname, 'clttl-2026/data', name), 'utf-8');
 
     let processor: CLTTLManagedClub2025Processor;
 

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CLTTLActiveSeason2025Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2025Processor';
+import { CLTTLActiveSeason2026Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 
-describe('CLTTLActiveSeason2025Processor Integration', () => {
+describe('CLTTLActiveSeason2026Processor Integration', () => {
     const mockDataSource: ActiveSeasonDataSource = {
         league: 'CLTTL',
         season: '2025-2026',
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
@@ -16,10 +16,10 @@ describe('CLTTLActiveSeason2025Processor Integration', () => {
         club_teams: [],
     };
 
-    let processor: CLTTLActiveSeason2025Processor;
+    let processor: CLTTLActiveSeason2026Processor;
 
     beforeEach(() => {
-        processor = new CLTTLActiveSeason2025Processor(mockDataSource, 'Division 1', 'Morpeth 10');
+        processor = new CLTTLActiveSeason2026Processor(mockDataSource, 'Division 1', 'Morpeth 10');
         vi.stubGlobal('fetch', vi.fn());
     });
 

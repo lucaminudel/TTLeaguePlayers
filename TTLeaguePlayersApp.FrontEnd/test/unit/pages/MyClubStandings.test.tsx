@@ -63,7 +63,7 @@ describe('MyClubStandings', () => {
     const cltttlDataSource = {
         league: 'CLTTL',
         season: '2025-2026',
-        custom_processor: 'CLTTLActiveSeason2025Processor',
+        custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: Math.floor(new Date('2025-08-01T00:00:00Z').getTime() / 1000),
         ratings_end_date: Math.floor(new Date('2026-05-01T00:00:00Z').getTime() / 1000),

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { CLTTLActiveSeason2025PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2025/CLTTLActiveSeason2025PagesFetcher';
+import { CLTTLActiveSeason2026PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
 // A copy of the CLTTL 2025-2026 entry of config/*.env.json: the pages the app really fetches. This
@@ -9,7 +9,7 @@ import type { ActiveSeasonDataSource } from '../../../../../src/config/environme
 const DATA_SOURCE: ActiveSeasonDataSource = {
     "league": "CLTTL",
     "season": "2025-2026",
-    "custom_processor": "CLTTLActiveSeason2025Processor",
+    "custom_processor": "CLTTLActiveSeason2026Processor",
     "custom_club_processor": "CLTTLManagedClub2025Processor",
     "registrations_start_date": 1755648000,
     "ratings_end_date": 1776124800,
@@ -48,11 +48,11 @@ const DATA_SOURCE: ActiveSeasonDataSource = {
 // Morpeth 10's team id in Winter 2025-26, as listed by the team checker page's select#teamSelect.
 const MORPETH_10_TEAM_ID = 73142;
 
-test.describe('CLTTLActiveSeason2025PagesFetcher E2E', () => {
-    let fetcher: CLTTLActiveSeason2025PagesFetcher;
+test.describe('CLTTLActiveSeason2026PagesFetcher E2E', () => {
+    let fetcher: CLTTLActiveSeason2026PagesFetcher;
 
     test.beforeAll(() => {
-        fetcher = new CLTTLActiveSeason2025PagesFetcher(DATA_SOURCE);
+        fetcher = new CLTTLActiveSeason2026PagesFetcher(DATA_SOURCE);
     });
 
     test('getTeams should return HTML containing the league table', async () => {
