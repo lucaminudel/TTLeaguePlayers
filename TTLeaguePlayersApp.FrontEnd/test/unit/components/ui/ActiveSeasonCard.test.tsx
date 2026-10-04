@@ -172,7 +172,18 @@ describe('ActiveSeasonCard Error Handling', () => {
         expect(venueLink).toHaveAttribute('href', 'https://www.google.com/maps/dir/?api=1&destination=1%2C2');
         expect(venueLink).toHaveAttribute('target', '_blank');
         expect(venueLink).toHaveAttribute('rel', 'noreferrer');
-        expect(venueLink).toHaveClass('underline', 'hover:opacity-80');
+        expect(venueLink).toHaveClass(
+            'inline-block',
+            'rounded-md',
+            'bg-main-text',
+            'px-1',
+            'py-0',
+            'text-primary-base',
+            'hover:opacity-80'
+        );
+        const nextMatch = screen.getByTestId('active-season-next-match');
+        expect(nextMatch).toHaveTextContent('Away game Away Venue');
+        expect(nextMatch).not.toHaveTextContent('Away game, Away Venue,');
     });
 
     it('should keep a previous away venue as plain text even when a Google Maps URL is available', async () => {
@@ -237,6 +248,7 @@ describe('ActiveSeasonCard Error Handling', () => {
         });
 
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Away game, Away Venue');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Away Venue,');
         expect(screen.queryByTestId('fixture-venue-link')).not.toBeInTheDocument();
     });
 

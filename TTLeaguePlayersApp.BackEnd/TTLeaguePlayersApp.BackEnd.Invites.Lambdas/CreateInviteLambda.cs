@@ -147,10 +147,11 @@ public class CreateInviteLambda
 
 As Club Manager for {clubManagerInvite.InviteeClub}, you're invited {optionalByInfo}to join/activate the new {invite.League} {invite.Season} season on this new Unofficial web-app => click {speedyInviteLink}
 
-After joining/activating the new season, you will be able to:
+After joining or activating the new season, you will be able to:
 - Promote your club and upcoming tournaments
 - Monitor your club teams' registration
 - Monitor the Kudos received by your teams.
+Please note that all league official business and reporting remain centralised on the league website.
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - A modern digital experience
@@ -189,16 +190,19 @@ The Unofficial TT League Players web-app
             var subject = $"{captainOrPlayerInvite.InviteeTeam} {roleLabel.ToUpper()}'s Invite to join/activate the new {invite.League} {invite.Season} season on TT League Players Web-App";
             var optionalByInfo = invite.InvitedBy.Trim().ToUpper() == "ADMIN" ? "" : $"by {invite.InvitedBy} ";
             var captainsFeature = invite.InviteeRole == Role.CAPTAIN ? "- Invite your team members to join the new season" : "";
+            var captainsInstruction = invite.InviteeRole == Role.CAPTAIN ? "FYI: If you captain multiple teams, you must accept the invitation for each team individually to activate them." : "";
             var body = $@"Hi {invite.InviteeName},
 
 As {roleLabel} for {captainOrPlayerInvite.InviteeTeam}, you're invited {optionalByInfo}to join/activate the new {invite.League} {invite.Season} season on our new Unofficial web-app => click {speedyInviteLink}
+{captainsInstruction}
 
-After joining/activating the new season, you will be able to:
+After joining or activating the new season, you will be able to:
 - Discover upcoming tournaments & local clubs
 - Reward fair play & positive, inclusive behaviour
 - Check your next match date, time, and location
 - View the Kudos received by {captainOrPlayerInvite.InviteeTeam}
 {captainsFeature}
+Please note that all league official business and reporting remain centralised on the league website.
 
 These are the core values enacted by the Unofficial TT League Players web-app. They are aligned with Table Tennis England's pledges and principles. 
 - A modern digital experience

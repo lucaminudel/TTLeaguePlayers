@@ -145,23 +145,24 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         const isHome = fixture.homeTeam === season.team_name;
         const opponent = isHome ? fixture.awayTeam : fixture.homeTeam;
         const dateStr = formatFixtureDateTime(fixture.startDateTime);
-        const awayVenue = !isPreviousMatch && !isHome && fixture.googleMapsUrl ? (
+        const googleMapsUrl = !isPreviousMatch && !isHome ? fixture.googleMapsUrl : null;
+        const hasClickableAwayVenue = googleMapsUrl !== null;
+        const awayVenue = hasClickableAwayVenue ? (
             <a
-                href={fixture.googleMapsUrl}
+                href={googleMapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="underline hover:opacity-80"
+                className="inline-block rounded-md bg-main-text px-1 py-0 text-primary-base hover:opacity-80"
                 data-testid="fixture-venue-link"
             >
                 {fixture.venue}
             </a>
         ) : fixture.venue;
 
-        // Visualisation: Home game (if ...), Date Time ... or Away game, {venue} (if ...), Date Time ...
-        // Vs Opponent
         return (
             <p className="text-base sm:text-lg" data-testid={testId}>
-                {isHome ? 'Home game' : <>Away game, {awayVenue}</>}, {dateStr}<br />
+                {isHome ? 'Home game' : <>Away game{hasClickableAwayVenue ? ' ' : ', '}{awayVenue}</>}
+                {hasClickableAwayVenue ? ' ' : ', '}{dateStr}<br />
                 Vs {opponent}
             </p>
         );
