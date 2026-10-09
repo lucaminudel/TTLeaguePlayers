@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
@@ -17,6 +18,10 @@ import { PromoteMyTournaments } from './pages/PromoteMyTournaments';
 import { MyClubTeams } from './pages/MyClubTeams';
 import { InviteTeamMembers } from './pages/InviteTeamMembers';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+
+const ExternalContractsLiveTesting = import.meta.env.ENVIRONMENT !== 'prod'
+  ? lazy(() => import('./pages/ExternalContractsLiveTesting').then(({ ExternalContractsLiveTesting: page }) => ({ default: page })))
+  : null;
 
 /**
  * InitializationGate shows a loading screen while the initial auth check is in progress.
@@ -117,6 +122,16 @@ function InitializationGate() {
       />
       <Route path="/clubs-and-tournaments" element={<ClubsAndTournaments />} />
       <Route path="/about-and-contact-us" element={<AboutAndContactUs />} />
+      {ExternalContractsLiveTesting && (
+        <Route
+          path="/external-contracts-live"
+          element={
+            <Suspense fallback={<p>Loading external contract test…</p>}>
+              <ExternalContractsLiveTesting />
+            </Suspense>
+          }
+        />
+      )}
     </Routes>
   );
 }

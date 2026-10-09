@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { gzipSync } from 'node:zlib';
 import { CLTTLActiveSeason2026PagesFetcher, PageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
@@ -199,5 +200,49 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
         await assertionPromise;
 
         expect(fetch).toHaveBeenCalledTimes(3);
+    });
+
+    describe('External contracts unit testing', () => {
+        describe('go.x2u.in proxy', () => {
+            it('should preserve a plain response', async () => {
+                const response = new Response('<html>Plain response</html>');
+                vi.mocked(fetch).mockResolvedValue(response);
+
+                await expect(fetcher.getTeams('Division 1')).resolves.toBe('<html>Plain response</html>');
+            });
+
+            it('should decompress a gzip response', async () => {
+                vi.useRealTimers();
+                const expected = '<html>Gzip response</html>';
+                vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(gzipSync(expected))));
+
+                await expect(fetcher.getTeams('Division 1')).resolves.toBe(expected);
+            });
+
+            it('should decompress a Zstandard response even when the proxy labels it as gzip', async () => {
+                const expected = 'Zstandard response';
+                const zstdRawFrame = Uint8Array.from([
+                    0x28, 0xb5, 0x2f, 0xfd,
+                    0x20, expected.length,
+                    (expected.length << 3) | 1, 0x00, 0x00,
+                    ...new TextEncoder().encode(expected),
+                ]);
+                vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(zstdRawFrame, { headers: { 'Content-Encoding': 'gzip' } })));
+
+                await expect(fetcher.getTeams('Division 1')).resolves.toBe(expected);
+            });
+
+            it('should retry and report an invalid compressed response', async () => {
+                vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(Uint8Array.from([0x28, 0xb5, 0x2f, 0xfd]))));
+
+                const fetchPromise = fetcher.getTeams('Division 1');
+                const assertionPromise = expect(fetchPromise).rejects.toThrow(PageFetcherError);
+
+                await vi.runAllTimersAsync();
+                await assertionPromise;
+
+                expect(fetch).toHaveBeenCalledTimes(3);
+            });
+        });
     });
 });
