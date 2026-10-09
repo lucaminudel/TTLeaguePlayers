@@ -1,9 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// const EXECUTE_LIVE_EXTERNAL_CONTRACT_TESTS = process.env.EXECUTE_LIVE_EXTERNAL_CONTRACT_TESTS === 'true';
 
 test.describe('External contracts live testing', () => {
-    // test.skip(!EXECUTE_LIVE_EXTERNAL_CONTRACT_TESTS, 'Skipping live external-contract test');
 
     test.describe('go.x2u.in proxy', () => {
         test('returns browser-readable team eligibility HTML', async ({ page }) => {

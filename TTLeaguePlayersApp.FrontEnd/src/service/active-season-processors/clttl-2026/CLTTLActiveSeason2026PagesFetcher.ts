@@ -51,7 +51,7 @@ export class CLTTLActiveSeason2026PagesFetcher {
     }
 
     /**
-     * The proxy currently returns Zstandard bytes to browsers while labelling them as gzip.
+     * The proxy may return Zstandard bytes to browsers while labelling them as gzip.
      * Browser Fetch therefore exposes compressed bytes instead of decoding them. Detect the
      * actual wire format and decode it before the HTML/JSON parsers consume the response.
      */
