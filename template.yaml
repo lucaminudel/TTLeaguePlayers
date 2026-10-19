@@ -462,6 +462,24 @@ Resources:
           - S3Action:
               BucketName: !Ref IncomingEmailsBucket
 
+  SESReceiptRuleNotifications:
+    Type: AWS::SES::ReceiptRule
+    Condition: IsProdOrStaging
+    DependsOn: IncomingEmailsBucketPolicy
+    Properties:
+      RuleSetName: "ttleague-rules"
+      Rule:
+        Name: !Sub "ForwardNotificationsToS3AndTriggerLambda-${Environment}"
+        Enabled: true
+        Recipients:
+          - !If
+            - IsProd
+            - "notifications@ttleagueplayers.uk"
+            - "notifications@staging.ttleagueplayers.uk"
+        Actions:
+          - S3Action:
+              BucketName: !Ref IncomingEmailsBucket
+
   MXRecord:
     Type: AWS::Route53::RecordSet
     Condition: IsProdOrStaging
