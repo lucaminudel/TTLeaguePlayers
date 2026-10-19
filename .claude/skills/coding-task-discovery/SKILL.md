@@ -17,25 +17,7 @@ belongs to inception; if you find yourself sequencing work, you have left this s
 Discovery is **read-only**. Read the codebase, fetch live external pages, search the web. Write
 nothing into the repo tree except the report's own scratch notes, and no application code at all.
 
----
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
-```
-
----
-
 ## Phase 1 — Frame the task
-**This phase carries the one documented exception to the one-ask rule, and it is narrow.** The four
-framing questions below may go out together, in a single message, **only** when you have nothing of
-your own to attach to any of them: no question, no choice, no point to raise, no information from
-previous work — an earlier session, a prior report, a brief the user already gave you — that bears
-on one of the four. Discovery is the first of the four skills, so on a cold start that is usually
-the case, and the batch is allowed.
-The moment you have something of your own to add to even one of the four, **the exception lapses**.
-Then: post the four points as a list so the user can see the shape, with **no ask attached to that
-message**, and afterwards work through them one message at a time, folding your own question or
-information into the point it belongs to. Never attach your point to a batch of four questions.
-
 Ask for:
 
 1. **The bigger picture** — which end-user feature or outcome does it serve?
@@ -45,13 +27,9 @@ Ask for:
 
 Also collect any references they name — files, URLs, tickets, screenshots, prior conversations —
 and read every one of them in full before exploring anything.
-If they give you only some of the four, ask for the rest rather than inventing it — and once the
-first answers are in you are no longer on a cold start, so those follow-ups go **one per message**.
-The framing is
+If they give you only some of the four, ask for the rest rather than inventing it. The framing is
 what stops discovery from sprawling: a topic that serves neither the bigger picture nor a stated
 question does not belong in the report.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 2 — Agree the topic list
 
@@ -69,14 +47,7 @@ wrong would cost the most later — and propose starting there.
 Get agreement on the list before phase 3. The list is not frozen (see *Standing rules*), only
 agreed.
 
-**The list is one ask, and the list is the whole message.** Present it and ask the single question
-"is this the right list?". Do not also ask which topic to start with, do not also raise a doubt
-about topic 4, and do not also ask a framing question you forgot in phase 1 — each of those is its
-own later message, after the list is agreed.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
-## Phase 3 — Explore and discuss, one topic at a time
+## Phase 3 — Explore and discuss
 
 For each topic in turn: explore it, write up the findings, **present them, and wait** for the user
 to react before moving to the next. They may accept it, correct it, ask for more depth, or open a
@@ -84,8 +55,6 @@ new topic on the spot. Do not batch the whole exploration and present it at the 
 
 A topic is done when the answers are **detailed enough to act on** — concrete values, exact paths,
 named identifiers, real examples — not when they are merely plausible.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### Where to look
 
@@ -161,8 +130,6 @@ The file carries:
 
 Keep it factual. Anything shaped like "we should therefore..." is a plan and belongs to inception.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 5 — Exhaust and verify
 
 Only when the topic list is exhausted. Before declaring that, **ask explicitly** whether there are
@@ -182,16 +149,8 @@ Then:
 3. **Present the final document** and ask whether it is complete or whether there is more to
    explore. Wait. Expect rounds; fold each one in and re-present.
 
-These three steps are **three messages, in this order**, not one. Step 1's corrections are a report
-with no ask. Step 3 carries the single ask — and only after the "any more topics?" question above
-has been asked and answered, since that one comes first and is an ask of its own. If the
-re-verification in step 1 turned something up that needs a decision, that decision is its own
-message too, settled before you present the final document.
-
 Do not hand off to `coding-task-inception` yourself. Tell the user the report is ready and where it
 is; starting inception is their call.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 6 — Retrospect
 
@@ -199,16 +158,6 @@ Review how phases 1–5 actually went and fold anything durable back into this s
 user made are the highest-value input — especially topics you should have proposed and did not,
 findings you asserted without evidence and had to walk back, and sources you should have checked
 earlier. Ask the user if they want to add any other improvement to this skill.
-
-**Where the improvement goes — check before editing anything.** Phase logic (the steps, their
-order, what this phase produces) belongs in this file. Anything about the interaction protocol —
-the One Ask and One Point rules, the pre-send gate, the shape of a hand-back — belongs in
-`.claude/skills/shared/interaction-protocol.md`, which all four skills inject verbatim at load
-time.
-
-**Never edit the protocol text as it appears in a rendered skill.** What you see inline was
-injected from that one shared file; editing it in place either silently diverges the four skills
-or is discarded the next time the file is read. Open the shared file and change it there, once.
 
 ## Phase 7 — Close
 
@@ -232,10 +181,6 @@ new question, or drill into an earlier answer. Take it, add it to the numbered l
 and place it — either explore it now or say where it sits in the order. Never treat an addition as
 scope creep, and never quietly drop one.
 
-**Asking the user.** Presenting a topic's findings, asking to run something, closing out — each is
-a stop, and every stop follows *Presenting the one ask you do send* in the interaction protocol
-above.
-
 **Evidence over recall.** Every finding is traceable to something you actually read, fetched or ran
 in this session. If you are working from memory of this codebase, go and check.
 
@@ -245,8 +190,6 @@ survives into the plan and then into the code.
 
 **Git.** Stay on the current branch. No commits, no staging, no stash, no clean. The working tree
 ends exactly as the user left it.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Anti-patterns
 

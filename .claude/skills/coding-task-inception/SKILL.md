@@ -11,12 +11,6 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 An nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
 not code. Write no application code during phases 1–8.
 
-
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
-```
-
-
 ## Phase 1 — Receive the general information
 
 The user supplies background and references. Read every file they name, in full. Hold it; do not
@@ -38,17 +32,12 @@ Always read, whether or not they are named:
 
 If the user asks a question mid-brief, answer it, but do not start planning.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 2 — Receive the specification
 
 What to implement, constraints, quality criteria, example files, how to verify. Do not push back
 yet; collect everything, then note conflicts for phase 5.
 
-A gap you find between the user's brief and the Discovery findings report is **itself a topic**, not a
-preamble to append to a question about something else. Raise it alone.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
+A gap you find between the user's brief and the Discovery findings report is a topic for phase 5.
 
 ## Phase 3 — Research
 
@@ -75,8 +64,6 @@ contains dead ends of exactly that kind.
 intended structure that the code has not grown yet — including inside mermaid diagrams. Read them
 before proposing architecture; you may be re-deriving a decision already made.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 4 — Build the plan
 
 Create sub-tasks with `TaskCreate`, then wire dependencies with `TaskUpdate` `addBlockedBy`. Each
@@ -101,17 +88,11 @@ before the next layer goes on. Place each one at a state that compiles and runs;
 order prevents that, say so and propose the split that fixes it rather than parking the user in
 front of a half-wired tree.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 5 — Question the gaps
 
 Use `AskUserQuestion` with a recommendation as the first option and a concrete `preview` snippet
 showing what each choice looks like in code. Every question must change what you build — if a
 sensible default exists, take it and state it as an assumption instead.
-
-**One question per `AskUserQuestion` call.** The tool accepts up to four; passing more than one is
-the most common way this skill breaks the one-ask rule, because the tool makes it look sanctioned.
-It is not. Ask the first gap, wait for the answer, apply it, then ask the next.
 
 State your remaining assumptions explicitly, so silence counts as agreement.
 
@@ -119,8 +100,6 @@ State your remaining assumptions explicitly, so silence counts as agreement.
 class to modify. If research says otherwise, present the trade-off with costs, flag the divergence
 from what they wrote, and get explicit confirmation. Do not silently comply, and do not silently
 deviate.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 6 — Review the plan for completeness
 Double-ckeck the plan decisions and sub-tasks making sure they are sufficiently detailed and have all the information required for  the agent to implement the plan-subtasks minimising the interruptions such as additional asks or reviews that need to be presented to the user.
@@ -139,13 +118,6 @@ decisions locked in, assumptions, and anything you would flag as accepted risk.
 Invite amendment and **wait**. Expect several rounds; fold each amendment into the tasks before
 re-presenting.
 
-**"Invite amendment" is the whole ask, and it is the only one in that message.** Do not also ask for
-confirmation to persist, do not also ask about a sub-task you are unsure of, and do not close with
-"otherwise I'll save it as is" — that last one is tacit approval, which the one-ask rule counts as
-an ask. Persisting is a separate, later ask, made only once the amendments have stopped. If a
-specific part of the plan needs a decision, that is its own message, before or after the plan
-presentation but never inside it.
-
 Persist only after explicit confirmation, to
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md` — the same
 `<slug>` directory the discovery report came from. That location is readable and writable by every
@@ -161,23 +133,11 @@ task artifacts are found by path, not by recall. The file must carry:
 - standing assumptions and accepted risks
 - a dated progress log, and instructions that any agent may update it
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 8 — Retrospect
 
 Once the plan is persisted, review how phases 1–6 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
 
-
-**Where the improvement goes — check before editing anything.** Phase logic (the steps, their
-order, what this phase produces) belongs in this file. Anything about the interaction protocol —
-the One Ask and One Point rules, the pre-send gate, the shape of a hand-back — belongs in
-`.claude/skills/shared/interaction-protocol.md`, which all four skills inject verbatim at load
-time.
-
-**Never edit the protocol text as it appears in a rendered skill.** What you see inline was
-injected from that one shared file; editing it in place either silently diverges the four skills
-or is discarded the next time the file is read. Open the shared file and change it there, once.
 
 ## Phase 9 — Close
 
@@ -195,8 +155,6 @@ and that file — not this conversation — is what `coding-task-execution` read
 
 - Writing application code before phase 6 confirmation.
 - Planning against an external data source without fetching it first.
-- Dropping or retracting a point to get a message down to one ask, instead of moving it to the next
-  message.
 - Inferring process rules from repo guideline docs instead of asking.
 - Declaring a change safe for another stack without running that stack's tests.
 - Persisting the plan only to the in-session task list, which the next session cannot read.
@@ -212,4 +170,4 @@ cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 
 - **Commands against live cloud and Cognito environment** Running a read-only command against the cloud environment, and Cognito is permitted. Running during this Incpetion a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. It is ok for that to be part of the plan the inception creates.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
+Plan state-changing operations when required, but do not execute them during inception.

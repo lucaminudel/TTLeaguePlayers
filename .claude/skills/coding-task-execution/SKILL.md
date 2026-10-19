@@ -16,13 +16,6 @@ the user which; none, there is no plan.
 
 If no such plan exists, stop and say so — run `coding-task-inception` first. Do not improvise one.
 
----
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
-```
-
----
-
 ## Phase 1 — Load and reconcile
 
 Read the plan in full: decision table, research findings, sub-task table, standing assumptions,
@@ -47,7 +40,7 @@ you update.
 clean DB, and the local dev DynamoDB is where manual use leaves data behind. Ask the user whether the
 local dev DB is clean enough to run e2e tests on dev. The answer fixes the **e2e environment** for the
 whole execution (see *Where the e2e tests run* in Phase 6): **test** unless the user confirms the dev
-DB is clean. One ask, in its own message.
+DB is clean.
 
 **Establish the baseline before changing any code — by asking, not by running.** Ask the user to
 confirm that all three suites are currently passing: C# and Vitest unit on the local dev environment,
@@ -55,12 +48,6 @@ Playwright e2e on the e2e environment. Do **not** run them yourself to find out:
 scarce resource this skill exists to protect (see *The Cognito budget*). Without a confirmed baseline
 you cannot tell your own regressions from failures that were already there — which is the whole
 purpose of asking.
-
-That is **one ask covering all three suites**, and it is the only thing in that message. The
-reconciliation report above — what you verified, what is `in progress`, what you re-checked — is a
-report and goes in its own earlier message with no question attached.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ## Phase 2 — Order the work
 
@@ -80,8 +67,6 @@ regressions. So:
 
 Where the graph is a chain, say so and run it serially rather than manufacturing parallelism.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 3 — Bridge the gaps to limit the interruptions
 
 Look ahead to the whole plan, and see if there is any gap, clarificaiton, decision, missing info or permission you need from the user, then ask the user that information now instead of interrupting the user later during the exection.
@@ -100,19 +85,14 @@ For each sub-task, in order:
 3. Verify it (Phase 6).
 4. Set Status to `done` and append a dated line to the plan's progress log.
 5. **Replace the comments you just wrote with self-explaining code (Phase 7), then re-verify.**
-6. Write its entry in the work summary report (Phase 8) and post that entry in the chat — as a
-   report, with **no question appended**, not even "shall I move on to sub-task 4?". Moving on to
-   the next unblocked sub-task needs no permission; a checkpoint (Phase 5) is its own message.
+6. Write its entry in the work summary report (Phase 8) and post that entry in the chat.
 
 A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
-tests, or anything you worked around rather than solved — report it and stop. If stopping raises a
-question, that question is its own message, sent after the report.
+tests, or anything you worked around rather than solved — report it and stop.
 
 ```!
 cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 ```
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### Read-only commands against the live cloud and Cognito — permitted without asking
 
@@ -146,17 +126,8 @@ exists for the same reason.
 ## Phase 5 — Checkpoints
 
 When the plan contains a review checkpoint, **stop completely** and hand back. Show what the
-checkpoint task says to show, framed as the *Presenting Rule for the One Ask and the One Topic you
-do send* describes, and wait for explicit permission to continue. Do not start the next sub-task, do not "get a head start" on
-unrelated ones.
-
-**The checkpoint's ask is "may I continue?", and nothing else rides with it.** Not a question about
-a design choice you made along the way, not permission for the next Tier 1-C run, not a second
-decision the user could "answer at the same time". Those each get their own message afterwards — and
-if one of them must be settled *before* continuing, ask it first, on its own, and hold the
-checkpoint question until it is resolved.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
+checkpoint task says to show, and wait for explicit permission to continue. Do not start the next
+sub-task or "get a head start" on unrelated ones.
 
 ## Phase 6 — Verify before marking done
 Four tiers, ordered by how much **live Cognito** they spend. They are **not** interchangeable, and the
@@ -205,8 +176,6 @@ starts, stop any test-env services you started yourself: the pipeline reuses a S
 Never substitute a higher tier for the 1-A loop (too slow, and it burns Cognito to tell you something
 a lint error would have). Never let 1-A stand in for Tier 2 (no live Cognito, no
 clean-room build, not the whole suite in one run).
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### The Cognito budget
 
@@ -693,8 +662,6 @@ Note in the sub-task's work-summary entry which comments were absorbed into code
 why, and anything moved into a domain doc. A reviewer reading the diff later cannot tell a comment
 that was *answered by the code* from one that was simply *deleted* — this note is the difference.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 8 — Work summary report
 
 Maintained at
@@ -713,23 +680,11 @@ One section per completed sub-task:
 
 Keep entries short. A reviewer should be able to read the whole report before opening the diff.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 9 — Retrospect
 
 Review how task execution phases 1–8 actually went and fold anything durable back into
 this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
 
-
-**Where the improvement goes — check before editing anything.** Phase logic (the steps, their
-order, what this phase produces) belongs in this file. Anything about the interaction protocol —
-the One Ask and One Point rules, the pre-send gate, the shape of a hand-back — belongs in
-`.claude/skills/shared/interaction-protocol.md`, which all four skills inject verbatim at load
-time.
-
-**Never edit the protocol text as it appears in a rendered skill.** What you see inline was
-injected from that one shared file; editing it in place either silently diverges the four skills
-or is discarded the next time the file is read. Open the shared file and change it there, once.
 
 ## Phase 10 — Close
 
@@ -745,23 +700,16 @@ summary are on disk, and those files — not this conversation — are what `cod
 
 ## Standing rules
 
-**Asking the user.** A question, a blocker, a checkpoint, plan drift, a confirmation before a long
-or shared-environment run — each is a stop, and every stop follows *Presenting the one ask you do
-send* in the interaction protocol above.
-
 **Git.** Stay on the current branch. Make no commits. Leave the working tree for the user to stage
 themselves. Never stash, revert, or clean their pre-existing uncommitted changes.
 
 **Plan drift.** If anything contradicts the plan — a selector that does not match, a design that
 proves unworkable, a dependency that was missed — **stop and ask, always**. Report the finding and
-the options in the shape described above; do not silently redesign, and do not silently comply with
+the options; do not silently redesign, and do not silently comply with
 a plan you now know to be wrong. Record the resolution in the plan's progress log before resuming.
 
 **Scope.** The plan defines the work. Do not widen it, do not fold in unrelated cleanups noticed in
 passing, and do not narrow it because a step looks awkward.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 
 ## Anti-patterns
 
@@ -774,9 +722,6 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
 - Adapting the plan quietly when it turns out to be wrong.
 - Handing back a question, blocker or checkpoint without the context, cause and options the user
   needs to answer it.
-- Appending a question to a work-summary entry, a status report or a verification result.
-- Bundling permission for a Cognito command, a tier run or a checkpoint with any other decision.
-- Passing more than one question to a single `AskUserQuestion` call.
 - Reporting which environment a test run reached from the flag passed to it rather than from evidence.
 - Running a mutating Cognito command — the provisioning scripts, an `aws cognito-idp` write, applying a
   pending change to either — without asking first.

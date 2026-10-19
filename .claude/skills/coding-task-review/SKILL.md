@@ -30,19 +30,10 @@ which is missing and what you therefore cannot check, then proceed.
 The output is **a reviewed, green, committable working tree and a guide for reviewing it** — not a
 commit. You never commit.
 
----
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/interaction-protocol.md
-```
-
----
 ## Phase 0 — Start from green
 
 Ask the user to confirm the state of the code to be reviewed is green: all tests pass so does the full verification pipeline.
   
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
-
 ## Phase 1 — Read the diff and reconstruct intent
 
 Scope is **the changes the plan and work summary account for**. Everything else pending in the tree
@@ -73,8 +64,6 @@ finding — either the work summary is incomplete or the change was unplanned.
 Read the file's *surroundings*, not just its diff. Most consistency findings come from the
 neighbouring code that did not change.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 2 — Review, adversarially
 
 **The judgement is yours, inline, in this session.** Deciding what is wrong, what it would break,
@@ -94,8 +83,6 @@ Re-read the standards before judging against them, rather than from memory:
 - `prompts/workflow/steps_guidelines/WriteTestsGuidelines.md`
 - `prompts/workflow/steps_guidelines/FixRedTestGuidelines.md`
 - the `prompts/codebase_info/*DomainLogic.md` for the area touched
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
 
 ### The lenses
 
@@ -200,45 +187,23 @@ appealing it looks.
 Verify every finding against the real files before reporting it. Drop anything you cannot
 reproduce; do not report it as a "possible issue".
 
-**The exact message sequence. Do not compress it.**
-
-**Message 1 — the overview, with NO ask in it.** Two lists:
+**The overview.**
 
 1. **High-priority findings**, each with: file:line, what is wrong, the concrete failing case, and
    the proposed fix. Followed by a fix plan — ordered, with the verification each fix needs.
-2. **Noted, not actioned** — everything lower. Named, one line each, no fix plan.
+2. **Medium-priority findings**, presented the same as the High-priority findings
+3. **Noted, not actioned** — everything lower. Named, one line each, no fix plan.
 
-End it by saying nothing is being changed yet, and **stop**. No question — not even "shall I fix
-finding 1?", not "does the ordering look right?", not "anything you'd add?". Attaching a question to
-the bottom of the overview reads as one wall of findings *plus* a decision, which is exactly the
-bundling this phase forbids: the reader has to hold ten unresolved items in their head to answer
-one. It is not a smaller violation because only one question mark was used; the overview is already
-a lot to absorb. The two lists exist so the user can see the whole picture before deciding anything
-— that part is a single presentation. Deciding is not.
-
-**Message 2 — finding 1, and only finding 1.** Present it as the *Presenting Rule for the One Ask
-and the One Topic you do send* describes: where it came from, why it is wrong, the failing case,
+**The incremental fix.**
+One list item at the time tell where it came from, why it is wrong, the failing case, its impact,
 and for the fix its size, its blast radius and the alternative of leaving it. One ask: what to do
 about this finding. Then wait.
 
-**Then: settle it, fix it, verify it — and only then move to finding 2**, in its own message, same
-shape. Never "approve findings 1, 2 and 3?", and never a recommendation that bundles them: each has
-its own failing case, its own fix, its own cost, and the user may reshape one and reject another.
+Then: settle it, fix it, verify it — and only then move to next finding**, same
+shape as before.
 
 Change nothing until the user approves a fix. If they amend the plan, fold the amendment in and
-re-present that one finding.
-
-Every later message in this phase obeys the same gate. When a fix turns out wider than it looked,
-report that alone and stop — do not also ask what to do about the next finding. When a fix goes
-green, say so and move on; that report carries no ask.
-
-The temptation to bundle is strongest here because the analysis is finished and it all feels like
-one deliverable. It is not one deliverable to the person answering — and a bundled question quietly
-pushes them to accept a fix they would have improved. In practice they often will: expect the user's
-alternative to beat your proposal, particularly on operational cost, and treat that as the normal
-outcome rather than a correction.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
+re-present it.
 
 ## Phase 4 — Fix
 
@@ -258,10 +223,7 @@ A fix that does not go green is not done. If a fix turns out to be wrong or wide
 stop and say so rather than expanding it silently.
 
 Re-running the full pipeline after the fixes is the user's call and the user's command — ask, state
-why it is needed, and wait. That request is its own message: it does not travel with the summary of
-the fixes just applied, and it does not travel with the PR guide.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
+why it is needed, and wait.
 
 ## Phase 5 — The PR-review guide
 
@@ -289,10 +251,6 @@ the reader scroll past sub-task notes they have no reason to read.
 verification status, the findings, and the reading order — and then, **as the last thing in the
 final message, present the link to the document you created.** The link is the deliverable; the chat
 summary exists so the user can decide whether to open it now or when they sit down to review.
-
-**That message is a hand-over and carries no ask.** It ends with the link, not with "does this look
-right?" and not with the commit message. Phases 5, 6 and 7 are three separate messages in that
-order: the guide, then the proposed commit message, then the retrospect question.
 
 **Explain the intent, not just the diff — and take it from the persisted files, not from memory.**
 A reviewer reading cold needs to know *why* this change exists before they can judge whether it is
@@ -377,8 +335,6 @@ The document carries:
 Keep it readable in one sitting. Context and direction, never a restatement of the lines that
 changed — if the reviewer could get it from the diff alone, leave it out.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 6 — Suggest the commit message
 
 Propose the text; **do not commit and do not stage**. Cover the whole set of pending changes,
@@ -388,8 +344,6 @@ Body explains *why*, since the diff already shows *what*. Note user-facing behav
 config-file structure changes, and anything a future bisect would want to find. Do not sign it as
 Claude unless the user asks.
 
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 ## Phase 7 — Retrospect
 
 Review how phases 0–6 actually went and fold anything durable back into this skill. Corrections the
@@ -397,16 +351,6 @@ user made are the highest-value input — especially findings you missed that th
 findings you raised that turned out to be noise. Ask the user if they want to add any other
 improvement to this skill.
 
-
-**Where the improvement goes — check before editing anything.** Phase logic (the steps, their
-order, what this phase produces) belongs in this file. Anything about the interaction protocol —
-the One Ask and One Point rules, the pre-send gate, the shape of a hand-back — belongs in
-`.claude/skills/shared/interaction-protocol.md`, which all four skills inject verbatim at load
-time.
-
-**Never edit the protocol text as it appears in a rendered skill.** What you see inline was
-injected from that one shared file; editing it in place either silently diverges the four skills
-or is discarded the next time the file is read. Open the shared file and change it there, once.
 
 ## Phase 8 — Close
 
@@ -424,10 +368,6 @@ cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 
 ## Standing rules
 
-**Asking the user.** A red pipeline in phase 0, the fix plan in phase 3, a fix that turns out wider
-than it looked, asking for the tier-2 re-run — each is a stop, and every stop follows *Presenting
-the one ask you do send* in the interaction protocol above.
-
 **Git.** Stay on the current branch. No commits, no staging, no stash, no revert, no clean. The
 working tree stays exactly as the user left it, plus the approved fixes.
 
@@ -437,9 +377,6 @@ Review is not the moment to improve unrelated code.
 **Honesty over reassurance.** A review that finds nothing is a review that was not performed. If a
 change genuinely is clean, say what you checked and why it holds — do not pad the list to look
 thorough, and do not soften a real finding into a suggestion.
-
-IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Message Rule', 'the One Point Per Message Rule', and the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message'.
-
 
 ## Anti-patterns
 
@@ -452,7 +389,6 @@ IMPORTANT!: Apply to every hand-over message to the user the 'One Ask Per Messag
 - Starting fixes before the user approves the fix plan.
 - Launching the tier-2 pipeline without asking.
 - Committing or staging anything.
-- Ending the two-list overview with a question. The overview carries no ask at all.
 - Moving to the next finding before the current one is decided, fixed and verified.
 - Writing a PR guide that restates the diff instead of directing attention within it.
 - Writing a PR guide that explains *what* changed but not *why* — the feature it serves, the
