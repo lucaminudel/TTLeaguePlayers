@@ -437,6 +437,44 @@ Read the screenshot directly when a locator assertion fails — it usually shows
 glance. Note these directories are **overwritten by each run**, so capture what you need before
 re-running.
 
+#### Deterministic Mutation testing — only the changed frontend production code
+
+Even when the user confirmed in Phase 1 that the dev DB is clean or not, run mutation testing.
+
+Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. After the
+build and relevant Vitest specs are green, select only the changed `src/` production file(s) and their
+covering unit spec(s). Do not run the whole frontend mutation suite as an ordinary inner-loop check.
+
+```bash
+npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts
+```
+
+Use comma-separated paths for a small set of changed source files and their covering specs. Use
+`npm run "mutation-tests-web:check"` to validate Stryker discovery without mutations; reserve
+`npm run "mutation-tests-web:run"` for an incremental configured-suite run and
+`npm run "mutation-tests-web:run-file"` without filters for an intentional, forced full run.
+
+For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`. The HTML
+report from command-line mutation runs is at
+`TTLeaguePlayersApp.FrontEnd/reports/mutation/mutation.html`.
+
+Prioritise mutation findings in this order, in order to start fixing the highest priority failures:
+
+1. `No coverage` or `Survived` mutants in domain logic, authorisation, date calculations, and API error handling.
+2. Survived mutations that remove a condition, flip a boolean, alter a comparison boundary, or change a return value.
+3. Survivors in high-risk or frequently changed code.
+4. Multiple survivors on one branch or decision, where one missing behavioural scenario may kill several mutants.
+5. Presentation-only, logging, or trivial adapter survivors, unless the code carries an important user-visible rule.
+6. Equivalent mutants: record and accept them when the mutation cannot change observable behaviour; do not add implementation-specific tests merely to improve the score.
+
+#### Inferential Mutation testing 
+
+For every e2e test changed or created, amnd every input and assertion of the test, check that they pass because the code implementation is indeed correct and not because they are returning a false positive.
+
+Check this by introducing a temporary mutation to the implementation code and see that the test then fails as expected.
+Reset the mutation after this check.
+If the test does not fail as expected, identify the cause and fix the test.
+
 ---
 
 ### Tier 2 — complete verification (test env, live Cognito)

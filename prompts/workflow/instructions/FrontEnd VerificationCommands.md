@@ -61,7 +61,30 @@ Regardless of the environment, run the tests from the command line:
 This runs the tests and opens the test browser UI on a web page:
 `npm run "unit-tests-web:browser-run"`
 
-### 3) Command to run FrontEnd end-to-end tests 
+### 3) Commands to run FrontEnd mutation tests
+Mutation tests exercise the Vitest unit-test suite only. They do not run Playwright or contact Cognito.
+Run them after the build and the relevant unit tests pass, and normally mutate only the frontend
+production files changed by the task.
+
+Check that Stryker can discover and run the configured unit tests without executing mutations:
+`npm run "mutation-tests-web:check"`
+
+Run the configured frontend mutation suite incrementally. It reuses prior results where possible:
+`npm run "mutation-tests-web:run"`
+
+Force a complete run of every configured frontend mutant:
+`npm run "mutation-tests-web:run-file"`
+
+For the fast feedback loop, force mutation testing for only changed production file(s) and their
+covering Vitest spec(s):
+`npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts`
+
+For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`. The HTML
+report from command-line mutation runs is at
+`TTLeaguePlayersApp.FrontEnd/reports/mutation/mutation.html`. Test Explorer results are shown in VS
+Code and are not written to that report.
+
+### 4) Command to run FrontEnd end-to-end tests
 From the dev environment, use the IDE test explorer.
 
 The e2e tests for the dev environment:
@@ -87,7 +110,7 @@ They are defined here: TTLeaguePlayers/.vscode/tasks.json and here TTLeaguePlaye
 You can find the info on FrontEnd end-to-end tests failures under this folder: TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/test-results
 
 
-###  4) Command to run the full pipeline lint and build and unit, integration, acceptance, e2e tests (before asking me about staging)
+###  5) Command to run the full pipeline lint and build and unit, integration, acceptance, e2e tests (before asking me about staging)
 This pipeline runs on the test environment:
 `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh`
 This is defined as VS Code Terminal task: full-stack-builds-tests-pipeline test-env
