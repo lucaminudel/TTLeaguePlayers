@@ -56,28 +56,22 @@ matches:
     label: 5a. SKILL - Coding Task Discovery
     replace: |
       Read from this file, with the instruction to conduct a pre-inception task Discovery:
-      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-discovery/SKILL.md
+      ~/Code/TTLeaguePlayers/.agents/skills/coding-task-discovery/SKILL.md
   - trigger: /ttcoding-task-inception # Coding task: Inception
     label: 5b. SKILL - Coding Task Inception
     replace: |
       Read from this file, with the instruction to conduct a task Inception to produce an Plan:
-      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-inception/SKILL.md
+      ~/Code/TTLeaguePlayers/.agents/skills/coding-task-inception/SKILL.md
   - trigger: /ttcoding-task-execution # Coding task: Execution
     label: 5c. SKILL - Coding Task Execution
     replace: |
       Read from this file, with the instruction to execute the Plan from the task Inception:
-      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-execution/SKILL.md
+      ~/Code/TTLeaguePlayers/.agents/skills/coding-task-execution/SKILL.md
   - trigger: /ttcoding-task-review # Coding task: Review
     label: 5d. SKILL - Coding Task Review
     replace: |
       Read from this file, with the instruction to execute the task Review following the Execution:
-      ~/Code/TTLeaguePlayers/.claude/skills/coding-task-review/SKILL.md
-  - trigger: /ttcoding-task-rules # Coding task: Review
-    label: 5e. SKILL HELPER - One rule
-    replace: |
-      Please try again applying the 'One Ask Per Message Rule' or 'the One Point Per Message Rule' and 
-      the 'Presenting Rule for the One Ask Per Message and the One Topic Per Message' 
-      from: ~/Code/TTLeaguePlayers/..claude/skills/shared/interaction-protocol.md
+      ~/Code/TTLeaguePlayers/.agents/skills/coding-task-review/SKILL.md
 
   #
   # Tasks specific instructions 
