@@ -15,6 +15,9 @@
     "build-web:prod-env": "cross-env ENVIRONMENT=prod npm run build:steps",
     "unit-tests-web:run": "vitest run",
     "unit-tests-web:browser-run": "vitest --ui --open",
+    "mutation-tests-web:check": "stryker run --dryRunOnly",
+    "mutation-tests-web:run": "stryker run --incremental",
+    "mutation-tests-web:run-file": "stryker run --incremental --force",
     "e2e-tests-web:run dev-env": "cross-env PORT=5173 playwright test",
     "e2e-tests-web:run test-env": "cross-env PORT=4173 playwright test",
     "C+ e2e-tests-web:run staging-env": "cross-env STAGING_URL=https://staging.ttleagueplayers.uk/ EXECUTE_LIVE_COGNITO_TESTS=true playwright test",
@@ -38,6 +41,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/node": "^24.10.4",

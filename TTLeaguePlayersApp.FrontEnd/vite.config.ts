@@ -2,9 +2,14 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const ENVIRONMENTS = ['dev', 'test', 'staging', 'prod']
+const frontendRoot = path.dirname(fileURLToPath(import.meta.url))
+const frontendRequire = createRequire(path.join(frontendRoot, 'package.json'))
+const reactCompilerPlugin = frontendRequire.resolve('babel-plugin-react-compiler')
 
 // An exact match is required: macOS's case-insensitive filesystem would otherwise let a value
 // such as "Prod" load prod.env.json.
@@ -19,9 +24,11 @@ function resolveEnvironment(): string {
 }
 
 function loadBuildTimeConfig(environment: string): Record<string, unknown> {
-  const frontEndRoot = process.cwd()
-  // config/*.env.json lives at repo root (one level up from TTLeaguePlayersApp.FrontEnd)
-  const configPath = path.resolve(frontEndRoot, '..', 'config', `${environment}.env.json`)
+  // config/*.env.json lives at repo root (one level up from TTLeaguePlayersApp.FrontEnd).
+  // Mutation-test sandboxes use a copied frontend root, so Stryker supplies the
+  // original config directory through this process-local environment variable.
+  const configRoot = process.env.TTLEAGUEPLAYERS_CONFIG_ROOT ?? path.resolve(frontendRoot, '..', 'config')
+  const configPath = path.resolve(configRoot, `${environment}.env.json`)
 
   try {
     const json = fs.readFileSync(configPath, 'utf8')
@@ -38,7 +45,7 @@ const appConfig = loadBuildTimeConfig(environment)
 
 // Fixed version, maintained by hand in package.json.
 const appVersion = (JSON.parse(
-  fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8')
+  fs.readFileSync(path.join(frontendRoot, 'package.json'), 'utf8')
 ) as { version: string }).version
 
 // Build stamp: UTC build date (e.g. 14-Aug-2026) plus seconds elapsed since that day's
@@ -54,9 +61,10 @@ const buildSecondsOfDay =
 
 // https://vite.dev/config/
 export default defineConfig({
+  root: frontendRoot,
   plugins: [react({
     babel: {
-      plugins: [["babel-plugin-react-compiler", { target: "18" }]],
+      plugins: [[reactCompilerPlugin, { target: "18" }]],
     },
   })],
   define: {

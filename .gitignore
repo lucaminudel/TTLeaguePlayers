@@ -66,6 +66,7 @@ nunit-*.xml
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/tasks.json
+!.vscode/settings.json
 .aws-sam
 TTLeaguePlayersApp.FrontEnd/playwright-report
 TTLeaguePlayersApp.FrontEnd/test-results
@@ -84,3 +85,6 @@ original-logo-save.png
 .venv
 .codex
 .codex_stop_messages.jsonl
+/node_modules/
+/.stryker-tmp/
+/reports/

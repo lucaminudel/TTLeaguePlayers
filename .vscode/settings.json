@@ -1,0 +1,6 @@
+{
+  "strykerMutator.server.path": "TTLeaguePlayersApp.FrontEnd/node_modules/.bin/stryker",
+  "strykerMutator.server.workingDirectory": ".",
+  "strykerMutator.server.configFile": "stryker.frontend.config.mjs",
+  "strykerMutator.watchPattern": "TTLeaguePlayersApp.FrontEnd/src/**/*.{ts,tsx}"
+}
