@@ -169,12 +169,12 @@ export const MainMenu: React.FC = () => {
                             <li className="text-center">
                                 <div className="text-red-600 mb-4" data-testid="main-menu-user-info">
                                     <div className="text-lg" data-testid="main-menu-welcome-message">
-                                        Welcome, {welcomeName}
+                                        Welcome, {' ' + welcomeName}
                                     </div>
 
                                     {managedClubs.map((club, index) => (
                                         <div key={`${club.league}-${club.season}-${club.club_name}-${String(index)}`} className="text-base mt-1" data-testid="main-menu-managed-club">
-                                            MANAGER: {club.club_name}, {club.club_location} ({club.league} {club.season})
+                                            MANAGER: {' ' + club.club_name}, {club.club_location} ({club.league} {club.season})
                                             {(firstClub?.manager_name && club.manager_name !== firstClub.manager_name) ? ` (${club.manager_name})` : ''}
                                         </div>
                                     ))}
