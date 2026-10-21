@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
@@ -62,11 +63,14 @@ const buildSecondsOfDay =
 // https://vite.dev/config/
 export default defineConfig({
   root: frontendRoot,
-  plugins: [react({
-    babel: {
-      plugins: [[reactCompilerPlugin, { target: "18" }]],
-    },
-  })],
+  plugins: [
+    tailwindcss(),
+    react({
+      babel: {
+        plugins: [[reactCompilerPlugin, { target: "18" }]],
+      },
+    }),
+  ],
   define: {
     // Expose ENVIRONMENT and config to the browser at build time.
     'import.meta.env.ENVIRONMENT': JSON.stringify(environment),

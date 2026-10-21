@@ -88,3 +88,4 @@ original-logo-save.png
 /node_modules/
 /.stryker-tmp/
 /reports/
+test-results
