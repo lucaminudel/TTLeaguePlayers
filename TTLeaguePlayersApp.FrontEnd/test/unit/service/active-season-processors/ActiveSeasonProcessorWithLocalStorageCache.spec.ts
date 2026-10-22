@@ -27,7 +27,6 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         ratings_end_date: 0,
         custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
-        division_tables: [{ 'Div1': 'http://test/tables' }],
         division_fixtures: [{ 'Div1': 'http://test/fixtures' }],
         division_players: [{ 'Div1': 'http://test/players' }],
         club_teams: []

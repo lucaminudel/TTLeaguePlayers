@@ -28,16 +28,6 @@ export class CLTTLActiveSeason2026Processor implements ActiveSeasonProcessor {
             .filter(f => f.homeTeam === this.team || f.awayTeam === this.team)
             .sort((a, b) => a.startDateTime.getTime() - b.startDateTime.getTime());
     }
-
-    /**
-     * Fetches and parses the teams list for the current division from the CLTTL league division's table page 
-     * Currently, this method is not used in the application, but it can be useful for future features.
-     */
-    public async getTeams(): Promise<string[]> {
-        const html = await this.fetcher.getTeams(this.division);
-        return this.parser.getTeams(html);
-    }
-
     /**
      * Fetches the players for the current team.
      * Orchestrates multiple calls: gets team IDs first, finds current team ID, then fetches players.

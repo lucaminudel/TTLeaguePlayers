@@ -59,7 +59,6 @@ describe('MyClubTeams', () => {
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: Math.floor(new Date('2025-08-01T00:00:00Z').getTime() / 1000),
         ratings_end_date: Math.floor(new Date('2026-05-01T00:00:00Z').getTime() / 1000),
-        division_tables: [],
         division_fixtures: [],
         division_players: [],
         club_teams: [{ 'Walworth Table Tennis Club': 'http://test/walworth' }],

@@ -12,9 +12,6 @@ const DATA_SOURCE: ActiveSeasonDataSource = {
     "custom_club_processor": "CLTTLManagedClub2025Processor",
     "registrations_start_date": 1788220800,
     "ratings_end_date": 1814400000,
-    "division_tables": [
-        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202026-27&divisionName=Division%20Four" }
-    ],
     "division_fixtures": [
         { "Division 4": "https://www.tabletennis365.com/CentralLondon/Fixtures/calendar.ics?d=9761" }
     ],
@@ -34,12 +31,6 @@ test.describe('CLTTLActiveSeason2026PagesFetcher E2E', () => {
 
     test.beforeAll(() => {
         fetcher = new CLTTLActiveSeason2026PagesFetcher(DATA_SOURCE);
-    });
-
-    test('getTeams should return HTML containing the league table', async () => {
-        test.slow(); // Fetching real pages can be slow
-        const html = await fetcher.getTeams('Division 4');
-        expect(html).toContain('tt-league-table');
     });
 
     test('getTeamFixtures should return a non-empty fixtures calendar', async () => {

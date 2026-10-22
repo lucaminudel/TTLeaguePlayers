@@ -23,7 +23,6 @@ describe('clubUtils.selectActiveManagedClubs', () => {
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: epochOf('2025-08-01T00:00:00Z'),
         ratings_end_date: epochOf('2026-05-01T00:00:00Z'),
-        division_tables: [],
         division_fixtures: [],
         division_players: [],
         club_teams: [],

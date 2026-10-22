@@ -19,7 +19,6 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
-        division_tables: [{ 'Division 1': 'http://tables/div1' }],
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1' }],
         division_players: [{ 'Division 1': 'http://players/div1' }],
         club_teams: [

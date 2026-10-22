@@ -31,7 +31,6 @@ export interface ActiveSeasonDataSource {
     custom_club_processor: string;
     registrations_start_date: number;
     ratings_end_date: number;
-    division_tables: Record<string, string>[];
     division_fixtures: Record<string, string>[];
     division_players: Record<string, string>[];
     club_teams: Record<string, string>[];

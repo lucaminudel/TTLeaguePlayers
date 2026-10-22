@@ -19,7 +19,6 @@ describe('Environment Config (build-time)', () => {
           custom_processor: "Processor",
           registrations_start_date: 1234567890,
           ratings_end_date: 1234567890,
-          division_tables: [{ "Div1": "url1" }],
           division_fixtures: [{ "Div1": "url2" }],
           all_players: [{ "Div1": "url3" }]
         }

@@ -30,37 +30,6 @@ afterEach(() => {
 });
 
 describe('CLTTLActiveSeason2026PagesParser', () => {
-    describe('getTeams', () => {
-        it('should extract team names from division table html', () => {
-            const parser = new CLTTLActiveSeason2026PagesParser();
-            const teams = parser.getTeams(readSnapshot('division_table.html'));
-
-            // Table order (league position), not alphabetical.
-            const expectedTeams = [
-                'Flick TTC 2',
-                'Fusion 5',
-                'Fusion 6 Jr',
-                'Highbury 2',
-                'Walworth Tigers',
-                'Irving 4',
-                'Morpeth 9',
-                'Highbury 3',
-                'Morpeth 10',
-                'St Katharines Trust 6',
-                'Apex 4'
-            ];
-
-            expect(teams).toHaveLength(11);
-            expect(teams).toEqual(expectedTeams);
-        });
-
-        it('should return empty array if the league table is missing', () => {
-            const parser = new CLTTLActiveSeason2026PagesParser();
-            const teams = parser.getTeams('<html><body><div>No Tables here</div></body></html>');
-            expect(teams).toEqual([]);
-        });
-    });
-
     describe('getTeamFixtures', () => {
         it('normalizes CRLF, unfolds lines and parses parameterized four-digit dates', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
@@ -357,6 +326,21 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(JSON.stringify(consoleError.mock.calls)).toContain(uid);
         });
 
+        it('includes the unusable-event reason in the observability diagnostic', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'invalid-summary-reason@example.test',
+                'DTSTART;TZID=Europe/London:20261010T184500',
+                'SUMMARY:Morpeth 10 (Division 4)'
+            )));
+
+            expect(consoleError).toHaveBeenCalledWith(
+                'Skipping unusable CLTTL fixture event "invalid-summary-reason@example.test": invalid SUMMARY.'
+            );
+        });
+
         it('does not return a fixture when exactly one team is present in SUMMARY', () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
             const parser = new CLTTLActiveSeason2026PagesParser();
@@ -457,6 +441,23 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(parser.getTeamPlayers(JSON.stringify(['Luca Minudel', '']))).toEqual(['Luca Minudel']);
             expect(parser.getTeamPlayers('<html><body></body></html>')).toEqual([]);
         });
+
+        it('keeps only non-empty player names and trims each supported payload shape', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const players = parser.getTeamPlayers(JSON.stringify({
+                teamPlayers: [
+                    '  Luca Minudel  ',
+                    '   ',
+                    null,
+                    42,
+                    { playerName: '  Ada Lovelace  ' },
+                    { name: '   ', fullName: '  Grace Hopper  ' },
+                    { name: '  Michele de Giovanni  ' },
+                ],
+            }));
+
+            expect(players).toEqual(['Luca Minudel', 'Ada Lovelace', 'Grace Hopper', 'Michele de Giovanni']);
+        });
     });
 
     describe('getTeamIds', () => {
@@ -492,6 +493,20 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             const teamIds = parser.getTeamIds('<html><body></body></html>');
             expect(teamIds).toEqual([]);
+        });
+
+        it('ignores options whose value is not entirely numeric', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const teamIds = parser.getTeamIds(`
+                <select id="teamSelect">
+                    <option value="73142">Morpeth 10</option>
+                    <option value="73142abc">Malformed suffix</option>
+                    <option value="abc73142">Malformed prefix</option>
+                    <option value="">All Teams</option>
+                </select>
+            `);
+
+            expect(teamIds).toEqual([{ team: 'Morpeth 10', id: 73142 }]);
         });
     });
 

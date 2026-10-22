@@ -10,7 +10,6 @@ describe('CLTTLActiveSeason2026Processor Integration', () => {
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
-        division_tables: [{ 'Division 1': 'http://tables/div1' }],
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1-calendar' }],
         division_players: [{ 'Division 1': 'http://players/div1' }],
         club_teams: [],
@@ -26,18 +25,6 @@ describe('CLTTLActiveSeason2026Processor Integration', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
         vi.clearAllMocks();
-    });
-
-    it('should successfully get teams', async () => {
-        const mockHtml = '<table class="table tt-league-table"><tbody><tr><td class="tt-table-col-team"><a class="tt-team-link">Morpeth 10</a></td></tr></tbody></table>';
-        vi.mocked(fetch).mockResolvedValue({
-            ok: true,
-            text: () => Promise.resolve(mockHtml),
-        } as Response);
-
-        const teams = await processor.getTeams();
-        expect(teams).toEqual(['Morpeth 10']);
-        expect(fetch).toHaveBeenCalledWith('http://tables/div1');
     });
 
     it('should successfully get fixtures, filtered by team and sorted by date', async () => {
@@ -111,7 +98,7 @@ describe('CLTTLActiveSeason2026Processor Integration', () => {
         } as Response);
 
         // Fetcher retries 3 times (1 initial + 2 retries)
-        await expect(processor.getTeams()).rejects.toThrow('The page or website is not available after 3 attempts');
+        await expect(processor.getTeamFixtures()).rejects.toThrow('The page or website is not available after 3 attempts');
         expect(fetch).toHaveBeenCalledTimes(3);
     });
 });

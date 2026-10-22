@@ -74,31 +74,6 @@ function teamsFromSummary(value: string | undefined): { homeTeam: string; awayTe
 }
 
 export class CLTTLActiveSeason2026PagesParser {
-    /**
-     * Extracts the list of team names by parsing the division table's HTML page, in table order.
-     * @param tableHtmlPage The HTML content of the division table page.
-     * @returns An array of team names.
-     */
-    public getTeams(tableHtmlPage: string): string[] {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(tableHtmlPage, 'text/html');
-        const table = doc.querySelector('table.tt-league-table');
-
-        if (!table) {
-            return [];
-        }
-
-        const teams: string[] = [];
-        table.querySelectorAll('tbody tr td.tt-table-col-team a.tt-team-link').forEach((anchor) => {
-            const name = anchor.textContent.trim();
-            if (name) {
-                teams.push(name);
-            }
-        });
-
-        return teams;
-    }
-
     public getTeamFixtures(fixturesCalendar: string): Fixture[] {
         const events = this.parseCompleteCalendarEvents(fixturesCalendar);
         const fixtures: Fixture[] = [];

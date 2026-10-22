@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('External contracts live testing', () => {
     test('returns the current CLTTL season with browser-readable fixture, team and player contracts', async ({ page }) => {
+        test.slow();
         await page.goto('/#/external-contracts-live');
 
         await expect(page.getByTestId('external-contract-status')).toHaveText('ready');

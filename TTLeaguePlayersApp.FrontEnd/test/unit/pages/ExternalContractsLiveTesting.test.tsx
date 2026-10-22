@@ -16,7 +16,6 @@ function dataSource(overrides: Partial<ActiveSeasonDataSource> = {}): ActiveSeas
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 1788220800,
         ratings_end_date: 1814400000,
-        division_tables: [],
         division_fixtures: [{ 'Division 4': 'https://fixtures.example.test/calendar.ics?d=9761' }],
         division_players: [{ 'Division 4': 'https://players.example.test/Eligibility' }],
         club_teams: [],

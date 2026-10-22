@@ -11,7 +11,6 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
-        division_tables: [{ 'Division 1': 'http://tables/div1' }],
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1' }],
         division_players: [{ 'Division 1': 'http://players/div1' }],
         club_teams: [{ 'Morpeth Table Tennis Club': 'http://clubs/morpeth' }],
@@ -34,27 +33,27 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
     it('should successfully fetch content on the first try', async () => {
         const mockResponse = {
             ok: true,
-            text: () => Promise.resolve('<html>Success</html>'),
+            text: () => Promise.resolve('BEGIN:VCALENDAR\nEND:VCALENDAR'),
         };
         vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
 
-        const result = await fetcher.getTeams('Division 1');
+        const result = await fetcher.getTeamFixtures('Division 1');
 
-        expect(result).toBe('<html>Success</html>');
+        expect(result).toBe('BEGIN:VCALENDAR\nEND:VCALENDAR');
         expect(fetch).toHaveBeenCalledTimes(1);
-        expect(fetch).toHaveBeenCalledWith('http://tables/div1');
+        expect(fetch).toHaveBeenCalledWith('http://fixtures/div1');
     });
 
     it('should retry twice and succeed on the third try', async () => {
         const failResponse = { ok: false, status: 500 };
-        const successResponse = { ok: true, text: () => Promise.resolve('<html>Success</html>') };
+        const successResponse = { ok: true, text: () => Promise.resolve('BEGIN:VCALENDAR\nEND:VCALENDAR') };
 
         vi.mocked(fetch)
             .mockResolvedValueOnce(failResponse as Response)
             .mockResolvedValueOnce(failResponse as Response)
             .mockResolvedValueOnce(successResponse as Response);
 
-        const fetchPromise = fetcher.getTeams('Division 1');
+        const fetchPromise = fetcher.getTeamFixtures('Division 1');
 
         // Process microtasks and advance timers
         await vi.advanceTimersByTimeAsync(2000); // After 1st try failure
@@ -62,24 +61,24 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
 
         const result = await fetchPromise;
 
-        expect(result).toBe('<html>Success</html>');
+        expect(result).toBe('BEGIN:VCALENDAR\nEND:VCALENDAR');
         expect(fetch).toHaveBeenCalledTimes(3);
     });
 
     it('should retry if content contains "Service unavailable"', async () => {
         const unavailableResponse = { ok: true, text: () => Promise.resolve('Service unavailable') };
-        const successResponse = { ok: true, text: () => Promise.resolve('<html>Success</html>') };
+        const successResponse = { ok: true, text: () => Promise.resolve('BEGIN:VCALENDAR\nEND:VCALENDAR') };
 
         vi.mocked(fetch)
             .mockResolvedValueOnce(unavailableResponse as Response)
             .mockResolvedValueOnce(successResponse as Response);
 
-        const fetchPromise = fetcher.getTeams('Division 1');
+        const fetchPromise = fetcher.getTeamFixtures('Division 1');
 
         await vi.advanceTimersByTimeAsync(2000);
 
         const result = await fetchPromise;
-        expect(result).toBe('<html>Success</html>');
+        expect(result).toBe('BEGIN:VCALENDAR\nEND:VCALENDAR');
         expect(fetch).toHaveBeenCalledTimes(2);
     });
 
@@ -87,7 +86,7 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
         const failResponse = { ok: false, status: 500 };
         vi.mocked(fetch).mockResolvedValue(failResponse as Response);
 
-        const fetchPromise = fetcher.getTeams('Division 1');
+        const fetchPromise = fetcher.getTeamFixtures('Division 1');
 
         // Assertion expectation
         const assertionPromise = expect(fetchPromise).rejects.toThrow(PageFetcherError);
@@ -102,7 +101,7 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
     });
 
     it('should throw error if division is not found', async () => {
-        await expect(fetcher.getTeams('Unknown Division')).rejects.toThrow('Division "Unknown Division" not found');
+        await expect(fetcher.getTeamFixtures('Unknown Division')).rejects.toThrow('Division "Unknown Division" not found');
     });
 
     it('should correctly construct the team checker API URL for getTeamPlayers', async () => {
@@ -183,7 +182,7 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
     });
 
     it('should still name the division when a division url is missing', async () => {
-        await expect(fetcher.getTeams('Division 9')).rejects.toThrow(
+        await expect(fetcher.getTeamFixtures('Division 9')).rejects.toThrow(
             'Division "Division 9" not found in data source.'
         );
     });
@@ -205,18 +204,40 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
     describe('External contracts unit testing', () => {
         describe('go.x2u.in proxy', () => {
             it('should preserve a plain response', async () => {
-                const response = new Response('<html>Plain response</html>');
+                const response = new Response('BEGIN:VCALENDAR\nEND:VCALENDAR');
                 vi.mocked(fetch).mockResolvedValue(response);
 
-                await expect(fetcher.getTeams('Division 1')).resolves.toBe('<html>Plain response</html>');
+                await expect(fetcher.getTeamFixtures('Division 1')).resolves.toBe('BEGIN:VCALENDAR\nEND:VCALENDAR');
+            });
+
+            it.each([
+                ['an incomplete Zstandard signature', Uint8Array.from([0x28, 0xb5, 0x2f, 0x00, 0x41])],
+                ['an incomplete gzip signature', Uint8Array.from([0x1f, 0x00, 0x41])],
+            ])('preserves plain bytes with %s', async (_description, bytes) => {
+                vi.mocked(fetch).mockResolvedValue(new Response(bytes));
+
+                await expect(fetcher.getTeamFixtures('Division 1')).resolves.toBe(new TextDecoder().decode(bytes));
             });
 
             it('should decompress a gzip response', async () => {
                 vi.useRealTimers();
-                const expected = '<html>Gzip response</html>';
+                const expected = 'BEGIN:VCALENDAR\nEND:VCALENDAR';
                 vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(gzipSync(expected))));
 
-                await expect(fetcher.getTeams('Division 1')).resolves.toBe(expected);
+                await expect(fetcher.getTeamFixtures('Division 1')).resolves.toBe(expected);
+            });
+
+            it('retries gzip data when the runtime cannot decompress it', async () => {
+                vi.stubGlobal('DecompressionStream', undefined);
+                vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(gzipSync('calendar'))));
+
+                const fetchPromise = fetcher.getTeamFixtures('Division 1');
+                const assertionPromise = expect(fetchPromise).rejects.toThrow('runtime cannot decompress gzip');
+
+                await vi.runAllTimersAsync();
+                await assertionPromise;
+
+                expect(fetch).toHaveBeenCalledTimes(3);
             });
 
             it('should decompress a Zstandard response even when the proxy labels it as gzip', async () => {
@@ -229,13 +250,13 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
                 ]);
                 vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(zstdRawFrame, { headers: { 'Content-Encoding': 'gzip' } })));
 
-                await expect(fetcher.getTeams('Division 1')).resolves.toBe(expected);
+                await expect(fetcher.getTeamFixtures('Division 1')).resolves.toBe(expected);
             });
 
             it('should retry and report an invalid compressed response', async () => {
                 vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(Uint8Array.from([0x28, 0xb5, 0x2f, 0xfd]))));
 
-                const fetchPromise = fetcher.getTeams('Division 1');
+                const fetchPromise = fetcher.getTeamFixtures('Division 1');
                 const assertionPromise = expect(fetchPromise).rejects.toThrow(PageFetcherError);
 
                 await vi.runAllTimersAsync();
