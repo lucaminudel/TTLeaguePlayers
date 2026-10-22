@@ -182,8 +182,9 @@ describe('ActiveSeasonCard Error Handling', () => {
             'hover:opacity-80'
         );
         const nextMatch = screen.getByTestId('active-season-next-match');
-        expect(nextMatch).toHaveTextContent('Away game Away Venue');
-        expect(nextMatch).not.toHaveTextContent('Away game, Away Venue,');
+        expect(nextMatch).toHaveTextContent('Away game, 2025-01-15T13:00:00.000Z');
+        expect(venueLink.previousElementSibling?.tagName).toBe('BR');
+        expect(venueLink.nextElementSibling?.tagName).toBe('BR');
     });
 
     it('should keep a previous away venue as plain text even when a Google Maps URL is available', async () => {

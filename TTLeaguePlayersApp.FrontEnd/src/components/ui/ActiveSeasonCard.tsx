@@ -155,14 +155,19 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                 className="inline-block rounded-md bg-main-text px-1 py-0 text-primary-base hover:opacity-80"
                 data-testid="fixture-venue-link"
             >
-                {fixture.venue}
+                {fixture.venue}: Directions
             </a>
         ) : fixture.venue;
 
         return (
             <p className="text-base sm:text-lg" data-testid={testId}>
-                {isHome ? 'Home game' : <>Away game{hasClickableAwayVenue ? ' ' : ', '}{awayVenue}</>}
-                {hasClickableAwayVenue ? ' ' : ', '}{dateStr}<br />
+                {isHome ? (
+                    <>Home game, {dateStr}<br /></>
+                ) : hasClickableAwayVenue ? (
+                    <>Away game, {dateStr}<br />{awayVenue}<br /></>
+                ) : (
+                    <>Away game, {awayVenue}, {dateStr}<br /></>
+                )}
                 Vs {opponent}
             </p>
         );

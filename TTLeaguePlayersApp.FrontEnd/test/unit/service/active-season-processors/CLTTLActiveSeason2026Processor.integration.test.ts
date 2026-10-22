@@ -5,13 +5,13 @@ import type { ActiveSeasonDataSource } from '../../../../src/config/environment'
 describe('CLTTLActiveSeason2026Processor Integration', () => {
     const mockDataSource: ActiveSeasonDataSource = {
         league: 'CLTTL',
-        season: '2025-2026',
+        season: '2026-2027',
         custom_processor: 'CLTTLActiveSeason2026Processor',
         custom_club_processor: 'CLTTLManagedClub2025Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
         division_tables: [{ 'Division 1': 'http://tables/div1' }],
-        division_fixtures: [{ 'Division 1': 'http://fixtures/div1' }],
+        division_fixtures: [{ 'Division 1': 'http://fixtures/div1-calendar' }],
         division_players: [{ 'Division 1': 'http://players/div1' }],
         club_teams: [],
     };
@@ -41,41 +41,33 @@ describe('CLTTLActiveSeason2026Processor Integration', () => {
     });
 
     it('should successfully get fixtures, filtered by team and sorted by date', async () => {
-        // The Simple view (&vm=2) of the division fixtures page: date | time | home | away | venue
-        const row = (date: string, time: string, home: string, away: string) => `
-            <tr class="">
-                <td class="tt-fixture-date">${date}</td>
-                <td class="tt-fixture-time">${time}</td>
-                <td><a href="/x" class="tt-team-link">${home}</a></td>
-                <td><a href="/x" class="tt-team-link">${away}</a></td>
-                <td class="tt-fixture-venue">Somewhere</td>
-            </tr>`;
-        const mockHtml = `
-            <input type="hidden" name="leagueName" value="Winter 2025-26" />
-            <table class="table table-sm tt-fixture-table"><tbody>
-                <!-- Fixture 1: Later date, matches team -->
-                ${row('Sun 05 Oct', '19:30', 'Fusion 5', 'Morpeth 10')}
-                <!-- Fixture 2: Earlier date, matches team -->
-                ${row('Mon 29 Sep', '19:30', 'Morpeth 10', 'Fusion 6 Jr')}
-                <!-- Fixture 3: Doesn't match team -->
-                ${row('Wed 01 Oct', '19:00', 'Apex 4', 'Irving 4')}
-            </tbody></table>`;
+        const fixtureEvent = (dateTime: string, summary: string) => [
+            'BEGIN:VEVENT',
+            `DTSTART;TZID=Europe/London:${dateTime}`,
+            `SUMMARY:${summary} (Division 1)`,
+            'LOCATION:Somewhere, London',
+            'END:VEVENT'
+        ].join('\n');
+        const mockCalendar = [
+            'BEGIN:VCALENDAR',
+            fixtureEvent('20261005T193000', 'Fusion 5 v Morpeth 10'),
+            fixtureEvent('20260929T193000', 'Morpeth 10 v Fusion 6 Jr'),
+            fixtureEvent('20261001T190000', 'Apex 4 v Irving 4'),
+            'END:VCALENDAR'
+        ].join('\n');
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
-            text: () => Promise.resolve(mockHtml),
+            text: () => Promise.resolve(mockCalendar),
         } as Response);
 
         const fixtures = await processor.getTeamFixtures();
 
-        // Should only have 2 fixtures (Morpeth 10)
         expect(fixtures.length).toBe(2);
-
-        // Should be sorted by date: Sep 29 first, then Oct 05
-        expect(fixtures[0].startDateTime.toISOString()).toContain('2025-09-29');
+        expect(fixtures[0].startDateTime.toISOString()).toContain('2026-09-29');
         expect(fixtures[0].homeTeam).toBe('Morpeth 10');
-
-        expect(fixtures[1].startDateTime.toISOString()).toContain('2025-10-05');
+        expect(fixtures[1].startDateTime.toISOString()).toContain('2026-10-05');
         expect(fixtures[1].awayTeam).toBe('Morpeth 10');
+        expect(fetch).toHaveBeenCalledWith('http://fixtures/div1-calendar');
     });
 
     it('should successfully get team players', async () => {

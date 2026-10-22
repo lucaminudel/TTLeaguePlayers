@@ -21,8 +21,8 @@ export class CLTTLActiveSeason2026Processor implements ActiveSeasonProcessor {
      * Fetches and parses the fixtures for the current division.
      */
     public async getTeamFixtures(): Promise<Fixture[]> {
-        const html = await this.fetcher.getTeamFixtures(this.division);
-        const allFixtures = this.parser.getTeamFixtures(html);
+        const calendar = await this.fetcher.getTeamFixtures(this.division);
+        const allFixtures = this.parser.getTeamFixtures(calendar);
 
         return allFixtures
             .filter(f => f.homeTeam === this.team || f.awayTeam === this.team)

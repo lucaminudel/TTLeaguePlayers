@@ -2,50 +2,31 @@ import { test, expect } from '@playwright/test';
 import { CLTTLActiveSeason2026PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
-// A copy of the CLTTL 2025-2026 entry of config/*.env.json: the pages the app really fetches. This
-// spec runs in Node, which has no CORS, so the fetcher goes to the league site directly (no proxy).
-// The parser is not exercised here - Node has no DOMParser - only that each page still carries the
-// anchor the parser is written against. The parsing itself is covered by the Vitest snapshots.
+// A copy of the active CLTTL 2026-2027 source. This spec runs in Node, which has no CORS, so the
+// fetcher goes to the league site directly. Calendar parsing stays in Vitest because Node has no
+// DOMParser; this spec verifies the raw upstream contracts only.
 const DATA_SOURCE: ActiveSeasonDataSource = {
     "league": "CLTTL",
-    "season": "2025-2026",
+    "season": "2026-2027",
     "custom_processor": "CLTTLActiveSeason2026Processor",
     "custom_club_processor": "CLTTLManagedClub2025Processor",
-    "registrations_start_date": 1755648000,
-    "ratings_end_date": 1776124800,
+    "registrations_start_date": 1788220800,
+    "ratings_end_date": 1814400000,
     "division_tables": [
-        { "Division 1": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20One" },
-        { "Division 2": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20Two" },
-        { "Division 3": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20Three" },
-        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20Four" },
-        { "Division 5": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20Five" },
-        { "Division 6": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20Six" },
-        { "Division 7": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202025-26&divisionName=Division%20Seven" }
+        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Tables?leagueName=Winter%202026-27&divisionName=Division%20Four" }
     ],
     "division_fixtures": [
-        { "Division 1": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20One&vm=2" },
-        { "Division 2": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Two&vm=2" },
-        { "Division 3": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Three&vm=2" },
-        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Four&vm=2" },
-        { "Division 5": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Five&vm=2" },
-        { "Division 6": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Six&vm=2" },
-        { "Division 7": "https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter%202025-26&divisionName=Division%20Seven&vm=2" }
+        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Fixtures/calendar.ics?d=9761" }
     ],
     "division_players": [
-        { "Division 1": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
-        { "Division 2": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
-        { "Division 3": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
-        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
-        { "Division 5": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
-        { "Division 6": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" },
-        { "Division 7": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" }
+        { "Division 4": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility" }
     ],
     "club_teams": [
         { "Morpeth Table Tennis Club": "https://www.tabletennis365.com/CentralLondon/Clubs/Morpeth" }
     ]
 };
 
-// Morpeth 10's team id in Winter 2025-26, as listed by the team checker page's select#teamSelect.
+// Morpeth 10's team id in Winter 2026-27, as listed by the team checker page's select#teamSelect.
 const MORPETH_10_TEAM_ID = 73142;
 
 test.describe('CLTTLActiveSeason2026PagesFetcher E2E', () => {
@@ -61,10 +42,12 @@ test.describe('CLTTLActiveSeason2026PagesFetcher E2E', () => {
         expect(html).toContain('tt-league-table');
     });
 
-    test('getTeamFixtures should return HTML containing the fixtures table', async () => {
+    test('getTeamFixtures should return a non-empty fixtures calendar', async () => {
         test.slow();
-        const html = await fetcher.getTeamFixtures('Division 4');
-        expect(html).toContain('tt-fixture-table');
+        const calendar = await fetcher.getTeamFixtures('Division 4');
+        expect(calendar).toContain('BEGIN:VCALENDAR');
+        expect(calendar).toContain('BEGIN:VEVENT');
+        expect(calendar).toContain('DTSTART');
     });
 
     test('getTeamIds should return HTML containing the team checker selector', async () => {

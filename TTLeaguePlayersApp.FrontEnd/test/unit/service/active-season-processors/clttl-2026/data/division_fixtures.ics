@@ -1,0 +1,21 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//TableTennis365//Central London//EN
+BEGIN:VEVENT
+UID:bst-folded@example.test
+DTSTART;TZID=Europe/London:20261009T184500
+SUMMARY:Morpeth 11 Jr v Morpeth 10 (Division 4)
+LOCATION:Morpeth Sch
+ ool\, Sports Hall\; entrance\nFirst floor\\East
+GEO:51.5311;-0.0821
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:gmt-folded@example.test
+DTSTART;VALUE=DATE-TIME;TZID=Europe/London:20261203T184500
+SUMMARY:Morpeth 9 v Highbury 
+ 3 (Division 4)
+LOCATION:Bridge Academy
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR

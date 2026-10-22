@@ -1,12 +1,33 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { CLTTLActiveSeason2026PagesParser } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesParser';
 import fs from 'fs';
 import path from 'path';
 
-// The html files under data/ are sanitized captures of the league site's relevant table markup.
 function readSnapshot(name: string): string {
     return fs.readFileSync(path.resolve(__dirname, 'data', name), 'utf-8');
 }
+
+function calendarWithEvents(...events: string[]): string {
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', ...events, 'END:VCALENDAR'].join('\n');
+}
+
+function fixtureEvent(uid: string, ...properties: string[]): string {
+    return ['BEGIN:VEVENT', `UID:${uid}`, ...properties, 'END:VEVENT'].join('\n');
+}
+
+const validNeighbourEvent = fixtureEvent(
+    'valid-neighbour@example.test',
+    'DTSTART;TZID=Europe/London:20261009T184500',
+    'SUMMARY:Morpeth 11 Jr v Morpeth 10 (Division 4)',
+    'LOCATION:Morpeth School',
+    'GEO:51.5311;-0.0821',
+    'STATUS:CONFIRMED'
+);
+
+afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+});
 
 describe('CLTTLActiveSeason2026PagesParser', () => {
     describe('getTeams', () => {
@@ -41,123 +62,378 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
     });
 
     describe('getTeamFixtures', () => {
-        it('should extract fixtures from the division fixtures html (Simple view)', () => {
+        it('normalizes CRLF, unfolds lines and parses parameterized four-digit dates', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
-            const fixtures = parser.getTeamFixtures(readSnapshot('division_fixtures.html'));
+            const calendar = readSnapshot('division_fixtures.ics').replaceAll('\n', '\r\n');
 
-            expect(fixtures.length).toBe(8);
-
-            // First fixture: Fusion 5 v's Morpeth 10. The page shows "Mon 29 Sep" with no year: the
-            // year comes from the page's season ("Winter 2025-26"), and the time is kept as the
-            // page's wall-clock reading labelled UTC, exactly as the kudos stored so far were keyed.
-            const firstFixture = fixtures[0];
-            expect(firstFixture).toEqual({
-                startDateTime: new Date('2025-09-29T19:30:00Z'),
-                venue: 'Fusion',
-                googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=51.4848%2C-0.0512',
-                homeTeam: 'Fusion 5',
-                awayTeam: 'Morpeth 10'
-            });
-
-            // A fixture from Week 2 (index 5): Highbury 3 v's Fusion 5
-            const week2Fixture = fixtures[5];
-            expect(week2Fixture.startDateTime).toEqual(new Date('2025-10-07T19:15:00Z'));
-            expect(week2Fixture.venue).toBe('Bridge Academy');
-            expect(week2Fixture.googleMapsUrl).toBe('https://www.google.com/maps/dir/?api=1&destination=51.53566%2C-0.07264');
-            expect(week2Fixture.homeTeam).toBe('Highbury 3');
-            expect(week2Fixture.awayTeam).toBe('Fusion 5');
-
-            // Second to last fixture: Fusion 6 Jr v's Highbury 2 — March, so the year has rolled over
-            const secondToLastFixture = fixtures[fixtures.length - 2];
-            expect(secondToLastFixture.startDateTime).toEqual(new Date('2026-03-27T19:20:00Z'));
-            expect(secondToLastFixture.venue).toBe('Fusion');
-            expect(secondToLastFixture.homeTeam).toBe('Fusion 6 Jr');
-            expect(secondToLastFixture.awayTeam).toBe('Highbury 2');
-
-            // Last fixture: Highbury 2 v's Flick TTC 2. Its date cell also carries the "R"
-            // (rearranged) badge after the date; only the "DD Mon" part is read.
-            const lastFixture = fixtures[fixtures.length - 1];
-            expect(lastFixture.startDateTime).toEqual(new Date('2026-03-31T19:15:00Z'));
-            expect(lastFixture.venue).toBe('Bridge Academy');
-            expect(lastFixture.homeTeam).toBe('Highbury 2');
-            expect(lastFixture.awayTeam).toBe('Flick TTC 2');
-        });
-
-        it('should expose exactly the five Fixture fields', () => {
-            const parser = new CLTTLActiveSeason2026PagesParser();
-            const fixtures = parser.getTeamFixtures(readSnapshot('division_fixtures.html'));
-
-            // The Simple view carries no players, score or completion state, and nothing in the
-            // app reads them: the shape is deliberately date, venue, Google Maps URL, home team, away team.
-            for (const fixture of fixtures) {
-                expect(Object.keys(fixture).sort()).toEqual(['awayTeam', 'googleMapsUrl', 'homeTeam', 'startDateTime', 'venue']);
-            }
-        });
-
-        it('should parse only the Google directions URL and ignore the Apple URL', () => {
-            const parser = new CLTTLActiveSeason2026PagesParser();
-            const fixtures = parser.getTeamFixtures(`<html><body>
-                <input type="hidden" name="leagueName" value="Winter 2027-28" />
-                <table class="tt-fixture-table"><tbody><tr>
-                    <td class="tt-fixture-date">Mon 03 Aug</td><td class="tt-fixture-time">18:45</td>
-                    <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td>
-                    <td class="tt-fixture-venue">
-                        <a class="tt-venue-link">Nested Venue</a>
-                        <a class="tt-directions-link" href="https://www.google.com/maps/dir/?api=1&amp;destination=1%2C2" data-apple-href="https://maps.apple.com/?daddr=1%2C2">Directions</a>
-                    </td>
-                </tr></tbody></table>
-            </body></html>`);
-
-            expect(fixtures[0].venue).toBe('Nested Venue');
-            expect(fixtures[0].googleMapsUrl).toBe('https://www.google.com/maps/dir/?api=1&destination=1%2C2');
-            expect(fixtures[0].googleMapsUrl).not.toContain('maps.apple.com');
-        });
-
-        it('should use plain venue text and null when no Google directions link exists', () => {
-            const parser = new CLTTLActiveSeason2026PagesParser();
-            const fixtures = parser.getTeamFixtures(`<html><body>
-                <input type="hidden" name="leagueName" value="Winter 2027-28" />
-                <table class="tt-fixture-table"><tbody><tr>
-                    <td class="tt-fixture-date">Mon 03 Aug</td><td class="tt-fixture-time">18:45</td>
-                    <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td>
-                    <td class="tt-fixture-venue">Plain Venue</td>
-                </tr></tbody></table>
-            </body></html>`);
-
-            expect(fixtures[0].venue).toBe('Plain Venue');
-            expect(fixtures[0].googleMapsUrl).toBeNull();
-        });
-
-        it('should infer the year from the season on the page: Aug-Dec first year, Jan-Jul second', () => {
-            const html = `<html><body>
-                <input type="hidden" name="leagueName" value="Winter 2027-28" />
-                <table class="table table-sm tt-fixture-table"><tbody>
-                    <tr class=""><td class="tt-fixture-date">Mon 03 Aug</td><td class="tt-fixture-time">18:45</td>
-                        <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td><td class="tt-fixture-venue">V</td></tr>
-                    <tr class=""><td class="tt-fixture-date">Thu 31 Dec</td><td class="tt-fixture-time">19:00</td>
-                        <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td><td class="tt-fixture-venue">V</td></tr>
-                    <tr class=""><td class="tt-fixture-date">Fri 01 Jan</td><td class="tt-fixture-time">19:15</td>
-                        <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td><td class="tt-fixture-venue">V</td></tr>
-                    <tr class=""><td class="tt-fixture-date">Sat 31 Jul</td><td class="tt-fixture-time">19:30</td>
-                        <td><a class="tt-team-link">A</a></td><td><a class="tt-team-link">B</a></td><td class="tt-fixture-venue">V</td></tr>
-                </tbody></table>
-            </body></html>`;
-
-            const parser = new CLTTLActiveSeason2026PagesParser();
-            const fixtures = parser.getTeamFixtures(html);
-
-            expect(fixtures.map((f) => f.startDateTime)).toEqual([
-                new Date('2027-08-03T18:45:00Z'),
-                new Date('2027-12-31T19:00:00Z'),
-                new Date('2028-01-01T19:15:00Z'),
-                new Date('2028-07-31T19:30:00Z')
+            expect(parser.getTeamFixtures(calendar)).toEqual([
+                {
+                    startDateTime: new Date('2026-10-09T18:45:00.000Z'),
+                    venue: 'Morpeth School',
+                    googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=51.5311%2C-0.0821',
+                    homeTeam: 'Morpeth 11 Jr',
+                    awayTeam: 'Morpeth 10'
+                },
+                {
+                    startDateTime: new Date('2026-12-03T18:45:00.000Z'),
+                    venue: 'Bridge Academy',
+                    googleMapsUrl: null,
+                    homeTeam: 'Morpeth 9',
+                    awayTeam: 'Highbury 3'
+                }
             ]);
         });
 
-        it('should return empty array if the fixtures table is missing', () => {
+        it('preserves London wall-clock values as UTC labels across BST and GMT dates', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
-            const fixtures = parser.getTeamFixtures('<html><body><div>No Fixtures here</div></body></html>');
-            expect(fixtures).toEqual([]);
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(
+                fixtureEvent(
+                    'bst@example.test',
+                    'DTSTART;TZID=Europe/London:20260924T191500',
+                    'SUMMARY:Home One v Away One (Division 4)'
+                ),
+                fixtureEvent(
+                    'gmt@example.test',
+                    'DTSTART;TZID=Europe/London:20261203T191500',
+                    'SUMMARY:Home Two v Away Two (Division 4)'
+                )
+            ));
+
+            expect(fixtures.map(({ startDateTime }) => startDateTime)).toEqual([
+                new Date('2026-09-24T19:15:00.000Z'),
+                new Date('2026-12-03T19:15:00.000Z')
+            ]);
+        });
+
+        it('decodes escaped team text and retains only the venue name before the first comma', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'escaped-text@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Team\\, Alpha v Team\\; Beta (Division 4)',
+                'LOCATION:Hall\\; North\\\\East\\nRoom\\, Annex'
+            )));
+
+            expect(fixtures[0]).toMatchObject({
+                homeTeam: 'Team, Alpha',
+                awayTeam: 'Team; Beta',
+                venue: 'Hall; North\\East\nRoom'
+            });
+        });
+
+        it('retains only the first plain LOCATION segment as the venue label', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'plain-location@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                'LOCATION:Morpeth School, Morpeth Street, London, E2 0PS'
+            )));
+
+            expect(fixture.venue).toBe('Morpeth School');
+        });
+
+        it('matches calendar property names case-insensitively', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'case-insensitive@example.test',
+                'dtstart;tzid=Europe/London:20261009T184500',
+                'summary:Home v Away (Division 4)',
+                'location:Venue',
+                'geo:51.5311;-0.0821'
+            )));
+
+            expect(fixtures[0]).toEqual({
+                startDateTime: new Date('2026-10-09T18:45:00.000Z'),
+                venue: 'Venue',
+                googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=51.5311%2C-0.0821',
+                homeTeam: 'Home',
+                awayTeam: 'Away'
+            });
+        });
+
+        it.each([
+            ['missing', []],
+            ['invalid', ['GEO:not-coordinates']],
+            ['a coordinate prefix', ['GEO:prefix51.5311;-0.0821']],
+            ['a coordinate suffix', ['GEO:51.5311;-0.0821suffix']],
+            ['a trailing decimal point', ['GEO:51.;-0.0821']],
+            ['a non-numeric first decimal coordinate', ['GEO:.not-a-number;-0.0821']],
+            ['a non-numeric second decimal coordinate', ['GEO:51.5311;.not-a-number']],
+            ['a latitude below -90', ['GEO:-90.001;0']],
+            ['a latitude above 90', ['GEO:90.001;0']],
+            ['a longitude below -180', ['GEO:0;-180.001']],
+            ['a longitude above 180', ['GEO:0;180.001']]
+        ])('keeps a fixture with %s GEO and returns a null Maps URL', (_caseName, geoProperty) => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'optional-geo@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                'LOCATION:Venue',
+                ...geoProperty
+            )));
+
+            expect(fixtures).toHaveLength(1);
+            expect(fixtures[0].googleMapsUrl).toBeNull();
+        });
+
+        it.each([
+            ['.12;-.34', 'https://www.google.com/maps/dir/?api=1&destination=.12%2C-.34'],
+            ['1;.12', 'https://www.google.com/maps/dir/?api=1&destination=1%2C.12'],
+        ])('accepts valid abbreviated decimal GEO coordinates %s', (geo, expectedUrl) => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                `abbreviated-geo-${geo}@example.test`,
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                `GEO:${geo}`
+            )));
+
+            expect(fixture.googleMapsUrl).toBe(expectedUrl);
+        });
+
+        it('accepts GEO values on all valid coordinate boundaries', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(
+                fixtureEvent(
+                    'negative-positive-boundary-geo@example.test',
+                    'DTSTART;TZID=Europe/London:20261009T184500',
+                    'SUMMARY:Home v Away (Division 4)',
+                    'GEO:-90;180'
+                ),
+                fixtureEvent(
+                    'positive-negative-boundary-geo@example.test',
+                    'DTSTART;TZID=Europe/London:20261009T184500',
+                    'SUMMARY:Home v Away (Division 4)',
+                    'GEO:90;-180'
+                )
+            ));
+
+            expect(fixtures.map(({ googleMapsUrl }) => googleMapsUrl)).toEqual([
+                'https://www.google.com/maps/dir/?api=1&destination=-90%2C180',
+                'https://www.google.com/maps/dir/?api=1&destination=90%2C-180'
+            ]);
+        });
+
+        it('uses an empty venue when LOCATION is absent', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'missing-location@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                'GEO:51.5311;-0.0821'
+            )));
+
+            expect(fixtures[0].venue).toBe('');
+        });
+
+        it('excludes cancelled, postponed and cancelled-postponed events while keeping a rescheduled event', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(
+                fixtureEvent(
+                    'cancelled@example.test',
+                    'DTSTART;TZID=Europe/London:20261006T191500',
+                    'SUMMARY:Highbury 3 v Apex 4 (Division 4)',
+                    'STATUS:CANCELLED'
+                ),
+                fixtureEvent(
+                    'postponed@example.test',
+                    'DTSTART;TZID=Europe/London:20261007T191500',
+                    'SUMMARY:Postponed: Highbury 3 v Apex 4 (Division 4)',
+                    'STATUS:CONFIRMED'
+                ),
+                fixtureEvent(
+                    'both@example.test',
+                    'DTSTART;TZID=Europe/London:20261008T191500',
+                    'SUMMARY:Postponed: Highbury 3 v Apex 4 (Division 4)',
+                    'STATUS:CANCELLED'
+                ),
+                fixtureEvent(
+                    'rescheduled@example.test',
+                    'DTSTART;TZID=Europe/London:20261029T191500',
+                    'SUMMARY:Highbury 3 v Apex 4 (Division 4)',
+                    'STATUS:CONFIRMED'
+                )
+            ));
+
+            expect(fixtures).toHaveLength(1);
+            expect(fixtures[0]).toMatchObject({
+                startDateTime: new Date('2026-10-29T19:15:00.000Z'),
+                homeTeam: 'Highbury 3',
+                awayTeam: 'Apex 4'
+            });
+        });
+
+        it.each([
+            {
+                name: 'an incomplete event',
+                uid: 'incomplete@example.test',
+                invalidEvent: [
+                    'BEGIN:VEVENT',
+                    'UID:incomplete@example.test',
+                    'DTSTART;TZID=Europe/London:20261010T184500',
+                    'SUMMARY:Home v Away (Division 4)'
+                ].join('\n')
+            },
+            {
+                name: 'an event with no date',
+                uid: 'missing-date@example.test',
+                invalidEvent: fixtureEvent(
+                    'missing-date@example.test',
+                    'SUMMARY:Home v Away (Division 4)'
+                )
+            },
+            {
+                name: 'an event with an invalid date',
+                uid: 'invalid-date@example.test',
+                invalidEvent: fixtureEvent(
+                    'invalid-date@example.test',
+                    'DTSTART;TZID=Europe/London:not-a-date',
+                    'SUMMARY:Home v Away (Division 4)'
+                )
+            },
+            ...[
+                ['an overflowing month', '20261310T184500'],
+                ['an overflowing day', '20261032T184500'],
+                ['an overflowing hour', '20261010T244500'],
+                ['an overflowing minute', '20261010T186000'],
+                ['an overflowing second', '20261010T184560'],
+                ['a date with a prefix', 'prefix20261010T184500'],
+                ['a date with trailing text', '20261010T184500unexpected']
+            ].map(([name, value]) => ({
+                name,
+                uid: `${value}@example.test`,
+                invalidEvent: fixtureEvent(
+                    `${value}@example.test`,
+                    `DTSTART;TZID=Europe/London:${value}`,
+                    'SUMMARY:Home v Away (Division 4)'
+                )
+            })),
+            {
+                name: 'an event without two teams',
+                uid: 'invalid-summary@example.test',
+                invalidEvent: fixtureEvent(
+                    'invalid-summary@example.test',
+                    'DTSTART;TZID=Europe/London:20261010T184500',
+                    'SUMMARY:Morpeth 10 (Division 4)'
+                )
+            },
+            {
+                name: 'an event without a home team',
+                uid: 'missing-home@example.test',
+                invalidEvent: fixtureEvent(
+                    'missing-home@example.test',
+                    'DTSTART;TZID=Europe/London:20261010T184500',
+                    'SUMMARY: v Morpeth 10 (Division 4)'
+                )
+            },
+            {
+                name: 'an event without an away team',
+                uid: 'missing-away@example.test',
+                invalidEvent: fixtureEvent(
+                    'missing-away@example.test',
+                    'DTSTART;TZID=Europe/London:20261010T184500',
+                    'SUMMARY:Morpeth 10 v  (Division 4)'
+                )
+            }
+        ])('logs and skips $name without losing valid neighbours', ({ uid, invalidEvent }) => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2040-01-02T03:04:05.000Z'));
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            const fixtures = parser.getTeamFixtures(calendarWithEvents(validNeighbourEvent, invalidEvent));
+
+            expect(fixtures).toEqual([{
+                startDateTime: new Date('2026-10-09T18:45:00.000Z'),
+                venue: 'Morpeth School',
+                googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=51.5311%2C-0.0821',
+                homeTeam: 'Morpeth 11 Jr',
+                awayTeam: 'Morpeth 10'
+            }]);
+            expect(fixtures.some(({ startDateTime }) => startDateTime.getTime() === Date.now())).toBe(false);
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(JSON.stringify(consoleError.mock.calls)).toContain(uid);
+        });
+
+        it('does not return a fixture when exactly one team is present in SUMMARY', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const calendar = calendarWithEvents(
+                fixtureEvent(
+                    'missing-home-direct@example.test',
+                    'DTSTART;TZID=Europe/London:20261010T184500',
+                    'SUMMARY: v Morpeth 10 (Division 4)'
+                ),
+                fixtureEvent(
+                    'missing-away-direct@example.test',
+                    'DTSTART;TZID=Europe/London:20261010T184500',
+                    'SUMMARY:Morpeth 10 v  (Division 4)'
+                )
+            );
+
+            expect(parser.getTeamFixtures(calendar)).toEqual([]);
+            expect(consoleError).toHaveBeenCalledTimes(2);
+        });
+
+        it('exposes exactly the five Fixture fields', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(validNeighbourEvent));
+
+            expect(Object.keys(fixture).sort()).toEqual(['awayTeam', 'googleMapsUrl', 'homeTeam', 'startDateTime', 'venue']);
+        });
+
+        it('returns an empty array when the calendar has no events', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(parser.getTeamFixtures(calendarWithEvents())).toEqual([]);
+        });
+
+        it('normalizes bare carriage-return line endings', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const calendar = calendarWithEvents(validNeighbourEvent).replaceAll('\n', '\r');
+
+            expect(parser.getTeamFixtures(calendar)).toHaveLength(1);
+        });
+
+        it('accepts trailing whitespace on VEVENT delimiters and ignores property lines without a colon', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const calendar = [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT ',
+                'UID:whitespace-delimiters@example.test',
+                'this line has no property delimiter',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                'END:VEVENT ',
+                'END:VCALENDAR',
+            ].join('\n');
+
+            expect(parser.getTeamFixtures(calendar)).toEqual([expect.objectContaining({
+                homeTeam: 'Home',
+                awayTeam: 'Away',
+            })]);
+        });
+
+        it('logs an incomplete outer event while retaining a complete event that follows a nested delimiter', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const calendar = [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'UID:outer-incomplete@example.test',
+                'BEGIN:VEVENT',
+                'UID:complete-inner@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n');
+
+            expect(parser.getTeamFixtures(calendar)).toHaveLength(1);
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(JSON.stringify(consoleError.mock.calls)).toContain('outer-incomplete@example.test');
         });
     });
 

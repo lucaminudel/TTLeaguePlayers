@@ -1,18 +1,76 @@
 import type { ClubTeamWithDivision } from '../../../types/clubTeam';
 import type { Fixture } from '../ActiveSeasonProcessor';
 
-const MONTHS: Record<string, string> = {
-    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
-    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
-};
+type CalendarEvent = Map<string, string>;
 
-/**
- * The fixtures page prints dates without a year ("Mon 29 Sep"). A season runs from the autumn of
- * one year into the spring of the next, so the year is the season's first year from August to
- * December and its second year from January to July.
- */
-function yearFor(month: string, seasonStartYear: number): number {
-    return parseInt(month, 10) >= 8 ? seasonStartYear : seasonStartYear + 1;
+function decodeCalendarText(value: string): string {
+    return value.replace(/\\([\\,;nN])/g, (_escapedSequence, escapedCharacter: string) => {
+        if (escapedCharacter.toLowerCase() === 'n') {
+            return '\n';
+        }
+        return escapedCharacter;
+    });
+}
+
+function parseCalendarDateTime(value: string | undefined): Date | null {
+    const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/.exec(value ?? '');
+    if (!match) {
+        return null;
+    }
+
+    const [, yearText, monthText, dayText, hourText, minuteText, secondText] = match;
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
+    const second = Number(secondText);
+    const parsed = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+
+    if (
+        parsed.getUTCFullYear() !== year
+        || parsed.getUTCMonth() !== month - 1
+        || parsed.getUTCDate() !== day
+        || parsed.getUTCHours() !== hour
+        || parsed.getUTCMinutes() !== minute
+        || parsed.getUTCSeconds() !== second
+    ) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function googleMapsUrlFromGeo(value: string | undefined): string | null {
+    const match = /^\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*;\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*$/.exec(value ?? '');
+    if (!match) {
+        return null;
+    }
+
+    const latitude = Number(match[1]);
+    const longitude = Number(match[2]);
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return null;
+    }
+
+    const destination = encodeURIComponent(`${match[1]},${match[2]}`);
+    return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+}
+
+function venueNameFromLocation(value: string | undefined): string {
+    return decodeCalendarText(value ?? '').split(',', 1)[0].trim();
+}
+
+function teamsFromSummary(value: string | undefined): { homeTeam: string; awayTeam: string } | null {
+    const summary = decodeCalendarText(value ?? '').replace(/\s*\(Division\s+[^)]+\)\s*$/i, '').trim();
+    const separatorIndex = summary.indexOf(' v ');
+    if (separatorIndex < 0) {
+        return null;
+    }
+
+    const homeTeam = summary.slice(0, separatorIndex).trim();
+    const awayTeam = summary.slice(separatorIndex + 3).trim();
+        return homeTeam && awayTeam ? { homeTeam, awayTeam } : null;
 }
 
 export class CLTTLActiveSeason2026PagesParser {
@@ -41,63 +99,103 @@ export class CLTTLActiveSeason2026PagesParser {
         return teams;
     }
 
-    /**
-     * Extracts every fixture of the division from the fixtures page in its Simple view (`&vm=2`).
-     *
-     * The page is one table per week; each row is date | time | home | away | venue. The date cell
-     * reads "Mon 29 Sep" and may also carry a badge ("R" rearranged, "P" postponed, "V" void);
-     * only the "DD Mon" part is read, so the day name and any badge letter are ignored.
-     */
-    public getTeamFixtures(fixturesHtmlPage: string): Fixture[] {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(fixturesHtmlPage, 'text/html');
-
-        if (!doc.querySelector('table.tt-fixture-table')) {
-            return [];
-        }
-
-        // The page names its own season ("Winter 2025-26"); its first year dates the fixtures.
-        const seasonName = doc.querySelector('input[name="leagueName"]')?.getAttribute('value') ?? '';
-        const seasonMatch = /(\d{4})/.exec(seasonName);
-        const seasonStartYear = seasonMatch ? parseInt(seasonMatch[1], 10) : new Date().getFullYear();
-
+    public getTeamFixtures(fixturesCalendar: string): Fixture[] {
+        const events = this.parseCompleteCalendarEvents(fixturesCalendar);
         const fixtures: Fixture[] = [];
 
-        doc.querySelectorAll('table.tt-fixture-table tbody tr').forEach((row) => {
-            const dateText = (row.querySelector('td.tt-fixture-date')?.textContent ?? '').trim();
-            const timeText = (row.querySelector('td.tt-fixture-time')?.textContent ?? '').trim();
-
-            const dateMatch = /(\d{1,2}) ([A-Za-z]{3})/.exec(dateText);
-            const timeMatch = /(\d{2}):(\d{2})/.exec(timeText);
-            const month = dateMatch ? MONTHS[dateMatch[2].toLowerCase()] : undefined;
-
-            let startDateTime = new Date();
-            if (dateMatch && month && timeMatch) {
-                const day = dateMatch[1].padStart(2, '0');
-                const year = yearFor(month, seasonStartYear);
-                startDateTime = new Date(`${String(year)}-${month}-${day}T${timeMatch[1]}:${timeMatch[2]}:00Z`);
+        for (const event of events) {
+            const summary = decodeCalendarText(event.get('SUMMARY') ?? '');
+            if (event.get('STATUS')?.trim().toUpperCase() === 'CANCELLED' || summary.startsWith('Postponed:')) {
+                continue;
             }
 
-            const teamLinks = row.querySelectorAll('a.tt-team-link');
-            const homeTeam = teamLinks.length > 0 ? teamLinks[0].textContent.trim() : '';
-            const awayTeam = teamLinks.length > 1 ? teamLinks[1].textContent.trim() : '';
-
-            const venueCell = row.querySelector('td.tt-fixture-venue');
-            const venueLink = venueCell?.querySelector('a.tt-venue-link');
-            let venue = venueLink?.textContent.trim() ?? '';
-
-            if (!venue) {
-                const venueFallback = venueCell?.cloneNode(true) as HTMLElement | null;
-                venueFallback?.querySelector('a.tt-directions-link')?.remove();
-                venue = venueFallback?.textContent.trim() ?? '';
+            const startDateTime = parseCalendarDateTime(event.get('DTSTART'));
+            const teams = teamsFromSummary(event.get('SUMMARY'));
+            if (!startDateTime || !teams) {
+                this.reportUnusableEvent(event, !startDateTime ? 'missing or invalid DTSTART' : 'invalid SUMMARY');
+                continue;
             }
 
-            const googleMapsUrl = venueCell?.querySelector<HTMLAnchorElement>('a.tt-directions-link[href]')?.getAttribute('href') ?? null;
-
-            fixtures.push({ startDateTime, venue, googleMapsUrl, homeTeam, awayTeam });
-        });
+            fixtures.push({
+                startDateTime,
+                venue: venueNameFromLocation(event.get('LOCATION')),
+                googleMapsUrl: googleMapsUrlFromGeo(event.get('GEO')),
+                ...teams
+            });
+        }
 
         return fixtures;
+    }
+
+    private parseCompleteCalendarEvents(calendar: string): CalendarEvent[] {
+        const unfoldedLines = calendar
+            .replace(/\r\n?/g, '\n')
+            .split('\n')
+            .reduce<string[]>((lines, line) => {
+                if (/^[ \t]/.test(line) && lines.length > 0) {
+                    lines[lines.length - 1] += line.slice(1);
+                } else {
+                    lines.push(line);
+                }
+                return lines;
+            }, []);
+
+        const events: CalendarEvent[] = [];
+        let eventLines: string[] | null = null;
+
+        for (const line of unfoldedLines) {
+            const normalizedLine = line.trim().toUpperCase();
+            if (normalizedLine === 'BEGIN:VEVENT') {
+                if (eventLines) {
+                    this.reportIncompleteEvent(eventLines);
+                }
+                eventLines = [];
+                continue;
+            }
+
+            if (normalizedLine === 'END:VEVENT') {
+                if (eventLines) {
+                    events.push(this.propertiesFromLines(eventLines));
+                    eventLines = null;
+                }
+                continue;
+            }
+
+            if (eventLines) {
+                eventLines.push(line);
+            }
+        }
+
+        if (eventLines) {
+            this.reportIncompleteEvent(eventLines);
+        }
+
+        return events;
+    }
+
+    private propertiesFromLines(lines: string[]): CalendarEvent {
+        const properties: CalendarEvent = new Map();
+        for (const line of lines) {
+            const valueSeparator = line.indexOf(':');
+            if (valueSeparator < 0) {
+                continue;
+            }
+
+            const propertyName = line.slice(0, valueSeparator).split(';', 1)[0].trim().toUpperCase();
+            properties.set(propertyName, line.slice(valueSeparator + 1));
+        }
+        return properties;
+    }
+
+    private reportIncompleteEvent(lines: string[]): void {
+        this.reportUnusableEvent(this.propertiesFromLines(lines), 'incomplete VEVENT');
+    }
+
+    private reportUnusableEvent(event: CalendarEvent, reason: string): void {
+        const identifier = [event.get('UID'), event.get('SUMMARY')]
+            .find(candidate => candidate?.trim()) ?? 'unknown event';
+        // Keep this diagnostic as the capture point when frontend observability is introduced.
+        console.error(`Skipping unusable CLTTL fixture event "${identifier}": ${reason}.`);
     }
 
     /**

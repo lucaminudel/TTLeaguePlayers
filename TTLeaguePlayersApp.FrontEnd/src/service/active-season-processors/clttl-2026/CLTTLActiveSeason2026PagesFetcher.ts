@@ -93,9 +93,6 @@ export class CLTTLActiveSeason2026PagesFetcher {
         return this.fetchWithRetry(url);
     }
 
-    /**
-     * Extracts the fixtures page link for that division and downloads the HTML.
-     */
     public async getTeamFixtures(division: string): Promise<string> {
         const url = this.getUrlFromSource(this.dataSource.division_fixtures, division);
         return this.fetchWithRetry(url);
