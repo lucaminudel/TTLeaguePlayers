@@ -237,11 +237,12 @@ reconfigured from a test, or by hand with an `aws` command. Two consequences wor
 ### Prove the test fails, not just that it passes
 
 A test that has never been seen red is an assertion about nothing. For each behaviour the sub-task
-exists to protect, break the production code deliberately, watch that specific test fail, then revert
-and confirm green. Keep the mutation realistic — the mistake a maintainer would actually make, not a
+exists to protect, the agent must create a realistic, temporary mutation in the production code, run
+the specific C#, frontend-unit, or e2e test that should detect it, then revert the mutation and
+confirm the test is green again. The mutation must model a mistake a maintainer could make, not a
 syntax error.
 
-This is worth the minutes for the reason that it disproves as often as it confirms. Doing it here
+Validating tests using inferential mutations created and run by the agent is worth the minutes for the reason that it disproves as often as it confirms (tool-driven deterministic mutation testing takes longer and is slow feedback to be executed only when and where defined). Doing it here
 showed that a null-guard believed to be load-bearing was in fact redundant, and that the real hazard
 lay somewhere else entirely — so both the code comment and the understanding behind it were wrong
 until a mutation said so. Expect that outcome sometimes, and correct the claim when it happens rather
@@ -447,43 +448,17 @@ Read the screenshot directly when a locator assertion fails — it usually shows
 glance. Note these directories are **overwritten by each run**, so capture what you need before
 re-running.
 
-#### Deterministic Mutation testing — only the changed frontend production code
+#### Inferential mutation testing — agent-created temporary mutations
 
-Even when the user confirmed in Phase 1 that the dev DB is clean or not, run mutation testing.
+For every C#, frontend-unit, or e2e test changed or created, and every input and assertion in that
+test, the agent must check that it passes because the implementation is correct rather than because
+it returns a false positive.
 
-Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. After the
-build and relevant Vitest specs are green, select only the changed `src/` production file(s) and their
-covering unit spec(s). Do not run the whole frontend mutation suite as an ordinary inner-loop check.
-
-```bash
-npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts
-```
-
-Use comma-separated paths for a small set of changed source files and their covering specs. Use
-`npm run "mutation-tests-web:check"` to validate Stryker discovery without mutations; reserve
-`npm run "mutation-tests-web:run"` for an incremental configured-suite run and
-`npm run "mutation-tests-web:run-file"` without filters for an intentional, forced full run.
-
-For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`. The HTML
-report from command-line mutation runs is at
-`TTLeaguePlayersApp.FrontEnd/reports/mutation/mutation.html`.
-
-Prioritise mutation findings in this order, in order to start fixing the highest priority failures:
-
-1. `No coverage` or `Survived` mutants in domain logic, authorisation, date calculations, and API error handling.
-2. Survived mutations that remove a condition, flip a boolean, alter a comparison boundary, or change a return value.
-3. Survivors in high-risk or frequently changed code.
-4. Multiple survivors on one branch or decision, where one missing behavioural scenario may kill several mutants.
-5. Presentation-only, logging, or trivial adapter survivors, unless the code carries an important user-visible rule.
-6. Equivalent mutants: record and accept them when the mutation cannot change observable behaviour; do not add implementation-specific tests merely to improve the score.
-
-#### Inferential Mutation testing 
-
-For every e2e test changed or created, amnd every input and assertion of the test, check that they pass because the code implementation is indeed correct and not because they are returning a false positive.
-
-Check this by introducing a temporary mutation to the implementation code and see that the test then fails as expected.
-Reset the mutation after this check.
-If the test does not fail as expected, identify the cause and fix the test.
+The agent does this by creating one realistic, temporary mistake in the implementation that the
+named input or assertion should detect; it then runs the specific test and confirms that it fails for
+the expected reason. The agent reverts the mutation and confirms the test passes again. If the test
+does not fail as expected, the agent identifies the cause and fixes the test. The mutations must
+exercise boundary conditions, special input values, each relevant execution path, and any other mutation the agent identify as valuable; do not only mutate the happy path.
 
 ---
 
@@ -524,6 +499,38 @@ npm run "C+ e2e-tests-web:run test-env"
 ```
 
 All three of these mutate Cognito: their cleanup deletes the dynamically created `test_*` users.
+
+#### Deterministic Mutation testing — only the changed frontend production code
+
+Even when the user confirmed in Phase 1 that the dev DB is clean or not, run mutation testing.
+
+Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. After the
+build and relevant Vitest specs are green, select only the changed `src/` production file(s) and their
+covering unit spec(s). Do not run the whole frontend mutation suite as an ordinary inner-loop check.
+
+```bash
+npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts
+```
+
+Use comma-separated paths for a small set of changed source files and their covering specs. Use
+`npm run "mutation-tests-web:check"` to validate Stryker discovery without mutations; reserve
+`npm run "mutation-tests-web:run"` for an incremental configured-suite run and
+`npm run "mutation-tests-web:run-file"` without filters for an intentional, forced full run.
+
+For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`. The HTML
+report from command-line mutation runs is at
+`TTLeaguePlayersApp.FrontEnd/reports/mutation/mutation.html`.
+
+Prioritise mutation findings in this order, in order to start fixing the highest priority failures:
+
+1. `No coverage` or `Survived` mutants in domain logic, authorisation, date calculations, and API error handling.
+2. Survived mutations that remove a condition, flip a boolean, alter a comparison boundary, or change a return value.
+3. Survivors in high-risk or frequently changed code.
+4. Multiple survivors on one branch or decision, where one missing behavioural scenario may kill several mutants.
+5. Presentation-only, logging, or trivial adapter survivors, unless the code carries an important user-visible rule.
+6. Equivalent mutants: record and accept them when the mutation cannot change observable behaviour; do not add implementation-specific tests merely to improve the score.
+
+Then triage the failures and suggest what actions to take to solve the problems found (identify which tests are missing, or which gaps existing tests have, or if bugs have been found and need fixing, and so no).
 
 #### Codex-specific equivalent
 
