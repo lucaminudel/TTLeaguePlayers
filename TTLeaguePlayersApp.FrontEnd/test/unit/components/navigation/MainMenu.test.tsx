@@ -177,7 +177,7 @@ describe('MainMenu', () => {
         expect(signOut).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('main-menu-overlay').className).toContain('pointer-events-none');
 
-        await act(async () => { vi.runAllTimers(); });
+        await act(async () => { await vi.runAllTimersAsync(); });
         expect(screen.getByTestId('current-location')).toHaveTextContent('/');
         vi.useRealTimers();
     });

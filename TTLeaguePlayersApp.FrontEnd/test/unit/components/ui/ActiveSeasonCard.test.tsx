@@ -13,7 +13,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 const mockUseAuth = vi.fn();
-const mockIsSameDay = vi.fn(() => false);
+const mockIsSameDay = vi.fn<(date1: Date, date2: Date) => boolean>(() => false);
 
 // Mock useAuth hook
 vi.mock('../../../../src/hooks/useAuth', () => ({
@@ -27,7 +27,7 @@ vi.mock('../../../../src/utils/DateUtils', () => ({
     getClockTime: () => new Date('2025-01-15T12:00:00Z'),
     formatFixtureDate: (date: Date) => date.toLocaleDateString(),
     formatFixtureDateTime: (date: Date) => date.toISOString(),
-    isSameDay: (...args: unknown[]) => mockIsSameDay(...args)
+    isSameDay: (...args: [Date, Date]) => mockIsSameDay(...args)
 }));
 
 const createFixture = (overrides: Partial<Fixture> = {}): Fixture => ({
@@ -174,7 +174,9 @@ describe('ActiveSeasonCard Error Handling', () => {
         };
 
         render(<ActiveSeasonCard season={mockSeason} processor={mockProcessor} isExpanded={true} onToggle={mockOnToggle} />);
-        await waitFor(() => expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument());
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
 
         expect(screen.getByTestId('active-season-prev-match-header')).toHaveTextContent('Previous Match');
         expect(screen.getByTestId('active-season-next-match-header')).toHaveTextContent('Next Match');
@@ -438,7 +440,9 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         const { rerender } = render(<ActiveSeasonCard season={mockSeason} processor={mockProcessor} isExpanded={true} onToggle={mockOnToggle} />);
 
-        await waitFor(() => expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument());
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
 
         expect(screen.getByTestId('active-season-prev-match-header')).toHaveTextContent("Today's Match");
         expect(screen.getByTestId('active-season-next-match-header')).toHaveTextContent("Today's Match");
@@ -624,7 +628,7 @@ describe('ActiveSeasonCard Rate info modal', () => {
 
         expect(screen.queryByTestId('rate-info-modal')).not.toBeInTheDocument();
         expect(mockNavigate).toHaveBeenCalledWith('/award-kudos', expect.objectContaining({
-            state: expect.objectContaining({ opponentTeam: 'Previous Opponent', isHome: true })
+            state: expect.objectContaining({ opponentTeam: 'Previous Opponent', isHome: true }) as unknown
         }));
     });
 
@@ -641,13 +645,15 @@ describe('ActiveSeasonCard Rate info modal', () => {
         };
 
         render(<ActiveSeasonCard season={mockSeason} processor={mockProcessor} isExpanded={true} onToggle={mockOnToggle} />);
-        await waitFor(() => expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument());
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
 
         fireEvent.click(screen.getByTestId('rate-button'));
         fireEvent.click(screen.getByTestId('rate-info-modal-ok'));
 
         expect(mockNavigate).toHaveBeenCalledWith('/award-kudos', expect.objectContaining({
-            state: expect.objectContaining({ opponentTeam: 'Away Opponent', isHome: false, venue: 'Away Venue' })
+            state: expect.objectContaining({ opponentTeam: 'Away Opponent', isHome: false, venue: 'Away Venue' }) as unknown
         }));
     });
 });

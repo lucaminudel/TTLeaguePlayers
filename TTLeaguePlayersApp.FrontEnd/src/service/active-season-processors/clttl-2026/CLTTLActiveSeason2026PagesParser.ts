@@ -1,4 +1,3 @@
-import type { ClubTeamWithDivision } from '../../../types/clubTeam';
 import type { Fixture } from '../ActiveSeasonProcessor';
 
 type CalendarEvent = Map<string, string>;
@@ -208,41 +207,6 @@ export class CLTTLActiveSeason2026PagesParser {
 
             return name ? [name.trim()] : [];
         });
-    }
-
-    /**
-     * Extracts the teams of a club, each with its division, from the club's page.
-     * Every row of the Teams table is returned: the page shows the season the site considers
-     * current, and its League column is not used to filter.
-     *
-     * The division is a column of that table, already spelled as the app spells it
-     * ("Premier", "Division 4"), so it is taken verbatim.
-     */
-    public getClubTeams(clubHtmlPage: string): ClubTeamWithDivision[] {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(clubHtmlPage, 'text/html');
-        const table = doc.querySelector('table.tt-contact-table');
-
-        if (!table) {
-            return [];
-        }
-
-        const teams: ClubTeamWithDivision[] = [];
-
-        table.querySelectorAll('tbody tr').forEach((row) => {
-            // League | Division | Team | Captain
-            const cells = row.querySelectorAll('td');
-            const team = cells.length > 2 ? cells[2].textContent.trim() : '';
-
-            if (team) {
-                teams.push({
-                    team_name: team,
-                    team_division: cells[1].textContent.trim()
-                });
-            }
-        });
-
-        return teams;
     }
 
     /**

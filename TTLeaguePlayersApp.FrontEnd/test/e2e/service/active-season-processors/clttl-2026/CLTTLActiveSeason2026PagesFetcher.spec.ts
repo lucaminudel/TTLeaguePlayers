@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { CLTTLActiveSeason2026PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
+import { CLTTLManagedClub2025PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLManagedClub2025PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
 // A copy of the active CLTTL 2026-2027 source. This spec runs in Node, which has no CORS, so the
@@ -56,7 +57,8 @@ test.describe('CLTTLActiveSeason2026PagesFetcher E2E', () => {
 
     test('getClubTeams should return HTML containing the club teams table', async () => {
         test.slow();
-        const html = await fetcher.getClubTeams('Morpeth Table Tennis Club');
+        const clubFetcher = new CLTTLManagedClub2025PagesFetcher(DATA_SOURCE);
+        const html = await clubFetcher.getClubTeams('Morpeth Table Tennis Club');
         expect(html).toContain('tt-contact-table');
     });
 });

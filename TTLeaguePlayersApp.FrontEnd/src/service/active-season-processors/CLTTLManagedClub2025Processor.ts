@@ -1,17 +1,17 @@
 import type { ActiveSeasonDataSource } from '../../config/environment';
-import { CLTTLActiveSeason2026PagesFetcher } from './clttl-2026/CLTTLActiveSeason2026PagesFetcher';
-import { CLTTLActiveSeason2026PagesParser } from './clttl-2026/CLTTLActiveSeason2026PagesParser';
+import { CLTTLManagedClub2025PagesFetcher } from './clttl-2026/CLTTLManagedClub2025PagesFetcher';
+import { CLTTLManagedClub2025PagesParser } from './clttl-2026/CLTTLManagedClub2025PagesParser';
 import type { ManagedClubProcessor } from './ManagedClubProcessor';
 import type { ClubTeamWithDivision } from '../../types/clubTeam';
 
 export class CLTTLManagedClub2025Processor implements ManagedClubProcessor {
-    private fetcher: CLTTLActiveSeason2026PagesFetcher;
-    private parser: CLTTLActiveSeason2026PagesParser;
+    private fetcher: CLTTLManagedClub2025PagesFetcher;
+    private parser: CLTTLManagedClub2025PagesParser;
     private clubName: string;
 
     constructor(dataSource: ActiveSeasonDataSource, clubName: string, avoidCORS = false) {
-        this.fetcher = new CLTTLActiveSeason2026PagesFetcher(dataSource, avoidCORS);
-        this.parser = new CLTTLActiveSeason2026PagesParser();
+        this.fetcher = new CLTTLManagedClub2025PagesFetcher(dataSource, avoidCORS);
+        this.parser = new CLTTLManagedClub2025PagesParser();
         this.clubName = clubName;
     }
 
