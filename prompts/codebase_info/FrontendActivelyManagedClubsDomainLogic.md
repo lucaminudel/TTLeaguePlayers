@@ -144,7 +144,7 @@ The component is implemented in:
 
 ## 5. Reading a Club's Teams
 
-`ManagedClubProcessor.getClubTeams()` reads the teams of one club from that club's page on the league site, orchestrated by [CLTTLManagedClub2025Processor.ts](TTLeaguePlayersApp.FrontEnd/src/service/active-season-processors/CLTTLManagedClub2025Processor.ts) and mirroring the shape of the existing `getTeams()`:
+`ManagedClubProcessor.getClubTeams()` reads the teams of one club from that club's page on the league site, orchestrated by [CLTTLManagedClub2026Processor.ts](TTLeaguePlayersApp.FrontEnd/src/service/active-season-processors/CLTTLManagedClub2026Processor.ts) and mirroring the shape of the existing `getTeams()`:
 
 1. **Look up the club's page URL** in the league season's configured `club_teams`, keyed by the manager's `club_name` from Cognito. If the club has no entry, throw `Club "<name>" not found in data source.`
 2. **Fetch that page** (`https://www.tabletennis365.com/CentralLondon/Clubs/<slug>`, through the CORS proxy in the browser) and parse its Teams table, `table.tt-contact-table`, whose columns are League | Division | Team | Captain: the Team cell is the team name and the Division cell, spelled as the app spells it (`Premier`, `Division 4`), is the team's division.
@@ -155,7 +155,7 @@ The component is implemented in:
 * **Assumption: the config and the club's page on the league site are always current for the current season.** Nothing reconciles them. A team added to the club page is invisible to the app until the registrations cache expires, and a club renamed on the league site stops resolving until `club_teams` is edited by hand.
 * **No season filtering is applied.** The club page's League column shows a season label such as `"Winter 2026-27"`, which does not textually match the config's `season` (`"2025-2026"`), and the page carries no season in its URL (a `?leagueName=` parameter is ignored by the site). Every listed team is returned — and since the site's re-platforming (September 2026) the page lists the season the site considers current, which is the *next* season once it is published: while `active_seasons_data_source` still points at 2025-2026, the club pages return the 2026-27 teams and divisions. Accepted knowingly on 2026-09-21.
 * **A club with no configured page throws before any network call**: `Club "<name>" not found in data source.` This also covers leagues configured with an empty `club_teams`, such as BCS and FLICK.
-* **Test coverage is deliberately split.** [CLTTLManagedClub2025Processor.integration.test.ts](TTLeaguePlayersApp.FrontEnd/test/unit/service/active-season-processors/CLTTLManagedClub2025Processor.integration.test.ts) pins exact team names against HTML captured under `clttl-2026/data/`, while the e2e spec asserts only that the live page still contains `tt-contact-table` — the live page has no archived version, so a season rollover must not turn the build red.
+* **Test coverage is deliberately split.** [CLTTLManagedClub2026Processor.integration.test.ts](TTLeaguePlayersApp.FrontEnd/test/unit/service/active-season-processors/CLTTLManagedClub2026Processor.integration.test.ts) pins exact team names against HTML captured under `clttl-2026/data/`, while the e2e spec asserts only that the live page still contains `tt-contact-table` — the live page has no archived version, so a season rollover must not turn the build red.
 
 ---
 
