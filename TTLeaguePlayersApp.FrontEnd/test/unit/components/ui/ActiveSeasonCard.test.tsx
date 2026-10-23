@@ -12,20 +12,11 @@ vi.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate
 }));
 
+const mockUseAuth = vi.fn();
+
 // Mock useAuth hook
 vi.mock('../../../../src/hooks/useAuth', () => ({
-    useAuth: () => ({
-        activeSeasons: [{
-            league: 'TEST',
-            season: '2025',
-            team_name: 'Test Team',
-            team_division: 'Division 1',
-            person_name: 'Test Person',
-            role: 'player',
-            latest_kudos: []
-        }],
-        userId: 'test-user-sub'
-    })
+    useAuth: () => mockUseAuth() as unknown
 }));
 
 // Mock DateUtils.
@@ -47,6 +38,21 @@ const createFixture = (overrides: Partial<Fixture> = {}): Fixture => ({
     ...overrides
 });
 
+const setActiveSeasons = (latestKudos: number[] = []) => {
+    mockUseAuth.mockReturnValue({
+        activeSeasons: [{
+            league: 'TEST',
+            season: '2025',
+            team_name: 'Test Team',
+            team_division: 'Division 1',
+            person_name: 'Test Person',
+            role: 'player',
+            latest_kudos: latestKudos
+        }],
+        userId: 'test-user-sub'
+    });
+};
+
 describe('ActiveSeasonCard Error Handling', () => {
     const mockSeason: ActiveSeason = {
         league: 'TEST',
@@ -63,6 +69,7 @@ describe('ActiveSeasonCard Error Handling', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        setActiveSeasons();
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     });
 
@@ -141,6 +148,43 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+    });
+
+    it('shows the last fixture as previous and None as next when all fixtures are over', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([
+                createFixture({ homeTeam: 'Test Team', awayTeam: 'Older Opponent', startDateTime: new Date('2025-01-14T09:00:00Z') }),
+                createFixture({ homeTeam: 'Test Team', awayTeam: 'Latest Opponent', startDateTime: new Date('2025-01-15T09:59:59Z') })
+            ]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(<ActiveSeasonCard season={mockSeason} processor={mockProcessor} isExpanded={true} onToggle={mockOnToggle} />);
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('Latest Opponent');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+    });
+
+    it('keeps a fixture exactly two hours ago as the next match', async () => {
+        const mockProcessor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([
+                createFixture({ homeTeam: 'Test Team', awayTeam: 'Boundary Opponent', startDateTime: new Date('2025-01-15T10:00:00Z') })
+            ]),
+            getTeamPlayers: vi.fn().mockResolvedValue([])
+        };
+
+        render(<ActiveSeasonCard season={mockSeason} processor={mockProcessor} isExpanded={true} onToggle={mockOnToggle} />);
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Boundary Opponent');
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
     });
 
     it('should make an away venue clickable when a Google Maps URL is available', async () => {
@@ -408,6 +452,7 @@ describe('ActiveSeasonCard Rate info modal', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        setActiveSeasons();
         localStorage.clear();
     });
 
@@ -444,5 +489,33 @@ describe('ActiveSeasonCard Rate info modal', () => {
         await waitFor(() => {
             expect(screen.getByTestId('rate-info-modal-ok')).toHaveFocus();
         });
+    });
+
+    it('navigates to award kudos with the selected fixture after the modal is confirmed', async () => {
+        await renderExpandedCard();
+
+        fireEvent.click(screen.getByTestId('rate-button'));
+        fireEvent.click(screen.getByTestId('rate-info-modal-ok'));
+
+        expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/award-kudos');
+        expect(mockNavigate.mock.calls.at(-1)?.[1]).toMatchObject({
+            state: {
+                league: 'TEST',
+                season: '2025',
+                teamName: 'Test Team',
+                opponentTeam: 'Previous Opponent',
+                isHome: true,
+                venue: 'Home Venue',
+                matchDateTime: '2025-01-08T19:00:00.000Z'
+            }
+        });
+    });
+
+    it('does not offer Rate when that exact fixture has already received kudos', async () => {
+        setActiveSeasons([Math.floor(fixtures[0].startDateTime.getTime() / 1000)]);
+
+        await renderExpandedCard();
+
+        expect(screen.queryByTestId('rate-button')).not.toBeInTheDocument();
     });
 });

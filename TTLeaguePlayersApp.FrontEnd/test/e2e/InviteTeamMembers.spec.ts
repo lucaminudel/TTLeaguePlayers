@@ -3,13 +3,13 @@ import { User, InviteTeamMembersPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-const FIXED_CLOCK_TIME = '2026-01-15T11:01:48.000Z';
+const FIXED_CLOCK_TIME = '2026-10-16T20:46:00.000Z';
 
 const CAPTAIN_EMAIL = 'test_already_registered@user.test';
 const CAPTAIN_PASSWORD = 'aA1!56789012';
 
 const LEAGUE = 'CLTTL';
-const SEASON = '2025-2026';
+const SEASON = '2026-2027';
 const TEAM = 'Morpeth 10';
 
 const MORPETH_10_TEAM_ID = 'teamId=73142';

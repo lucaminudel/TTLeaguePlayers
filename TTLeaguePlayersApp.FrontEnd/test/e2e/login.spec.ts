@@ -21,16 +21,16 @@ test.describe('Login Flow', () => {
         const userInfo = page.getByTestId('main-menu-user-info');
 
         // Verify first season is displayed without person name (since it's the same as welcome name)
-        await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('CLTTL 2025-2026');
+        await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('CLTTL 2026-2027');
         await expect(userInfo.getByTestId('main-menu-first-season')).toContainText('Morpeth 10, Division 4');
         
         // Verify second season is displayed without person name (same as welcome name)
         const additionalSeasons = userInfo.locator('[data-testid="main-menu-additional-season"]');
-        await expect(additionalSeasons.nth(0)).toContainText('BCS 2025-2026');
+        await expect(additionalSeasons.nth(0)).toContainText('BCS 2026-2027');
         await expect(additionalSeasons.nth(0)).toContainText('Morpeth B, Division 2');
         
         // Verify third season is displayed with person name (different from welcome name)
-        await expect(additionalSeasons.nth(1)).toContainText('FLICK 2025-Nov');
+        await expect(additionalSeasons.nth(1)).toContainText('FLICK 2026-Nov');
         await expect(additionalSeasons.nth(1)).toContainText('Indiidual, Division 1');
         await expect(additionalSeasons.nth(1)).toContainText('(Luca Sr Minudel)');
 
@@ -58,7 +58,7 @@ test.describe('Login Flow', () => {
  
         // Verify managed club details
         const managedClubs = userInfo.locator('[data-testid="main-menu-managed-club"]');
-        await expect(managedClubs.nth(0)).toContainText('MANAGER: Morpeth Table Tennis Club, London (CLTTL 2025-2026)');
+        await expect(managedClubs.nth(0)).toContainText('MANAGER: Morpeth Table Tennis Club, London (CLTTL 2026-2027)');
  
         // Logout
         await user.menu.logout();

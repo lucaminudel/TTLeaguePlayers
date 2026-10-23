@@ -23,7 +23,7 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
     private const string OldRoutePath = "/invites/registrations";
 
     private const string League = "CLTTL";
-    private const string Season = "2025-2026";
+    private const string Season = "2026-2027";
     private const string ClubName = "Morpeth Table Tennis Club";
     private const string ClubLocation = "London";
 
@@ -50,7 +50,7 @@ public class TeamRegistrationsAcceptanceTests : IAsyncLifetime
 
     // Unique per TEST — xUnit constructs a new instance of this class for every test method — so no
     // test can collide with another, with a separate run, or with the rows already sitting in the
-    // shared CLTTL/2025-2026 partition.
+    // shared CLTTL/2026-2027 partition.
     private readonly string _teamPrefix = $"AcceptanceTeam-{Guid.NewGuid():N}";
 
     private const string AcceptedFixtureTeam = "TeamRegistrations Fixture Accepted";

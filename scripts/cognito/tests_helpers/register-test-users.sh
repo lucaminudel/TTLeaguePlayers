@@ -75,7 +75,7 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
     # 1. User with CLTT, BCS, and FLICK leagues
     # SHARED by: homepage.spec.ts, login.spec.ts, InviteTeamMembers.spec.ts, and TeamPlayersRegistrationsAcceptanceTests.cs
     EMAIL1="test_already_registered@user.test"
-    ACTIVE_SEASONS_JSON1='[{"league": "CLTTL", "season": "2025-2026","team_name": "Morpeth 10","team_division": "Division 4","person_name": "Luca Minudel","role": "CAPTAIN"},{"league": "BCS","season": "2025-2026","team_name": "Morpeth B","team_division": "Division 2","person_name": "Luca Minudel","role": "CAPTAIN"},{"league": "FLICK","season": "2025-Nov","team_name": "Indiidual","team_division": "Division 1","person_name": "Luca Sr Minudel","role": "CAPTAIN"}]'
+    ACTIVE_SEASONS_JSON1='[{"league": "CLTTL", "season": "2026-2027","team_name": "Morpeth 10","team_division": "Division 4","person_name": "Luca Minudel","role": "CAPTAIN"},{"league": "BCS","season": "2026-2027","team_name": "Morpeth B","team_division": "Division 2","person_name": "Luca Minudel","role": "CAPTAIN"},{"league": "FLICK","season": "2026-Nov","team_name": "Indiidual","team_division": "Division 1","person_name": "Luca Sr Minudel","role": "CAPTAIN"}]'
     register_user "$EMAIL1" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON1"
     echo "Cognito Test user '$EMAIL1' registered and confirmed successfully with CLTT, BCS, and FLICK leagues!"
 
@@ -86,14 +86,14 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
 
     # 3. User with only BCS league
     EMAIL3="test_already_registered2@user.test"
-    ACTIVE_SEASONS_JSON3='[{"league": "BCS", "season": "2025-2026","team_name": "Morpeth B","team_division": "Division 2","person_name": "Luca Minudel","role": "CAPTAIN"}]'
+    ACTIVE_SEASONS_JSON3='[{"league": "BCS", "season": "2026-2027","team_name": "Morpeth B","team_division": "Division 2","person_name": "Luca Minudel","role": "CAPTAIN"}]'
     register_user "$EMAIL3" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON3"
     echo "Cognito Test user '$EMAIL3' registered and confirmed successfully with only BCS league!"
 
 
     # 4. User with two managed clubs, one per spec file that writes tournaments as this user.
     EMAIL4="test_already_registered3@user.test"
-    MANAGED_CLUBS_JSON4='[{"league":"CLTTL","season":"2025-2026","club_name":"Morpeth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2025-2026","club_name":"Caching Check Club","club_location":"Brighton","manager_name":"Luca Minudel"}]'
+    MANAGED_CLUBS_JSON4='[{"league":"CLTTL","season":"2026-2027","club_name":"Morpeth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2026-2027","club_name":"Caching Check Club","club_location":"Brighton","manager_name":"Luca Minudel"}]'
     register_user "$EMAIL4" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON4"
     echo "Cognito Test user '$EMAIL4' registered and confirmed successfully with two Managed Clubs!"
 
@@ -105,20 +105,20 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
 
     # 6. User with multiple managed club
     EMAIL6="test_already_registered5@user.test"
-    MANAGED_CLUBS_JSON6='[{"league": "CLTTL","season": "2025-2026","club_name": "Morpeth","club_location": "London","manager_name": "Luca Minudel"},{"league": "BCS","season": "2025-2026","club_name": "Morpeth","club_location": "London","manager_name": "Luca Minudel"},{"league": "FLICK","season": "2025-Nov","club_name": "Morpeth M","club_location": "Manchester","manager_name": "Luca Minudel"}]'
+    MANAGED_CLUBS_JSON6='[{"league": "CLTTL","season": "2026-2027","club_name": "Morpeth","club_location": "London","manager_name": "Luca Minudel"},{"league": "BCS","season": "2026-2027","club_name": "Morpeth","club_location": "London","manager_name": "Luca Minudel"},{"league": "FLICK","season": "2026-Nov","club_name": "Morpeth M","club_location": "Manchester","manager_name": "Luca Minudel"}]'
     register_user "$EMAIL6" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON6"
     echo "Cognito Test user '$EMAIL6' registered and confirmed successfully with multiple Managed Clubs!"
 
     # 7. User Salvatore Bollito, SHARED BY TWO SPECS: KudosAwardAndStanding.spec.ts and kudos.spec.ts
-    EMAIL7="test_kudos_wt@user.test"
-    ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2025-2026","team_name": "Walworth Tigers","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
+    EMAIL7="test_kudos_highbury3@user.test"
+    ACTIVE_SEASONS_JSON7='[{"league": "CLTTL", "season": "2026-2027","team_name": "Highbury 3","team_division": "Division 4","person_name": "Salvatore Bollito","role": "CAPTAIN"}]'
     register_user "$EMAIL7" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON7"
     echo "Cognito Test user '$EMAIL7' registered and confirmed successfully!"
 
 
     # 8. User Charlie Boom SHARED BY: KudosAwardAndStanding.spec.ts and kudos.spec.ts and TeamPlayersRegistrationsAcceptanceTests.cs
-    EMAIL8="test_kudos_f5@user.test"
-    ACTIVE_SEASONS_JSON8='[{"league": "CLTTL", "season": "2025-2026","team_name": "Fusion 5","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
+    EMAIL8="test_kudos_morpeth11jr@user.test"
+    ACTIVE_SEASONS_JSON8='[{"league": "CLTTL", "season": "2026-2027","team_name": "Morpeth 11 Jr","team_division": "Division 4","person_name": "Charlie Boom","role": "PLAYER"}]'
     register_user "$EMAIL8" "$COMMON_PASSWORD" "true" "custom:active_seasons" "$ACTIVE_SEASONS_JSON8"
     echo "Cognito Test user '$EMAIL8' registered and confirmed successfully!"
 
@@ -129,7 +129,7 @@ if [[ "$FORCE_CREATE" == "force" ]]; then
 
     # 10. Manager for the My Club Teams AND My Club Standings pages.
     EMAIL10="test_my_club_teams_manager@user.test"
-    MANAGED_CLUBS_JSON10='[{"league":"CLTTL","season":"2025-2026","club_name":"Walworth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2025-2026","club_name":"Highbury Table Tennis Club","club_location":"Islington","manager_name":"Luca Minudel"}]'
+    MANAGED_CLUBS_JSON10='[{"league":"CLTTL","season":"2026-2027","club_name":"Walworth Table Tennis Club","club_location":"London","manager_name":"Luca Minudel"},{"league":"CLTTL","season":"2026-2027","club_name":"Highbury Table Tennis Club","club_location":"Islington","manager_name":"Luca Minudel"}]'
     register_user "$EMAIL10" "$COMMON_PASSWORD" "true" "custom:managed_clubs" "$MANAGED_CLUBS_JSON10"
     echo "Cognito Test user '$EMAIL10' registered and confirmed successfully as the My Club Teams manager!"
 

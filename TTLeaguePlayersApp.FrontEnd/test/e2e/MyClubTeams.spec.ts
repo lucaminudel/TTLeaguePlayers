@@ -6,8 +6,8 @@ import { User, MyClubTeamsPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-// Fixed clock time: 15 January 2026 11:01:48 UTC — inside the CLTTL 2025-2026 window.
-const FIXED_CLOCK_TIME = '2026-01-15T11:01:48.000Z';
+// Fixed clock time: 16 October 2026 20:46 UTC — inside the CLTTL 2026-2027 window.
+const FIXED_CLOCK_TIME = '2026-10-16T20:46:00.000Z';
 
 // This user is declared in scripts/cognito/tests_helpers/register-test-users.sh and owned by this
 // spec. Both of its clubs are named verbatim as in club_teams, which getUrlFromSource requires -
@@ -80,7 +80,7 @@ test.describe('My Club Teams Page', () => {
         });
 
         await test.step('Then the league and season are shown', async () => {
-            await expect(page.getByTestId('league-season-header')).toHaveText('CLTTL 2025-2026');
+            await expect(page.getByTestId('league-season-header')).toHaveText('CLTTL 2026-2027');
         });
 
         await test.step('And every team from the club page is listed, in the club page order', async () => {

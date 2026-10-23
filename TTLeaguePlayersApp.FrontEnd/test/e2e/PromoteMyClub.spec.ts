@@ -3,8 +3,8 @@ import { User, PromoteMyClubPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-// Fixed clock time: 15 January 2026 11:01:48 UTC (epoch: 1768474908)
-const FIXED_CLOCK_TIME = '2026-01-15T11:01:48.000Z';
+// Fixed clock time within the overlapping CLTTL, BCS and FLICK 2026–27 windows.
+const FIXED_CLOCK_TIME = '2027-01-15T11:01:48.000Z';
 
 test.describe('Promote My Club Page', () => {
     test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
@@ -35,7 +35,7 @@ test.describe('Promote My Club Page', () => {
 
         await test.step('Given the Clubs Manager is logged in', async () => {
 
-            // Set fixed clock time to 15 January 2026, valid for all 3 leagues season
+            // Set a clock time when all three managed-club seasons are active.
             await user.setFixedClockTime(FIXED_CLOCK_TIME);
 
             // Navigate to login

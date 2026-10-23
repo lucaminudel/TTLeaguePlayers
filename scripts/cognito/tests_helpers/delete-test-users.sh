@@ -57,8 +57,8 @@ else
     E4="test_already_registered3@user.test"
     E5="test_already_registered4@user.test"
     E6="test_already_registered5@user.test"
-    E7="test_kudos_wt@user.test"
-    E8="test_kudos_f5@user.test"
+    E7="test_kudos_highbury3@user.test"
+    E8="test_kudos_morpeth11jr@user.test"
     E9="test_team_registrations_invitee@user.test"
     E10="test_my_club_teams_manager@user.test"
 fi

@@ -48,7 +48,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             teamName: "Morpeth 9",
             division: "Division 4",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
@@ -70,7 +70,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("invitee_team").GetString().Should().Be("Morpeth 9");
         jsonResult.GetProperty("team_division").GetString().Should().Be("Division 4");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
-        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("season").GetString().Should().Be("2026-2027");
         jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
@@ -98,7 +98,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             division: null,
             teamName: null,
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
@@ -120,7 +120,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("invitee_club").GetString().Should().Be("Morpeth");
         jsonResult.GetProperty("club_location").GetString().Should().Be("London");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
-        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("season").GetString().Should().Be("2026-2027");
         jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
@@ -189,7 +189,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             teamName: "Morpeth 9",
             club: "Morpeth",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
@@ -211,7 +211,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             division: "Division 4",
             location: "London",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
@@ -268,7 +268,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             teamName: "Morpeth 9",
             division: "Division 4",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
 
         // Act - Now retrieve the created invite
@@ -289,7 +289,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("invitee_team").GetString().Should().Be("Morpeth 9");
         jsonResult.GetProperty("team_division").GetString().Should().Be("Division 4");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
-        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("season").GetString().Should().Be("2026-2027");
         jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
@@ -309,7 +309,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             club: "Morpeth",
             location: "London",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
 
         // Act - Now retrieve the created invite
@@ -330,7 +330,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
         jsonResult.GetProperty("invitee_club").GetString().Should().Be("Morpeth");
         jsonResult.GetProperty("club_location").GetString().Should().Be("London");
         jsonResult.GetProperty("league").GetString().Should().Be("CLTTL");
-        jsonResult.GetProperty("season").GetString().Should().Be("2025-2026");
+        jsonResult.GetProperty("season").GetString().Should().Be("2026-2027");
         jsonResult.GetProperty("invited_by").GetString().Should().Be("Luca");
         jsonResult.GetProperty("created_at").GetInt64().Should().BePositive();
         jsonResult.GetProperty("accepted_at").ValueKind.Should().Be(JsonValueKind.Null);
@@ -348,7 +348,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             teamName: "Accepted Team",
             division: "Division 1",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Luca");
 
         var acceptedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -430,7 +430,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             teamName: "Test Team",
             division: "Division 1",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Tester");
 
         // Act
@@ -459,7 +459,7 @@ public class InvitesAcceptanceTests : IAsyncLifetime
             teamName: "Ghost Team",
             division: "Division 1",
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             invitedBy: "Tester");
 
         // Act
@@ -900,13 +900,13 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     public async Task POST_Invites_With_ClubManager_Should_Return_400_When_Invitee_Already_Manages_A_Different_Club_For_Same_League_And_Season()
     {
         // Arrange - test_already_registered5@user.test is a static Cognito user (register-test-users.sh)
-        // permanently seeded with custom:managed_clubs including CLTTL/2025-2026 -> "Morpeth"/"London".
+        // permanently seeded with custom:managed_clubs including CLTTL/2026-2027 -> "Morpeth"/"London".
         // No setup write is needed: the precondition already exists in the pool, and nothing this test
         // does ever writes to Cognito (POST-time conflict check is read-only), so no per-run uniqueness
         // is needed either - a fixed, pre-existing league+season is exactly what's being verified.
         var email = "test_already_registered5@user.test"; // setup script registers and confirms this user with managed clubs baked in
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
 
         // Act - attempt to invite the same person to manage a different club for the same league+season
         var requestBody = CreateInviteRequestJson(
@@ -936,14 +936,14 @@ public class InvitesAcceptanceTests : IAsyncLifetime
     public async Task POST_Invites_With_ClubManager_Should_Succeed_When_Invitee_Already_Manages_The_Same_Club_For_Same_League_And_Season()
     {
         // Arrange - test_already_registered5@user.test is permanently seeded with custom:managed_clubs
-        // including BCS/2025-2026 -> "Morpeth"/"London" (register-test-users.sh). Re-inviting for the
+        // including BCS/2026-2027 -> "Morpeth"/"London" (register-test-users.sh). Re-inviting for the
         // exact same club+location must not be treated as a conflict (idempotent re-invite path).
         // Uses a different league (BCS, not CLTTL) than the 400 test above purely so each test targets a
         // distinct, self-descriptive fixture entry - neither test writes to Cognito, so this isn't required
         // for isolation, only for readability.
         var email = "test_already_registered5@user.test"; // setup script registers and confirms this user with managed clubs baked in
         var league = "BCS";
-        var season = "2025-2026";
+        var season = "2026-2027";
 
         // Act - re-invite the same person to manage the identical club for the same league+season
         var requestBody = CreateInviteRequestJson(

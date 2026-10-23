@@ -16,7 +16,7 @@ namespace TTLeaguePlayersApp.BackEnd.APIGateway.AcceptanceTests;
 public class ClubKudosStandingsAcceptanceTests : IAsyncLifetime
 {
     private const string League = "CLTTL";
-    private const string Season = "2025-2026";
+    private const string Season = "2026-2027";
     private const string ClubName = "Morpeth Table Tennis Club";
     private const string ClubLocation = "London";
     private const string Division = "Division 4";

@@ -14,15 +14,15 @@ public class TeamPlayersRegistrationsAcceptanceTests : IAsyncLifetime
     private const string RoutePath = "/invites/registrations/team-players";
 
     private const string League = "CLTTL";
-    private const string Season = "2025-2026";
+    private const string Season = "2026-2027";
     private const string Division = "Division 4";
     private const string Team = "Morpeth 10";
 
-    // The CALLER: CAPTAIN of Morpeth 10 / Division 4 in CLTTL 2025-2026 per custom:active_seasons
+    // The CALLER: CAPTAIN of Morpeth 10 / Division 4 in CLTTL 2026-2027 per custom:active_seasons
     private const string CaptainUserEmail = "test_already_registered@user.test";
 
-    // The CALLER for the non-captain case: a PLAYER of another team (Fusion 5) in the same division.
-    private const string PlayerUserEmail = "test_kudos_f5@user.test";
+    // The CALLER for the non-captain case: a PLAYER of another team (Morpeth 11 Jr) in the same division.
+    private const string PlayerUserEmail = "test_kudos_morpeth11jr@user.test";
 
     // Fixtures are created and NEVER accepted, so this address never has to exist in Cognito.
     private const string UnacceptedInviteeEmail = "team_players_registrations_never_accepted@example.com";

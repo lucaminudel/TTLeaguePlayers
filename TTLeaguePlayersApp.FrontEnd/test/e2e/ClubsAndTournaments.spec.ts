@@ -3,8 +3,8 @@ import { User, PromoteMyClubPage, PromoteMyTournamentsPage } from './page-object
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-// Fixed clock time: 15 January 2026 11:01:48 UTC (epoch: 1768474908)
-const FIXED_CLOCK_TIME = '2026-01-15T11:01:48.000Z';
+// Fixed clock time within the active CLTTL 2026–27 season.
+const FIXED_CLOCK_TIME = '2026-10-16T11:01:48.000Z';
 
 // The tournament date-range validation and display use the real wall-clock (not the fixed
 // test clock above), so dates must be computed relative to today to stay valid over time.

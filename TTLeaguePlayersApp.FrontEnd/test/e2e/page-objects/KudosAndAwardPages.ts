@@ -24,14 +24,7 @@ export class KudosAndAwardPages {
 
     async openActiveSeasonCard(index: number): Promise<void> {
         this.openCard = this.activeSeasonCards().nth(index);
-
-        // Expand card if not already expanded as only card 
-        const count = await this.activeSeasonCards().count();
-        if (count > 0) {
-            await this.openCard.getByTestId('active-season-header').click();
-        }
-
-        await expect(this.openCard.getByTestId('active-season-details')).toBeVisible();
+        await this.expandCardIfCollapsed(this.openCard);
     }
 
     async findAndOpenActiveSeasonCard(league: string, season: string, team: string): Promise<Locator> {
@@ -52,16 +45,17 @@ export class KudosAndAwardPages {
         expect(clttlCardIndex).toBeGreaterThanOrEqual(0);
 
         this.openCard = cards.nth(clttlCardIndex);
-
-        // Expand card if not already expanded as only card 
-        if (count > 1) {
-            await this.openCard.getByTestId('active-season-header').click();
-        }
-
-        // Wait for details
-        await expect(this.openCard.getByTestId('active-season-details')).toBeVisible();
+        await this.expandCardIfCollapsed(this.openCard);
 
         return this.openCard;
+    }
+
+    private async expandCardIfCollapsed(card: Locator): Promise<void> {
+        const details = card.getByTestId('active-season-details');
+        if (!await details.isVisible()) {
+            await card.getByTestId('active-season-header').click();
+        }
+        await expect(details).toBeVisible();
     }
 
     rateInfoModal(): Locator {

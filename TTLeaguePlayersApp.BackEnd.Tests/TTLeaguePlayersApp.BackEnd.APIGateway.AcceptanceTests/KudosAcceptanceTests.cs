@@ -131,7 +131,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
                 -H "Content-Type: application/json" \
                 -d '{
                 "league": "CLTTL",
-                "season": "2025-2026",
+                "season": "2026-2027",
                 "division": "Division 4",
                 "receiving_team": "Morpeth 9",
                 "home_team": "Morpeth 10",
@@ -173,7 +173,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // Arrange
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         var teamName = "Morpeth 10";
         
@@ -205,7 +205,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // Arrange
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         
         var queryParams = $"?league={WebUtility.UrlEncode(league)}&season={WebUtility.UrlEncode(season)}&team_division={WebUtility.UrlEncode(division)}";
@@ -239,10 +239,10 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // 3. Prepare Request (matching 'test_already_registered@user.test' active seasons in register-test-users.sh)
         // Values from register-test-users.sh:
-        // league: "CLTTL", season: "2025-2026", team_name: "Morpeth 10", team_division: "Division 4", person_name: "Luca Minudel"
+        // league: "CLTTL", season: "2026-2027", team_name: "Morpeth 10", team_division: "Division 4", person_name: "Luca Minudel"
         var requestBody = CreateKudosRequestJson(
             league: "CLTTL",
-            season: "2025-2026",
+            season: "2026-2027",
             division: "Division 4",
             receivingTeam: "Morpeth 9", // Must be Home or Away. Giver is Morpeth 10.
             homeTeam: "Morpeth 10",
@@ -308,7 +308,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
         _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
 
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         var giverTeam = "Morpeth 10";
         var receivingTeam = $"Acceptance Delete Target {Guid.NewGuid():N}"[..33];
@@ -412,7 +412,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // 2. Create a Kudos to retrieve
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         var teamName = "Morpeth 10"; // Giver team
         
@@ -473,7 +473,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
         // 2. Create a Kudos to retrieve (awarded TO Morpeth 9)
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         var teamName = "Morpeth 9";
         var requestBody = CreateKudosRequestJson(
@@ -525,7 +525,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
     {
         // 1. Arrange
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         
         // Ensure at least one kudos summary exists (previous test might have created some, but let's be safe)
@@ -609,7 +609,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
         var otherUserSub = Guid.NewGuid().ToString(); // Random sub mimicking another user
 
         var league = "CLTTL";
-        var season = "2025-2026";
+        var season = "2026-2027";
         var division = "Division 4";
         var teamName = "Morpeth 10";
 
@@ -661,7 +661,7 @@ public class KudosAcceptanceTests: IAsyncLifetime
 
     private static string CreateKudosRequestJson(
         string league = "CLTTL",
-        string season = "2025-2026",
+        string season = "2026-2027",
         string division = "Division 4",
         string receivingTeam = "Morpeth 9",
         string homeTeam = "Morpeth 10",

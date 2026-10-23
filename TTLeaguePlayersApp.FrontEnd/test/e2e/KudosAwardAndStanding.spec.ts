@@ -4,6 +4,8 @@ import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
 import { deleteCreatedKudos, trackCreatedKudos, type CreatedKudos } from './helpers/created-kudos-cleanup';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
+const CLTTL_SEASON = '2026-2027';
+const PASSWORD = 'aA1!56789012';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -18,269 +20,118 @@ test.describe('Kudos Standings', () => {
         await deleteCreatedKudos(request, createdKudos);
     });
 
-
     test('Step 1: Award kudos & show all the kudos Awarded by you', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-
-        // Long running test due to multiple interactions and waits
-        // Whole test timeout extended from the 30.0000 ms default to 60.000 ms
         test.setTimeout(60000);
-
-        // Mock Cognito to always return empty latest_kudos
         await mockCognitoLatestKudos(page);
 
         const user = new User(page);
+        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', PASSWORD);
 
-        // Login
-        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-
-        // 1. Rate Match 1: 18th Jan 2026 - Fusion 5 - Positive
-        await user.setFixedClockTime('2026-01-18T12:00:00Z');
+        await user.setFixedClockTime('2026-10-09T20:46:00Z');
         const kudosPage = await user.navigateToKudos();
+        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Morpeth 10');
+        await kudosPage.ratePositiveKudosFromOpenCard('Morpeth 11 Jr');
 
-        // Open Active Season CLTTL 2020-2026 Division 4 Morpeth 10
-        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
-
-        // Rate Previous Match against "Fusion 5"
-        // Info modal: dismiss it without ticking, so it must appear again at rate 2.
-        await kudosPage.ratePositiveKudosFromOpenCard('Fusion 5');
-
-        // 2. Rate Match 2: 21st Jan 2026 - Walworth Tigers - Neutral
-        await user.setFixedClockTime('2026-01-21T12:00:00Z');
+        await user.setFixedClockTime('2026-10-16T20:46:00Z');
         await user.navigateToKudos();
+        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Morpeth 10');
+        await kudosPage.RateNeutralKudosFromOpenCard('Highbury 3', 'tick-and-ok');
 
-        // Open Active Season CLTTL 2020-2026 Division 4 Morpeth 10
-        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
-
-        // Rate "Previous Match" against "Walworth Tigers"
-        // Info modal: tick "Don't show this message again" before dismissing it.
-        await kudosPage.RateNeutralKudosFromOpenCard('Walworth Tigers', 'tick-and-ok');
-
-
-        // 3. Rate Match 3: 7th Feb 2026 - Fusion 6 Jr - Negative
-        await user.setFixedClockTime('2026-02-07T12:00:00Z');
+        await user.setFixedClockTime('2026-10-22T20:46:00Z');
         await user.navigateToKudos();
-
-        // Open Active Season CLTTL 2020-2026 Division 4 Morpeth 10
-        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
-
-        // Rate "Previous Match" against "Fusion 6 Jr"
-        // Info modal: must NOT appear — it was suppressed at rate 2, and the kudos awarded in
-        // between call invalidateCacheByPrefix('kudos_cache_'), which the preference key must survive.
-        const kudosStandingsPage = await kudosPage.RateNegativeKudosFromOpenCard('Fusion 6 Jr', 'expect-absent');
-
-
-        // Check list items
-        // We expect the list to appear
-        // Items: Fusion 6 Jr (Negative), Walworth Tigers (Neutral), Fusion 5 (Positive)
-        // They should be ordered by date 
+        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Morpeth 10');
+        const kudosStandingsPage = await kudosPage.RateNegativeKudosFromOpenCard('Morpeth 9', 'expect-absent');
 
         expect(await kudosStandingsPage.myKudosItemsCount()).toBe(3);
-
-        // Verify content. We can match text inside each card.
-        // Note: The order depends on the API. 
-        // If API returns implicitly ordered by insertion or date? 
-        // Let's assume generic contain for now or checks specific text combinations.
-
-        // Checking one by one if they exist in the list implies we know the order.
-        // Let's check that we can find each expected card.
-        await kudosStandingsPage.myKudosItemsContains(1, 'Fusion 6 Jr', 'Fewer');
-        await kudosStandingsPage.myKudosItemsContains(2, 'Walworth Tigers', 'Standard');
-        await kudosStandingsPage.myKudosItemsContains(3, 'Fusion 5', 'Extra');
+        await kudosStandingsPage.myKudosItemsContains(1, 'Morpeth 9', 'Fewer');
+        await kudosStandingsPage.myKudosItemsContains(2, 'Highbury 3', 'Standard');
+        await kudosStandingsPage.myKudosItemsContains(3, 'Morpeth 11 Jr', 'Extra');
     });
 
     test('Step 2: Kudos awarded to your team & show your Team\'s kudos', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-
-        // Long running test due to multiple interactions and waits
-        // Whole test timeout extended from the 30.0000 ms default to 60.000 ms
         test.setTimeout(60000);
-
-        // Mock Cognito to always return empty latest_kudos
         await mockCognitoLatestKudos(page);
 
         const user = new User(page);
 
-        // === User 1: Walworth Tigers gives kudos to Morpeth 10 ===
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
-
-        // Set current date time: 21st January 2026
-        await user.setFixedClockTime('2026-01-21T12:00:00Z');
-
-        // Navigate to Kudos
-        const kudosPageWT = await user.navigateToKudos();
-
-        // Active Season CLTTL 2025-2026 Division 4 Walworth Tigers
-        await kudosPageWT.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
-
-        // Rate the match with Morpeth 10, and give a Positive Kudos. This lands on Kudos Standings
-        // (a first visit for this user in this test), so both info modals are up and would block
-        // the menu click below - dismiss them first.
-        const kudosStandingsPageWT = await kudosPageWT.ratePositiveKudosFromOpenCard('Morpeth 10');
-        await kudosStandingsPageWT.dismissInfoModal(false);
-
-        // Logout
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_highbury3@user.test', PASSWORD);
+        await user.setFixedClockTime('2026-10-16T20:46:00Z');
+        const highburyKudosPage = await user.navigateToKudos();
+        await highburyKudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Highbury 3');
+        const highburyStandingsPage = await highburyKudosPage.ratePositiveKudosFromOpenCard('Morpeth 10');
+        await highburyStandingsPage.dismissInfoModal(false);
         await user.menu.open();
         await user.menu.logout();
 
-        // === User 2: Fusion 5 gives kudos to Morpeth 10 ===
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_f5@user.test', 'aA1!56789012');
-
-        // Set current date time: 18th January 2026
-        await user.setFixedClockTime('2026-01-18T12:00:00Z');
-
-        // Navigate to Kudos
-        const kudosPageF5 = await user.navigateToKudos();
-
-        // Open Active Season CLTTL 2025-2026 Division 4 Fusion 5
-        await kudosPageF5.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Fusion 5');
-
-        // Rate the match with Morpeth 10, and give a Positive Kudos. Same reason as user 1 above:
-        // dismiss both info modals (a fresh visit) before the menu click.
-        const kudosStandingsPageF5 = await kudosPageF5.ratePositiveKudosFromOpenCard('Morpeth 10');
-        await kudosStandingsPageF5.dismissInfoModal(false);
-
-        // Logout
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_morpeth11jr@user.test', PASSWORD);
+        await user.setFixedClockTime('2026-10-09T20:46:00Z');
+        const morpeth11JrKudosPage = await user.navigateToKudos();
+        await morpeth11JrKudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Morpeth 11 Jr');
+        const morpeth11JrStandingsPage = await morpeth11JrKudosPage.ratePositiveKudosFromOpenCard('Morpeth 10');
+        await morpeth11JrStandingsPage.dismissInfoModal(false);
         await user.menu.open();
         await user.menu.logout();
 
-        // === User 3: Morpeth 10 user checks Team's kudos ===
-        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
-
-        // Navigate to Kudos Standings
+        await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', PASSWORD);
         const kudosStandingsPage = await user.navigateToKudosStandings();
-
-        // Select CLTTL 2025-2026 Division 4 Morpeth 10
-        await kudosStandingsPage.selectActiveSeason('CLTTL', '2025-2026', 'Morpeth 10');
-
-        // Open the Team's tab
+        await kudosStandingsPage.selectActiveSeason('CLTTL', CLTTL_SEASON, 'Morpeth 10');
         await kudosStandingsPage.openTeamTab();
 
-        // Check that there are 2 awarded kudos listed
         expect(await kudosStandingsPage.teamKudosItemsCount()).toBe(2);
-
-        // Verify the kudos are from Walworth Tigers and Fusion 5, both Positive
-        // Each item should show the team name and have a "Extra" badge
-        await kudosStandingsPage.teamKudosItemsContains(1, 'Walworth ', 'Extra');
-        await kudosStandingsPage.teamKudosItemsContains(2, 'Fusion 5', 'Extra');
+        await kudosStandingsPage.teamKudosItemsContains(1, 'Highbury 3', 'Extra');
+        await kudosStandingsPage.teamKudosItemsContains(2, 'Morpeth 11 Jr', 'Extra');
     });
 
     test('Step 3: Kudos awarded to other teams & show Team\'s standings', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-
-        // Long running test due to multiple interactions and waits
-        // Whole test timeout extended from the 30.0000 ms default to 60.000 ms
         test.setTimeout(60000);
-
-        // Mock Cognito to always return empty latest_kudos
         await mockCognitoLatestKudos(page);
 
         const user = new User(page);
 
-        // === User 1: Walworth Tigers gives negative kudos to Fusion 5 and Fusion 6 Jr ===
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_highbury3@user.test', PASSWORD);
+        await user.setFixedClockTime('2026-11-20T20:46:00Z');
+        let highburyKudosPage = await user.navigateToKudos();
+        await highburyKudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Highbury 3');
+        await highburyKudosPage.RateNegativeKudosFromOpenCard('Morpeth 11 Jr');
 
-        // Set current date time: 10th February 2026
-        await user.setFixedClockTime('2026-02-10T12:00:00Z');
-
-        // Navigate to Kudos
-        let kudosPageWT = await user.navigateToKudos();
-
-        // Open Active Season CLTTL 2025-2026 Division 4 Walworth Tigers
-        await kudosPageWT.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
-
-        // Rate the match with Fusion 5, and give a Negative Kudos
-        await kudosPageWT.RateNegativeKudosFromOpenCard('Fusion 5');
-
-        // Set current date time: 7th March 2026
-        await user.setFixedClockTime('2026-03-07T12:00:00Z');
-
-        // Navigate to Kudos
-        kudosPageWT = await user.navigateToKudos();
-
-        // Open Active Season CLTTL 2025-2026 Division 4 Walworth Tigers
-        await kudosPageWT.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
-
-        // Rate the match with Fusion 6 Jr, and give a Negative Kudos. Lands on Kudos Standings (a
-        // fresh mount), so dismiss both info modals before the menu click below.
-        const kudosStandingsPageWT = await kudosPageWT.RateNegativeKudosFromOpenCard('Fusion 6 Jr');
-        await kudosStandingsPageWT.dismissInfoModal(false);
-
-        // Logout
+        await user.setFixedClockTime('2026-12-03T20:46:00Z');
+        highburyKudosPage = await user.navigateToKudos();
+        await highburyKudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Highbury 3');
+        const highburyStandingsPage = await highburyKudosPage.RateNegativeKudosFromOpenCard('Morpeth 9');
+        await highburyStandingsPage.dismissInfoModal(false);
         await user.menu.open();
         await user.menu.logout();
 
-        // === User 2: Fusion 5 gives positive and negative kudos ===
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_f5@user.test', 'aA1!56789012');
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_morpeth11jr@user.test', PASSWORD);
+        await user.setFixedClockTime('2026-11-20T20:46:00Z');
+        let morpeth11JrKudosPage = await user.navigateToKudos();
+        await morpeth11JrKudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Morpeth 11 Jr');
+        await morpeth11JrKudosPage.ratePositiveKudosFromOpenCard('Highbury 3');
 
-        // Set current date time: 10th February 2026
-        await user.setFixedClockTime('2026-02-10T12:00:00Z');
+        await user.setFixedClockTime('2026-10-16T20:46:00Z');
+        morpeth11JrKudosPage = await user.navigateToKudos();
+        await morpeth11JrKudosPage.findAndOpenActiveSeasonCard('CLTTL', CLTTL_SEASON, 'Morpeth 11 Jr');
+        await morpeth11JrKudosPage.RateNegativeKudosFromOpenCard('Irving 3');
 
-        // Navigate to Kudos
-        let kudosPageF5 = await user.navigateToKudos();
-
-        // Open Active Season CLTTL 2025-2026 Division 4 Fusion 5
-        await kudosPageF5.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Fusion 5');
-
-        // Rate the match with Walworth Tigers, and give a Positive Kudos
-        await kudosPageF5.ratePositiveKudosFromOpenCard('Walworth Tigers');
-
-        // Set current date time: 15th November 2025
-        await user.setFixedClockTime('2025-11-15T12:00:00Z');
-
-        // Navigate to Kudos
-        kudosPageF5 = await user.navigateToKudos();
-
-        // Open Active Season CLTTL 2025-2026 Division 4 Fusion 5
-        await kudosPageF5.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Fusion 5');
-
-        // Rate the match with Fusion 6 Jr, and give a Negative Kudos
-        await kudosPageF5.RateNegativeKudosFromOpenCard('Fusion 6 Jr');
-
-        // Navigate to Kudos Standings
         const kudosStandingsPage = await user.navigateToKudosStandings();
-
-        // This is a fresh mount of the page (a new visit), so both info modals
-        // appear here again and would block openTableTab() below.
         await kudosStandingsPage.dismissInfoModal(false);
-
-        // Open the Table tab
         await kudosStandingsPage.openTableTab();
 
-        // Check that the Table Tab is visible (headers of the two tables)
         await expect(page.getByTestId('kudos-standings-tables')).toBeVisible({ timeout: 30000 });
-        await expect(page.getByTestId('positive-kudos-standings')).toBeVisible();
-        await expect(page.getByTestId('negative-kudos-standings')).toBeVisible();
-
-        // Check the Positive Kudos table contains 3 entries + 1 as db prev state
         expect(await kudosStandingsPage.positiveKudosTableCount()).toBe(3);
-
-        // Verify the entries in positive kudos table
-        // 1 - Morpeth 10, 3 matches with positive kudos
         await kudosStandingsPage.positiveKudosTableContains('Morpeth 10', '2');
+        await kudosStandingsPage.positiveKudosTableContains('Morpeth 11 Jr', '1');
+        await kudosStandingsPage.positiveKudosTableContains('Highbury 3', '1');
 
-        // 2 or 3 - Walworth Tigers, 1 match with positive kudos
-        await kudosStandingsPage.positiveKudosTableContains('Walworth Tigers', '1');
+        expect(await kudosStandingsPage.negativeKudosTableCount()).toBe(3);
+        await kudosStandingsPage.negativeKudosTableContains('Morpeth 11 Jr', '1');
+        await kudosStandingsPage.negativeKudosTableContains('Morpeth 9', '2');
+        await kudosStandingsPage.negativeKudosTableContains('Irving 3', '1');
 
-        // 2 or 3 - Fusion 5, 1 match with positive kudos
-        await kudosStandingsPage.positiveKudosTableContains('Fusion 5', '1');
-
-        // Check the Negative Kudos table contains 2 entries + 2 as db prev state
-        expect(await kudosStandingsPage.negativeKudosTableCount()).toBe(2);
-
-        // Verify the entries in negative kudos table
-        // 1 - Fusion 6 Jr, 3 matches with negative kudos
-        await kudosStandingsPage.negativeKudosTableContains('Fusion 6 Jr', '3');
-
-        // 2 - Fusion 5, 1 match with negative kudos
-        await kudosStandingsPage.negativeKudosTableContains('Fusion 5', '1');
-
-        // Check the Neutral Kudos table contains 1 entry
         expect(await kudosStandingsPage.neutralKudosTableCount()).toBe(1);
-
-        // Verify the entries in neutral kudos table
-        // 1 - Walworth Tigers, 1 match with neutral kudos
-        await kudosStandingsPage.neutralKudosTableContains('Walworth Tigers', '1');
+        await kudosStandingsPage.neutralKudosTableContains('Highbury 3', '1');
     });
-
 });

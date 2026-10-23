@@ -3,13 +3,12 @@ import { User, PromoteMyTournamentsPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
 
-// Fixed clock time: 15 January 2026 11:01:48 UTC (epoch: 1768474908)
-const FIXED_CLOCK_TIME = '2026-01-15T11:01:48.000Z';
+// Fixed clock time within the overlapping CLTTL, BCS and FLICK 2026–27 windows.
+const FIXED_CLOCK_TIME = '2027-01-15T11:01:48.000Z';
 
-// The tournament date-range validation and display use the real wall-clock (not the fixed
-// test clock above), so dates must be computed relative to today to stay valid over time.
+// Tournament dates must be in the future relative to the browser's frozen clock.
 function futureDateString(daysFromNow: number): string {
-    const date = new Date();
+    const date = new Date(FIXED_CLOCK_TIME);
     date.setDate(date.getDate() + daysFromNow);
     return date.toISOString().split('T')[0];
 }
@@ -83,7 +82,7 @@ test.describe('Promote My Tournaments Page', () => {
         };
 
         await test.step('Given the Club Manager is logged in', async () => {
-            // Set fixed clock time to 15 January 2026, valid for all 3 leagues season
+            // Set a clock time when all three managed-club seasons are active.
             await user.setFixedClockTime(FIXED_CLOCK_TIME);
 
             // Navigate to login

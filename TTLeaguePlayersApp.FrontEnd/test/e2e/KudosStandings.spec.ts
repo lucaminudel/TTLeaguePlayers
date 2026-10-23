@@ -19,8 +19,8 @@ test.describe('Kudos Standings', () => {
 
         // User A (CAPTAIN): dismiss both standings info modals ticking "Don't show this message
         // again". dismissInfoModal ticks and dismisses the website modal, then the disputes modal.
-        await user.setFixedClockTime('2026-01-21T12:00:00Z');
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
+        await user.setFixedClockTime('2026-10-16T20:46:00Z');
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_highbury3@user.test', 'aA1!56789012');
 
         const kudosStandingsPageA = await user.navigateToKudosStandings();
         await expect(kudosStandingsPageA.websiteInfoModal()).toBeVisible();
@@ -31,8 +31,8 @@ test.describe('Kudos Standings', () => {
 
         // User B (PLAYER), same browser and so the same local storage: the preference is scoped to
         // user A's Cognito sub, so both modals must still appear.
-        await user.setFixedClockTime('2026-01-18T12:00:00Z');
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_f5@user.test', 'aA1!56789012');
+        await user.setFixedClockTime('2026-10-09T20:46:00Z');
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_morpeth11jr@user.test', 'aA1!56789012');
 
         // dismissInfoModal asserts each modal is visible before dismissing it, which is the proof
         // that both reappeared for user B despite user A's suppression of both.
@@ -47,14 +47,14 @@ test.describe('Kudos Standings', () => {
 
         const user = new UserFlow(page);
 
-        await user.setFixedClockTime('2026-01-21T12:00:00Z');
-        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_wt@user.test', 'aA1!56789012');
+        await user.setFixedClockTime('2026-10-16T20:46:00Z');
+        await user.navigateToLoginAndSuccesfullyLogin('test_kudos_highbury3@user.test', 'aA1!56789012');
 
         // Tick "don't show again" on the Rate modal - a different GUID from both standings modals.
         // The OK click lands on /award-kudos (no kudos is awarded here - the rating step is not
         // clicked, so nothing is written to Cognito or DynamoDB).
         const kudosPage = await user.navigateToKudos();
-        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Walworth Tigers');
+        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2026-2027', 'Highbury 3');
         await kudosPage.clickRateFromOpenCard('Morpeth 10');
         await expect(kudosPage.rateInfoModal()).toBeVisible();
         await kudosPage.dismissRateInfoModal(true);

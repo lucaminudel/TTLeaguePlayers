@@ -25,8 +25,8 @@ test.describe('Kudos Caching E2E', () => {
         // 1. Mock Cognito to clear latest_kudos (enables the Rate button)
         await mockCognitoLatestKudos(page);
 
-        // 2. Set fixed clock to make "Previous Match" predictable (Fusion 5 context)
-        await user.setFixedClockTime('2026-01-18T12:00:00Z');
+        // 2. Set fixed clock after Morpeth 10's completed match against Morpeth 11 Jr.
+        await user.setFixedClockTime('2026-10-09T20:46:00Z');
 
         // 3. Login
         await user.navigateToLoginAndSuccesfullyLogin('test_already_registered@user.test', 'aA1!56789012');
@@ -35,7 +35,7 @@ test.describe('Kudos Caching E2E', () => {
         const kudosStandingsPage = await user.navigateToKudosStandings();
 
         // Handle season selection if it appears
-        await kudosStandingsPage.selectActiveSeason('CLTTL', '2025-2026', 'Morpeth 10');
+        await kudosStandingsPage.selectActiveSeason('CLTTL', '2026-2027', 'Morpeth 10');
 
         // 5. Wait for data to load BEFORE checking localStorage
         await expect(page.locator('text=Loading...')).not.toBeVisible();
@@ -76,10 +76,10 @@ test.describe('Kudos Caching E2E', () => {
 
         // 8. Navigate to Award Kudos -> Award it
         const kudosPage = await user.navigateToKudos();
-        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2025-2026', 'Morpeth 10');
+        await kudosPage.findAndOpenActiveSeasonCard('CLTTL', '2026-2027', 'Morpeth 10');
 
         // This method clicks "Rate", "Confirm", and waits for redirect
-        await kudosPage.ratePositiveKudosFromOpenCard('Fusion 5');
+        await kudosPage.ratePositiveKudosFromOpenCard('Morpeth 11 Jr');
 
 
         // 9. Verify localStorage is cleared (the 5s delay on GET ensures it stays empty for this check)
