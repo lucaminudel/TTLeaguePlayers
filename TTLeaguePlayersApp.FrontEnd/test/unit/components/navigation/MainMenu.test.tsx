@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { MainMenu } from '../../../../src/components/navigation/MainMenu';
 
 const mockUseAuth = vi.fn();
@@ -35,6 +35,8 @@ describe('MainMenu', () => {
         );
         fireEvent.click(screen.getByTestId('main-menu-toggle'));
     };
+
+    const CurrentLocation = () => <span data-testid="current-location">{useLocation().pathname}</span>;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -80,9 +82,9 @@ describe('MainMenu', () => {
 
         renderAndOpenMenu();
 
-        expect(screen.getByTestId('main-menu-nav-matches-and-kudos')).toBeTruthy();
-        expect(screen.getByTestId('main-menu-nav-kudos-standings')).toBeTruthy();
-        expect(screen.getByTestId('main-menu-nav-home')).toBeTruthy();
+        expect(screen.getByTestId('main-menu-nav-matches-and-kudos')).toHaveAttribute('href', '/kudos');
+        expect(screen.getByTestId('main-menu-nav-kudos-standings')).toHaveAttribute('href', '/kudos-standings');
+        expect(screen.getByTestId('main-menu-nav-home')).toHaveAttribute('href', '/');
         expect(screen.queryByTestId('main-menu-nav-my-club-teams')).toBeNull();
         expect(screen.queryByTestId('main-menu-nav-promote-my-club')).toBeNull();
     });
@@ -112,7 +114,7 @@ describe('MainMenu', () => {
         expect(overlay.className).toContain('pointer-events-none');
     });
 
-    it('shows club-management links with the manager accent to a club manager', () => {
+    it('shows club-management links with the manager accent to a club manager, while shared links keep the default style', () => {
         setAuth({ isAuthenticated: true, isClubManager: true });
 
         renderAndOpenMenu();
@@ -125,6 +127,14 @@ describe('MainMenu', () => {
         ]) {
             expect(screen.getByTestId(testId)).toHaveClass('text-club-manager-accent');
         }
+        expect(screen.getByTestId('main-menu-nav-my-club-teams')).toHaveAttribute('href', '/my-club-teams');
+        expect(screen.getByTestId('main-menu-nav-my-club-standings')).toHaveAttribute('href', '/my-club-standings');
+        expect(screen.getByTestId('main-menu-nav-promote-my-club')).toHaveAttribute('href', '/promote-my-club');
+        expect(screen.getByTestId('main-menu-nav-promote-my-tournaments')).toHaveAttribute('href', '/promote-my-tournaments');
+        expect(screen.getByTestId('main-menu-nav-clubs-and-tournaments')).toHaveAttribute('href', '/clubs-and-tournaments');
+        expect(screen.getByTestId('main-menu-nav-about-and-contact-us')).toHaveAttribute('href', '/about-and-contact-us');
+        expect(screen.getByTestId('main-menu-nav-clubs-and-tournaments')).toHaveClass('text-main-text');
+        expect(screen.getByTestId('main-menu-nav-clubs-and-tournaments')).not.toHaveClass('text-club-manager-accent');
         expect(screen.queryByTestId('main-menu-nav-matches-and-kudos')).toBeNull();
     });
 
@@ -150,14 +160,70 @@ describe('MainMenu', () => {
         expect(screen.getByTestId('main-menu-additional-season')).toHaveTextContent('CLTTL 2026-2027 - Morpeth 10, Division Five (Second Player)');
     });
 
-    it('signs out when Log out is selected', () => {
+    it('signs out when Log out is selected', async () => {
         const signOut = vi.fn();
+        vi.useFakeTimers();
         setAuth({ isAuthenticated: true }, { signOut });
 
-        renderAndOpenMenu();
+        render(
+            <MemoryRouter initialEntries={['/kudos']}>
+                <MainMenu />
+                <CurrentLocation />
+            </MemoryRouter>
+        );
+        fireEvent.click(screen.getByTestId('main-menu-toggle'));
         fireEvent.click(screen.getByTestId('main-menu-logout-button'));
 
         expect(signOut).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('main-menu-overlay').className).toContain('pointer-events-none');
+
+        await act(async () => { vi.runAllTimers(); });
+        expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+        vi.useRealTimers();
+    });
+
+    it('uses the username when no season or club record supplies a display name', () => {
+        setAuth({ isAuthenticated: true }, { activeSeasons: [], managedClubs: [] });
+
+        renderAndOpenMenu();
+
+        expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Luca');
+    });
+
+    it('does not repeat the first player or manager name in the additional records', () => {
+        setAuth(
+            { isAuthenticated: true, isPlayerOrCaptain: true },
+            {
+                activeSeasons: [
+                    { league: 'CLTTL', season: '2026-2027', team_name: 'Morpeth 9', team_division: 'Division Four', person_name: 'Luca' },
+                    { league: 'CLTTL', season: '2026-2027', team_name: 'Morpeth 10', team_division: 'Division Five', person_name: 'Luca' }
+                ],
+                managedClubs: [
+                    { league: 'CLTTL', season: '2026-2027', club_name: 'Morpeth', club_location: 'Bethnal Green', manager_name: 'Luca' },
+                    { league: 'BCS', season: '2026-2027', club_name: 'Brighton', club_location: 'Brighton', manager_name: 'Luca' }
+                ]
+            }
+        );
+
+        renderAndOpenMenu();
+
+        expect(screen.getAllByTestId('main-menu-managed-club')[1]).not.toHaveTextContent('(Luca)');
+        expect(screen.getByTestId('main-menu-additional-season')).not.toHaveTextContent('(Luca)');
+    });
+
+    it('identifies a different manager on an additional club', () => {
+        setAuth(
+            { isAuthenticated: true, isClubManager: true },
+            {
+                managedClubs: [
+                    { league: 'CLTTL', season: '2026-2027', club_name: 'Morpeth', club_location: 'Bethnal Green', manager_name: 'Luca' },
+                    { league: 'BCS', season: '2026-2027', club_name: 'Brighton', club_location: 'Brighton', manager_name: 'Sam' }
+                ]
+            }
+        );
+
+        renderAndOpenMenu();
+
+        expect(screen.getAllByTestId('main-menu-managed-club')[1]).toHaveTextContent('MANAGER: Brighton, Brighton (BCS 2026-2027) (Sam)');
     });
 });
