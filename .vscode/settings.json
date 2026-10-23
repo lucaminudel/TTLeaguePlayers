@@ -1,4 +1,7 @@
 {
+  "playwright.env": {
+    "EXECUTE_LIVE_COGNITO_TESTS": "true"
+  },
   "strykerMutator.server.path": "TTLeaguePlayersApp.FrontEnd/node_modules/.bin/stryker",
   "strykerMutator.server.workingDirectory": ".",
   "strykerMutator.server.configFile": "stryker.frontend.config.mjs",
