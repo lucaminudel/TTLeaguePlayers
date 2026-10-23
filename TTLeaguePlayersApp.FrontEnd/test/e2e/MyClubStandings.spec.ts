@@ -40,16 +40,16 @@ const fixtureHtml = fs.readFileSync(
  * in a query parameter, so a pattern matching only tabletennis365.com never fires.
  */
 async function mockHighburyClubPage(page: Page): Promise<void> {
-    const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
+    const serveFixtureOrFallback = async (route: import('@playwright/test').Route) => {
         if (decodeURIComponent(route.request().url()).includes(HIGHBURY_CLUB_URL_FRAGMENT)) {
             await route.fulfill({ status: 200, contentType: 'text/html', body: fixtureHtml });
         } else {
-            await route.continue();
+            await route.fallback();
         }
     };
 
-    await page.route('**/tabletennis365.com/**', serveFixtureOrContinue);
-    await page.route('**/go.x2u.in**', serveFixtureOrContinue);
+    await page.route('**/tabletennis365.com/**', serveFixtureOrFallback);
+    await page.route('**/go.x2u.in**', serveFixtureOrFallback);
 }
 
 test.describe('My Club Standings Page', () => {
@@ -160,16 +160,17 @@ test.describe('My Club Standings Page - standings info modal', () => {
     );
 
     async function mockMorpethClubPage(page: Page): Promise<void> {
-        const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
+        const serveFixtureOrFallback = async (route: import('@playwright/test').Route) => {
             if (decodeURIComponent(route.request().url()).includes(MORPETH_CLUB_URL_FRAGMENT)) {
                 await route.fulfill({ status: 200, contentType: 'text/html', body: morpethFixtureHtml });
             } else {
-                await route.continue();
+                // Let the earlier Highbury handler serve its fixture in the shared browser.
+                await route.fallback();
             }
         };
 
-        await page.route('**/tabletennis365.com/**', serveFixtureOrContinue);
-        await page.route('**/go.x2u.in**', serveFixtureOrContinue);
+        await page.route('**/tabletennis365.com/**', serveFixtureOrFallback);
+        await page.route('**/go.x2u.in**', serveFixtureOrFallback);
     }
 
     test.beforeEach(async ({ page }) => {
