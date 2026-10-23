@@ -19,6 +19,27 @@ Use data-testid to quickly identify the html elements.
 *  **Contract Verification:** For every mocked interface/API, there must be a corresponding integration test to ensure the mock's behaviour aligns with the real-world system.
 *  **Dependency Injection:** Prefer injecting mocks and stubs via the **Constructor**. Avoid framework-specific "magic" or reflection-based overrides unless the SUT architecture strictly requires it.
 
+## React async-effect testing
+
+When changing async effect lifecycles, check how the app mounts the affected component. If the app
+uses StrictMode, include that wrapper in the relevant lifecycle tests: its initial effect setup,
+cleanup and repeated setup can leave a discarded request running alongside the current request.
+
+- Control each request independently with deferred responses. Complete the discarded request while
+  the current request remains pending, covering both a successful result and a failure. An invalid
+  successful HTTP response can exercise the diagnostic error path without transport retries.
+- Wait for the discarded response to be processed before checking the UI. It must remain loading,
+  with neither stale data nor a stale error. Then complete the current request and verify its result.
+  An absence assertion that passes before the discarded response settles does not prove cancellation.
+- Where relevant, also check that an older completion cannot overwrite an already-rendered current
+  result. Assert observable state rather than the private cancellation flag or React internals.
+- When cleanup or cancellation mutations survive, add these lifecycle cases before treating the
+  mutants as equivalent. Confirm the targeted mutation fails the test and the restored code passes;
+  for Stryker findings, rerun the scoped deterministic check.
+
+Use this coverage for relevant async lifecycle work, not as a requirement for every component or
+simple test-file relocation.
+
 ## E2E Testing DRY code
 **Action Encapsulation:** To prevent code duplication in the e2e tests for actions repeated in multiple test cases (Login,  NavigateTo..., registerNewUser, etc), organise those actions with a **Fluent Interface** and reuse that code.
 

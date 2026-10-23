@@ -524,6 +524,16 @@ Prioritise mutation findings in this order, in order to start fixing the highest
 
 Then triage the failures and suggest what actions to take to solve the problems found (identify which tests are missing, or which gaps existing tests have, or if bugs have been found and need fixing, and so no).
 
+##### Survivor triage: async React effects
+
+When Stryker survivors remove effect cleanup or cancellation guards, check whether the tests reproduce
+the app's mounting behavior, including StrictMode where used. Follow the
+[React async-effect testing guidance](../../../prompts/workflow/steps_guidelines/WriteTestsGuidelines.md#react-async-effect-testing)
+to cover discarded requests completing successfully or failing while a current request is pending.
+Add the missing behavioral cases and rerun scoped Stryker to confirm those mutants are killed.
+Passing normal-mount tests alone does not establish that a cancellation mutant is equivalent.
+Apply this check to async lifecycle changes and relevant survivors, not every component or file move.
+
 ---
 
 ### Starting the services, when they are not already up
