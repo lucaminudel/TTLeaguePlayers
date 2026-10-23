@@ -1,7 +1,7 @@
 import type { ActiveSeasonDataSource } from '../../../config/environment';
 import { CLTTLHttpTransport } from './CLTTLHttpTransport';
 
-export class CLTTLManagedClub2025PagesFetcher {
+export class CLTTLManagedClub2026PagesFetcher {
     private dataSource: ActiveSeasonDataSource;
     private transport: CLTTLHttpTransport;
 

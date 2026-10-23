@@ -7,7 +7,7 @@ describe('CLTTLActiveSeason2026Processor Integration', () => {
         league: 'CLTTL',
         season: '2026-2027',
         custom_processor: 'CLTTLActiveSeason2026Processor',
-        custom_club_processor: 'CLTTLManagedClub2025Processor',
+        custom_club_processor: 'CLTTLManagedClub2026Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1-calendar' }],

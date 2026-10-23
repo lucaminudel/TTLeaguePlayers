@@ -8,7 +8,7 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
         league: 'CLTTL',
         season: '2025-2026',
         custom_processor: 'CLTTLActiveSeason2026Processor',
-        custom_club_processor: 'CLTTLManagedClub2025Processor',
+        custom_club_processor: 'CLTTLManagedClub2026Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1' }],

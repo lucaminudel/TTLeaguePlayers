@@ -56,7 +56,7 @@ describe('MyClubTeams', () => {
         league: 'CLTTL',
         season: '2025-2026',
         custom_processor: 'CLTTLActiveSeason2026Processor',
-        custom_club_processor: 'CLTTLManagedClub2025Processor',
+        custom_club_processor: 'CLTTLManagedClub2026Processor',
         registrations_start_date: Math.floor(new Date('2025-08-01T00:00:00Z').getTime() / 1000),
         ratings_end_date: Math.floor(new Date('2026-05-01T00:00:00Z').getTime() / 1000),
         division_fixtures: [],
@@ -170,7 +170,7 @@ describe('MyClubTeams', () => {
         renderPage();
 
         expect(processorFactoryMocks.createManagedClubProcessor).toHaveBeenCalledWith(
-            'CLTTLManagedClub2025Processor',
+            'CLTTLManagedClub2026Processor',
             cltttlDataSource,
             'Walworth Table Tennis Club',
             'London',

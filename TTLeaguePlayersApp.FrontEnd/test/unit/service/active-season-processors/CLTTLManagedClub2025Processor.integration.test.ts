@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { CLTTLManagedClub2025Processor } from '../../../../src/service/active-season-processors/CLTTLManagedClub2025Processor';
+import { CLTTLManagedClub2026Processor } from '../../../../src/service/active-season-processors/CLTTLManagedClub2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 
 /**
@@ -11,12 +11,12 @@ import type { ActiveSeasonDataSource } from '../../../../src/config/environment'
  * the e2e specs, and it deliberately asserts less, because the club page carries no season in its
  * URL and no archived version: a new season silently changes its content.
  */
-describe('CLTTLManagedClub2025Processor Integration', () => {
+describe('CLTTLManagedClub2026Processor Integration', () => {
     const mockDataSource: ActiveSeasonDataSource = {
         league: 'CLTTL',
-        season: '2025-2026',
+        season: '2026-2027',
         custom_processor: 'CLTTLActiveSeason2026Processor',
-        custom_club_processor: 'CLTTLManagedClub2025Processor',
+        custom_club_processor: 'CLTTLManagedClub2026Processor',
         registrations_start_date: 0,
         ratings_end_date: 0,
         division_fixtures: [{ 'Division 1': 'http://fixtures/div1' }],
@@ -31,10 +31,10 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     const readFixture = (name: string) =>
         fs.readFileSync(path.resolve(__dirname, 'clttl-2026/data', name), 'utf-8');
 
-    let processor: CLTTLManagedClub2025Processor;
+    let processor: CLTTLManagedClub2026Processor;
 
     beforeEach(() => {
-        processor = new CLTTLManagedClub2025Processor(mockDataSource, 'Morpeth Table Tennis Club');
+        processor = new CLTTLManagedClub2026Processor(mockDataSource, 'Morpeth Table Tennis Club');
         vi.stubGlobal('fetch', vi.fn());
     });
 
@@ -79,7 +79,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     it('should get the teams of a club whose teams are named rather than numbered', async () => {
         stubClubPage('club_teams_walworth.html');
 
-        const walworth = new CLTTLManagedClub2025Processor(mockDataSource, 'Walworth Table Tennis Club');
+        const walworth = new CLTTLManagedClub2026Processor(mockDataSource, 'Walworth Table Tennis Club');
         const teams = await walworth.getClubTeams();
 
         expect(teams).toEqual([
@@ -94,7 +94,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     it('should look the club up by its configured name, punctuation included', async () => {
         stubClubPage('club_teams_aa_academy.html');
 
-        const aaAcademy = new CLTTLManagedClub2025Processor(mockDataSource, 'AA Academy @ SJoA');
+        const aaAcademy = new CLTTLManagedClub2026Processor(mockDataSource, 'AA Academy @ SJoA');
         const teams = await aaAcademy.getClubTeams();
 
         // The team names are taken exactly as the site spells them; nothing is normalised.
@@ -108,7 +108,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     });
 
     it('should throw error if the club has no page configured', async () => {
-        const unknownClubProcessor = new CLTTLManagedClub2025Processor(mockDataSource, 'Not A Real Club');
+        const unknownClubProcessor = new CLTTLManagedClub2026Processor(mockDataSource, 'Not A Real Club');
 
         await expect(unknownClubProcessor.getClubTeams()).rejects.toThrow(
             'Club "Not A Real Club" not found in data source.'
@@ -117,7 +117,7 @@ describe('CLTTLManagedClub2025Processor Integration', () => {
     });
 
     it('should throw error if the league has no clubs configured', async () => {
-        const unconfiguredProcessor = new CLTTLManagedClub2025Processor(
+        const unconfiguredProcessor = new CLTTLManagedClub2026Processor(
             { ...mockDataSource, league: 'BCS', club_teams: [] },
             'Morpeth Table Tennis Club'
         );

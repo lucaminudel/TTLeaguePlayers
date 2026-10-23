@@ -1,6 +1,6 @@
 import type { ClubTeamWithDivision } from '../../../types/clubTeam';
 
-export class CLTTLManagedClub2025PagesParser {
+export class CLTTLManagedClub2026PagesParser {
     /**
      * Every row of the Teams table is returned: the page shows the season the site considers
      * current, and its League column is not used to filter.

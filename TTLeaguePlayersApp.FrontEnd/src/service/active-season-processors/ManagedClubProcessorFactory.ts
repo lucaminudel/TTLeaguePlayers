@@ -1,6 +1,6 @@
 import type { ActiveSeasonDataSource } from '../../config/environment';
 import type { ManagedClubProcessor } from './ManagedClubProcessor';
-import { CLTTLManagedClub2025Processor } from './CLTTLManagedClub2025Processor';
+import { CLTTLManagedClub2026Processor } from './CLTTLManagedClub2026Processor';
 
 import { ManagedClubProcessorWithLocalStorageCache } from './ManagedClubProcessorWithLocalStorageCache';
 
@@ -13,7 +13,7 @@ type ManagedClubProcessorConstructor = new (
 ) => ManagedClubProcessor;
 
 const clubProcessorRegistry: Record<string, ManagedClubProcessorConstructor> = {
-    'CLTTLManagedClub2025Processor': CLTTLManagedClub2025Processor,
+    'CLTTLManagedClub2026Processor': CLTTLManagedClub2026Processor,
     //    'DummyManagedClubProcessor': DummyManagedClubProcessor, // add here additiona ManagedClubProcessor
 };
 

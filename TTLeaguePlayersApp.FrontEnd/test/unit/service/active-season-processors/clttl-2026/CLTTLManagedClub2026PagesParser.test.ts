@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CLTTLManagedClub2025PagesParser } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLManagedClub2025PagesParser';
+import { CLTTLManagedClub2026PagesParser } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLManagedClub2026PagesParser';
 import fs from 'fs';
 import path from 'path';
 
@@ -7,9 +7,9 @@ function readSnapshot(name: string): string {
     return fs.readFileSync(path.resolve(__dirname, 'data', name), 'utf-8');
 }
 
-describe('CLTTLManagedClub2025PagesParser', () => {
+describe('CLTTLManagedClub2026PagesParser', () => {
     it('skips rows with fewer than three cells and whitespace-only team names', () => {
-        const parser = new CLTTLManagedClub2025PagesParser();
+        const parser = new CLTTLManagedClub2026PagesParser();
         const html = `<table class="tt-contact-table"><tbody>
             <tr></tr>
             <tr><td>Winter</td></tr>
@@ -22,7 +22,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
     });
 
     it('selects the club table and trims names and divisions without filtering league labels', () => {
-        const parser = new CLTTLManagedClub2025PagesParser();
+        const parser = new CLTTLManagedClub2026PagesParser();
         const html = `<table><tbody><tr><td>Other</td><td>Other</td><td>Decoy Team</td></tr></tbody></table>
             <table class="tt-contact-table"><tbody>
                 <tr><td>Winter 2025-26</td><td>  Division Four  </td><td>  Older Team  </td></tr>
@@ -37,7 +37,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
 
     describe('getClubTeams', () => {
         it('should extract every team with its division from a club html page', () => {
-            const parser = new CLTTLManagedClub2025PagesParser();
+            const parser = new CLTTLManagedClub2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_morpeth.html'));
 
             // Page order and division labels are preserved after trimming. The League column is ignored:
@@ -68,7 +68,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
                 <tr><td>Winter 2026-27</td><td></td><td>Odd Team</td><td>Someone</td></tr>
             </tbody></table></body></html>`;
 
-            const parser = new CLTTLManagedClub2025PagesParser();
+            const parser = new CLTTLManagedClub2026PagesParser();
 
             expect(parser.getClubTeams(html)).toEqual([
                 { team_name: 'Odd Team', team_division: '' }
@@ -81,7 +81,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
                 <tr><td>Winter 2026-27</td><td>Division 1</td><td>Real Team</td><td>Someone</td></tr>
             </tbody></table></body></html>`;
 
-            const parser = new CLTTLManagedClub2025PagesParser();
+            const parser = new CLTTLManagedClub2026PagesParser();
 
             expect(parser.getClubTeams(html)).toEqual([
                 { team_name: 'Real Team', team_division: 'Division 1' }
@@ -89,7 +89,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
         });
 
         it('should preserve the team names exactly as the site spells them', () => {
-            const parser = new CLTTLManagedClub2025PagesParser();
+            const parser = new CLTTLManagedClub2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_aa_academy.html'));
 
             expect(teams).toEqual([
@@ -101,7 +101,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
         });
 
         it('should extract named teams as well as numbered ones', () => {
-            const parser = new CLTTLManagedClub2025PagesParser();
+            const parser = new CLTTLManagedClub2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_walworth.html'));
 
             expect(teams).toEqual([
@@ -113,7 +113,7 @@ describe('CLTTLManagedClub2025PagesParser', () => {
         });
 
         it('should return empty array if the teams table is missing', () => {
-            const parser = new CLTTLManagedClub2025PagesParser();
+            const parser = new CLTTLManagedClub2026PagesParser();
             const teams = parser.getClubTeams('<html><body></body></html>');
             expect(teams).toEqual([]);
         });
