@@ -458,7 +458,7 @@ The agent does this by creating one realistic, temporary mistake in the implemen
 named input or assertion should detect; it then runs the specific test and confirms that it fails for
 the expected reason. The agent reverts the mutation and confirms the test passes again. If the test
 does not fail as expected, the agent identifies the cause and fixes the test. The mutations must
-exercise boundary conditions, special input values, each relevant execution path, and any other mutation the agent identify as valuable; do not only mutate the happy path.
+exercise boundary conditions, special input values, each relevant execution path, and any other mutation the agent identifies as valuable; do not only mutate the happy path.
 
 ---
 
@@ -500,13 +500,15 @@ npm run "C+ e2e-tests-web:run test-env"
 
 All three of these mutate Cognito: their cleanup deletes the dynamically created `test_*` users.
 
-#### Deterministic Mutation testing — only the changed frontend production code
+#### Deterministic mutation testing — Tier 2 only, after user confirmation
 
-Even when the user confirmed in Phase 1 that the dev DB is clean or not, run mutation testing.
+Run deterministic mutation testing only as part of Tier 2 complete verification, and only after
+explicitly asking the user for confirmation. It is time-consuming, provides slow feedback, and must
+not be run as an ordinary inner-loop check or before Tier 2.
 
-Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. After the
-build and relevant Vitest specs are green, select only the changed `src/` production file(s) and their
-covering unit spec(s). Do not run the whole frontend mutation suite as an ordinary inner-loop check.
+Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. Once the
+user has confirmed Tier 2 and the build and relevant Vitest specs are green, select only the changed
+`src/` production file(s) and their covering unit spec(s).
 
 ```bash
 npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts
@@ -802,6 +804,7 @@ passing, and do not narrow it because a step looks awkward.
 - Running a mutating Cognito command — the provisioning scripts, an `aws cognito-idp` write, applying a
   pending change to either — without asking first.
 - Climbing to Tier 1-C or Tier 2 or reaching for them when 1-A would have answered the question.
+- Running deterministic mutation testing outside Tier 2 or without user confirmation.
 - Re-running a Cognito-touching test to diagnose something unrelated to Cognito, instead of reading the
   trace, screenshot or `error-context.md` already on disk.
 - Losing count of the Cognito budget, or continuing past 10 without asking.
