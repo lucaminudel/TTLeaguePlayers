@@ -8,6 +8,40 @@ effort: high
 
 # Coding Task Execution
 
+## Session name — at the start
+
+At skill entry, name the current chat `Execution — <existing topic>`. Remove any leading
+`Discovery`, `Inception`, `Execution` or `Review` phase prefix followed by `—`, `–`, `-` or `:`
+(case-insensitive), then add this skill's prefix once. Preserve the rest of the title; never stack
+phase prefixes. If no topic remains, use a short topic from the user's task and refine it once clear.
+
+- **Codex:** read the current chat title from host metadata (use `list_threads` if needed), then
+  call `set_thread_title` with the new title. Omit `threadId` to rename the current chat only.
+- **Claude Code:** use the current `${CLAUDE_SESSION_ID}`, not the most recently modified session.
+  With the installed Claude Agent SDK, read `get_session_info(session_id, directory=project_root)`
+  and take `custom_title` or `summary`; call
+  `rename_session(session_id, new_title, directory=project_root)` and read back to verify.
+  The TypeScript equivalents are `getSessionInfo` and `renameSession`. Do not try to execute
+  `/rename` as a shell command or edit transcript files directly.
+
+Do not rename another chat or change project membership. If the current session cannot be identified
+or the required tool/SDK is unavailable, report the naming limitation briefly and continue the task;
+do not install dependencies or add hooks just to rename it.
+
+
+## Orchestration rules — read first
+
+Before starting Phase 1, read the shared orchestration guidance in full. Use the
+reference for your environment below; resolve the relative link against this `SKILL.md`.
+Apply the phase-specific rules throughout this workflow.
+
+```!
+# Claude specific
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
+```
+
+Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
+
 Input is a confirmed plan at
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md`.
 That file is the source of truth across sessions and agents, not the in-session task list. List the
@@ -15,6 +49,13 @@ That file is the source of truth across sessions and agents, not the in-session 
 the user which; none, there is no plan.
 
 If no such plan exists, stop and say so — run `coding-task-inception` first. Do not improvise one.
+
+### Codex-specific retrieval
+
+In Codex, resolve the task state by inspecting `.codex/coding-tasks/` and reusing the matching
+`task.md`. Read the confirmed plan from `.codex/coding-tasks/<task-slug>/plan.md`. If no matching
+plan exists, stop and report that Coding Task Inception must run first.
+
 
 ## Phase 1 — Load and reconcile
 
@@ -27,8 +68,7 @@ Reconcile it against reality before doing anything:
   the test run) rather than trusting the label blindly, and say what you checked.
 
 - Sub-tasks marked `in progress` from an earlier session are the first thing to resolve. Establish
-  what actually landed, finish or restart that one task, and do not start anything new until it is
-  settled.
+  what actually landed; after the Phase 3 gate, finish or restart that task before starting new work.
 
 - The plan's research findings were true when written. Anything it cites — a selector, a file:line,
   a config key — is verified again the moment you rely on it.
@@ -67,22 +107,50 @@ regressions. So:
 
 Where the graph is a chain, say so and run it serially rather than manufacturing parallelism.
 
-## Phase 3 — Bridge the gaps to limit the interruptions
+## Phase 3 — Resolve upfront asks before execution
 
-Look ahead to the whole plan, and see if there is any gap, clarificaiton, decision, missing info or permission you need from the user, then ask the user that information now instead of interrupting the user later during the exection.
+**Purpose: let execution proceed autonomously, without interrupting the user for foreseeable
+questions or permissions.** New findings during the work may still require an ask; anticipate what
+can be resolved now rather than promising that no interruption will ever be needed.
 
-Update the plan and subtask descripttion with the additonal info that emerges from this.
-For each one of these ask, record each question and the user answer, and use them during the execution to avoid unnecessary interruptons where you already have the user answer.
-The aim is to avoid preventable interruptions during the execition, and limit the number of times you will have to stop and hand over to the user. Therefore the plan execution will stop to hand over to the user for things that cannot be unticipated now.
-If the user has already approved the step that follows a checkpoint, the checkpoint is a report, not a stop: post it, log that the earlier approval covered it, and continue.  
+Keep this phase after loading/reconciling the plan and ordering the work: those steps reveal the
+actual dependencies, gaps and checkpoints. This phase is a required gate before starting or resuming
+Phase 4, including before dispatching implementation subagents.
+
+Read the whole plan and look ahead through implementation, checkpoints and final verification.
+Identify every unresolved clarification, decision, missing fact, precondition or permission that
+would otherwise cause a later ask. Reuse answers and authorizations already given; ask for
+what remains unresolved, then wait for the answers before starting dependent work.
+
+- Present **each checkpoint separately by name/number and purpose**, with what the user would
+  inspect there. Ask whether execution should **stop** there or **ignore the stop and continue**.
+  Record the explicit choice for each checkpoint; an unresolved choice defaults to stopping.
+  Ignoring a checkpoint waives its hand-back, not its work, evidence or verification.
+- Present the planned Tier 2 verification after Phase 4, including its environment, live Cognito
+  effects and deterministic mutation-testing scope/cost. Ask whether to preapprove Tier 2 and
+  deterministic mutation testing now or leave either approval until that final stage. Record
+  exactly what was approved; pipeline approval alone does not imply mutation-testing approval.
+- Resolve other foreseeable asks, including any outstanding baseline/environment questions from
+  Phase 1 and permissions for planned external mutations. Keep the Cognito budget and lockout
+  stopping rules; upfront approval does not remove those limits.
+
+Persist each question and answer, checkpoint choice, and approval scope in the plan and relevant
+sub-task descriptions. Do not treat silence as approval. Do not skip this discussion because the
+plan is detailed or already confirmed. If everything is already explicitly settled, state the
+recorded answers and choices and proceed without asking again.
+
+During execution, honour these recorded decisions. Report progress without handing back for an
+already-approved action. Ask again only for a new finding, an unmet precondition, a retained stop,
+an exceeded limit, or an action outside the recorded authorization.
 
 ## Phase 4 — Execute
 
-For each sub-task, in order:
+For each implementation sub-task, in dependency order:
 
 1. Set its Status to `in progress` in the persisted plan **before** starting.
 2. Do the work as the sub-task describes.
-3. Verify it (Phase 6).
+3. Verify it using the applicable Tier 1 checks in Phase 6. Tier 2 is the final stage after
+   Phase 4 implementation, not a per-sub-task inner-loop check.
 4. Set Status to `done` and append a dated line to the plan's progress log.
 5. **Replace the comments you just wrote with self-explaining code (Phase 7), then re-verify.**
 6. Write its entry in the work summary report (Phase 8) and post that entry in the chat.
@@ -90,9 +158,10 @@ For each sub-task, in order:
 A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
 tests, or anything you worked around rather than solved — report it and stop.
 
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
-```
+After all Phase 4 implementation work and its Tier 1 checks are complete, perform the final Tier 2
+stage defined in Phase 6, then complete the work summary and retrospective before hand-off. If the plan includes a final
+verification sub-task, leave it pending until this stage passes; do not mark the overall execution
+complete before required Tier 2 checks and approved deterministic mutation testing are complete.
 
 ### Read-only commands against the live cloud and Cognito — permitted without asking
 
@@ -125,9 +194,15 @@ exists for the same reason.
 
 ## Phase 5 — Checkpoints
 
-When the plan contains a review checkpoint, **stop completely** and hand back. Show what the
-checkpoint task says to show, and wait for explicit permission to continue. Do not start the next
-sub-task or "get a head start" on unrelated ones.
+Apply the per-checkpoint choice recorded in Phase 3:
+
+- **Stop**, or no explicit choice recorded: stop completely, show the checkpoint evidence and
+  purpose, and wait for permission to continue. Do not start the next sub-task or unrelated work.
+- **Ignore the stop and continue**: complete the checkpoint work and verification, post its evidence,
+  log the recorded authorization, and continue without another ask.
+
+Permission to implement the plan does not by itself waive every checkpoint. Present each checkpoint
+and settle its choice in Phase 3; do not silently invent a waiver later.
 
 ## Phase 6 — Verify before marking done
 Four tiers, ordered by how much **live Cognito** they spend. They are **not** interchangeable, and the
@@ -137,8 +212,8 @@ ordering is the point: you climb it only as far as the change requires.
 |---|---|---|---|---|
 | **1-A** | dev | the **e2e environment** | **none** — excluded by filter / flag | run freely, constantly |
 | **1-B** | dev | the **e2e environment** | scoped — only the individual tests relevant to the changed files | counts against the budget |
-| **1-C** | dev | dev — **exists only if the user confirmed the dev DB is clean** | **full** — whole backend suite + whole e2e suite with live Cognito | **ask first** |
-| **2** | test (clean-room) | test | **full**, plus Cognito user cleanup | **ask first**, at the end of execution |
+| **1-C** | dev | dev — **exists only if the user confirmed the dev DB is clean** | **full** — whole backend suite + whole e2e suite with live Cognito | counts against the budget; no separate ask |
+| **2** | test (clean-room) | test | **full**, plus Cognito user cleanup | after Phase 4; ask unless already preapproved |
 
 **Where the e2e tests run.** Every e2e test — Cognito-free or live — needs a clean DB; on a dev DB with
 leftover data they fail for reasons unrelated to the change. So the **e2e environment** is the **test**
@@ -159,19 +234,23 @@ C# test classes on dev, e2e specs on the e2e environment.
 **Tier 1-C — the fast local full run, only with a clean dev DB.** Everything, on dev, with live
 Cognito. It exists **only if the user confirmed the dev DB is clean**: on the test environment the same
 run would be Tier 2 without the clean-room build, so it adds a Cognito-heavy run and tells you almost
-nothing new. **Confirm with the user before launching.** When it exists, run it:
-
-- to confirm the initial green state quickly;
-- after long changes that also affect the frontend, before the final Tier 2 — it runs faster locally,
-  and Playwright screenshots, traces and videos land locally.
+nothing new. Like Tier 1-B, count each invocation against the Cognito budget; no separate
+permission is required within that budget. When it exists, run it at relevant checkpoints or
+after long changes that also affect the frontend, before the final Tier 2 — it runs faster locally,
+and Playwright screenshots, traces and videos land locally.
 
 Without a clean dev DB there is no 1-C: checkpoints and "application code finished" gates use 1-B, and
 the whole e2e suite runs only in Tier 2.
 
 **Tier 2 — the complete verification.** On the **test** environment, with live Cognito and a clean-room
-build. Minutes. **Left for the end of execution, and started only after asking the user.** Before it
-starts, stop any test-env services you started yourself: the pipeline reuses a SAM already listening on
-3003 instead of its own clean-room build.
+build. Minutes. **Run only after Phase 4 implementation and its Tier 1 checks are complete.**
+Ask the user before launching unless the applicable Tier 2 run was explicitly preapproved, for
+example in Phase 3. Honour that approval without asking again, within its recorded scope and the
+Cognito budget. Deterministic mutation testing belongs only in this Tier 2 stage and needs its own
+explicit approval, which may also be recorded in Phase 3.
+
+Before Tier 2 starts, stop any test-env services you started yourself: the pipeline reuses a SAM
+already listening on 3003 instead of its own clean-room build.
 
 Never substitute a higher tier for the 1-A loop (too slow, and it burns Cognito to tell you something
 a lint error would have). Never let 1-A stand in for Tier 2 (no live Cognito, no
@@ -247,9 +326,9 @@ than reaching for a second mutation that flatters the original guess.
 | `config/*.env.json` | **1-A backend** — `LoaderTest` is a Theory over dev/test/staging/prod and parses all four |
 | Test or fixture only | just that suite, at the lowest tier that runs it |
 | Either, once 1-A is green **and** the change touches a Cognito-dependent path | **1-B**, narrowed to the relevant tests — counts against the budget |
-| Gate: plan verification sub-tasks, and **every checkpoint** | **1-C** front and back if the dev DB is clean — **ask first**; otherwise **1-B** |
+| Gate: plan verification sub-tasks, and **every checkpoint** | **1-C** front and back if the dev DB is clean; otherwise **1-B** — both count against the budget |
 | Application code finished, before writing its tests | same as the row above — establish the green baseline |
-| Plan's final sub-task, at the end of execution | **Tier 2** — **ask first** |
+| Final verification stage, after Phase 4 implementation and Tier 1 checks | **Tier 2** — ask unless explicitly preapproved |
 
 ---
 
@@ -387,10 +466,11 @@ Each invocation is one unit of the budget. At 10, stop and ask.
 
 ---
 
-### Tier 1-C — full local verification with live Cognito (dev, clean dev DB only) · **ask first**
+### Tier 1-C — full local verification with live Cognito (dev, clean dev DB only) · counts against the budget
 
-Only if the user confirmed in Phase 1 that the dev DB is clean. A faster Tier 2 with local artefacts.
-**Confirm with the user before launching.**
+Only if the user confirmed the dev DB is clean. This local full run provides local artefacts;
+it does not replace Tier 2. Like Tier 1-B, each invocation counts against the Cognito budget,
+with no separate ask within that budget.
 
 Backend, whole suite, no filter:
 
@@ -454,6 +534,9 @@ exercise boundary conditions, special input values, each relevant execution path
 
 ### Tier 2 — complete verification (test env, live Cognito)
 
+Run after Phase 4 implementation and Tier 1 checks. Ask before launching unless this run is
+explicitly preapproved; record and reuse that approval.
+
 ```bash
 ./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO
 ```
@@ -474,7 +557,7 @@ on the output file filtering for step results and failure signatures — not raw
 tail -f <task-output-file> | grep -E --line-buffered "Build Succeeded|Build Failed|Test Run Successful|Test Run Failed|passed \(|failed|error TS|ALL TESTS PASSED|FAILURE"
 ```
 
-When the whole pipeline is more than you need, either half can be run alone — **still after asking**:
+When the whole pipeline is more than you need, either half can be run alone — **ask unless that run is already explicitly preapproved**:
 
 Backend only, on the test environment, no filter:
 
@@ -492,9 +575,11 @@ All three of these mutate Cognito: their cleanup deletes the dynamically created
 
 #### Deterministic mutation testing — Tier 2 only, after user confirmation
 
-Run deterministic mutation testing only as part of Tier 2 complete verification, and only after
-explicitly asking the user for confirmation. It is time-consuming, provides slow feedback, and must
-not be run as an ordinary inner-loop check or before Tier 2.
+Run deterministic mutation testing only in the final Tier 2 stage, after Phase 4 implementation
+and Tier 1 checks are complete. Ask for explicit confirmation unless deterministic mutation testing
+was already explicitly preapproved with its scope, for example in Phase 3. Do not ask again for the
+same approved run. It is time-consuming and must not run as an ordinary inner-loop check or before
+Tier 2. Tier 2 pipeline approval alone does not approve deterministic mutation testing.
 
 Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. Once the
 user has confirmed Tier 2 and the build and relevant Vitest specs are green, select only the changed
@@ -533,6 +618,13 @@ to cover discarded requests completing successfully or failing while a current r
 Add the missing behavioral cases and rerun scoped Stryker to confirm those mutants are killed.
 Passing normal-mount tests alone does not establish that a cancellation mutant is equivalent.
 Apply this check to async lifecycle changes and relevant survivors, not every component or file move.
+
+#### Codex-specific equivalent
+
+In Codex, run long-lived commands through a terminal session and retain the returned session
+identifier. Poll that session periodically for new output, filtering for readiness, completion, and
+failure signatures. Use the terminal-session polling tools available in the current Codex
+environment instead of `run_in_background` or `Monitor`.
 
 ---
 
@@ -594,6 +686,13 @@ scripts/cognito/tests_helpers/delete-test-users.sh dev force && scripts/cognito/
 
 Afterwards, verify the result with **read-only** calls (`admin-get-user`) rather than re-running the
 script: confirm the new user exists and, just as important, that the pre-existing static users survived.
+
+#### Codex-specific equivalent
+
+In Codex, start each long-lived service in its own terminal session and retain its session identifier.
+Poll the sessions until the expected ports respond and the services report readiness. Stop the
+sessions after the dependent checks finish. Use the terminal-session tools available in the current
+Codex environment instead of `run_in_background` or `Monitor`.
 
 ---
 
@@ -737,13 +836,27 @@ One section per completed sub-task:
 
 Keep entries short. A reviewer should be able to read the whole report before opening the diff.
 
+### Codex-specific persistence
+
+In Codex, also append the work summary to `.codex/coding-tasks/<task-slug>/work-summary.md`, using
+the same task directory as `plan.md`. Record each completed sub-task, changed files, verification
+evidence, and any item requiring human review. Present the persisted file link when handing it off.
+
+
+
 ## Phase 9 — Retrospect
 
-Review how task execution phases 1–8 actually went and fold anything durable back into
-this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
+Before closing or handing off, review how this skill's work went. Present the useful lessons and
+any skill improvements made, or explicitly say that no improvement was identified. Keep changes
+limited to lessons supported by this session.
 
+Ask the user whether they want to add any other improvement, and wait for their answer. Address
+it before closing; an explicit decision to skip the retrospective also permits closure. Record the
+outcome briefly in this task's existing report or progress log.
 
 ## Phase 10 — Close
+
+Close only after the retrospective above is complete or the user explicitly declines it.
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -770,10 +883,22 @@ passing, and do not narrow it because a step looks awkward.
 
 ## Anti-patterns
 
+- Closing or handing off before completing the retrospective or recording the user's explicit decision to skip it.
+
+- Skipping the Phase 3 upfront-asks gate before starting or resuming implementation or dispatching
+  implementation subagents; a confirmed plan does not replace that gate.
+- Failing to present each checkpoint and its purpose in Phase 3 and ask whether to stop or continue,
+  unless that explicit choice is already recorded.
+- Deferring a foreseeable question or permission request until execution when it could have been
+  settled in Phase 3, or treating silence as authorization.
+- Running Tier 2 before Phase 4 implementation and Tier 1 checks are complete, or launching Tier 2
+  without an applicable recorded approval.
+
 - Redoing a sub-task already marked `done`, or starting one whose blockers are not.
 - Marking `done` with failing or unrun verification.
 - Running builds or tests in parallel, or from a worktree, against the shared local dev services.
-- Continuing past a review checkpoint without explicit permission.
+- Continuing past a checkpoint whose recorded choice is to stop, or asking again at a checkpoint
+  explicitly approved for continuation in Phase 3.
 - Committing, branching, or tidying the working tree.
 - Batching the work summary to the end instead of reporting per sub-task.
 - Adapting the plan quietly when it turns out to be wrong.

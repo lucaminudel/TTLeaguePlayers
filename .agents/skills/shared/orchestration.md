@@ -8,15 +8,15 @@ produces exactly the batch the interaction protocol exists to prevent.
 | Phase | Sub-agents |
 |---|---|
 | Discovery | **Permitted for gathering only.** `Explore` agents may collect raw material for a topic the user has **already agreed to** in the topic list. Never fan out across topics the user has not yet seen, and never let an agent's write-up reach the user unreviewed. |
-| Inception | **Not used.** Done inline, unless the user asks otherwise. |
+| Inception | **Permitted for gathering and verification.** `Explore` agents may collect raw material or make verifications for a topic **emerged during the Incepton or agreed during the Discovery**. Never fan out across topics the user has not yet seen, and never let an agent's write-up reach the user unreviewed.. |
 | Execution | **Permitted for drafting code**, under the file-partitioning and serial-verification rules in *Order the work*. Never for lint, build or test. |
-| Review | **Not used.** Done inline: the point of the phase is to attack work you likely wrote, which cannot be delegated to an agent that shares the same blind spot. |
+| Review | **Main adversarial pass and final judgement stay inline.** Independent, scoped, read-only review passes may supplement it when the size or risk of the change warrants them, including the initial automatic adversarial review. See the independence rules below. |
 
 **Which model a sub-agent gets.** A sub-agent inherits the parent's model unless the `Agent` call
 passes `model`. Set it deliberately:
 
 - **Gathering** — reading files, grepping, following call chains, fetching pages: pass
-  `model: "haiku" or "sonnet" or "Luna"`. This work is retrieval, not judgement, and the volume is high;
+  `model: "sonnet" or "Terra"`. This work is retrieval, not judgement, and the volume is high;
   running it on the skill's own model spends the expensive model on `cat`.
 - **Drafting code** — never *below* the model the skill itself is pinned to. A cheaper drafting
   agent hands back code the main agent must then rewrite, which costs more than it saved.
@@ -26,6 +26,22 @@ passes `model`. Set it deliberately:
 **`context: fork` is deliberately not used by any of these four skills.** A forked skill runs
 without the conversation history, and all four are conversational — they depend on what the user
 said three messages ago. Do not "optimise" any of them into a fork.
+
+#### Independent review passes
+
+The main agent performs and records its own adversarial pass before reading supplementary findings.
+A sub-agent can provide a different perspective, but independence is not guaranteed merely by
+spawning one. For a supplementary pass, provide a fresh context with the task goal, scope, raw diff
+and relevant source artifacts; omit the implementation rationale, intended answer and earlier
+review conclusions. Give it a concrete review question and ask for reproducible failing cases.
+Use a model at least as capable as the skill's drafting model; the cheaper gathering-model rule
+does not apply to adversarial analysis.
+
+These passes may inspect disjoint concerns concurrently, but do not edit files, run lint/build/test
+commands, or expand the agreed review scope. They return candidate findings, not final verdicts.
+The main agent verifies and deduplicates them, owns prioritisation and user-facing synthesis, and
+keeps all fix approvals and verification serial. Small reviews can remain entirely inline.
+This is the scoped exception to the general rule against delegating judgement above.
 
 #### Where the work lands
 

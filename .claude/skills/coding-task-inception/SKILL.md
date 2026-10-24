@@ -5,8 +5,40 @@ model: opus
 effort: high
 allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), Bash(grep:*), Bash(sed -n:*), Bash(git show:*), Bash(git log:*), Bash(git status:*), Bash(git diff:*), SendUserFile
 ---
-
 # Coding Task Inception
+
+## Session name — at the start
+
+At skill entry, name the current chat `Inception — <existing topic>`. Remove any leading
+`Discovery`, `Inception`, `Execution` or `Review` phase prefix followed by `—`, `–`, `-` or `:`
+(case-insensitive), then add this skill's prefix once. Preserve the rest of the title; never stack
+phase prefixes. If no topic remains, use a short topic from the user's task and refine it once clear.
+
+- **Codex:** read the current chat title from host metadata (use `list_threads` if needed), then
+  call `set_thread_title` with the new title. Omit `threadId` to rename the current chat only.
+- **Claude Code:** use the current `${CLAUDE_SESSION_ID}`, not the most recently modified session.
+  With the installed Claude Agent SDK, read `get_session_info(session_id, directory=project_root)`
+  and take `custom_title` or `summary`; call
+  `rename_session(session_id, new_title, directory=project_root)` and read back to verify.
+  The TypeScript equivalents are `getSessionInfo` and `renameSession`. Do not try to execute
+  `/rename` as a shell command or edit transcript files directly.
+
+Do not rename another chat or change project membership. If the current session cannot be identified
+or the required tool/SDK is unavailable, report the naming limitation briefly and continue the task;
+do not install dependencies or add hooks just to rename it.
+
+
+## Orchestration rules — read first
+
+Before starting Phase 1, read the shared orchestration guidance in full. Use the
+reference for your environment below; resolve the relative link against this `SKILL.md`.
+Apply the phase-specific rules throughout this workflow.
+
+```!
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
+```
+
+Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
 
 An nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
 not code. Write no application code during phases 1–8.
@@ -23,6 +55,13 @@ several, ask the user which; none, say so. It carries
 the framing, the domain concepts, the technical implementation details, the contradictions found,
 and the open questions it deliberately left for this phase. If it does not exist, say so and ask
 whether to run discovery first or proceed without it.
+
+### Codex-specific retrieval
+
+In Codex, resolve the task state by inspecting `.codex/coding-tasks/` and reusing the matching
+`task.md`. Read the Discovery report from `.codex/coding-tasks/<task-slug>/discovery.md`. If several
+task directories match, ask the user which one; if none matches, report that Discovery has not been
+completed rather than guessing a path.
 
 Always read, whether or not they are named:
 - `prompts/codebase_info/ArchitectureAndTechStack.md` — stack, environments, known debt
@@ -70,7 +109,17 @@ Create sub-tasks with `TaskCreate`, then wire dependencies with `TaskUpdate` `ad
 task's description must be self-contained: exact file paths, verified selectors, expected values,
 and *why* — a future agent reads the description, not this conversation.
 
-Identify the tasks with no dependencies and say which they are; they can start immediately.
+**Analyse parallel execution across the whole dependency graph.** Identify the initial tasks with
+no blockers and every later group that can become ready together, not only the first ready set.
+Check both dependencies and file ownership: tasks that would write the same file or shared mutable
+fixture must be split into disjoint ownership or ordered explicitly. Record the parallel groups,
+their prerequisites, and their file boundaries in the plan. Where the graph is a chain, state that
+execution is serial and why; do not manufacture parallelism.
+
+Treat review checkpoints and verification tiers as synchronization barriers: record which tasks
+must finish before each barrier and which may start after it. Lint, build and test commands run
+serially under the main agent, after drafting in the affected files has stopped. Planning parallel
+execution does not require spawning implementation agents during Inception.
 
 **Check the order against real-world sequencing, not only code dependencies.** A graph that is
 correct about what compiles after what can still be wrong about what must *happen* after what —
@@ -110,9 +159,17 @@ Walk the sub-task list and list every point where the executing agent would have
 permission gate, an unverified precondition, a detail left to judgement. Close and document each one now.
 
 
+**Check the execution graph for completeness.** Walk the initial ready set and each later ready
+set against the actual blockers, file boundaries and real-world sequencing constraints. Confirm
+that every safe parallel opportunity is recorded, each conflicting write is ordered, and every
+review or verification barrier blocks the appropriate successors. Check that the graph is acyclic
+and that every task can eventually become ready. Explain any intentionally serial group. Resolve
+missing ownership or dependencies before presenting the plan.
+
 ## Phase 7 — Present, amend, confirm, persist
 
-Present the full plan as a table: number, sub-task, blocked-by. Add files created vs modified,
+Present the full plan as a table: number, sub-task, blocked-by. Include the parallel execution
+groups, file ownership, and synchronization barriers. Add files created vs modified,
 decisions locked in, assumptions, and anything you would flag as accepted risk.
 
 Invite amendment and **wait**. Expect several rounds; fold each amendment into the tasks before
@@ -129,17 +186,31 @@ task artifacts are found by path, not by recall. The file must carry:
 - the decision table, with the *why* for each
 - research findings, with file:line citations
 - the sub-task table with a **Status** column (`to be done` / `in progress` / `done`)
+- an execution schedule covering initial and later parallel groups, their prerequisites and file
+  ownership, serial groups with reasons, and review/verification synchronization barriers
 - per-sub-task detail: paths, commands, expected values
 - standing assumptions and accepted risks
 - a dated progress log, and instructions that any agent may update it
 
+### Codex-specific persistence
+
+After explicit confirmation, also write the plan to `.codex/coding-tasks/<task-slug>/plan.md`, using
+the same Codex task directory that contains `discovery.md`. Keep the Codex path as the cross-session
+source of truth for later Execution and Review skills.
+
 ## Phase 8 — Retrospect
 
-Once the plan is persisted, review how phases 1–6 actually went and fold anything durable back into
-this skill. Corrections the user made are the highest-value input. Ask the user if they want to add any other improvement to this skill
+Before closing or handing off, review how this skill's work went. Present the useful lessons and
+any skill improvements made, or explicitly say that no improvement was identified. Keep changes
+limited to lessons supported by this session.
 
+Ask the user whether they want to add any other improvement, and wait for their answer. Address
+it before closing; an explicit decision to skip the retrospective also permits closure. Record the
+outcome briefly in this task's existing report or progress log.
 
 ## Phase 9 — Close
+
+Close only after the retrospective above is complete or the user explicitly declines it.
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -153,18 +224,15 @@ and that file — not this conversation — is what `coding-task-execution` read
 
 ## Anti-patterns
 
+- Closing or handing off before completing the retrospective or recording the user's explicit decision to skip it.
+
 - Writing application code before phase 6 confirmation.
 - Planning against an external data source without fetching it first.
 - Inferring process rules from repo guideline docs instead of asking.
 - Declaring a change safe for another stack without running that stack's tests.
 - Persisting the plan only to the in-session task list, which the next session cannot read.
-- Spawning subagents; this protocol is done inline unless the user asks otherwise.
-
-## Orchestration rules
-
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
-```
+- Delegating planning decisions or user-facing synthesis. Gathering and read-only verification
+  may be delegated within the shared orchestration rules; builds and tests stay with the main agent.
 
 ## Standing rules
 

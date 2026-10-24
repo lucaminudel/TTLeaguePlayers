@@ -8,6 +8,40 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 # Coding Task Discovery
 
+## Session name — at the start
+
+At skill entry, name the current chat `Discovery — <existing topic>`. Remove any leading
+`Discovery`, `Inception`, `Execution` or `Review` phase prefix followed by `—`, `–`, `-` or `:`
+(case-insensitive), then add this skill's prefix once. Preserve the rest of the title; never stack
+phase prefixes. If no topic remains, use a short topic from the user's task and refine it once clear.
+
+- **Codex:** read the current chat title from host metadata (use `list_threads` if needed), then
+  call `set_thread_title` with the new title. Omit `threadId` to rename the current chat only.
+- **Claude Code:** use the current `${CLAUDE_SESSION_ID}`, not the most recently modified session.
+  With the installed Claude Agent SDK, read `get_session_info(session_id, directory=project_root)`
+  and take `custom_title` or `summary`; call
+  `rename_session(session_id, new_title, directory=project_root)` and read back to verify.
+  The TypeScript equivalents are `getSessionInfo` and `renameSession`. Do not try to execute
+  `/rename` as a shell command or edit transcript files directly.
+
+Do not rename another chat or change project membership. If the current session cannot be identified
+or the required tool/SDK is unavailable, report the naming limitation briefly and continue the task;
+do not install dependencies or add hooks just to rename it.
+
+
+## Orchestration rules — read first
+
+Before starting Phase 1, read the shared orchestration guidance in full. Use the
+reference for your environment below; resolve the relative link against this `SKILL.md`.
+Apply the phase-specific rules throughout this workflow.
+
+```!
+# Claude specific
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
+```
+
+Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
+
 First of the four. It runs **before** `coding-task-inception` and produces its input.
 
 The output is a **persisted Discovery findings report** — the business-domain concepts and the
@@ -157,17 +191,22 @@ Then:
 3. **Present the final document** and ask whether it is complete or whether there is more to
    explore. Wait. Expect rounds; fold each one in and re-present.
 
-Do not hand off to `coding-task-inception` yourself. Tell the user the report is ready and where it
-is; starting inception is their call.
+After the retrospective, tell the user the report is ready and where it is. Do not start
+`coding-task-inception` yourself; starting inception is their call.
 
 ## Phase 6 — Retrospect
 
-Review how phases 1–5 actually went and fold anything durable back into this skill. Corrections the
-user made are the highest-value input — especially topics you should have proposed and did not,
-findings you asserted without evidence and had to walk back, and sources you should have checked
-earlier. Ask the user if they want to add any other improvement to this skill.
+Before closing or handing off, review how this skill's work went. Present the useful lessons and
+any skill improvements made, or explicitly say that no improvement was identified. Keep changes
+limited to lessons supported by this session.
+
+Ask the user whether they want to add any other improvement, and wait for their answer. Address
+it before closing; an explicit decision to skip the retrospective also permits closure. Record the
+outcome briefly in this task's existing report or progress log.
 
 ## Phase 7 — Close
+
+Close only after the retrospective above is complete or the user explicitly declines it.
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -178,12 +217,7 @@ earlier. Ask the user if they want to add any other improvement to this skill.
 Say also that compacting is optional and the hand-off does not depend on it: the findings report
 is on disk, and that file — not this conversation — is what `coding-task-inception` reads.
 
-```!
-# Claude specific
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
-```
 
-Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
 
 ## Standing rules
 
@@ -203,6 +237,8 @@ survives into the plan and then into the code.
 ends exactly as the user left it.
 
 ## Anti-patterns
+
+- Closing or handing off before completing the retrospective or recording the user's explicit decision to skip it.
 
 - Exploring before the framing questions are answered.
 - Writing application code, or modifying the repo tree at all.

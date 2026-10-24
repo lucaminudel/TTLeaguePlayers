@@ -8,6 +8,40 @@ allowed-tools: Bash(cat:*)
 
 # Coding Task Review
 
+## Session name — at the start
+
+At skill entry, name the current chat `Review — <existing topic>`. Remove any leading
+`Discovery`, `Inception`, `Execution` or `Review` phase prefix followed by `—`, `–`, `-` or `:`
+(case-insensitive), then add this skill's prefix once. Preserve the rest of the title; never stack
+phase prefixes. If no topic remains, use a short topic from the user's task and refine it once clear.
+
+- **Codex:** read the current chat title from host metadata (use `list_threads` if needed), then
+  call `set_thread_title` with the new title. Omit `threadId` to rename the current chat only.
+- **Claude Code:** use the current `${CLAUDE_SESSION_ID}`, not the most recently modified session.
+  With the installed Claude Agent SDK, read `get_session_info(session_id, directory=project_root)`
+  and take `custom_title` or `summary`; call
+  `rename_session(session_id, new_title, directory=project_root)` and read back to verify.
+  The TypeScript equivalents are `getSessionInfo` and `renameSession`. Do not try to execute
+  `/rename` as a shell command or edit transcript files directly.
+
+Do not rename another chat or change project membership. If the current session cannot be identified
+or the required tool/SDK is unavailable, report the naming limitation briefly and continue the task;
+do not install dependencies or add hooks just to rename it.
+
+
+## Orchestration rules — read first
+
+Before starting Phase 0, read the shared orchestration guidance in full. Use the
+reference for your environment below; resolve the relative link against this `SKILL.md`.
+Apply the phase-specific rules throughout this workflow.
+
+```!
+# Claude specific
+cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
+```
+
+Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
+
 Fourth and last of the four. Inputs are the plan and the work summary that
 `coding-task-inception` and `coding-task-execution` persisted, plus the uncommitted changes those
 produced in the working tree:
@@ -27,8 +61,18 @@ several, ask the user which.
 If neither exists, stop and say so — there is nothing to review against. If only one exists, say
 which is missing and what you therefore cannot check, then proceed.
 
+### Codex-specific retrieval
+
+In Codex, resolve the task state by inspecting `.codex/coding-tasks/` and reusing the matching
+`task.md`. Read the corresponding files from `.codex/coding-tasks/<task-slug>/plan.md`,
+`.codex/coding-tasks/<task-slug>/work-summary.md`, and, when present,
+`.codex/coding-tasks/<task-slug>/discovery.md`. If several task directories match, ask the user
+which one to review.
+
 The output is **a reviewed, green, committable working tree and a guide for reviewing it** — not a
 commit. You never commit.
+
+
 
 ## Phase 0 — Start from green
 
@@ -66,13 +110,19 @@ neighbouring code that did not change.
 
 ## Phase 2 — Review, adversarially
 
-**The judgement is yours, inline, in this session.** Deciding what is wrong, what it would break,
-what matters and what to tell the user is never delegated — an agent spawned from this session
-carries the same blind spot as you and will confirm the same mistakes with more words.
+**The main adversarial pass and final judgement are yours, inline, in this session.** Perform
+and record your own pass before reading supplementary findings. A separate agent can challenge
+assumptions, but spawning one does not by itself remove shared blind spots.
 
-Scoped analysis passes are a different thing and are welcome; see *Cross-check with the review
-commands* at the end of this phase. They return **data**, not verdicts. Whatever they return is
-verified and triaged by you, exactly like a finding you made yourself.
+When the size or risk of the change warrants it, supplement this pass with independent, scoped,
+read-only sub-agent reviews under the shared orchestration independence rules. This also applies
+to an initial automatic adversarial review. Give each agent the goal, scope and raw artifacts in a
+fresh context, without prior conclusions or the implementation rationale. Ask for concrete failing
+cases; do not delegate edits, lint, builds or tests. Small reviews can remain entirely inline.
+
+These passes and the review commands below return candidate findings, not final verdicts. Verify,
+deduplicate and triage every finding yourself; prioritisation, presentation and fix approvals stay
+with you. See *Cross-check with the review commands* at the end of this phase.
 
 The difficulty is that you likely wrote this code, and your default posture is to confirm it. So
 invert it deliberately: for each change, the question is not "is this reasonable?" but **"what
@@ -178,6 +228,87 @@ user approves a fix plan.
 warrants that depth, say so and let the user decide.
 
 
+### Codex-specific review instructions
+
+Use the concrete Codex route below after recording the manual adversarial pass; the slash commands
+above are not shell commands or evidence that a review ran.
+
+**Independent code review.** The local `review-agent` skill is at
+`~/.codex/skills/.system/review-agent/SKILL.md`. When an independent pass is warranted under the
+shared orchestration rules, delegate a read-only review with a fresh context and explicitly instruct
+the subagent to read and use that skill. Supply the task goal, scoped file paths, raw pending diff
+and relevant source artifacts, without earlier review conclusions. Include untracked task files;
+do not substitute a committed-revision diff for pending changes. Request concrete failing cases
+and security evidence. The reviewer returns findings to the main agent and does not edit, delegate
+further or run lint/build/test commands. The main agent verifies, deduplicates and triages the
+findings. If the skill or delegation is unavailable, record that limitation rather than claiming
+an independent review occurred.
+
+**Codex Security diff review.** After the manual adversarial pass, use the installed
+`$codex-security:security-diff-scan` skill to review the task's pending changes. Read its `SKILL.md`
+from the installed skill path and follow its preflight, threat-model, discovery, validation,
+attack-path and report-finalization workflow; do not replace it with a generic reviewer prompt.
+Use the current working-tree patch, including relevant staged, unstaged, untracked and deleted
+files. Keep the scan baseline and patch fixed. If the working tree contains unrelated changes,
+use the plugin's supported scoped local-patch workflow to isolate the reviewed task; do not stage,
+stash, discard or silently expand scope to include unrelated work. If exact isolation is not
+supported, report the scope limitation before proceeding.
+
+Invoke this plugin only within **Coding Task Review** in this four-skill workflow. Do not invoke
+it during Discovery, Inception or Execution unless the user explicitly requests an exception.
+Use the diff-review mode, not a repository-wide or deep scan, and do not enable cloud, PR, scheduled
+or CI scanning. Installing the plugin alone is not authorization to start scans in other phases.
+This instruction governs this workflow; it does not change the plugin's global invocation policy.
+
+Keep the security review read-only with respect to source and cloud resources; scan reports and
+temporary evidence artifacts are permitted. Do not invoke fix-finding, tracking or publishing
+workflows, or apply fixes before Phase 3 approval. Preserve the plugin's preflight approval gates;
+ask before required persistent configuration changes. Run any validation commands serially on the
+main agent under the existing verification and authorization rules. If preflight or scanning is
+blocked, retain its scan context and report the blocker and incomplete coverage; do not describe
+manual inspection as a completed plugin scan.
+
+Include authentication and authorization, input handling and injection, sensitive data and secrets,
+and external-request trust boundaries in the applicable review passes. Read the completed plugin
+report and coverage, verify candidate findings, and merge them into this skill's triage without
+duplicating findings from the manual or independent code review. Record the scan ID, exact patch
+scope/baseline, report path, completion status and remaining coverage gaps in the review guide.
+The `review-agent` remains the general code-review cross-check. The Code Review tool
+`pull_requests_checks` only reads existing CI diagnostics; use those as supplementary evidence for
+the matching committed revision, not proof that pending local changes were scanned.
+
+**Infrastructure security.** When the task changes infrastructure, inspect the affected
+`template.yaml`, `cognito-template.yaml`, `frontend-template.yaml`, deployment scripts and environment
+configuration together with relevant references. Check IAM least privilege, public/network exposure,
+endpoint and resource authorization, secret handling, encryption and sensitive logging where
+applicable. Check the resulting configuration, not only the edited lines. Keep the review within
+the task's scope.
+
+**Applicable command checks.** Run relevant checks serially on the main agent, under the Execution
+skill's verification and authorization rules:
+
+- For changed SAM templates, run `sam validate --lint --template-file <affected-template>` from the
+  repo root. SAM exposes cfn-lint through this option; template linting is not a security audit.
+- For frontend dependency changes, run `npm audit --package-lock-only --json` in `TTLeaguePlayersApp.FrontEnd` against
+  the lockfile. Do not run `npm audit fix` during review.
+- For backend dependency changes, run
+  `dotnet list <affected-project.csproj> package --vulnerable --include-transitive --no-restore` from the repo root. Use the existing restore assets; report
+  missing assets or feed/network failures rather than interpreting them as no vulnerabilities.
+- Use the existing frontend lint/build and backend verification commands from the Execution skill
+  when needed; they do not replace security review.
+
+Codex Security supplements the manual, independent and command checks; it does not replace them.
+Separate dedicated secret and infrastructure-policy scanners are not configured in this workflow.
+Record that limitation. Do not silently install additional scanners, enable services, upload source
+to another service, apply fixes, deploy or mutate cloud resources to fill it. A dependency audit
+queries vulnerability feeds and does not prove the code or deployment is secure.
+
+**Record evidence.** In the review guide, name each command or independent pass, its target
+files/revision, result and material limitations. Distinguish manual inspection, independent agent
+analysis, executed checks and existing CI evidence; state what was unavailable, skipped or failed.
+Verify and deduplicate candidate findings using the four rules above before triage.
+
+
 ## Phase 3 — Triage, then stop
 
 Rank every finding. **High-priority** means it would break behaviour, lose or expose data, hide a
@@ -188,6 +319,7 @@ Verify every finding against the real files before reporting it. Drop anything y
 reproduce; do not report it as a "possible issue".
 
 **The overview.**
+
 
 1. **High-priority findings**, each with: file:line, what is wrong, the concrete failing case, and
    the proposed fix. Followed by a fix plan — ordered, with the verification each fix needs.
@@ -235,11 +367,18 @@ diff. Assume no memory of the plan, the execution session, or this codebase's co
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/review.md` — a new
 file in the same `<slug>` directory, **not** appended to `work-summary.md`.
 
+### Codex-specific persistence
+
+In Codex, also write the review guide to `.codex/coding-tasks/<task-slug>/review.md`, as a new file
+in the same task directory. Do not append it to `work-summary.md`; present the persisted file link
+when the review is handed off.
+
 **`MEMORY.md` gets at most one line, and only if the task produced something durable** — a decision
 or constraint worth carrying into unrelated future work. The review guide itself is not that: it is
 found by path. Never index the four task artifacts.
 
-When the review document is completed, present the link to the review file.
+When the review document is completed, present its link as a progress update; continue through
+the commit-message suggestion and retrospective before the final hand-off.
 
 The two documents have different readers and different lifetimes. The work summary is the *execution*
 record — per sub-task, written as the work happened, and it only grows. The review guide is written
@@ -247,7 +386,7 @@ once, for a person about to read the diff cold, and it is the thing they open fi
 guide to a 50-page execution log buries the document that was meant to be the entry point, and makes
 the reader scroll past sub-task notes they have no reason to read.
 
-**Do not paste the whole guide into the chat.** Post a condensed version — what the change does, the
+**Do not paste the whole guide into the chat.** At final hand-off, after the retrospective, post a condensed version — what the change does, the
 verification status, the findings, and the reading order — and then, **as the last thing in the
 final message, present the link to the document you created.** The link is the deliverable; the chat
 summary exists so the user can decide whether to open it now or when they sit down to review.
@@ -262,6 +401,9 @@ re-derive it or to leave it out:
 | `discovery.md` | the **bigger picture** (which end-user feature or outcome the task serves) and **what this task contributes** to it; the **domain vocabulary** the reviewer needs (its glossary, in the app's own terms); the **live-source facts** the change rests on (URLs fetched, values seen, dated); the **contradictions and gaps** found |
 | `plan.md` | the **goal** and the explicit **out-of-scope**; the **decision table with its whys** — every design choice the reviewer will otherwise question; the **research findings** that justify the shape of the change; assumptions and accepted risks; the "left for later" note |
 | `work-summary.md` | per file, **why it changed** and the sub-task that owns it; what was **verified** and how; every item flagged **needs human review** |
+
+For Codex, resolve each source above relative to `.codex/coding-tasks/<task-slug>/` and read the
+corresponding persisted file from that directory.
 
 Use them where they help the reader and nowhere else: a one-line feature context beats a pasted
 framing section, and a decision's *why* belongs next to the file that embodies it. Cite the domain
@@ -341,18 +483,22 @@ Propose the text; **do not commit and do not stage**. Cover the whole set of pen
 including the ones that rode along.
 
 Body explains *why*, since the diff already shows *what*. Note user-facing behaviour changes,
-config-file structure changes, and anything a future bisect would want to find. Do not sign it as
-Claude unless the user asks.
+config-file structure changes, and anything a future bisect would want to find. Do not add an
+assistant signature unless the user asks.
 
 ## Phase 7 — Retrospect
 
-Review how phases 0–6 actually went and fold anything durable back into this skill. Corrections the
-user made are the highest-value input — especially findings you missed that they caught, and
-findings you raised that turned out to be noise. Ask the user if they want to add any other
-improvement to this skill.
+Before closing or handing off, review how this skill's work went. Present the useful lessons and
+any skill improvements made, or explicitly say that no improvement was identified. Keep changes
+limited to lessons supported by this session.
 
+Ask the user whether they want to add any other improvement, and wait for their answer. Address
+it before closing; an explicit decision to skip the retrospective also permits closure. Record the
+outcome briefly in this task's existing report or progress log.
 
 ## Phase 8 — Close
+
+Close only after the retrospective above is complete or the user explicitly declines it.
 
 This is the end of the four-skill sequence: the working tree is reviewed, green and committable,
 and the commit message is proposed. **You do not commit** — staging and committing are the user's.
@@ -362,9 +508,7 @@ and the commit message is proposed. **You do not commit** — staging and commit
 > The review is complete. The PR-review guide is at `<path>`, and the proposed commit message is
 > above. Nothing has been staged or committed. 
 
-```!
-cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
-```
+
 
 ## Standing rules
 
@@ -380,8 +524,11 @@ thorough, and do not soften a real finding into a suggestion.
 
 ## Anti-patterns
 
+- Closing or handing off before completing the retrospective or recording the user's explicit decision to skip it.
+
 - Reviewing on top of a red or unverified build.
-- Spawning subagents; this protocol is done inline unless the user asks otherwise.
+- Replacing the main adversarial pass with delegated conclusions, or giving supplementary reviewers
+  earlier verdicts instead of raw artifacts. Independent read-only passes follow the shared rules.
 
 - Reporting findings you have not verified against the real files.
 - Confirming your own earlier work instead of attacking it.
@@ -394,6 +541,9 @@ thorough, and do not soften a real finding into a suggestion.
 - Writing a PR guide that explains *what* changed but not *why* — the feature it serves, the
   decisions behind its shape, the scope left out — when `discovery.md`, `plan.md` and
   `work-summary.md` already hold that intent and were not read for it.
+
+For Codex, the corresponding files are `.codex/coding-tasks/<task-slug>/discovery.md`,
+`.codex/coding-tasks/<task-slug>/plan.md`, and `.codex/coding-tasks/<task-slug>/work-summary.md`.
 - Listing a file in the PR guide without saying what it is, why it changed, and what to look for in
   it.
 - Parking every spec in a final "the tests" step of the walkthrough instead of presenting each spec
