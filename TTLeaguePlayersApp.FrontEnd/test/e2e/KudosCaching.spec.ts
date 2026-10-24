@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { stubbedTest as test, expect } from './helpers/tabletennis365-test-setup';
 import { User } from './page-objects/User';
 import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
 import { deleteCreatedKudos, trackCreatedKudos, type CreatedKudos } from './helpers/created-kudos-cleanup';

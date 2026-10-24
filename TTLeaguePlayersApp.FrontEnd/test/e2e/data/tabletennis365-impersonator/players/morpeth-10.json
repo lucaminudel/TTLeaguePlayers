@@ -1,0 +1,29 @@
+{
+  "teamPlayers": [
+    {
+      "id": 1,
+      "name": "Fixture Player 1"
+    },
+    {
+      "id": 2,
+      "name": "Fixture Player 2"
+    },
+    {
+      "id": 3,
+      "name": "Fixture Player 3"
+    },
+    {
+      "id": 4,
+      "name": "Fixture Player 4"
+    },
+    {
+      "id": 5,
+      "name": "Fixture Player 5"
+    },
+    {
+      "id": 6,
+      "name": "Fixture Player 6"
+    }
+  ],
+  "otherPlayers": []
+}

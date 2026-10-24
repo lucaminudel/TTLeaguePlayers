@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, stubbedTest, expect } from './helpers/tabletennis365-test-setup';
 import { User as UserFlow, LoginPage, RegisterPage } from './page-objects/User';
 import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
 
@@ -103,7 +103,7 @@ test.describe('Kudos', () => {
     });
     test.describe('active season cards', () => {
 
-        test('the Rate info modal, once dismissed with "don\'t show again", stays hidden for that user but not for another one on the same browser', async ({ page }) => {
+        stubbedTest('the Rate info modal, once dismissed with "don\'t show again", stays hidden for that user but not for another one on the same browser', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             // These users carry kudos from earlier runs, which would hide the Rate button.
@@ -173,7 +173,7 @@ test.describe('Kudos', () => {
         });
 
 
-        test('after the last match, next match shows NONE', async ({ page }) => {
+        stubbedTest('after the last match, next match shows NONE', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new UserFlow(page);
@@ -228,7 +228,7 @@ test.describe('Kudos', () => {
             expect(nextMatchText).toContain('None');
         });
 
-        test('only one active season expanded at the time', async ({ page }) => {
+        stubbedTest('only one active season expanded at the time', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new UserFlow(page);
@@ -254,6 +254,8 @@ test.describe('Kudos', () => {
             await expect(cards.nth(0).getByTestId('active-season-details')).toBeVisible();
             await expect(cards.nth(1).getByTestId('active-season-details')).not.toBeVisible();
             await expect(cards.nth(2).getByTestId('active-season-details')).not.toBeVisible();
+
+            await expect(cards.nth(0).getByTestId('active-season-prev-match')).toContainText('Vs ');
 
             // Verify that after expanding the second season card, the other cards are collapsed.
             await kudosPage.openActiveSeasonCard(1);
@@ -328,7 +330,7 @@ test.describe('Kudos', () => {
             }
         });
 
-        test('until 2h after the match start time, NEXT match header shows "Today\'s Match"', async ({ page }) => {
+        stubbedTest('until 2h after the match start time, NEXT match header shows "Today\'s Match"', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new UserFlow(page);
@@ -388,7 +390,7 @@ test.describe('Kudos', () => {
             expect(nextMatchText).toContain('Vs Highbury 3');
         });
 
-        test('2h after the match start time, PREVIOUS match header shows "Today\'s Match"', async ({ page }) => {
+        stubbedTest('2h after the match start time, PREVIOUS match header shows "Today\'s Match"', async ({ page }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
             const user = new UserFlow(page);
@@ -451,7 +453,7 @@ test.describe('Kudos', () => {
     });
 
     test.describe('error handling scenarios', () => {
-        test('shows "No fixture found" when network request fails', async ({ page }) => {
+        stubbedTest('shows "No fixture found" when network request fails', async ({ page, tableTennis365Stub }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
 
@@ -461,21 +463,7 @@ test.describe('Kudos', () => {
                 sessionStorage.clear();
             });
 
-            // Mock network failure for both direct and CORS proxy requests
-            await page.route('**/tabletennis365.com/**', async (route) => {
-                if (route.request().url().includes('Fixtures')) {
-                    await route.abort('failed');
-                } else {
-                    await route.continue();
-                }
-            });
-            await page.route('**/go.x2u.in**', async (route) => {
-                if (route.request().url().includes('Fixtures')) {
-                    await route.abort('failed');
-                } else {
-                    await route.continue();
-                }
-            });
+            tableTennis365Stub.fixtures.failWithNetworkError();
 
             const user = new UserFlow(page);
             // Set fixed clock time
@@ -496,7 +484,7 @@ test.describe('Kudos', () => {
             await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
         });
 
-        test('shows "No fixture found" when server returns HTTP error', async ({ page }) => {
+        stubbedTest('shows "No fixture found" when server returns HTTP error', async ({ page, tableTennis365Stub }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
 
@@ -507,29 +495,7 @@ test.describe('Kudos', () => {
                 sessionStorage.clear();
             });
 
-            // Mock HTTP 500 error for both direct and CORS proxy requests
-            await page.route('**/tabletennis365.com/**', async (route) => {
-                if (route.request().url().includes('Fixtures')) {
-                    await route.fulfill({
-                        status: 500,
-                        contentType: 'text/html',
-                        body: 'Internal Server Error'
-                    });
-                } else {
-                    await route.continue();
-                }
-            });
-            await page.route('**/go.x2u.in**', async (route) => {
-                if (route.request().url().includes('Fixtures')) {
-                    await route.fulfill({
-                        status: 500,
-                        contentType: 'text/html',
-                        body: 'Internal Server Error'
-                    });
-                } else {
-                    await route.continue();
-                }
-            });
+            tableTennis365Stub.fixtures.failWithHttpStatus(500);
 
             const user = new UserFlow(page);
             // Set fixed clock time
@@ -550,7 +516,7 @@ test.describe('Kudos', () => {
             await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
         });
 
-        test('shows "No fixture found" when server returns "service unavailable"', async ({ page }) => {
+        stubbedTest('shows "No fixture found" when server returns "service unavailable"', async ({ page, tableTennis365Stub }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
 
@@ -560,29 +526,7 @@ test.describe('Kudos', () => {
                 sessionStorage.clear();
             });
 
-            // Mock service unavailable response for both direct and CORS proxy requests
-            await page.route('**/tabletennis365.com/**', async (route) => {
-                if (route.request().url().includes('Fixtures')) {
-                    await route.fulfill({
-                        status: 200,
-                        contentType: 'text/html',
-                        body: 'Service unavailable'
-                    });
-                } else {
-                    await route.continue();
-                }
-            });
-            await page.route('**/go.x2u.in**', async (route) => {
-                if (route.request().url().includes('Fixtures')) {
-                    await route.fulfill({
-                        status: 200,
-                        contentType: 'text/html',
-                        body: 'Service unavailable'
-                    });
-                } else {
-                    await route.continue();
-                }
-            });
+            tableTennis365Stub.fixtures.returnServiceUnavailable();
 
             const user = new UserFlow(page);
             // Set fixed clock time

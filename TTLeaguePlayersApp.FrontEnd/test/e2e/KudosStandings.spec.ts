@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, stubbedTest, expect } from './helpers/tabletennis365-test-setup';
 import { User as UserFlow } from './page-objects/User';
 import { mockCognitoLatestKudos } from './helpers/cognito-latest_kudos-mock';
 
@@ -40,7 +40,7 @@ test.describe('Kudos Standings', () => {
         await kudosStandingsPageB.dismissInfoModal(false);
     });
 
-    test('ticking "don\'t show again" on the Rate modal does not suppress either standings info modal', async ({ page }) => {
+    stubbedTest('ticking "don\'t show again" on the Rate modal does not suppress either standings info modal', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
         await mockCognitoLatestKudos(page);

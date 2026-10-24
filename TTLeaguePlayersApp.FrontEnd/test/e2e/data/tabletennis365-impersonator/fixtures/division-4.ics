@@ -1,0 +1,1915 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//TableTennis365//Fixture Calendar//EN
+CALSCALE:GREGORIAN
+NAME:Winter 2026-27 Division 4 fixtures – Central London
+X-WR-CALNAME:Winter 2026-27 Division 4 fixtures – Central London
+X-WR-TIMEZONE:Europe/London
+REFRESH-INTERVAL;VALUE=DURATION:PT4H
+X-PUBLISHED-TTL:PT4H
+BEGIN:VTIMEZONE
+TZID:Europe/London
+X-LIC-LOCATION:Europe/London
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0100
+TZNAME:BST
+DTSTART:19700329T010000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0000
+TZNAME:GMT
+DTSTART:19701025T020000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:fixture-1119598@tabletennis365.com
+SEQUENCE:1
+DTSTAMP:20261002T082014Z
+LAST-MODIFIED:20261002T082014Z
+DTSTART;TZID=Europe/London:20261006T191500
+DTEND;TZID=Europe/London:20261006T221500
+SUMMARY:Postponed: Highbury 3 v Apex 4 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nPostponed: Venue unavail\nDetail
+ s: https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CANCELLED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119600@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261007T190000
+DTEND;TZID=Europe/London:20261007T220000
+SUMMARY:Flick TTC 5 v St Katharines Trust 6 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Flick TTC 5 7 – 3 St K
+ atharines Trust 6\nDetails: https://www.tabletennis365.com/CentralLondon/R
+ esults/MatchCard?matchId=464414
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 464414
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119597@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261008T184500
+DTEND;TZID=Europe/London:20261008T214500
+SUMMARY:Morpeth 9 v Fusion 7 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119596@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261009T183000
+DTEND;TZID=Europe/London:20261009T213000
+SUMMARY:Fusion 8 Jr v St Katharines Trust 5 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Fusion 8 Jr 2 – 8 St K
+ atharines Trust 5\nDetails: https://www.tabletennis365.com/CentralLondon/R
+ esults/MatchCard?matchId=464719
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 464719
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119599@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261009T184500
+DTEND;TZID=Europe/London:20261009T214500
+SUMMARY:Morpeth 11 Jr v Morpeth 10 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Morpeth 11 Jr 10 – 0 M
+ orpeth 10\nDetails: https://www.tabletennis365.com/CentralLondon/Results/M
+ atchCard?matchId=464680
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 464680
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119604@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261013T192000
+DTEND;TZID=Europe/London:20261013T222000
+SUMMARY:Fusion 7 v St Katharines Trust 5 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Fusion 7 7 – 3 St Kath
+ arines Trust 5\nDetails: https://www.tabletennis365.com/CentralLondon/Resu
+ lts/MatchCard?matchId=464837
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 464837
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119603@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261014T191500
+DTEND;TZID=Europe/London:20261014T221500
+SUMMARY:Apex 4 v Morpeth 9 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Apex 4 1 – 9 Morpeth 9
+ \nDetails: https://www.tabletennis365.com/CentralLondon/Results/MatchCard?
+ matchId=464976
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 464976
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119605@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261016T183000
+DTEND;TZID=Europe/London:20261016T213000
+SUMMARY:Fusion 8 Jr v Flick TTC 5 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Fusion 8 Jr 1 – 9 Flic
+ k TTC 5\nDetails: https://www.tabletennis365.com/CentralLondon/Results/Mat
+ chCard?matchId=463727
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 463727
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119601@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261016T184500
+DTEND;TZID=Europe/London:20261016T214500
+SUMMARY:Morpeth 11 Jr v Irving 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Morpeth 11 Jr 5 – 5 Ir
+ ving 3\nDetails: https://www.tabletennis365.com/CentralLondon/Results/Matc
+ hCard?matchId=465143
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 465143
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119602@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261016T184500
+DTEND;TZID=Europe/London:20261016T214500
+SUMMARY:Morpeth 10 v Highbury 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Morpeth 10 5 – 5 Highb
+ ury 3\nDetails: https://www.tabletennis365.com/CentralLondon/Results/Match
+ Card?matchId=465109
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 465109
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119608@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261020T191500
+DTEND;TZID=Europe/London:20261020T221500
+SUMMARY:Highbury 3 v Irving 3 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nResult: Highbury 3 4 – 6 Irvin
+ g 3\nDetails: https://www.tabletennis365.com/CentralLondon/Results/MatchCa
+ rd?matchId=475168
+URL:https://www.tabletennis365.com/CentralLondon/Results/MatchCard?matchId=
+ 475168
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119607@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261022T184500
+DTEND;TZID=Europe/London:20261022T214500
+SUMMARY:Morpeth 9 v Morpeth 10 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119610@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261023T183000
+DTEND;TZID=Europe/London:20261023T213000
+SUMMARY:Fusion 8 Jr v Fusion 7 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119606@tabletennis365.com
+SEQUENCE:1
+DTSTAMP:20261011T103417Z
+LAST-MODIFIED:20261011T103417Z
+DTSTART;TZID=Europe/London:20261023T184500
+DTEND;TZID=Europe/London:20261023T214500
+SUMMARY:St Katharines Trust 5 v Apex 4 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nRearranged from 21 Oct 2026\nDet
+ ails: https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Win
+ ter%202026-27&divisionName=Division%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119609@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261023T184500
+DTEND;TZID=Europe/London:20261023T214500
+SUMMARY:Morpeth 11 Jr v St Katharines Trust 6 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119613@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261027T190000
+DTEND;TZID=Europe/London:20261027T220000
+SUMMARY:Irving 3 v Morpeth 9 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119612@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261028T184500
+DTEND;TZID=Europe/London:20261028T214500
+SUMMARY:St Katharines Trust 6 v Highbury 3 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119615@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261028T191500
+DTEND;TZID=Europe/London:20261028T221500
+SUMMARY:Apex 4 v Fusion 7 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119611@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261030T184500
+DTEND;TZID=Europe/London:20261030T214500
+SUMMARY:Morpeth 11 Jr v Flick TTC 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119614@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261030T184500
+DTEND;TZID=Europe/London:20261030T214500
+SUMMARY:Morpeth 10 v St Katharines Trust 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119618@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261103T191500
+DTEND;TZID=Europe/London:20261103T221500
+SUMMARY:Highbury 3 v Flick TTC 5 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119619@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261103T192000
+DTEND;TZID=Europe/London:20261103T222000
+SUMMARY:Fusion 7 v Morpeth 10 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119616@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261104T184500
+DTEND;TZID=Europe/London:20261104T214500
+SUMMARY:St Katharines Trust 5 v Irving 3 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119617@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261105T184500
+DTEND;TZID=Europe/London:20261105T214500
+SUMMARY:Morpeth 9 v St Katharines Trust 6 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119620@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261106T183000
+DTEND;TZID=Europe/London:20261106T213000
+SUMMARY:Fusion 8 Jr v Apex 4 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119624@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261110T190000
+DTEND;TZID=Europe/London:20261110T220000
+SUMMARY:Irving 3 v Fusion 7 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119623@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261111T184500
+DTEND;TZID=Europe/London:20261111T214500
+SUMMARY:St Katharines Trust 6 v St Katharines Trust 5 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119622@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261111T190000
+DTEND;TZID=Europe/London:20261111T220000
+SUMMARY:Flick TTC 5 v Morpeth 9 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119621@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261113T183000
+DTEND;TZID=Europe/London:20261113T213000
+SUMMARY:Fusion 8 Jr v Morpeth 11 Jr (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119625@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261113T184500
+DTEND;TZID=Europe/London:20261113T214500
+SUMMARY:Morpeth 10 v Apex 4 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119629@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261117T192000
+DTEND;TZID=Europe/London:20261117T222000
+SUMMARY:Fusion 7 v St Katharines Trust 6 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119626@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261118T184500
+DTEND;TZID=Europe/London:20261118T214500
+SUMMARY:St Katharines Trust 5 v Flick TTC 5 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119628@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261118T191500
+DTEND;TZID=Europe/London:20261118T221500
+SUMMARY:Apex 4 v Irving 3 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119630@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261120T183000
+DTEND;TZID=Europe/London:20261120T213000
+SUMMARY:Fusion 8 Jr v Morpeth 10 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119627@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261120T184500
+DTEND;TZID=Europe/London:20261120T214500
+SUMMARY:Morpeth 11 Jr v Highbury 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119635@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261124T190000
+DTEND;TZID=Europe/London:20261124T220000
+SUMMARY:Irving 3 v Morpeth 10 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119634@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261125T184500
+DTEND;TZID=Europe/London:20261125T214500
+SUMMARY:St Katharines Trust 6 v Apex 4 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119633@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261125T190000
+DTEND;TZID=Europe/London:20261125T220000
+SUMMARY:Flick TTC 5 v Fusion 7 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119631@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261127T183000
+DTEND;TZID=Europe/London:20261127T213000
+SUMMARY:Fusion 8 Jr v Highbury 3 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119632@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261127T184500
+DTEND;TZID=Europe/London:20261127T214500
+SUMMARY:Morpeth 11 Jr v Morpeth 9 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119639@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261202T191500
+DTEND;TZID=Europe/London:20261202T221500
+SUMMARY:Apex 4 v Flick TTC 5 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119637@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261203T184500
+DTEND;TZID=Europe/London:20261203T214500
+SUMMARY:Morpeth 9 v Highbury 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119640@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261204T183000
+DTEND;TZID=Europe/London:20261204T213000
+SUMMARY:Fusion 8 Jr v Irving 3 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119636@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261204T184500
+DTEND;TZID=Europe/London:20261204T214500
+SUMMARY:Morpeth 11 Jr v St Katharines Trust 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119638@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261204T184500
+DTEND;TZID=Europe/London:20261204T214500
+SUMMARY:Morpeth 10 v St Katharines Trust 6 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119642@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261208T191500
+DTEND;TZID=Europe/London:20261208T221500
+SUMMARY:Highbury 3 v St Katharines Trust 5 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119645@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261209T184500
+DTEND;TZID=Europe/London:20261209T214500
+SUMMARY:St Katharines Trust 6 v Irving 3 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119644@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261209T190000
+DTEND;TZID=Europe/London:20261209T220000
+SUMMARY:Flick TTC 5 v Morpeth 10 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119641@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261211T183000
+DTEND;TZID=Europe/London:20261211T213000
+SUMMARY:Fusion 8 Jr v Morpeth 9 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119643@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261211T184500
+DTEND;TZID=Europe/London:20261211T214500
+SUMMARY:Morpeth 11 Jr v Fusion 7 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119647@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261215T190000
+DTEND;TZID=Europe/London:20261215T220000
+SUMMARY:Irving 3 v Flick TTC 5 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119649@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261215T192000
+DTEND;TZID=Europe/London:20261215T222000
+SUMMARY:Fusion 7 v Highbury 3 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119646@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261216T184500
+DTEND;TZID=Europe/London:20261216T214500
+SUMMARY:St Katharines Trust 5 v Morpeth 9 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119650@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261218T183000
+DTEND;TZID=Europe/London:20261218T213000
+SUMMARY:Fusion 8 Jr v St Katharines Trust 6 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119648@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20261218T184500
+DTEND;TZID=Europe/London:20261218T214500
+SUMMARY:Morpeth 11 Jr v Apex 4 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119654@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270105T192000
+DTEND;TZID=Europe/London:20270105T222000
+SUMMARY:Fusion 7 v Morpeth 9 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119651@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270106T184500
+DTEND;TZID=Europe/London:20270106T214500
+SUMMARY:St Katharines Trust 6 v Flick TTC 5 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119653@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270106T191500
+DTEND;TZID=Europe/London:20270106T221500
+SUMMARY:Apex 4 v Highbury 3 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119655@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270108T183000
+DTEND;TZID=Europe/London:20270108T213000
+SUMMARY:Fusion 8 Jr v St Katharines Trust 5 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119652@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270108T184500
+DTEND;TZID=Europe/London:20270108T214500
+SUMMARY:Morpeth 11 Jr v Morpeth 10 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119658@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270112T191500
+DTEND;TZID=Europe/London:20270112T221500
+SUMMARY:Highbury 3 v Morpeth 10 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119656@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270113T184500
+DTEND;TZID=Europe/London:20270113T214500
+SUMMARY:St Katharines Trust 5 v Fusion 7 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119657@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270114T184500
+DTEND;TZID=Europe/London:20270114T214500
+SUMMARY:Morpeth 9 v Apex 4 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119660@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270115T183000
+DTEND;TZID=Europe/London:20270115T213000
+SUMMARY:Fusion 8 Jr v Flick TTC 5 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119659@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270115T184500
+DTEND;TZID=Europe/London:20270115T214500
+SUMMARY:Morpeth 11 Jr v Irving 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119662@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270119T190000
+DTEND;TZID=Europe/London:20270119T220000
+SUMMARY:Irving 3 v Highbury 3 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119664@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270120T191500
+DTEND;TZID=Europe/London:20270120T221500
+SUMMARY:Apex 4 v St Katharines Trust 5 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119665@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270122T183000
+DTEND;TZID=Europe/London:20270122T213000
+SUMMARY:Fusion 8 Jr v Fusion 7 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119661@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270122T184500
+DTEND;TZID=Europe/London:20270122T214500
+SUMMARY:Morpeth 11 Jr v St Katharines Trust 6 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119663@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270122T184500
+DTEND;TZID=Europe/London:20270122T214500
+SUMMARY:Morpeth 10 v Morpeth 9 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119668@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270126T191500
+DTEND;TZID=Europe/London:20270126T221500
+SUMMARY:Highbury 3 v St Katharines Trust 6 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119670@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270126T192000
+DTEND;TZID=Europe/London:20270126T222000
+SUMMARY:Fusion 7 v Apex 4 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119666@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270127T184500
+DTEND;TZID=Europe/London:20270127T214500
+SUMMARY:St Katharines Trust 5 v Morpeth 10 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119667@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270128T184500
+DTEND;TZID=Europe/London:20270128T214500
+SUMMARY:Morpeth 9 v Irving 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119669@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270129T184500
+DTEND;TZID=Europe/London:20270129T214500
+SUMMARY:Morpeth 11 Jr v Flick TTC 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119673@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270202T190000
+DTEND;TZID=Europe/London:20270202T220000
+SUMMARY:Irving 3 v St Katharines Trust 5 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119672@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270203T184500
+DTEND;TZID=Europe/London:20270203T214500
+SUMMARY:St Katharines Trust 6 v Morpeth 9 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119671@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270203T190000
+DTEND;TZID=Europe/London:20270203T220000
+SUMMARY:Flick TTC 5 v Highbury 3 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119675@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270205T183000
+DTEND;TZID=Europe/London:20270205T213000
+SUMMARY:Fusion 8 Jr v Apex 4 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119674@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270205T184500
+DTEND;TZID=Europe/London:20270205T214500
+SUMMARY:Morpeth 10 v Fusion 7 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119679@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270209T192000
+DTEND;TZID=Europe/London:20270209T222000
+SUMMARY:Fusion 7 v Irving 3 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119676@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270210T184500
+DTEND;TZID=Europe/London:20270210T214500
+SUMMARY:St Katharines Trust 5 v St Katharines Trust 6 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119678@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270210T191500
+DTEND;TZID=Europe/London:20270210T221500
+SUMMARY:Apex 4 v Morpeth 10 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119677@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270211T184500
+DTEND;TZID=Europe/London:20270211T214500
+SUMMARY:Morpeth 9 v Flick TTC 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119680@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270212T184500
+DTEND;TZID=Europe/London:20270212T214500
+SUMMARY:Morpeth 11 Jr v Fusion 8 Jr (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119684@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270216T190000
+DTEND;TZID=Europe/London:20270216T220000
+SUMMARY:Irving 3 v Apex 4 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119683@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270217T184500
+DTEND;TZID=Europe/London:20270217T214500
+SUMMARY:St Katharines Trust 6 v Fusion 7 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119682@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270217T190000
+DTEND;TZID=Europe/London:20270217T220000
+SUMMARY:Flick TTC 5 v St Katharines Trust 5 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119685@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270219T183000
+DTEND;TZID=Europe/London:20270219T213000
+SUMMARY:Fusion 8 Jr v Morpeth 10 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119681@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270219T184500
+DTEND;TZID=Europe/London:20270219T214500
+SUMMARY:Morpeth 11 Jr v Highbury 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119689@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270223T192000
+DTEND;TZID=Europe/London:20270223T222000
+SUMMARY:Fusion 7 v Flick TTC 5 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119688@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270224T191500
+DTEND;TZID=Europe/London:20270224T221500
+SUMMARY:Apex 4 v St Katharines Trust 6 (Division 4)
+LOCATION:London Enterprise Academy\, 81-91 Commercial Road\, London\, E1 1R
+ D
+GEO:51.515;-0.06379
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119690@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270226T183000
+DTEND;TZID=Europe/London:20270226T213000
+SUMMARY:Fusion 8 Jr v Highbury 3 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119686@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270226T184500
+DTEND;TZID=Europe/London:20270226T214500
+SUMMARY:Morpeth 11 Jr v Morpeth 9 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119687@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270226T184500
+DTEND;TZID=Europe/London:20270226T214500
+SUMMARY:Morpeth 10 v Irving 3 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119691@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270302T191500
+DTEND;TZID=Europe/London:20270302T221500
+SUMMARY:Highbury 3 v Morpeth 9 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119694@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270303T184500
+DTEND;TZID=Europe/London:20270303T214500
+SUMMARY:St Katharines Trust 6 v Morpeth 10 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119693@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270303T190000
+DTEND;TZID=Europe/London:20270303T220000
+SUMMARY:Flick TTC 5 v Apex 4 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119695@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270305T183000
+DTEND;TZID=Europe/London:20270305T213000
+SUMMARY:Fusion 8 Jr v Irving 3 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119692@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270305T184500
+DTEND;TZID=Europe/London:20270305T214500
+SUMMARY:Morpeth 11 Jr v St Katharines Trust 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119697@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270309T190000
+DTEND;TZID=Europe/London:20270309T220000
+SUMMARY:Irving 3 v St Katharines Trust 6 (Division 4)
+LOCATION:All Saints\, New Cross\, Monson Road\, New Cross\, London\, SE14 5
+ DJ
+GEO:51.47607;-0.04757
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119696@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270310T184500
+DTEND;TZID=Europe/London:20270310T214500
+SUMMARY:St Katharines Trust 5 v Highbury 3 (Division 4)
+LOCATION:Excelsior Academy\, Shacklewell Lane\, London\, E8 2EB
+GEO:51.5528;-0.0705
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119700@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270312T183000
+DTEND;TZID=Europe/London:20270312T213000
+SUMMARY:Fusion 8 Jr v Morpeth 9 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119698@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270312T184500
+DTEND;TZID=Europe/London:20270312T214500
+SUMMARY:Morpeth 10 v Flick TTC 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119699@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270312T184500
+DTEND;TZID=Europe/London:20270312T214500
+SUMMARY:Morpeth 11 Jr v Fusion 7 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119702@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270316T191500
+DTEND;TZID=Europe/London:20270316T221500
+SUMMARY:Highbury 3 v Fusion 7 (Division 4)
+LOCATION:Bridge Academy\, Laburnum Street\, London\, E2 8BA
+GEO:51.53566;-0.07264
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119704@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270317T190000
+DTEND;TZID=Europe/London:20270317T220000
+SUMMARY:Flick TTC 5 v Irving 3 (Division 4)
+LOCATION:Decathlon Surrey Quays\, 9 Maritime St\, London\, SE16 7FU
+GEO:51.49804;-0.04719
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119701@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270318T184500
+DTEND;TZID=Europe/London:20270318T214500
+SUMMARY:Morpeth 9 v St Katharines Trust 5 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119705@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270319T183000
+DTEND;TZID=Europe/London:20270319T213000
+SUMMARY:Fusion 8 Jr v St Katharines Trust 6 (Division 4)
+LOCATION:Fusion\, Unit 2\, Stockholm Road\, London\, SE16 3LP
+GEO:51.4848;-0.0512
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:fixture-1119703@tabletennis365.com
+SEQUENCE:0
+DTSTAMP:20260913T131910Z
+LAST-MODIFIED:20260913T131910Z
+DTSTART;TZID=Europe/London:20270319T184500
+DTEND;TZID=Europe/London:20270319T214500
+SUMMARY:Morpeth 11 Jr v Apex 4 (Division 4)
+LOCATION:Morpeth School\, Morpeth Street\, London\, E2 0PS
+GEO:51.52762;-0.04781
+DESCRIPTION:Winter 2026-27 – Division 4\nDetails: https://www.tabletennis
+ 365.com/CentralLondon/Fixtures?leagueName=Winter%202026-27&divisionName=Di
+ vision%20Four
+URL:https://www.tabletennis365.com/CentralLondon/Fixtures?leagueName=Winter
+ %202026-27&divisionName=Division%20Four
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR

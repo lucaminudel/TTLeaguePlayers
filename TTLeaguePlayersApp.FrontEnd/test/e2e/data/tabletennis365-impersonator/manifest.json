@@ -1,0 +1,50 @@
+[
+  {
+    "url": "https://www.tabletennis365.com/CentralLondon/Fixtures/calendar.ics?d=9761",
+    "status": 200,
+    "contentType": "text/calendar; charset=utf-8",
+    "bodyFile": "fixtures/division-4.ics",
+    "capturedAt": "2026-10-24",
+    "provenance": "Public upstream response captured during inception, HTTP 200; reused from /private/tmp/tt365-inception/calendar.ics without body changes."
+  },
+  {
+    "url": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bodyFile": "players/eligibility.html",
+    "capturedAt": "2026-10-24",
+    "provenance": "Public upstream response captured during inception, HTTP 200; reduced to its original select#teamSelect with all options and attributes. Scripts, navigation and unrelated page content removed."
+  },
+  {
+    "url": "https://www.tabletennis365.com/CentralLondon/Team/Eligibility?handler=Players&leagueId=4760&teamId=75706",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "bodyFile": "players/morpeth-10.json",
+    "capturedAt": "2026-10-24",
+    "provenance": "Public inception HTTP 200 roster capture for selector-derived Morpeth 10 ID 75706. Preserves six teamPlayers records with positive integer id and nonempty name; names and player IDs anonymised, unrelated otherPlayers emptied. No scenario asserts live player identities."
+  },
+  {
+    "url": "https://www.tabletennis365.com/CentralLondon/Clubs/TSPxHAtVSl",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bodyFile": "clubs/walworth.html",
+    "capturedAt": null,
+    "provenance": "Reused existing test/e2e/data/club_teams_walworth.html scenario fixture; original capture date/status unknown. HTTP 200 is the existing test success response. Retains original table.tt-contact-table and its league/division/team/captain cells; all other page content removed."
+  },
+  {
+    "url": "https://www.tabletennis365.com/CentralLondon/Clubs/Highbury",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bodyFile": "clubs/highbury.html",
+    "capturedAt": null,
+    "provenance": "Reused existing test/e2e/data/club_teams_highbury.html scenario fixture; original capture date/status unknown. HTTP 200 is the existing test success response. Retains original table.tt-contact-table and its league/division/team/captain cells; all other page content removed."
+  },
+  {
+    "url": "https://www.tabletennis365.com/CentralLondon/Clubs/Morpeth",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bodyFile": "clubs/morpeth.html",
+    "capturedAt": null,
+    "provenance": "Reused existing test/e2e/data/club_teams_morpeth.html scenario fixture; original capture date/status unknown. HTTP 200 is the existing test success response. Retains original table.tt-contact-table and its league/division/team/captain cells; all other page content removed."
+  }
+]

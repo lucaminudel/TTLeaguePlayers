@@ -1,7 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { stubbedTest as test, expect } from './helpers/tabletennis365-test-setup';
 import { User, MyClubTeamsPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
@@ -15,36 +12,9 @@ const FIXED_CLOCK_TIME = '2026-10-16T20:46:00.000Z';
 const MANAGER_EMAIL = 'test_my_club_teams_manager@user.test';
 const MANAGER_PASSWORD = 'aA1!56789012';
 
-// Walworth's entry in club_teams. The club page is MOCKED because a club's team list genuinely
-// changes over time, unlike the historic pages the other specs fetch for real. The parser's contract
-// against the live site is covered by the processor's own integration tests.
-// The club page's path on the league site. With avoidCORS the browser sends it URL-ENCODED inside
-// the proxy's url= parameter, so the match is done on the decoded request url.
-const WALWORTH_CLUB_URL_FRAGMENT = 'Clubs/TSPxHAtVSl';
+const WALWORTH_CLUB_URL = 'https://www.tabletennis365.com/CentralLondon/Clubs/TSPxHAtVSl';
 // From the fixture, in club-page order (the page lists teams by division, not alphabetically).
 const EXPECTED_TEAMS = ['Walworth Gainsford', 'Walworth Enigma', 'Walworth Tigers', 'Walworth Wonderers'];
-
-const fixtureHtml = fs.readFileSync(
-    path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data/club_teams_walworth.html'),
-    'utf-8'
-);
-
-/**
- * Two routes, not one: with avoidCORS the browser issues the PROXY url and carries the league site
- * in a query parameter, so a pattern matching only tabletennis365.com never fires.
- */
-async function mockWalworthClubPage(page: Page): Promise<void> {
-    const serveFixtureOrContinue = async (route: import('@playwright/test').Route) => {
-        if (decodeURIComponent(route.request().url()).includes(WALWORTH_CLUB_URL_FRAGMENT)) {
-            await route.fulfill({ status: 200, contentType: 'text/html', body: fixtureHtml });
-        } else {
-            await route.continue();
-        }
-    };
-
-    await page.route('**/tabletennis365.com/**', serveFixtureOrContinue);
-    await page.route('**/go.x2u.in**', serveFixtureOrContinue);
-}
 
 test.describe('My Club Teams Page', () => {
     test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
@@ -59,8 +29,6 @@ test.describe('My Club Teams Page', () => {
             localStorage.clear();
             sessionStorage.clear();
         });
-
-        await mockWalworthClubPage(page);
     });
 
     test('shows every team of the selected club with its registration status', async ({ page }) => {
@@ -103,14 +71,12 @@ test.describe('My Club Teams Page', () => {
         });
     });
 
-    test('shows a blank list, and no teams message, when the club page cannot be read', async ({ page }) => {
+    test('shows a blank list, and no teams message, when the club page cannot be read', async ({ page, tableTennis365Stub }) => {
         const user = new User(page);
 
         await user.setFixedClockTime(FIXED_CLOCK_TIME);
 
-        // Override the fixture route for this test: the club page fails outright.
-        await page.route('**/tabletennis365.com/**', (route) => route.abort('failed'));
-        await page.route('**/go.x2u.in**', (route) => route.abort('failed'));
+        tableTennis365Stub.clubs.failWithNetworkError(WALWORTH_CLUB_URL);
 
         const loginPage = await user.navigateToLogin();
         await loginPage.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);

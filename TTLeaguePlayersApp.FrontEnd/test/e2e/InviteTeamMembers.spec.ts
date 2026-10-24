@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from '@playwright/test';
+import { stubbedTest as test, expect } from './helpers/tabletennis365-test-setup';
 import { User, InviteTeamMembersPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
@@ -12,54 +12,16 @@ const LEAGUE = 'CLTTL';
 const SEASON = '2026-2027';
 const TEAM = 'Morpeth 10';
 
-const MORPETH_10_TEAM_ID = 'teamId=73142';
-
 const RUN_ID = Date.now().toString(36);
 const playerName = (ordinal: string) => `E2E Player ${RUN_ID} ${ordinal}`;
 const EXPECTED_PLAYERS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN'].map(playerName);
-
-const teamCheckerHtml = `<!DOCTYPE html>
-<html><body>
-    <select id="teamSelect">
-        <option value="">-- Select Team --</option>
-        <option value="73142">Morpeth 10</option>
-    </select>
-</body></html>`;
-
-const teamPlayersApiResponse = JSON.stringify({
-    teamPlayers: EXPECTED_PLAYERS.map((name, index) => ({ id: String(index + 1), name })),
-    otherPlayers: []
-});
-
-/**
- * Two routes, not one: with avoidCORS the browser issues the PROXY url and carries the league site in a query parameter.
- * The Team Checker page supplies the team id; its Players handler supplies the roster JSON.
- */
-async function mockMorpethPlayerPages(page: Page): Promise<void> {
-    const serveFixtureOrContinue = async (route: Route) => {
-        const url = decodeURIComponent(route.request().url());
-
-        if (url.includes('/Team/Eligibility') && url.includes('handler=Players') && url.includes(MORPETH_10_TEAM_ID)) {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: teamPlayersApiResponse });
-            return;
-        }
-        if (url.includes('/Team/Eligibility')) {
-            await route.fulfill({ status: 200, contentType: 'text/html', body: teamCheckerHtml });
-            return;
-        }
-        await route.continue();
-    };
-
-    await page.route('**/tabletennis365.com/**', serveFixtureOrContinue);
-    await page.route('**/go.x2u.in**', serveFixtureOrContinue);
-}
 
 test.describe('Invite Team Members Page', () => {
     test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
     const createdInvites: { url: string; auth: string | undefined }[] = [];
 
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page, tableTennis365Stub }) => {
         await page.addInitScript(() => {
             localStorage.clear();
             sessionStorage.clear();
@@ -77,7 +39,7 @@ test.describe('Invite Team Members Page', () => {
             }
         });
 
-        await mockMorpethPlayerPages(page);
+        tableTennis365Stub.players.returnRoster({ team: TEAM, teamId: 73142, players: EXPECTED_PLAYERS });
     });
 
     test.afterAll(async ({ request }) => {

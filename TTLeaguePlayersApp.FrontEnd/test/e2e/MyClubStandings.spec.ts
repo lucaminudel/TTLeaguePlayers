@@ -1,7 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { stubbedTest as test, expect } from './helpers/tabletennis365-test-setup';
 import { User, MyClubStandingsPage } from './page-objects/User';
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
@@ -19,9 +16,7 @@ const MANAGER_PASSWORD = 'aA1!56789012';
 // HIGHBURY, not Walworth. KudosAwardAndStanding.spec.ts awards kudos to "Walworth Tigers" and
 // deletes them in teardown, and spec files run in parallel workers — asserting on Walworth here
 // would race with it. Highbury is used by no other spec.
-// The club page's path on the league site. With avoidCORS the browser sends it URL-ENCODED inside
-// the proxy's url= parameter, so the match is done on the decoded request url.
-const HIGHBURY_CLUB_URL_FRAGMENT = 'Clubs/Highbury';
+const HIGHBURY_CLUB_URL = 'https://www.tabletennis365.com/CentralLondon/Clubs/Highbury';
 
 // From the fixture, in club-page order. Eight teams across FIVE divisions, which is what makes this
 // club worth using: the fan-out has to reach five different partitions to answer.
@@ -29,28 +24,6 @@ const EXPECTED_TEAMS = [
     'Highbury 1', 'Highbury 2', 'Highbury 3', 'Highbury 4', 'Highbury 5',
     'Highbury 6', 'Highbury 7', 'Highbury 8'
 ];
-
-const fixtureHtml = fs.readFileSync(
-    path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data/club_teams_highbury.html'),
-    'utf-8'
-);
-
-/**
- * Two routes, not one: with avoidCORS the browser issues the PROXY url and carries the league site
- * in a query parameter, so a pattern matching only tabletennis365.com never fires.
- */
-async function mockHighburyClubPage(page: Page): Promise<void> {
-    const serveFixtureOrFallback = async (route: import('@playwright/test').Route) => {
-        if (decodeURIComponent(route.request().url()).includes(HIGHBURY_CLUB_URL_FRAGMENT)) {
-            await route.fulfill({ status: 200, contentType: 'text/html', body: fixtureHtml });
-        } else {
-            await route.fallback();
-        }
-    };
-
-    await page.route('**/tabletennis365.com/**', serveFixtureOrFallback);
-    await page.route('**/go.x2u.in**', serveFixtureOrFallback);
-}
 
 test.describe('My Club Standings Page', () => {
     test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
@@ -65,8 +38,6 @@ test.describe('My Club Standings Page', () => {
             localStorage.clear();
             sessionStorage.clear();
         });
-
-        await mockHighburyClubPage(page);
     });
 
     test('shows every team of the selected club with its kudos match tally', async ({ page }) => {
@@ -115,14 +86,12 @@ test.describe('My Club Standings Page', () => {
         });
     });
 
-    test('shows an error, and never claims the club has no teams, when the club page cannot be read', async ({ page }) => {
+    test('shows an error, and never claims the club has no teams, when the club page cannot be read', async ({ page, tableTennis365Stub }) => {
         const user = new User(page);
 
         await user.setFixedClockTime(FIXED_CLOCK_TIME);
 
-        // Override the fixture route for this test: the club page fails outright.
-        await page.route('**/tabletennis365.com/**', (route) => route.abort('failed'));
-        await page.route('**/go.x2u.in**', (route) => route.abort('failed'));
+        tableTennis365Stub.clubs.failWithNetworkError(HIGHBURY_CLUB_URL);
 
         const loginPage = await user.navigateToLogin();
         await loginPage.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
@@ -143,8 +112,6 @@ test.describe('My Club Standings Page', () => {
     });
 });
 
-// Own describe, own fixture route mock: this test is unrelated to the suite above and needs a
-// second manager whose club (Morpeth) is not otherwise mocked in this file.
 test.describe('My Club Standings Page - standings info modal', () => {
     // Shares this identity read-only with ClubsAndTournamentsCaching.spec.ts and homepage.spec.ts,
     // which write tournaments as this user in parallel workers. Nothing here writes as this user;
@@ -152,36 +119,12 @@ test.describe('My Club Standings Page - standings info modal', () => {
     const USER_B_EMAIL = 'test_already_registered3@user.test';
     const USER_B_PASSWORD = 'aA1!56789012';
 
-    const MORPETH_CLUB_URL_FRAGMENT = 'Clubs/Morpeth';
-
-    const morpethFixtureHtml = fs.readFileSync(
-        path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'data/club_teams_morpeth.html'),
-        'utf-8'
-    );
-
-    async function mockMorpethClubPage(page: Page): Promise<void> {
-        const serveFixtureOrFallback = async (route: import('@playwright/test').Route) => {
-            if (decodeURIComponent(route.request().url()).includes(MORPETH_CLUB_URL_FRAGMENT)) {
-                await route.fulfill({ status: 200, contentType: 'text/html', body: morpethFixtureHtml });
-            } else {
-                // Let the earlier Highbury handler serve its fixture in the shared browser.
-                await route.fallback();
-            }
-        };
-
-        await page.route('**/tabletennis365.com/**', serveFixtureOrFallback);
-        await page.route('**/go.x2u.in**', serveFixtureOrFallback);
-    }
-
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
             localStorage.clear();
             sessionStorage.clear();
         });
 
-        // Both mocks are needed: user A (Highbury) then user B (Morpeth) in the same test.
-        await mockHighburyClubPage(page);
-        await mockMorpethClubPage(page);
     });
 
     test('stays hidden for the manager who suppressed it, but still appears for another manager on the same browser', async ({ page }) => {
@@ -190,7 +133,7 @@ test.describe('My Club Standings Page - standings info modal', () => {
         const user = new User(page);
 
         // User A: dismiss both standings info modals ticking "Don't show this message again", on
-        // Highbury (not Walworth - see the comment on HIGHBURY_CLUB_URL_FRAGMENT above).
+        // Highbury (not Walworth - see the Highbury isolation comment above).
         await user.setFixedClockTime(FIXED_CLOCK_TIME);
         const loginPageA = await user.navigateToLogin();
         await loginPageA.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
