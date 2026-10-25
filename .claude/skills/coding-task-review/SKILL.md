@@ -324,23 +324,16 @@ reproduce; do not report it as a "possible issue".
 1. **High-priority findings**, each with: file:line, what is wrong, the concrete failing case, and
    the proposed fix. Followed by a fix plan — ordered, with the verification each fix needs.
 2. **Medium-priority findings**, presented the same as the High-priority findings
-3. **Noted, not actioned** — everything lower. Named, one line each, no fix plan.
-
-**The incremental fix.**
-One list item at the time tell where it came from, why it is wrong, the failing case, its impact,
-and for the fix its size, its blast radius and the alternative of leaving it. One ask: what to do
-about this finding. Then wait.
-
-Then: settle it, fix it, verify it — and only then move to next finding**, same
-shape as before.
+3. **Noted, not actioned** — every lower-priority finding, named in a concise list. No fix plan is needed for this initial list. Present the list to the user.
 
 Change nothing until the user approves a fix. If they amend the plan, fold the amendment in and
 re-present it.
 
 ## Phase 4 — Fix
 
-Execute the approved plan only. Nothing from list 2 gets touched, and no cleanup gets folded in
-along the way — the diff must not grow during its own review.
+Execute only fixes the user approved, regardless of the finding's initial priority. Leave all
+other findings untouched, and do not fold in cleanup along the way — the diff must not grow beyond
+the approved fixes during its own review.
 
 Verify with the commands and the **four-tier discipline** — 1-A (dev, no Cognito), 1-B (dev, scoped
 Cognito), 1-C (dev, full Cognito, ask first), 2 (test env, full pipeline, ask first) — defined in
@@ -488,17 +481,29 @@ assistant signature unless the user asks.
 
 ## Phase 7 — Retrospect
 
-Before closing or handing off, review how this skill's work went. Present the useful lessons and
-any skill improvements made, or explicitly say that no improvement was identified. Keep changes
-limited to lessons supported by this session.
+Complete a retrospective of the **Review workflow itself** after the findings, fixes,
+verification and review guide are settled. The Execution retrospective is a separate phase and
+never satisfies this one, even when both happen in the same chat. Review technical lessons from
+the code only as evidence for a workflow improvement; they are not by themselves this
+retrospective.
 
-Ask the user whether they want to add any other improvement, and wait for their answer. Address
-it before closing; an explicit decision to skip the retrospective also permits closure. Record the
-outcome briefly in this task's existing report or progress log.
+Present what the Review process caught or missed and how its manual pass, independent checks,
+finding decisions, verification and hand-off worked. State any supported improvement to this
+skill, or explicitly state that none was identified. Then ask the user specifically whether they
+want to add or change anything about the **Coding Task Review workflow**, and wait for their
+answer. An earlier answer about Execution, or a generic "no additional improvements" given before
+this Review-specific question, does not count. Address the answer before closing; an explicit
+decision to skip the Review retrospective also permits closure.
+
+Record a distinct `Review retrospective` outcome in this task's `review.md`: the workflow lessons,
+skill changes made (or none), and the user's Review-specific answer or explicit skip. Do not mark
+this phase complete based on an entry in `work-summary.md` or another phase's progress log.
 
 ## Phase 8 — Close
 
-Close only after the retrospective above is complete or the user explicitly declines it.
+Before closing, check that `review.md` contains the distinct Review retrospective outcome from
+Phase 7, including the user's Review-specific answer or explicit skip. If it does not, complete
+Phase 7 now; an Execution retrospective cannot fill this gate.
 
 This is the end of the four-skill sequence: the working tree is reviewed, green and committable,
 and the commit message is proposed. **You do not commit** — staging and committing are the user's.
@@ -524,7 +529,8 @@ thorough, and do not soften a real finding into a suggestion.
 
 ## Anti-patterns
 
-- Closing or handing off before completing the retrospective or recording the user's explicit decision to skip it.
+- Treating technical lessons, an Execution retrospective, or an earlier generic answer as the
+  Review retrospective; closing without the distinct Review outcome in `review.md`.
 
 - Reviewing on top of a red or unverified build.
 - Replacing the main adversarial pass with delegated conclusions, or giving supplementary reviewers

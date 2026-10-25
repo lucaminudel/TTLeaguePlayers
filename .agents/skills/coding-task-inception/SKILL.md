@@ -200,17 +200,24 @@ source of truth for later Execution and Review skills.
 
 ## Phase 8 — Retrospect
 
-Before closing or handing off, review how this skill's work went. Present the useful lessons and
-any skill improvements made, or explicitly say that no improvement was identified. Keep changes
-limited to lessons supported by this session.
+Retrospect on the **Inception workflow itself** after the plan is confirmed and persisted. Assess
+how research, questions, decisions, plan confirmation and hand-off worked. Technical design lessons
+alone do not satisfy this retrospective. Present supported improvements to this skill, or say
+explicitly that none were identified.
 
-Ask the user whether they want to add any other improvement, and wait for their answer. Address
-it before closing; an explicit decision to skip the retrospective also permits closure. Record the
-outcome briefly in this task's existing report or progress log.
+Ask the user specifically whether they want to add or change anything about the **Coding Task
+Inception workflow**, and wait for their answer. An answer to another phase's retrospective, or a
+generic earlier answer, does not count. Address the answer before closing; an explicit decision to
+skip the Inception retrospective also permits closure.
+
+Record a distinct `Inception retrospective` outcome in this task's `plan.md`: workflow lessons,
+skill changes made (or none), and the user's Inception-specific answer or explicit skip.
 
 ## Phase 9 — Close
 
-Close only after the retrospective above is complete or the user explicitly declines it.
+Before closing, check that `plan.md` contains the distinct Inception retrospective outcome from
+Phase 8, including the user's Inception-specific answer or explicit skip. Complete Phase 8 if it
+is missing; another phase's retrospective cannot fill this gate.
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -224,7 +231,8 @@ and that file — not this conversation — is what `coding-task-execution` read
 
 ## Anti-patterns
 
-- Closing or handing off before completing the retrospective or recording the user's explicit decision to skip it.
+- Treating technical design lessons, another phase's retrospective, or an earlier generic answer
+  as the Inception retrospective; closing without its distinct outcome in `plan.md`.
 
 - Writing application code before phase 6 confirmation.
 - Planning against an external data source without fetching it first.
