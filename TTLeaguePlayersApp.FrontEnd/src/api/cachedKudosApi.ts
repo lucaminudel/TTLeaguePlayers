@@ -14,25 +14,7 @@ import {
     type ClubKudosStandingsEntry
 } from './kudosApi';
 import { invalidateCache, withSWR } from '../utils/CacheUtils';
-
-const ONE_HOUR = 60 * 60 * 1000;
-const ONE_DAY = 24 * ONE_HOUR;
-const ONE_WEEK = 7 * ONE_DAY;
-
-const CACHE_CONFIG = {
-    PLAYER_KUDOS: {
-        freshDurationMs: 2 * ONE_HOUR,
-        staleDurationMs: ONE_WEEK,
-    },
-    TEAM_KUDOS: {
-        freshDurationMs: 2 * ONE_HOUR,
-        staleDurationMs: ONE_WEEK,
-    },
-    STANDINGS: {
-        freshDurationMs: 2 * ONE_HOUR,
-        staleDurationMs: ONE_WEEK,
-    }
-};
+import { BACKEND_API_SHORT } from '../utils/CacheWindows';
 
 export const KUDOS_CACHE_PREFIX = 'kudos_cache_';
 
@@ -48,7 +30,7 @@ export async function getCachedPlayerKudos(
     return withSWR(
         cacheKey,
         () => getKudos(request),
-        CACHE_CONFIG.PLAYER_KUDOS,
+        BACKEND_API_SHORT,
         undefined,
         onDataUpdate
     );
@@ -66,7 +48,7 @@ export async function getCachedTeamKudos(
     return withSWR(
         cacheKey,
         () => getTeamKudos(request),
-        CACHE_CONFIG.TEAM_KUDOS,
+        BACKEND_API_SHORT,
         undefined,
         onDataUpdate
     );
@@ -84,7 +66,7 @@ export async function getCachedKudosStandings(
     return withSWR(
         cacheKey,
         () => getKudosStandings(request),
-        CACHE_CONFIG.STANDINGS,
+        BACKEND_API_SHORT,
         undefined,
         onDataUpdate
     );
@@ -110,9 +92,9 @@ export async function getCachedClubKudosStandings(
     const response = await withSWR(
         cacheKey,
         () => getClubKudosStandings(request),
-        CACHE_CONFIG.STANDINGS,
+        BACKEND_API_SHORT,
         undefined,
-        onDataUpdate
+        onDataUpdate ? (data) => { onDataUpdate(projectOntoRequestedClubTeams(data, request)); } : undefined
     );
 
     return projectOntoRequestedClubTeams(response, request);

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { ClubTeamsList } from '../../../../src/components/ui/ClubTeamsList';
 import type { ManagedClubProcessor } from '../../../../src/service/active-season-processors/ManagedClubProcessor';
 import type { TeamRegistrationEntry, TeamRegistrationsResponse } from '../../../../src/types/invite';
@@ -117,7 +117,7 @@ describe('ClubTeamsList', () => {
                 club_name: CLUB_NAME,
                 club_location: CLUB_LOCATION,
                 team_names: ['Walworth 1', 'Walworth 2'],
-            });
+            }, expect.any(Function));
         });
     });
 
@@ -317,4 +317,38 @@ describe('ClubTeamsList', () => {
             expect(screen.queryByTestId('club-teams-loading')).not.toBeInTheDocument();
         });
     });
+    it('updates registration rows and reloads statuses when the club teams refresh, ignoring obsolete callbacks', async () => {
+        type Teams = Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>;
+        let refreshTeams!: (data: Teams) => void;
+        const processor: ManagedClubProcessor = {
+            getClubTeams: vi.fn((onUpdate?: (data: Teams) => void) => {
+                if (!onUpdate) throw new Error('Missing refresh callback');
+                refreshTeams = onUpdate;
+                return Promise.resolve([{ team_name: 'Walworth 1', team_division: 'Division 4' }]);
+            }),
+        };
+        respondWith([entry({ team_name: 'Walworth 1' })]);
+        const view = renderList(processor);
+        await waitFor(() => { expect(screen.getByTestId('club-team-row-Walworth 1')).toBeTruthy(); });
+        const oldStatusUpdate = inviteApiMocks.getCachedTeamRegistrations.mock.calls[0][1] as (data: TeamRegistrationsResponse) => void;
+        const result = (name: string, status: 'NOT_INVITED' | 'ACCEPTED' = 'NOT_INVITED'): TeamRegistrationsResponse => ({
+            league: LEAGUE, season: SEASON, club_name: CLUB_NAME, club_location: CLUB_LOCATION,
+            teams: [entry({ team_name: name, status })],
+        });
+        act(() => { oldStatusUpdate(result('Walworth 1', 'ACCEPTED')); });
+        expect(rowCells('Walworth 1').status).toBe('Registered');
+
+        respondWith([entry({ team_name: 'Walworth 2' })]);
+        act(() => { refreshTeams([{ team_name: 'Walworth 2', team_division: 'Division 4' }]); });
+        await waitFor(() => { expect(screen.getByTestId('club-team-row-Walworth 2')).toBeTruthy(); });
+        act(() => { oldStatusUpdate(result('Walworth 1')); });
+        expect(screen.queryByTestId('club-team-row-Walworth 1')).toBeNull();
+        const lastUpdate = inviteApiMocks.getCachedTeamRegistrations.mock.calls.at(-1)?.[1] as typeof oldStatusUpdate;
+        respondWith([entry({ team_name: 'Other club team' })]);
+        view.rerender(listFor(stubProcessor(['Other club team']), 'Other club'));
+        await waitFor(() => { expect(screen.getByTestId('club-team-row-Other club team')).toBeTruthy(); });
+        act(() => { lastUpdate(result('Walworth 2')); refreshTeams([]); });
+        expect(screen.getByTestId('club-team-row-Other club team')).toBeTruthy();
+    });
+
 });

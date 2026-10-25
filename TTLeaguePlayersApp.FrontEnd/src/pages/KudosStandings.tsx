@@ -1,3 +1,4 @@
+import { readWithUpdates } from '../utils/CacheUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MobileLayout } from '../components/layout/MobileLayout';
@@ -85,26 +86,30 @@ export const KudosStandings: React.FC = () => {
     }, [location.state, activeSeasons]);
 
     useEffect(() => {
+        let cancelled = false;
         const fetchKudosAwarded = async () => {
             if (!state || !userId) return;
             setLoading(true);
             setError(null);
             try {
-                const data = await getCachedPlayerKudos({
-                    league: state.league,
-                    season: state.season,
-                    teamDivision: state.team_division,
-                    teamName: state.team_name,
-                    giver_person_name: state.person_name,
-                    giverPersonSub: userId,
-                }, (freshData) => { setKudosList(freshData); });
-                setKudosList(data);
-                handleLoadSucceededRef.current();
+                await readWithUpdates(
+                    (onUpdate) => getCachedPlayerKudos({
+                        league: state.league,
+                        season: state.season,
+                        teamDivision: state.team_division,
+                        teamName: state.team_name,
+                        giver_person_name: state.person_name,
+                        giverPersonSub: userId,
+                    }, onUpdate),
+                    setKudosList,
+                    () => !cancelled
+                );
+                if (!cancelled) handleLoadSucceededRef.current();
             } catch (err) {
-                setError('Failed to fetch kudos history');
+                if (!cancelled) setError('Failed to fetch kudos history');
                 console.error(err);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
@@ -113,19 +118,22 @@ export const KudosStandings: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getCachedTeamKudos({
-                    league: state.league,
-                    season: state.season,
-                    teamDivision: state.team_division,
-                    teamName: state.team_name,
-                }, (freshData) => { setTeamKudosList(freshData); });
-                setTeamKudosList(data);
-                handleLoadSucceededRef.current();
+                await readWithUpdates(
+                    (onUpdate) => getCachedTeamKudos({
+                        league: state.league,
+                        season: state.season,
+                        teamDivision: state.team_division,
+                        teamName: state.team_name,
+                    }, onUpdate),
+                    setTeamKudosList,
+                    () => !cancelled
+                );
+                if (!cancelled) handleLoadSucceededRef.current();
             } catch (err) {
-                setError('Failed to fetch team kudos');
+                if (!cancelled) setError('Failed to fetch team kudos');
                 console.error(err);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
@@ -134,18 +142,21 @@ export const KudosStandings: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getCachedKudosStandings({
-                    league: state.league,
-                    season: state.season,
-                    teamDivision: state.team_division,
-                }, (freshData) => { setStandingsData(freshData); });
-                setStandingsData(data);
-                handleLoadSucceededRef.current();
+                await readWithUpdates(
+                    (onUpdate) => getCachedKudosStandings({
+                        league: state.league,
+                        season: state.season,
+                        teamDivision: state.team_division,
+                    }, onUpdate),
+                    setStandingsData,
+                    () => !cancelled
+                );
+                if (!cancelled) handleLoadSucceededRef.current();
             } catch (err) {
-                setError('Failed to fetch kudos standings');
+                if (!cancelled) setError('Failed to fetch kudos standings');
                 console.error(err);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
@@ -159,6 +170,7 @@ export const KudosStandings: React.FC = () => {
             console.debug("Tab Table Fetch Kudos")
             void fetchKudosStandings();
         }
+        return () => { cancelled = true; };
     }, [state, activeTab, userId]);
 
     const renderKudosList = () => {

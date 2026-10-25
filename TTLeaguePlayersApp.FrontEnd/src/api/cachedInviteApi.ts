@@ -9,20 +9,7 @@ import {
     type TeamRegistrationsResponse
 } from '../types/invite';
 import { invalidateCache, withSWR } from '../utils/CacheUtils';
-
-const ONE_HOUR = 60 * 60 * 1000;
-const ONE_DAY = 24 * ONE_HOUR;
-
-const CACHE_CONFIG = {
-    TEAM_REGISTRATIONS: {
-        freshDurationMs: ONE_DAY,
-        staleDurationMs: 6 * ONE_DAY,
-    },
-    TEAM_PLAYERS_REGISTRATIONS: {
-        freshDurationMs: ONE_DAY,
-        staleDurationMs: 3 * ONE_DAY,
-    }
-};
+import { BACKEND_API_MEDIUM } from '../utils/CacheWindows';
 
 export const INVITE_CACHE_PREFIX = 'invite_cache_';
 
@@ -40,9 +27,9 @@ export async function getCachedTeamRegistrations(
     const response = await withSWR(
         cacheKey,
         () => inviteApi.getTeamRegistrations(request),
-        CACHE_CONFIG.TEAM_REGISTRATIONS,
+        BACKEND_API_MEDIUM,
         undefined,
-        onDataUpdate
+        onDataUpdate ? (data) => { onDataUpdate(projectOntoRequestedTeams(data, request)); } : undefined
     );
 
     return projectOntoRequestedTeams(response, request);
@@ -62,9 +49,8 @@ function discardCachedEntryThatCannotAnswer(cacheKey: string, request: TeamRegis
 }
 
 /**
- * Cached version of getTeamPlayersRegistrations. Its own key (one entry per team), a shorter stale
- * window than the club twin (1 day fresh / 3 days stale) and its own fitness rule: judged on the REQUESTED names only, because the extras
- * are whatever the backend found and say nothing about what the caller asked for.
+ * Cached player registrations, keyed per team and checked against requested names.
+ * Extras are whatever the backend found and do not establish requested-name coverage.
  */
 export async function getCachedTeamPlayersRegistrations(
     request: TeamPlayersRegistrationsRequest,
@@ -77,9 +63,9 @@ export async function getCachedTeamPlayersRegistrations(
     const response = await withSWR(
         cacheKey,
         () => inviteApi.getTeamPlayersRegistrations(request),
-        CACHE_CONFIG.TEAM_PLAYERS_REGISTRATIONS,
+        BACKEND_API_MEDIUM,
         undefined,
-        onDataUpdate
+        onDataUpdate ? (data) => { onDataUpdate(projectOntoRequestedPlayers(data, request)); } : undefined
     );
 
     return projectOntoRequestedPlayers(response, request);

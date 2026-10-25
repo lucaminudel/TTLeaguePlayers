@@ -1,3 +1,4 @@
+import { readWithUpdates } from '../../utils/CacheUtils';
 import React, { useEffect, useRef, useState } from 'react';
 import type { ManagedClubProcessor } from '../../service/active-season-processors/ManagedClubProcessor';
 import type { ClubKudosStandingsEntry } from '../../api/kudosApi';
@@ -57,59 +58,62 @@ export const ClubStandingsList: React.FC<ClubStandingsListProps> = ({
 
     useEffect(() => {
         let cancelled = false;
+        let listVersion = 0;
+
+        const loadStatuses = async (clubTeams: Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>) => {
+            const version = ++listVersion;
+            const isCurrent = () => !cancelled && version === listVersion;
+            const selectedTeams = clubTeams.filter((team) => team.team_division !== '');
+            try {
+                if (selectedTeams.length === 0) {
+                    if (isCurrent()) {
+                        setTeams([]);
+                        setHasFailed(false);
+                    }
+                    return;
+                }
+                await readWithUpdates<Awaited<ReturnType<typeof getCachedClubKudosStandings>>>(
+                    (onUpdate) => getCachedClubKudosStandings({
+                        league,
+                        season,
+                        club_name: clubName,
+                        club_location: clubLocation,
+                        teams: selectedTeams,
+                    }, onUpdate),
+                    (response) => {
+                        setTeams(response.teams);
+                        setHasFailed(false);
+                        onStandingsLoadedRef.current?.();
+                    },
+                    isCurrent
+                );
+            } catch (error) {
+                console.error('❌ Page event log loading club standings:', error);
+                if (isCurrent()) setHasFailed(true);
+            } finally {
+                if (isCurrent()) setIsLoading(false);
+            }
+        };
 
         const load = async () => {
             setIsLoading(true);
             setHasFailed(false);
-            // Rows never outlive the props they were fetched for. MyClubStandings keeps ONE list
-            // mounted across a club switch (no `key`), so without this a failed load for the newly
-            // selected club would leave the previous club's rows under the new club's heading.
             setTeams(null);
             try {
-                const clubTeams = await processor.getClubTeams();
-
-                // The parser KEEPS a team whose link carries no division, with an empty division, so
-                // that My Club Teams still lists it. The standings endpoint rejects a blank division
-                // for the WHOLE request, so sending one such team would turn this page into an error
-                // for every team of the club. Dropping it costs one row; keeping it costs the page.
-                const teamsWithADivision = clubTeams.filter((team) => team.team_division !== '');
-
-                // A club with no teams must NOT reach the endpoint: an empty teams list is a 400,
-                // and the client API has no guard of its own. A club whose teams ALL lack a division
-                // lands here too and reads "no teams found", which is not strictly true — never seen
-                // live, and still better than an error page.
-                if (teamsWithADivision.length === 0) {
-                    if (!cancelled) setTeams([]);
-                    return;
-                }
-
-                const response = await getCachedClubKudosStandings({
-                    league,
-                    season,
-                    club_name: clubName,
-                    club_location: clubLocation,
-                    teams: teamsWithADivision,
-                });
-
-                // Rendered in the order returned: the response carries one entry per requested team,
-                // in the order they were sent. A left join, not a filter — no client-side join and
-                // NO SORTING, so the page mirrors the club page.
-                if (!cancelled) {
-                    setTeams(response.teams);
-                    onStandingsLoadedRef.current?.();
-                }
+                await readWithUpdates(
+                    (onUpdate) => processor.getClubTeams(onUpdate),
+                    (clubTeams: Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>) => { void loadStatuses(clubTeams); },
+                    () => !cancelled
+                );
             } catch (error) {
-                // Unlike ClubTeamsList, which fails silently to the console: a blank standings area
-                // is indistinguishable from a club with nothing to show, so this one says so.
                 console.error('❌ Page event log loading club standings:', error);
-                if (!cancelled) setHasFailed(true);
-            } finally {
-                if (!cancelled) setIsLoading(false);
+                if (!cancelled) {
+                    setHasFailed(true);
+                    setIsLoading(false);
+                }
             }
         };
-
         void load();
-
         return () => { cancelled = true; };
     }, [processor, league, season, clubName, clubLocation]);
 

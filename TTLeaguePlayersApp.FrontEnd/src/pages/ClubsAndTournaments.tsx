@@ -1,3 +1,4 @@
+import { readWithUpdates } from '../utils/CacheUtils';
 import React, { useEffect, useState } from 'react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -117,12 +118,12 @@ export const ClubsAndTournaments: React.FC = () => {
     const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
+        let cancelled = false;
         const loadClubsAndTournaments = async () => {
             setIsLoading(true);
             setLoadError(null);
             try {
-                const result = await getCachedAllClubsWithTournaments((freshData) => { setClubs(freshData); });
-                setClubs(result);
+                await readWithUpdates(getCachedAllClubsWithTournaments, setClubs, () => !cancelled);
             } catch (err) {
                 let userMessage = toUserFriendlyApiError(err, 'The clubs and tournaments could not be loaded. Please try again.');
                 if (err && typeof err === 'object' && 'errors' in err) {
@@ -133,13 +134,14 @@ export const ClubsAndTournaments: React.FC = () => {
                         userMessage += " )";
                     }
                 }
-                setLoadError(userMessage);
+                if (!cancelled) setLoadError(userMessage);
             } finally {
-                setIsLoading(false);
+                if (!cancelled) setIsLoading(false);
             }
         };
 
         void loadClubsAndTournaments();
+        return () => { cancelled = true; };
     }, []);
 
     const tournamentGroups = groupByLocation(toListedTournaments(clubs), (tournament) => tournament.location);

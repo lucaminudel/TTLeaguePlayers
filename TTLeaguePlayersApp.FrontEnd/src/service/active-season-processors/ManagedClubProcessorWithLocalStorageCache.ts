@@ -1,11 +1,9 @@
+import { TT365_PROCESSOR_MEDIUM } from '../../utils/CacheWindows';
 import { withSWR } from '../../utils/CacheUtils';
 import type { ManagedClubProcessor } from './ManagedClubProcessor';
 import type { ClubTeamWithDivision } from '../../types/clubTeam';
 
 export class ManagedClubProcessorWithLocalStorageCache implements ManagedClubProcessor {
-    private CACHE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours
-    private DOUBLE_EXPIRATION_MS = 2 * this.CACHE_DURATION_MS; // 6 days
-
     private realProcessor: ManagedClubProcessor;
     private cacheKey: string;
 
@@ -17,14 +15,13 @@ export class ManagedClubProcessorWithLocalStorageCache implements ManagedClubPro
         this.cacheKey = cacheKey;
     }
 
-    async getClubTeams(): Promise<ClubTeamWithDivision[]> {
+    async getClubTeams(onDataUpdate?: (data: ClubTeamWithDivision[]) => void): Promise<ClubTeamWithDivision[]> {
         return withSWR(
             this.cacheKey,
             () => this.realProcessor.getClubTeams(),
-            {
-                freshDurationMs: this.CACHE_DURATION_MS,
-                staleDurationMs: this.DOUBLE_EXPIRATION_MS
-            }
+            TT365_PROCESSOR_MEDIUM,
+            undefined,
+            onDataUpdate
         );
     }
 }

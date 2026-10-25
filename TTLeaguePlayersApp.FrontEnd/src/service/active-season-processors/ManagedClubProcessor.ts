@@ -9,5 +9,6 @@
 import type { ClubTeamWithDivision } from '../../types/clubTeam';
 
 export interface ManagedClubProcessor {
-    getClubTeams(): Promise<ClubTeamWithDivision[]>;
+    // Cache decorators notify this optional callback after a successful stale refresh.
+    getClubTeams(onDataUpdate?: (data: ClubTeamWithDivision[]) => void): Promise<ClubTeamWithDivision[]>;
 }

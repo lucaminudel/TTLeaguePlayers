@@ -54,13 +54,13 @@ describe('cachedClubsApi', () => {
         expect(cached.data).toEqual(listing);
     });
 
-    it('within the 24-hour fresh window: returns cached data without calling the API again', async () => {
+    it('within the 4-hour fresh window: returns cached data without calling the API again', async () => {
         setUnitFixedClockTime('2026-01-01T10:00:00Z');
         clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([buildClub({ club_name: 'Version 1' })]);
         await getCachedAllClubsWithTournaments();
 
-        // 23 hours later — still within the 24h fresh window
-        setUnitFixedClockTime('2026-01-02T09:00:00Z');
+        // 3 hours later — still within the 4h fresh window
+        setUnitFixedClockTime('2026-01-01T13:00:00Z');
         clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([buildClub({ club_name: 'Version 2' })]);
 
         const result = await getCachedAllClubsWithTournaments();
@@ -69,12 +69,12 @@ describe('cachedClubsApi', () => {
         expect(clubsApiMocks.getAllClubsWithTournaments).toHaveBeenCalledTimes(1);
     });
 
-    it('between 24 hours and 6 days: returns stale data immediately and refreshes in the background', async () => {
+    it('between 4 hours and 10 days: returns stale data immediately and refreshes in the background', async () => {
         setUnitFixedClockTime('2026-01-01T10:00:00Z');
         clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([buildClub({ club_name: 'Version 1' })]);
         await getCachedAllClubsWithTournaments();
 
-        // 3 days later — stale, but within the 6-day revalidation window
+        // 3 days later — stale, but within the 10-day revalidation window
         setUnitFixedClockTime('2026-01-04T10:00:00Z');
         clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([buildClub({ club_name: 'Version 2' })]);
         const onDataUpdate = vi.fn();
@@ -92,13 +92,13 @@ describe('cachedClubsApi', () => {
         expect(cached.data).toEqual([buildClub({ club_name: 'Version 2' })]);
     });
 
-    it('past the 6-day stale window: awaits a fresh fetch rather than returning the expired entry', async () => {
+    it('past the 10-day stale window: awaits a fresh fetch rather than returning the expired entry', async () => {
         setUnitFixedClockTime('2026-01-01T10:00:00Z');
         clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([buildClub({ club_name: 'Version 1' })]);
         await getCachedAllClubsWithTournaments();
 
-        // 7 days later — past the 6-day stale window entirely
-        setUnitFixedClockTime('2026-01-08T10:00:00Z');
+        // 11 days later — beyond the 10-day expiry.
+        setUnitFixedClockTime('2026-01-12T10:00:00Z');
         clubsApiMocks.getAllClubsWithTournaments.mockResolvedValue([buildClub({ club_name: 'Version 2' })]);
 
         const result = await getCachedAllClubsWithTournaments();

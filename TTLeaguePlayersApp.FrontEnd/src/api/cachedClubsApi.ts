@@ -1,23 +1,8 @@
 import { clubsApi, type ClubWithTournaments } from './clubsApi';
 import { withSWR } from '../utils/CacheUtils';
+import { BACKEND_API_MEDIUM } from '../utils/CacheWindows';
 
-const ONE_HOUR = 60 * 60 * 1000;
-const ONE_DAY = 24 * ONE_HOUR;
-
-// The listing is identical for every visitor and carries no per-user data, so a public 24-hour
-// fresh window keeps repeat visits instant while still surfacing new tournaments same-day. Club
-// managers always see their own change immediately regardless of this window, because their write
-// invalidates the cache (see clubsApi.ts).
-const CACHE_CONFIG = {
-    CLUBS_AND_TOURNAMENTS: {
-        freshDurationMs: ONE_DAY,
-        staleDurationMs: 6 * ONE_DAY,
-    },
-};
-
-// Only GET /clubs is cached. getClub, getClubsWithTournamentsByLocation, getTournamentsForClub and
-// getTournament stay uncached: they are per-manager working data read while editing, not the
-// public listing, so a stale response there would be actively misleading rather than merely late.
+// Only the public GET /clubs listing is cached; manager editing reads stay uncached.
 export const CLUBS_CACHE_PREFIX = 'clubs_cache_';
 
 /**
@@ -33,7 +18,7 @@ export async function getCachedAllClubsWithTournaments(
     return withSWR(
         cacheKey,
         () => clubsApi.getAllClubsWithTournaments(),
-        CACHE_CONFIG.CLUBS_AND_TOURNAMENTS,
+        BACKEND_API_MEDIUM,
         undefined,
         onDataUpdate
     );

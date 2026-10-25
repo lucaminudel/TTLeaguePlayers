@@ -77,7 +77,7 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
         await processor1.getClubTeams();
         expect(getMockedGetClubTeams()).toHaveBeenCalledTimes(1);
 
-        // Advance 1 hour: still fresh (< 72h)
+        // Advance 1 hour: still fresh (< 24h)
         setUnitFixedClockTime('2025-01-01T11:00:00Z');
 
         vi.clearAllMocks();
@@ -90,13 +90,13 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
         expect(getMockedGetClubTeams()).not.toHaveBeenCalled();
     });
 
-    it('Stale Cache (< 6 days): Returns cached data AND refreshes in background', async () => {
+    it('Stale Cache (< 42 days): Returns cached data AND refreshes in background', async () => {
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor(['Old Team']);
         const processor1 = createManagedClubProcessor('CLTTLManagedClub2026Processor', mockDataSource, CLUB, LOCATION);
         await processor1.getClubTeams();
 
-        // Advance 4 days: stale (72h < 96h < 144h)
+        // Advance 4 days: stale (24h < 96h < 1008h)
         setUnitFixedClockTime('2025-01-05T10:00:00Z');
 
         vi.clearAllMocks();
@@ -119,13 +119,13 @@ describe('ManagedClubProcessorWithLocalStorageCache', () => {
         expect(entry.timestamp).toBe(new Date('2025-01-05T10:00:00Z').getTime());
     });
 
-    it('Expired Cache (> 6 days): Fetches new data and returns it', async () => {
+    it('Expired Cache (>= 42 days): Fetches new data and returns it', async () => {
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor(['Old Team']);
         const processor1 = createManagedClubProcessor('CLTTLManagedClub2026Processor', mockDataSource, CLUB, LOCATION);
         await processor1.getClubTeams();
 
-        setUnitFixedClockTime('2025-01-08T10:00:00Z'); // +7 days
+        setUnitFixedClockTime('2025-02-13T10:00:00Z'); // +43 days
 
         vi.clearAllMocks();
         setupMockProcessor(['Brand New Team']);

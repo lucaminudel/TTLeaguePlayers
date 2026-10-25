@@ -1,3 +1,4 @@
+import { readWithUpdates } from '../../utils/CacheUtils';
 import React, { useEffect, useState } from 'react';
 import type { ManagedClubProcessor } from '../../service/active-season-processors/ManagedClubProcessor';
 import type { TeamRegistrationEntry, TeamRegistrationStatus } from '../../types/invite';
@@ -69,47 +70,54 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
 
     useEffect(() => {
         let cancelled = false;
+        let listVersion = 0;
 
-        const load = async () => {
-            setIsLoading(true);
-            // Rows never outlive the props they were fetched for. MyClubTeams keeps ONE list mounted
-            // across a club switch (no `key`), so without this a failed load for the newly selected
-            // club would leave the previous club's rows on screen under the new club's heading.
-            setTeams(null);
+        const loadStatuses = async (clubTeams: Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>) => {
+            const version = ++listVersion;
+            const isCurrent = () => !cancelled && version === listVersion;
+            const selectedTeams = clubTeams;
             try {
-                const clubTeams = await processor.getClubTeams();
-
-                // A club with no teams must NOT reach the endpoint: an empty team_names is a 400,
-                // and the client API has no guard of its own.
-                if (clubTeams.length === 0) {
-                    if (!cancelled) setTeams([]);
+                if (selectedTeams.length === 0) {
+                    if (isCurrent()) setTeams([]);
                     return;
                 }
-
-                const response = await getCachedTeamRegistrations({
-                    league,
-                    season,
-                    club_name: clubName,
-                    club_location: clubLocation,
-                    // This page needs only the names. The division now travelling alongside each
-                    // team is for the club-standings endpoint; the /invites/registrations/club-teams
-                    // contract is deliberately unchanged.
-                    team_names: clubTeams.map((team) => team.team_name),
-                });
-
-                // Rendered directly: the response carries one entry per requested team, in the order
-                // they were sent. A left join, not a filter — no client-side join is needed.
-                if (!cancelled) setTeams(response.teams);
+                await readWithUpdates<Awaited<ReturnType<typeof getCachedTeamRegistrations>>>(
+                    (onUpdate) => getCachedTeamRegistrations({
+                        league,
+                        season,
+                        club_name: clubName,
+                        club_location: clubLocation,
+                        team_names: selectedTeams.map((team) => team.team_name),
+                    }, onUpdate),
+                    (response) => {
+                        setTeams(response.teams);
+                    },
+                    isCurrent
+                );
             } catch (error) {
-                // Console-only, as everywhere else in the club-manager pages: the area renders blank.
                 console.error('❌ Page event log loading club teams:', error);
             } finally {
-                if (!cancelled) setIsLoading(false);
+                if (isCurrent()) setIsLoading(false);
             }
         };
 
+        const load = async () => {
+            setIsLoading(true);
+            setTeams(null);
+            try {
+                await readWithUpdates(
+                    (onUpdate) => processor.getClubTeams(onUpdate),
+                    (clubTeams: Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>) => { void loadStatuses(clubTeams); },
+                    () => !cancelled
+                );
+            } catch (error) {
+                console.error('❌ Page event log loading club teams:', error);
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        };
         void load();
-
         return () => { cancelled = true; };
     }, [processor, league, season, clubName, clubLocation]);
 

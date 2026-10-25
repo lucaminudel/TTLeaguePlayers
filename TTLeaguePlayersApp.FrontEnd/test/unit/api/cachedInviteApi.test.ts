@@ -80,8 +80,8 @@ describe('cachedInviteApi', () => {
 
         await getCachedTeamRegistrations(request);
 
-        // 12 hours later — inside the 1 day fresh window.
-        setUnitFixedClockTime('2026-08-07T22:00:00Z');
+        // 3 hours later — inside the 4 hour fresh window.
+        setUnitFixedClockTime('2026-08-07T13:00:00Z');
         const result = await getCachedTeamRegistrations(request);
 
         expect(result.teams).toHaveLength(2);
@@ -94,7 +94,7 @@ describe('cachedInviteApi', () => {
 
         await getCachedTeamRegistrations(request);
 
-        // 3 days later — past 1 day fresh, inside 6 days stale.
+        // 3 days later — past 4 hours fresh, inside 10 days stale.
         setUnitFixedClockTime('2026-08-04T10:00:00Z');
         const refreshed = buildResponse({
             teams: [{ team_name: 'Morpeth 9', status: 'PENDING', accepted_at: null, nano_id: 'zzzz9999' }],
@@ -120,8 +120,8 @@ describe('cachedInviteApi', () => {
 
         await getCachedTeamRegistrations(request);
 
-        // 8 days later — beyond the 6 day stale window.
-        setUnitFixedClockTime('2026-08-09T10:00:00Z');
+        // 11 days later — beyond the 10 day expiry.
+        setUnitFixedClockTime('2026-08-12T10:00:00Z');
         const refreshed = buildResponse({ teams: [] });
         inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
 
@@ -348,8 +348,8 @@ describe('getCachedTeamPlayersRegistrations', () => {
 
         await getCachedTeamPlayersRegistrations(request);
 
-        // 12 hours later — inside the 1 day fresh window.
-        setUnitFixedClockTime('2026-08-07T22:00:00Z');
+        // 3 hours later — inside the 4 hour fresh window.
+        setUnitFixedClockTime('2026-08-07T13:00:00Z');
         const result = await getCachedTeamPlayersRegistrations(request);
 
         expect(result.players).toHaveLength(3);
@@ -362,7 +362,7 @@ describe('getCachedTeamPlayersRegistrations', () => {
 
         await getCachedTeamPlayersRegistrations(request);
 
-        // 2 days later — past 1 day fresh, inside 3 days stale (the club twin's window is 6 days).
+        // 2 days later — past 4 hours fresh, inside 10 days stale.
         setUnitFixedClockTime('2026-08-03T10:00:00Z');
         const refreshed = buildResponse({
             players: [
@@ -391,8 +391,8 @@ describe('getCachedTeamPlayersRegistrations', () => {
 
         await getCachedTeamPlayersRegistrations(request);
 
-        // 4 days later — beyond the 3 day stale window (the club twin would still serve stale here).
-        setUnitFixedClockTime('2026-08-05T10:00:00Z');
+        // 11 days later — beyond the 10 day expiry.
+        setUnitFixedClockTime('2026-08-12T10:00:00Z');
         const refreshed = buildResponse({ players: [] });
         inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
 

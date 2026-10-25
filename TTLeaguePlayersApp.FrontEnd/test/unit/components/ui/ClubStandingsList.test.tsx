@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { ClubStandingsList } from '../../../../src/components/ui/ClubStandingsList';
 import type { ManagedClubProcessor } from '../../../../src/service/active-season-processors/ManagedClubProcessor';
 import type { ClubKudosStandingsEntry, ClubKudosStandingsResponse } from '../../../../src/api/kudosApi';
@@ -170,7 +170,7 @@ describe('ClubStandingsList', () => {
                 { team_name: 'Highbury 2', team_division: 'Division 4' },
                 { team_name: 'Highbury 5', team_division: 'Division 7' },
             ],
-        });
+        }, expect.any(Function));
     });
 
     // The parser keeps a link-less team with an empty division so My Club Teams still lists it, but
@@ -189,7 +189,7 @@ describe('ClubStandingsList', () => {
         expect(kudosApiMocks.getCachedClubKudosStandings).toHaveBeenCalledWith(
             expect.objectContaining({
                 teams: [{ team_name: 'Highbury 2', team_division: 'Division 4' }],
-            })
+            }), expect.any(Function)
         );
 
         expect(screen.getAllByTestId('club-standing-name').map((n) => n.textContent)).toEqual(['Highbury 2']);
@@ -301,4 +301,30 @@ describe('ClubStandingsList', () => {
 
         expect(onStandingsLoaded).not.toHaveBeenCalled();
     });
+    it('updates counts and re-queries standings when refreshed club teams change', async () => {
+        type Teams = Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>;
+        let refreshTeams!: (data: Teams) => void;
+        const processor: ManagedClubProcessor = {
+            getClubTeams: vi.fn((onUpdate?: (data: Teams) => void) => {
+                if (!onUpdate) throw new Error('Missing refresh callback');
+                refreshTeams = onUpdate;
+                return Promise.resolve([{ team_name: 'Highbury 2', team_division: 'Division 4' }]);
+            }),
+        };
+        respondWith([entry('Highbury 2', 1)]);
+        renderList(processor);
+        await waitFor(() => { expect(screen.getByTestId('club-standing-positive')).toHaveTextContent('1'); });
+        const update = kudosApiMocks.getCachedClubKudosStandings.mock.calls[0][1] as (data: ClubKudosStandingsResponse) => void;
+        act(() => { update({ league: LEAGUE, season: SEASON, club_name: CLUB_NAME, club_location: CLUB_LOCATION, teams: [entry('Highbury 2', 9)] }); });
+        expect(screen.getByTestId('club-standing-positive')).toHaveTextContent('9');
+        respondWith([entry('Highbury 5', 3)]);
+        act(() => { refreshTeams([{ team_name: 'Highbury 5', team_division: 'Division 7' }]); });
+        await waitFor(() => { expect(screen.getByTestId('club-standing-name')).toHaveTextContent('Highbury 5'); });
+        act(() => { update({ league: LEAGUE, season: SEASON, club_name: CLUB_NAME, club_location: CLUB_LOCATION, teams: [entry('Highbury 2', 99)] }); });
+        expect(screen.getByTestId('club-standing-name')).toHaveTextContent('Highbury 5');
+        expect(screen.getByTestId('club-standing-positive')).toHaveTextContent('3');
+        act(() => { refreshTeams([]); });
+        expect(screen.getByText('No teams found for this club.')).toBeTruthy();
+    });
+
 });

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { readWithUpdates } from '../../utils/CacheUtils';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import type { ActiveSeasonProcessor } from '../../service/active-season-processors/ActiveSeasonProcessor';
 import type { PlayerRegistrationEntry, TeamRegistrationStatus } from '../../types/invite';
 import { Role } from '../../types/invite';
@@ -96,71 +97,79 @@ export const TeamPlayersList: React.FC<TeamPlayersListProps> = ({
     const [loadError, setLoadError] = useState<string | null>(null);
     // The roster this list is showing, kept so that a refresh after sending an invite can re-read
     // the statuses WITHOUT scraping the league site again.
-    const [rosterNames, setRosterNames] = useState<string[]>([]);
+    const rosterNames = useRef<string[]>([]);
     // The player whose invite dialog is open, by the league site's spelling of their name.
     const [playerBeingInvited, setPlayerBeingInvited] = useState<string | null>(null);
 
-    const readStatuses = useCallback(async (names: string[]) => {
+    const loadVersion = useRef(0);
+    const selectionVersion = useRef(0);
+    const readStatuses = useCallback(async (names: string[], onUpdate?: (players: PlayerRegistrationEntry[]) => void) => {
         const response = await getCachedTeamPlayersRegistrations({
             league,
             season,
             team_division: teamDivision,
             team_name: teamName,
             player_names: names,
-        });
+        }, onUpdate ? (response) => { onUpdate(response.players); } : undefined);
 
         return response.players;
     }, [league, season, teamDivision, teamName]);
 
     useEffect(() => {
         let cancelled = false;
-
+        const invalidateSelection = () => { ++selectionVersion.current; ++loadVersion.current; };
+        invalidateSelection();
+        const loadStatuses = async (names: string[]) => {
+            const version = ++loadVersion.current;
+            const isCurrent = () => !cancelled && version === loadVersion.current;
+            rosterNames.current = names;
+            setPlayerBeingInvited((current) => current !== null && names.includes(current) ? current : null);
+            setLoadError(null);
+            setIsRosterUnavailable(false);
+            try {
+                if (names.length === 0) {
+                    setPlayers([]);
+                    return;
+                }
+                await readWithUpdates(
+                    (onUpdate) => readStatuses(names, onUpdate),
+                    setPlayers,
+                    isCurrent
+                );
+            } catch (error) {
+                console.error('❌ Page event log loading team players registrations:', error);
+                if (isCurrent()) setLoadError(toUserFriendlyLoadError(error));
+            } finally {
+                if (isCurrent()) setIsLoading(false);
+            }
+        };
         const load = async () => {
             setIsLoading(true);
             setPlayers(null);
             setIsRosterUnavailable(false);
             setLoadError(null);
-            setRosterNames([]);
+            rosterNames.current = [];
             setPlayerBeingInvited(null);
-
-            let names: string[];
             try {
-                names = await processor.getTeamPlayers();
+                await readWithUpdates(
+                    (onUpdate) => processor.getTeamPlayers(onUpdate),
+                    (names: string[]) => { void loadStatuses(names); },
+                    () => !cancelled
+                );
             } catch (error) {
                 console.error('❌ Page event log loading team players:', error);
                 if (!cancelled) {
                     setIsRosterUnavailable(true);
                     setIsLoading(false);
                 }
-                return;
-            }
-
-            try {
-                if (names.length === 0) {
-                    if (!cancelled) setPlayers([]);
-                    return;
-                }
-
-                const registeredPlayers = await readStatuses(names);
-
-                if (!cancelled) {
-                    setRosterNames(names);
-                    setPlayers(registeredPlayers);
-                }
-            } catch (error) {
-                console.error('❌ Page event log loading team players registrations:', error);
-                if (!cancelled) setLoadError(toUserFriendlyLoadError(error));
-            } finally {
-                if (!cancelled) setIsLoading(false);
             }
         };
-
         void load();
-
-        return () => { cancelled = true; };
+        return () => { cancelled = true; invalidateSelection(); };
     }, [processor, readStatuses]);
 
     const sendInvite = async (playerName: string, email: string) => {
+        const inviteSelectionVersion = selectionVersion.current;
         const createdInvite = await inviteApi.createInvite({
             invitee_name: playerName,
             invitee_email_id: email,
@@ -172,7 +181,10 @@ export const TeamPlayersList: React.FC<TeamPlayersListProps> = ({
             invited_by: invitedBy,
         });
 
+        if (inviteSelectionVersion !== selectionVersion.current) return;
+        const version = ++loadVersion.current;
         setPlayerBeingInvited(null);
+        setLoadError(null);
 
         setPlayers((current) => current?.map((player) => (
             player.player_name === playerName
@@ -190,8 +202,13 @@ export const TeamPlayersList: React.FC<TeamPlayersListProps> = ({
                 : player
         )) ?? current);
 
+        if (rosterNames.current.length === 0) return;
         try {
-            setPlayers(await readStatuses(rosterNames));
+            await readWithUpdates(
+                (onUpdate) => readStatuses(rosterNames.current, onUpdate),
+                setPlayers,
+                () => version === loadVersion.current
+            );
         } catch (error) {
             console.error('❌ Page event log refreshing team players after an invite:', error);
         }

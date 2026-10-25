@@ -7,7 +7,24 @@ export interface CacheEntry<T> {
 
 export interface SWROptions {
     freshDurationMs: number;
+    /** Total age at expiry, measured from timestamp (not added to freshness). */
     staleDurationMs: number;
+}
+
+/** Apply the initial read and later refreshes, without letting a fast refresh be
+ * overwritten by the initial stale value. Callers invalidate isCurrent on cleanup
+ * or when a dependent request supersedes this one. */
+export async function readWithUpdates<T>(
+    read: (onUpdate: (data: T) => void) => Promise<T>,
+    onData: (data: T) => void,
+    isCurrent: () => boolean
+): Promise<void> {
+    const state = { refreshed: false };
+    const initial = await read((data) => {
+        state.refreshed = true;
+        if (isCurrent()) onData(data);
+    });
+    if (!state.refreshed && isCurrent()) onData(initial);
 }
 
 /**

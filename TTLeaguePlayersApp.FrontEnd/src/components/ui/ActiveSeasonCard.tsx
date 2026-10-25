@@ -1,3 +1,4 @@
+import { readWithUpdates } from '../../utils/CacheUtils';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ActiveSeason } from '../../contexts/AuthContextDefinition';
@@ -29,40 +30,47 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
     const { isSuppressed } = useInfoModalSuppression(RATE_INFO_MODAL_GUID);
 
     useEffect(() => {
-        if (isExpanded) {
-            const fetchData = async () => {
-                setIsLoadingData(true);
-                setFixtureLoadStatus('loading');
-                try {
-                    const fixtures = await processor.getTeamFixtures();
-                    const now = getClockTime();
-                    // Requirement: Next fixture is the first fixture where startDateTime >= (now - 2 hours)
-                    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+        if (!isExpanded) return;
+        let cancelled = false;
+        const applyFixtures = (fixtures: Fixture[]) => {
+            const now = getClockTime();
+            // Requirement: Next fixture is the first fixture where startDateTime >= (now - 2 hours)
+            const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
-                    const nextFixtureIndex = fixtures.findIndex(f => f.startDateTime >= twoHoursAgo);
+            const nextFixtureIndex = fixtures.findIndex(f => f.startDateTime >= twoHoursAgo);
 
-                    if (nextFixtureIndex !== -1) {
-                        setNextMatch(fixtures[nextFixtureIndex]);
-                        if (nextFixtureIndex > 0) {
-                            setPrevMatch(fixtures[nextFixtureIndex - 1]);
-                        } else {
-                            setPrevMatch(null);
-                        }
-                    } else {
-                        // All fixtures in the past?
-                        setNextMatch(fixtures.length > 0 ? -1 : null);
-                        setPrevMatch(fixtures.length > 0 ? fixtures[fixtures.length - 1] : null);
-                    }
-                    setFixtureLoadStatus('success');
-                } catch (error) {
-                    console.error('Error fetching match data:', error);
-                    setFixtureLoadStatus('error');
-                } finally {
-                    setIsLoadingData(false);
+            if (nextFixtureIndex !== -1) {
+                setNextMatch(fixtures[nextFixtureIndex]);
+                if (nextFixtureIndex > 0) {
+                    setPrevMatch(fixtures[nextFixtureIndex - 1]);
+                } else {
+                    setPrevMatch(null);
                 }
-            };
-            void fetchData();
-        }
+            } else {
+                // All fixtures in the past?
+                setNextMatch(fixtures.length > 0 ? -1 : null);
+                setPrevMatch(fixtures.length > 0 ? fixtures[fixtures.length - 1] : null);
+            }
+            setFixtureLoadStatus('success');
+        };
+        const fetchData = async () => {
+            setIsLoadingData(true);
+            setFixtureLoadStatus('loading');
+            try {
+                await readWithUpdates(
+                    (onUpdate) => processor.getTeamFixtures(onUpdate),
+                    applyFixtures,
+                    () => !cancelled
+                );
+            } catch (error) {
+                console.error('Error fetching match data:', error);
+                if (!cancelled) setFixtureLoadStatus('error');
+            } finally {
+                if (!cancelled) setIsLoadingData(false);
+            }
+        };
+        void fetchData();
+        return () => { cancelled = true; };
     }, [isExpanded, processor]);
 
     // Helper function to check if Rate button should be visible for previous match

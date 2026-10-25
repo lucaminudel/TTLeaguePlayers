@@ -103,7 +103,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         const spy1 = getMockedGetTeamFixtures();
         expect(spy1).toHaveBeenCalledTimes(1);
 
-        // 2. Advance time by 1 hour (Fresh < 72h)
+        // 2. Advance time by 1 hour (Fresh < 24h)
         setUnitFixedClockTime('2025-01-01T11:00:00Z'); // T0 + 1h
 
         // Re-create processor (simulate new page load)
@@ -121,14 +121,14 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(spy2).not.toHaveBeenCalled();
     });
 
-    it('Stale Cache (< 6 days): Returns cached data AND refreshes in background', async () => {
+    it('Stale Cache (< 42 days): Returns cached data AND refreshes in background', async () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
-        // 2. Advance time by 4 days (72h < 96h < 144h) -> Stale
+        // 2. Advance time by 4 days (24h < 96h < 1008h) -> Stale
         setUnitFixedClockTime('2025-01-05T10:00:00Z'); // +96 hrs
 
         vi.clearAllMocks();
@@ -156,15 +156,15 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(entry.timestamp).toBe(new Date('2025-01-05T10:00:00Z').getTime());
     });
 
-    it('Expired Cache (> 6 days): Fetches new data and returns it', async () => {
+    it('Expired Cache (>= 42 days): Fetches new data and returns it', async () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([{ ...mockFixture, venue: 'Old Data' }]);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamFixtures();
 
-        // 2. Advance time by 7 days (> 144h) -> Expired / Missing
-        setUnitFixedClockTime('2025-01-08T10:00:00Z');
+        // 2. Advance time by 43 days (> 42 days) -> Expired / Missing
+        setUnitFixedClockTime('2025-02-13T10:00:00Z');
 
         vi.clearAllMocks();
         setupMockProcessor([{ ...mockFixture, venue: 'Brand New Data' }]);
@@ -292,7 +292,7 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         await processor1.getTeamPlayers();
         expect(getMockedGetTeamPlayers()).toHaveBeenCalledTimes(1);
 
-        // 2. Advance time by 1 hour (Fresh < 24h)
+        // 2. Advance time by 1 hour (Fresh < 12h)
         setUnitFixedClockTime('2025-01-01T11:00:00Z');
 
         vi.clearAllMocks();
@@ -305,16 +305,16 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(getMockedGetTeamPlayers()).not.toHaveBeenCalled();
     });
 
-    // The players window is SHORTER than the fixtures one (24h fresh / 3d stale vs 72h / 6d): the
+    // The players window is SHORTER than the fixtures one (12h fresh / 21d expiry vs 24h / 42d): the
     // roster is what the captain's invitation-status view is keyed on.
-    it('Players Stale Cache (< 3 days): returns cached data AND refreshes in background', async () => {
+    it('Players Stale Cache (< 21 days): returns cached data AND refreshes in background', async () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([], mockPlayers);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamPlayers();
 
-        // 2. Advance time by 2 days (24h < 48h < 72h) -> Stale
+        // 2. Advance time by 2 days (12h < 48h < 504h) -> Stale
         setUnitFixedClockTime('2025-01-03T10:00:00Z');
 
         vi.clearAllMocks();
@@ -337,16 +337,16 @@ describe('ActiveSeasonProcessorWithLocalStorageCache', () => {
         expect(entry.timestamp).toBe(new Date('2025-01-03T10:00:00Z').getTime());
     });
 
-    it('Players Expired Cache (> 3 days): fetches new data and returns it', async () => {
+    it('Players Expired Cache (>= 21 days): fetches new data and returns it', async () => {
         // 1. Seed Cache
         setUnitFixedClockTime('2025-01-01T10:00:00Z');
         setupMockProcessor([], mockPlayers);
         const processor1 = createActiveSeasonProcessor('CLTTLActiveSeason2026Processor', mockDataSource, 'Div1', 'TeamA');
         await processor1.getTeamPlayers();
 
-        // 2. Advance time by 4 days (> 72h) -> Expired. The FIXTURES cache would still be stale-but-
+        // 2. Advance time by 22 days (> 21 days) -> Expired. The FIXTURES cache would still be stale-but-
         // served at this age; the players cache is not.
-        setUnitFixedClockTime('2025-01-05T10:00:00Z');
+        setUnitFixedClockTime('2025-01-23T10:00:00Z');
 
         vi.clearAllMocks();
         setupMockProcessor([], ['New Player']);

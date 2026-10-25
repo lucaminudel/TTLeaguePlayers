@@ -13,8 +13,9 @@ export interface Fixture {
     awayTeam: string;
 }
 
-export interface ActiveSeasonProcessor {    
-    getTeamFixtures(): Promise<Fixture[]>;
+export interface ActiveSeasonProcessor {
+    // Cache decorators notify this optional callback after a successful stale refresh.
+    getTeamFixtures(onDataUpdate?: (data: Fixture[]) => void): Promise<Fixture[]>;
 
-    getTeamPlayers(): Promise<string[]>;
+    getTeamPlayers(onDataUpdate?: (data: string[]) => void): Promise<string[]>;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
@@ -656,4 +656,33 @@ describe('ActiveSeasonCard Rate info modal', () => {
             state: expect.objectContaining({ opponentTeam: 'Away Opponent', isHome: false, venue: 'Away Venue' }) as unknown
         }));
     });
+    it('recomputes fixtures when refresh finishes and ignores updates after collapsing', async () => {
+        let refresh!: (fixtures: Fixture[]) => void;
+        const processor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn((onUpdate?: (data: Fixture[]) => void) => {
+                if (!onUpdate) throw new Error('Missing refresh callback');
+                refresh = onUpdate;
+                return Promise.resolve([createFixture({ homeTeam: 'Old opponent', awayTeam: 'Test Team' })]);
+            }),
+            getTeamPlayers: vi.fn(),
+        };
+        const card = (expanded: boolean) => <ActiveSeasonCard season={mockSeason} processor={processor} isExpanded={expanded} onToggle={mockOnToggle} />;
+        const view = render(card(true));
+        await waitFor(() => { expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Old opponent'); });
+        act(() => { refresh([createFixture({ homeTeam: 'New opponent', awayTeam: 'Test Team' })]); });
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('New opponent');
+        act(() => { refresh([createFixture({ homeTeam: 'Past opponent', awayTeam: 'Test Team', startDateTime: new Date('2025-01-10T13:00:00Z') })]); });
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('Past opponent');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+        act(() => { refresh([createFixture({ homeTeam: 'Future opponent', awayTeam: 'Test Team' })]); });
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Future opponent');
+        act(() => { refresh([]); });
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+        view.rerender(card(false));
+        act(() => { refresh([createFixture({ homeTeam: 'Late opponent' })]); });
+        expect(screen.queryByTestId('active-season-details')).toBeNull();
+    });
+
 });
