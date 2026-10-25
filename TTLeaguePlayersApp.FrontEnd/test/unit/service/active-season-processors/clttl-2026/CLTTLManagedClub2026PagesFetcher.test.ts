@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CLTTLManagedClub2026PagesFetcher } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
+import { CLTTLManagedClub2026PagesFetcher } from '../../../../../src/service/league-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
 describe('CLTTLManagedClub2026PagesFetcher', () => {

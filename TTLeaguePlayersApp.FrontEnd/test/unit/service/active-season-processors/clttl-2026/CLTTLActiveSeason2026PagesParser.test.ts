@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { CLTTLActiveSeason2026PagesParser } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesParser';
+import { CLTTLActiveSeason2026PagesParser } from '../../../../../src/service/league-season-processors/clttl-2026/CLTTLActiveSeason2026PagesParser';
 import fs from 'fs';
 import path from 'path';
 

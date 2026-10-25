@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { gzipSync } from 'node:zlib';
-import { PageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2026/PageFetcherError';
-import { CLTTLHttpTransport } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLHttpTransport';
+import { PageFetcherError } from '../../../../../src/service/league-season-processors/clttl-2026/PageFetcherError';
+import { CLTTLHttpTransport } from '../../../../../src/service/league-season-processors/clttl-2026/CLTTLHttpTransport';
 
 describe('CLTTLHttpTransport', () => {
     let transport: CLTTLHttpTransport;

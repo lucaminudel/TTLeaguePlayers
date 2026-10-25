@@ -6,7 +6,7 @@ import { ManagedClubsCard } from '../components/ui/ManagedClubsCard';
 import { ClubStandingsList } from '../components/ui/ClubStandingsList';
 import { useAuth } from '../hooks/useAuth';
 import { getConfig } from '../config/environment';
-import { createManagedClubProcessor } from '../service/active-season-processors/ManagedClubProcessorFactory';
+import { createManagedClubProcessor } from '../service/league-season-processors/ManagedClubProcessorFactory';
 import { createManagedClubKey, selectActiveManagedClubs } from '../utils/clubUtils';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 import { InfoModal } from '../components/common/InfoModal';

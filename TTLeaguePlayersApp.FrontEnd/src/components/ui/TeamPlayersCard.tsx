@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ActiveSeason } from '../../contexts/AuthContextDefinition';
-import type { ActiveSeasonProcessor } from '../../service/active-season-processors/ActiveSeasonProcessor';
+import type { ActiveSeasonProcessor } from '../../service/league-season-processors/ActiveSeasonProcessor';
 import { TeamPlayersList } from './TeamPlayersList';
 
 interface TeamPlayersCardProps {

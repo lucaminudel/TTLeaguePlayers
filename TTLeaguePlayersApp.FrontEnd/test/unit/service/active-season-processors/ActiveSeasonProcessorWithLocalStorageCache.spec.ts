@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { createActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessorFactory';
-import { CLTTLActiveSeason2026Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2026Processor';
-import type { Fixture } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import { createActiveSeasonProcessor } from '../../../../src/service/league-season-processors/ActiveSeasonProcessorFactory';
+import { CLTTLActiveSeason2026Processor } from '../../../../src/service/league-season-processors/CLTTLActiveSeason2026Processor';
+import type { Fixture } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 import type { CacheEntry } from '../../../../src/utils/CacheUtils';
 import { setUnitFixedClockTime } from '../../TestClockUtils';
 
 // Mock the CLTTL processor so we can spy on it
-vi.mock('../../../../src/service/active-season-processors/CLTTLActiveSeason2026Processor');
+vi.mock('../../../../src/service/league-season-processors/CLTTLActiveSeason2026Processor');
 
 
 describe('ActiveSeasonProcessorWithLocalStorageCache', () => {

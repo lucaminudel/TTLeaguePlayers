@@ -2,9 +2,9 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { getCachedAllClubsWithTournaments } from '../../../src/api/cachedClubsApi';
 import { getCachedTeamRegistrations, getCachedTeamPlayersRegistrations } from '../../../src/api/cachedInviteApi';
 import { getCachedPlayerKudos, getCachedTeamKudos, getCachedKudosStandings, getCachedClubKudosStandings } from '../../../src/api/cachedKudosApi';
-import { ActiveSeasonProcessorWithLocalStorageCache } from '../../../src/service/active-season-processors/ActiveSeasonProcessorWithLocalStorageCache';
-import { ManagedClubProcessorWithLocalStorageCache } from '../../../src/service/active-season-processors/ManagedClubProcessorWithLocalStorageCache';
-import type { Fixture } from '../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import { ActiveSeasonProcessorWithLocalStorageCache } from '../../../src/service/league-season-processors/ActiveSeasonProcessorWithLocalStorageCache';
+import { ManagedClubProcessorWithLocalStorageCache } from '../../../src/service/league-season-processors/ManagedClubProcessorWithLocalStorageCache';
+import type { Fixture } from '../../../src/service/league-season-processors/ActiveSeasonProcessor';
 import type { ClubTeamWithDivision } from '../../../src/types/clubTeam';
 import { setUnitFixedClockTime } from '../TestClockUtils';
 

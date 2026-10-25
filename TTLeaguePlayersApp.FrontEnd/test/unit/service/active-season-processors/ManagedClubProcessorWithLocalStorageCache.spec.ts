@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { createManagedClubProcessor } from '../../../../src/service/active-season-processors/ManagedClubProcessorFactory';
-import { CLTTLManagedClub2026Processor } from '../../../../src/service/active-season-processors/CLTTLManagedClub2026Processor';
+import { createManagedClubProcessor } from '../../../../src/service/league-season-processors/ManagedClubProcessorFactory';
+import { CLTTLManagedClub2026Processor } from '../../../../src/service/league-season-processors/CLTTLManagedClub2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 import type { CacheEntry } from '../../../../src/utils/CacheUtils';
 import { setUnitFixedClockTime } from '../../TestClockUtils';
 
 // Mock the CLTTL club processor so we can spy on it
-vi.mock('../../../../src/service/active-season-processors/CLTTLManagedClub2026Processor');
+vi.mock('../../../../src/service/league-season-processors/CLTTLManagedClub2026Processor');
 
 describe('ManagedClubProcessorWithLocalStorageCache', () => {
     const mockDataSource: ActiveSeasonDataSource = {

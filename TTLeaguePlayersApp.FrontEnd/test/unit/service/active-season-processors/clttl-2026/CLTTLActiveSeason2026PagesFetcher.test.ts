@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CLTTLActiveSeason2026PagesFetcher, PageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
-import { PageFetcherError as TransportPageFetcherError } from '../../../../../src/service/active-season-processors/clttl-2026/PageFetcherError';
+import { CLTTLActiveSeason2026PagesFetcher, PageFetcherError } from '../../../../../src/service/league-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
+import { PageFetcherError as TransportPageFetcherError } from '../../../../../src/service/league-season-processors/clttl-2026/PageFetcherError';
 import type { ActiveSeasonDataSource } from '../../../../../src/config/environment';
 
 describe('CLTTLActiveSeason2026PagesFetcher', () => {

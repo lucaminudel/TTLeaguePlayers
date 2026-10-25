@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { ClubTeamsList } from '../../../../src/components/ui/ClubTeamsList';
-import type { ManagedClubProcessor } from '../../../../src/service/active-season-processors/ManagedClubProcessor';
+import type { ManagedClubProcessor } from '../../../../src/service/league-season-processors/ManagedClubProcessor';
 import type { TeamRegistrationEntry, TeamRegistrationsResponse } from '../../../../src/types/invite';
 import { setUnitFixedClockTime } from '../../TestClockUtils';
 

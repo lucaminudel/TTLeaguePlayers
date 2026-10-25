@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CLTTLActiveSeason2026Processor } from '../../../../src/service/active-season-processors/CLTTLActiveSeason2026Processor';
+import { CLTTLActiveSeason2026Processor } from '../../../../src/service/league-season-processors/CLTTLActiveSeason2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 
 describe('CLTTLActiveSeason2026Processor Integration', () => {

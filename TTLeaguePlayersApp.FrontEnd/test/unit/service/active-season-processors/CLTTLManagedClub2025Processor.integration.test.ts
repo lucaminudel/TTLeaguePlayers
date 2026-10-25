@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { CLTTLManagedClub2026Processor } from '../../../../src/service/active-season-processors/CLTTLManagedClub2026Processor';
+import { CLTTLManagedClub2026Processor } from '../../../../src/service/league-season-processors/CLTTLManagedClub2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
 
 /**

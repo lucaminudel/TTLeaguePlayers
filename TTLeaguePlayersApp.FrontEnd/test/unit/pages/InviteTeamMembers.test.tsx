@@ -20,7 +20,7 @@ vi.mock('../../../src/config/environment', () => ({
 const processorFactoryMocks = vi.hoisted(() => ({
     createActiveSeasonProcessor: vi.fn(),
 }));
-vi.mock('../../../src/service/active-season-processors/ActiveSeasonProcessorFactory', () => ({
+vi.mock('../../../src/service/league-season-processors/ActiveSeasonProcessorFactory', () => ({
     createActiveSeasonProcessor: processorFactoryMocks.createActiveSeasonProcessor,
 }));
 

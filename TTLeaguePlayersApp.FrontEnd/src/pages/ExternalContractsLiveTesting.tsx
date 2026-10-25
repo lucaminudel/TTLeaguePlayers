@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getConfig, type ActiveSeasonDataSource } from '../config/environment';
-import { CLTTLActiveSeason2026PagesFetcher } from '../service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
-import { CLTTLActiveSeason2026PagesParser } from '../service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesParser';
-import { CLTTLManagedClub2026PagesFetcher } from '../service/active-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
-import { CLTTLManagedClub2026PagesParser } from '../service/active-season-processors/clttl-2026/CLTTLManagedClub2026PagesParser';
+import { CLTTLActiveSeason2026PagesFetcher } from '../service/league-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
+import { CLTTLActiveSeason2026PagesParser } from '../service/league-season-processors/clttl-2026/CLTTLActiveSeason2026PagesParser';
+import { CLTTLManagedClub2026PagesFetcher } from '../service/league-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
+import { CLTTLManagedClub2026PagesParser } from '../service/league-season-processors/clttl-2026/CLTTLManagedClub2026PagesParser';
 import type { ClubTeamWithDivision } from '../types/clubTeam';
 
 type ContractMode = 'active-season' | 'managed-club';

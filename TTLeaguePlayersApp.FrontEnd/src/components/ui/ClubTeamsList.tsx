@@ -1,6 +1,6 @@
 import { readWithUpdates } from '../../utils/CacheUtils';
 import React, { useEffect, useState } from 'react';
-import type { ManagedClubProcessor } from '../../service/active-season-processors/ManagedClubProcessor';
+import type { ManagedClubProcessor } from '../../service/league-season-processors/ManagedClubProcessor';
 import type { TeamRegistrationEntry, TeamRegistrationStatus } from '../../types/invite';
 import { getCachedTeamRegistrations } from '../../api/cachedInviteApi';
 import { formatSingleDate } from '../../utils/DateUtils';

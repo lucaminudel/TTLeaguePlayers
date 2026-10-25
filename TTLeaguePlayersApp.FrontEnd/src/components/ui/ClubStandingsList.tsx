@@ -1,6 +1,6 @@
 import { readWithUpdates } from '../../utils/CacheUtils';
 import React, { useEffect, useRef, useState } from 'react';
-import type { ManagedClubProcessor } from '../../service/active-season-processors/ManagedClubProcessor';
+import type { ManagedClubProcessor } from '../../service/league-season-processors/ManagedClubProcessor';
 import type { ClubKudosStandingsEntry } from '../../api/kudosApi';
 import { getCachedClubKudosStandings } from '../../api/cachedKudosApi';
 import { ErrorMessage } from '../common/ErrorMessage';

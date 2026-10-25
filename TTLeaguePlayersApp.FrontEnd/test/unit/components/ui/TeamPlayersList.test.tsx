@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { TeamPlayersList } from '../../../../src/components/ui/TeamPlayersList';
-import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import type { ActiveSeasonProcessor } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
 import type { PlayerRegistrationEntry, TeamPlayersRegistrationsResponse } from '../../../../src/types/invite';
-import { PageFetcherError } from '../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
+import { PageFetcherError } from '../../../../src/service/league-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import { GeneralApiError } from '../../../../src/api/api';
 import { setUnitFixedClockTime } from '../../TestClockUtils';
 

@@ -1,6 +1,6 @@
 import { readWithUpdates } from '../../utils/CacheUtils';
 import React, { useCallback, useRef, useEffect, useState } from 'react';
-import type { ActiveSeasonProcessor } from '../../service/active-season-processors/ActiveSeasonProcessor';
+import type { ActiveSeasonProcessor } from '../../service/league-season-processors/ActiveSeasonProcessor';
 import type { PlayerRegistrationEntry, TeamRegistrationStatus } from '../../types/invite';
 import { Role } from '../../types/invite';
 import { getCachedTeamPlayersRegistrations } from '../../api/cachedInviteApi';

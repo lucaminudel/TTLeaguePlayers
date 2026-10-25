@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TeamPlayersCard } from '../../../../src/components/ui/TeamPlayersCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
-import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import type { ActiveSeasonProcessor } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
 
 const teamPlayersListMocks = vi.hoisted(() => ({ render: vi.fn() }));
 vi.mock('../../../../src/components/ui/TeamPlayersList', () => ({

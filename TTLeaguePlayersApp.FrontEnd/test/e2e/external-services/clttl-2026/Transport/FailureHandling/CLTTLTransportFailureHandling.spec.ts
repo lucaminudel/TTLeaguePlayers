@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { createServer } from 'node:http';
 import type { ActiveSeasonDataSource } from '../../../../../../src/config/environment';
-import { CLTTLActiveSeason2026PagesFetcher } from '../../../../../../src/service/active-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
-import { CLTTLManagedClub2026PagesFetcher } from '../../../../../../src/service/active-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
-import { PageFetcherError } from '../../../../../../src/service/active-season-processors/clttl-2026/PageFetcherError';
+import { CLTTLActiveSeason2026PagesFetcher } from '../../../../../../src/service/league-season-processors/clttl-2026/CLTTLActiveSeason2026PagesFetcher';
+import { CLTTLManagedClub2026PagesFetcher } from '../../../../../../src/service/league-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
+import { PageFetcherError } from '../../../../../../src/service/league-season-processors/clttl-2026/PageFetcherError';
 
 type ResponseFault = 'http-error' | 'service-unavailable' | 'connection-abort';
 type EndpointKind = 'fixtures' | 'club';

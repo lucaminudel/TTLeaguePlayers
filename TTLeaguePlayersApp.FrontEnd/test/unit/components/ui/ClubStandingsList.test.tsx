@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { ClubStandingsList } from '../../../../src/components/ui/ClubStandingsList';
-import type { ManagedClubProcessor } from '../../../../src/service/active-season-processors/ManagedClubProcessor';
+import type { ManagedClubProcessor } from '../../../../src/service/league-season-processors/ManagedClubProcessor';
 import type { ClubKudosStandingsEntry, ClubKudosStandingsResponse } from '../../../../src/api/kudosApi';
 
 const kudosApiMocks = vi.hoisted(() => ({

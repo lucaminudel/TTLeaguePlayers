@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { createRequire } from 'node:module';
 
 const { JSDOM } = createRequire(import.meta.url)('jsdom') as { JSDOM: new (html: string) => { window: Window } };
-import { CLTTLManagedClub2026PagesFetcher } from '../../../../../../src/service/active-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
+import { CLTTLManagedClub2026PagesFetcher } from '../../../../../../src/service/league-season-processors/clttl-2026/CLTTLManagedClub2026PagesFetcher';
 import type { ActiveSeasonDataSource } from '../../../../../../src/config/environment';
 
 // Node fetches the league site directly; these checks isolate upstream structure from the browser/proxy path.

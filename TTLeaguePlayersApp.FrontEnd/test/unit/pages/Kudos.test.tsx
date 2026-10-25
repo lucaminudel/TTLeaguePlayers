@@ -15,7 +15,7 @@ vi.mock('../../../src/config/environment', () => ({
     getConfig: () => mockGetConfig() as EnvironmentConfig,
 }));
 
-vi.mock('../../../src/service/active-season-processors/ActiveSeasonProcessorFactory', () => ({
+vi.mock('../../../src/service/league-season-processors/ActiveSeasonProcessorFactory', () => ({
     createActiveSeasonProcessor: vi.fn(() => ({
         getTeamFixtures: vi.fn(),
         getTeamPlayers: vi.fn(),

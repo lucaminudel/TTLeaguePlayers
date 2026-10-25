@@ -7,7 +7,7 @@ import { ClubTeamsList } from '../../../../src/components/ui/ClubTeamsList';
 import { ClubStandingsList } from '../../../../src/components/ui/ClubStandingsList';
 import { TeamPlayersList } from '../../../../src/components/ui/TeamPlayersList';
 import { ClubsAndTournaments } from '../../../../src/pages/ClubsAndTournaments';
-import type { Fixture } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import type { Fixture } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
 import type { ClubTeamWithDivision } from '../../../../src/types/clubTeam';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
 import type { ClubWithTournaments } from '../../../../src/api/clubsApi';

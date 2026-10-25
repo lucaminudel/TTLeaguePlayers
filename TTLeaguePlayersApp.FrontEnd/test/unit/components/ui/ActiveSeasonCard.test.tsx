@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
-import type { ActiveSeasonProcessor } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
-import type { Fixture } from '../../../../src/service/active-season-processors/ActiveSeasonProcessor';
+import type { ActiveSeasonProcessor } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
+import type { Fixture } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
 import { DISPUTES_INFO_TITLE, RATE_INFO_MODAL_GUID } from '../../../../src/components/common/infoModalMessages';
 
 // Mock react-router-dom

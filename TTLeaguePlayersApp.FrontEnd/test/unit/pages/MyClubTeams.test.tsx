@@ -19,7 +19,7 @@ vi.mock('../../../src/config/environment', () => ({
 const processorFactoryMocks = vi.hoisted(() => ({
     createManagedClubProcessor: vi.fn(),
 }));
-vi.mock('../../../src/service/active-season-processors/ManagedClubProcessorFactory', () => ({
+vi.mock('../../../src/service/league-season-processors/ManagedClubProcessorFactory', () => ({
     createManagedClubProcessor: processorFactoryMocks.createManagedClubProcessor,
 }));
 

@@ -5,7 +5,7 @@ import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { useAuth } from '../hooks/useAuth';
 import { ActiveSeasonCard } from '../components/ui/ActiveSeasonCard';
 import { getConfig } from '../config/environment';
-import { createActiveSeasonProcessor } from '../service/active-season-processors/ActiveSeasonProcessorFactory';
+import { createActiveSeasonProcessor } from '../service/league-season-processors/ActiveSeasonProcessorFactory';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 
 const getRenderableActiveSeasons = (activeSeasons: ReturnType<typeof useAuth>['activeSeasons']) => {

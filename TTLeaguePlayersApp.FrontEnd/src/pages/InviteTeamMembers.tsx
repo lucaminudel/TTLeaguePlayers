@@ -6,7 +6,7 @@ import { TeamPlayersCard } from '../components/ui/TeamPlayersCard';
 import type { ActiveSeason } from '../contexts/AuthContextDefinition';
 import { useAuth } from '../hooks/useAuth';
 import { getConfig } from '../config/environment';
-import { createActiveSeasonProcessor } from '../service/active-season-processors/ActiveSeasonProcessorFactory';
+import { createActiveSeasonProcessor } from '../service/league-season-processors/ActiveSeasonProcessorFactory';
 import { selectCaptainSeasons } from '../utils/activeSeasonUtils';
 import { getClockTimeInEpochSeconds } from '../utils/DateUtils';
 
