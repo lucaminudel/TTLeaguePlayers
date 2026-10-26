@@ -85,7 +85,7 @@ original-logo-save.png
 .venv
 .codex
 .codex_stop_messages.jsonl
-/node_modules/
+node_modules/
 /.stryker-tmp/
 /reports/
 test-results
