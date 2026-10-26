@@ -12,7 +12,9 @@ export class ForgotPasswordPage {
 
     async tentativelyRequestCode(email?: string): Promise<void> {
         if (email !== undefined) {
-            await this.page.fill('#email', email);
+            const emailInput = this.page.locator('#email');
+            await emailInput.fill(email);
+            await expect(emailInput).toHaveValue(email);
         }
         await this.page.getByTestId('forgot-password-send-code-button').click();
     }
