@@ -5,27 +5,62 @@ options and questions are synthesised and presented by the main agent, one point
 out for *reading*; never for *presenting* — a sub-agent per topic that reports back in parallel
 produces exactly the batch the interaction protocol exists to prevent.
 
+**Delegate exploration; use parallelism where the work allows it.** Across all four skills,
+every exploration must be assigned to a read-only sub-agent, even when there is only one research
+question. An exploration is a bounded search, investigation, call-chain trace or evidence-gathering
+assignment; group related reads into useful assignments rather than spawning an agent per file.
+Reading the skill, plan or returned evidence, checking a specific claim, and the main adversarial
+pass are not separate exploration assignments. The main agent scopes the work, inspects the
+returned evidence and owns decisions. Delegate independent gathering/research assignments in
+parallel within the current agreed topic and phase gates; do not merely describe possible
+parallelism and then do all the exploration inline.
+
+**Execution parallelism is mandatory when feasible.** After Execution's Phase 3 upfront-asks and
+confirmation gate is satisfied, at each dependency-ready set dispatch
+independent implementation sub-tasks with disjoint file ownership to sub-agents, up to available
+capacity. Reassess as tasks complete. Respect deployable-unit boundaries and retained checkpoints;
+readiness alone does not permit crossing them. Serial dependencies, conflicting ownership or an
+active barrier justify serial execution; convenience or a preference to work inline does not.
+
+Record the assignment, agent identifier, scope/file boundary and returned evidence in the current
+task artifact. If tools are unavailable or a spawn fails, record the concrete limitation and
+report it; do not claim delegation occurred. Queue work when slots are occupied. If delegation is
+unavailable altogether, continue permitted nondelegated work and ask how to handle the blocked
+assignments rather than silently replacing mandatory delegation with inline work.
+
 | Phase | Sub-agents |
 |---|---|
-| Discovery | **Permitted for gathering only.** `Explore` agents may collect raw material for a topic the user has **already agreed to** in the topic list. Never fan out across topics the user has not yet seen, and never let an agent's write-up reach the user unreviewed. |
-| Inception | **Permitted for gathering and verification.** `Explore` agents may collect raw material or make verifications for a topic **emerged during the Incepton or agreed during the Discovery**. Never fan out across topics the user has not yet seen, and never let an agent's write-up reach the user unreviewed.. |
-| Execution | **Permitted for drafting code**, under the file-partitioning and serial-verification rules in *Order the work*. Never for lint, build or test. |
-| Review | **Main adversarial pass and final judgement stay inline.** Independent, scoped, read-only review passes may supplement it when the size or risk of the change warrants them, including the initial automatic adversarial review. See the independence rules below. |
+| Discovery | **Delegate every exploration, gathering only.** Parallelize independent evidence gathering within the current agreed topic. Present it and wait before exploring the next topic; do not fan out across future topics. The main agent reviews all returned material. |
+| Inception | **Delegate every exploration and research assignment.** Parallelize independent gathering and read-only source checks for topics emerged during Inception or agreed during Discovery. Planning decisions and user-facing synthesis stay with the main agent. |
+| Execution | **Delegate every exploration and all parallel-ready implementation groups**, under file-partitioning, dependency and unit/checkpoint rules. Never delegate lint, build or test. |
+| Review | **Delegate every exploration.** Parallelize independent evidence gathering where feasible. Main adversarial pass and final judgement stay inline. Independent scoped read-only review passes may supplement it under the independence rules below, including automatic unit reviews. |
 
-**Which model a sub-agent gets.** A sub-agent inherits the parent's model unless the `Agent` call
-passes `model`. Set it deliberately:
+**Which model a sub-agent gets.** Phase model choices belong in the Codex-specific paragraph at
+the start of each skill: Execution uses Terra; Discovery, Inception and Review use Sol. These
+Codex instructions take precedence over Claude-specific frontmatter model names. They describe
+the requested model; they do not automatically reconfigure a running main session. Use the host's
+available model identifiers, do not invent identifiers or silently substitute families, and report
+selection limitations. Autonomous Review within Execution follows the Review model choice.
+
+A sub-agent inherits the parent's model unless the spawn request selects one. Set it deliberately
+when the role calls for a different model; use a fresh context when required by the spawn API:
 
 - **Gathering** — reading files, grepping, following call chains, fetching pages: pass
-  `model: "sonnet" or "Terra"`. This work is retrieval, not judgement, and the volume is high;
+  Terra in Codex or `sonnet` in Claude Code. This work is retrieval, not judgement, and the volume is high;
   running it on the skill's own model spends the expensive model on `cat`.
-- **Drafting code** — never *below* the model the skill itself is pinned to. A cheaper drafting
+- **Drafting code** — Terra in Codex Execution; in Claude Code, never below the skill's model. A cheaper drafting
   agent hands back code the main agent must then rewrite, which costs more than it saved.
-- **Judgement of any kind** — deciding what a finding means, what to build, whether something is
-  wrong: not delegated at all, so the question does not arise.
+- **Review passes** — Sol in Codex, including supplementary adversarial reviewers; do not apply
+  the cheaper gathering model rule to review analysis.
+- **Final decisions** — what to build, finding priority, approved fixes and user-facing synthesis
+  stay with the main agent. Sub-agents may return evidence-backed candidate findings.
 
 **`context: fork` is deliberately not used by any of these four skills.** A forked skill runs
 without the conversation history, and all four are conversational — they depend on what the user
 said three messages ago. Do not "optimise" any of them into a fork.
+This refers to the Claude Code skill setting, not Codex's sub-agent `fork_turns` argument. A
+Codex sub-agent that needs an explicit model or independent review context may use
+`fork_turns: "none"`; give it a self-contained assignment and the necessary raw artifacts.
 
 #### Independent review passes
 
@@ -40,8 +75,8 @@ does not apply to adversarial analysis.
 These passes may inspect disjoint concerns concurrently, but do not edit files, run lint/build/test
 commands, or expand the agreed review scope. They return candidate findings, not final verdicts.
 The main agent verifies and deduplicates them, owns prioritisation and user-facing synthesis, and
-keeps all fix approvals and verification serial. Small reviews can remain entirely inline.
-This is the scoped exception to the general rule against delegating judgement above.
+keeps all fix approvals and verification serial. Small adversarial passes can remain inline;
+any distinct exploration or evidence-gathering assignment must still be delegated.
 
 #### Where the work lands
 
@@ -49,8 +84,10 @@ This is the scoped exception to the general rule against delegating judgement ab
 Never create a git worktree to do the task's work in, and never move to another branch to do it.
 This holds for the main agent and for every sub-agent.
 
-The reason is the hand-back. These skills make no commits — the working tree is left for the user
-to stage and commit themselves. A worktree is a *separate checkout*: changes made there are not in
+The reason is the hand-back. Outside the explicitly authorized automatic unit mode in Execution
+and Review, these skills leave staging and committing to the user. In that mode, the main agent
+makes local unit commits in the current checkout after review and verification. A worktree is a
+*separate checkout*: changes made there are not in
 the user's tree, and with no commit to carry them across there is no clean way to return them. Work
 done in a worktree is work the user has to be told about and cannot simply review with `git diff`.
 
@@ -65,8 +102,10 @@ redo it in the main tree.
 When a plan contains a sub-task table with `Blocked by` relationships, the main Codex task owns the
 dependency graph. Treat the table as a DAG, not as a checklist:
 
-1. Identify the currently unblocked sub-tasks and delegate only that ready set. For example, when
-   sub-tasks `1`, `2`, and `5` have no blockers, they may start in parallel.
+1. Identify the currently unblocked sub-tasks and dispatch the parallel-ready, disjoint set to
+   sub-agents within available capacity and unit/checkpoint barriers. For example, when sub-tasks
+   `1`, `2`, and `5` have no blockers or shared writes, dispatch them in parallel. Repeat for each
+   newly ready set; recording parallel opportunities without dispatching them is not sufficient.
 2. Assign each delegated task an explicit sub-task number, file boundary, acceptance criteria, and
    required evidence. Do not start a task whose blockers are incomplete.
 3. Use Codex collaboration tools available in the current environment to dispatch, message, and

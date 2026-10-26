@@ -1,12 +1,24 @@
 ---
 name: coding-task-review
-description: Adversarially review the uncommitted work produced by the Coding Task Execution skill, fix the high-priority findings, and hand the user a PR-review guide and commit message for the pending changes. Use when the user says "Coding Task Review", or asks to review the work done before committing.
+description: Adversarially review work produced by Coding Task Execution, including local deployable-unit commits and remaining changes, fix approved findings, and prepare a human review guide. Use when the user says "Coding Task Review", or asks to review the work done before committing.
 model: opus
 effort: high
 allowed-tools: Bash(cat:*)
 ---
 
 # Coding Task Review
+
+## Codex-specific model and delegation
+
+Use **Sol** for this phase, including autonomous unit reviews invoked from Execution. Select the
+host's available Sol model; this instruction does not itself change the running session's model.
+If model selection is unavailable, report the limitation rather than claiming a switch. The
+frontmatter `model` is for Claude Code.
+Use sub-agents for work that can proceed in parallel, especially information gathering,
+research and exploration. Delegate every exploration under
+[the shared orchestration rules](../shared/orchestration.md). The main adversarial pass, final
+judgement and human-facing review remain with the main agent; independent read-only review
+passes may supplement them under the existing independence rules.
 
 ## Session name — at the start
 
@@ -43,8 +55,8 @@ cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
 
 Fourth and last of the four. Inputs are the plan and the work summary that
-`coding-task-inception` and `coding-task-execution` persisted, plus the uncommitted changes those
-produced in the working tree:
+`coding-task-inception` and `coding-task-execution` persisted, plus their local unit commits, when
+present, and remaining task changes in the working tree:
 
 - `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md`
 - `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/work-summary.md`
@@ -70,13 +82,60 @@ In Codex, resolve the task state by inspecting `.codex/coding-tasks/` and reusin
 which one to review.
 
 The output is **a reviewed, green, committable working tree and a guide for reviewing it** — not a
-commit. You never commit.
+commit, except for the local unit commits explicitly authorized in *Execution unit review mode*.
+
+## Execution unit review mode
+
+When Execution has recorded the user's explicit choice to automatically review, commit locally and continue
+between two or more independently deployable units, use this mode after each completed unit,
+including the last. It is the autonomous part of Review within Execution; it does not rename the
+chat, close Execution, or start the human-driven Review phases at each boundary.
+
+- Read the confirmed plan, unit boundaries, work summary and recorded authorization. Use the
+  completed unit's applicable green Tier 1 evidence as the entry condition instead of Phase 0's
+  full-pipeline confirmation. Keep whole-plan Tier 2 verification at the end of Execution.
+- Apply Phases 1–2's scope reconstruction and adversarial review, including applicable independent
+  and command checks. Review the unit's changes and their interactions with earlier units and
+  components that remain deployed; do not implement later units or modify unrelated pending work.
+  The Codex Security restriction on invocation during Execution remains in force unless the user
+  separately authorizes that exception. Record unavailable or unauthorized checks as coverage gaps.
+- Verify and rank findings using Phase 3's criteria. In this mode, **high-impact** means the
+  high-priority category defined there. The recorded mode choice preauthorizes fixes to those
+  verified findings within the agreed scope, replacing the per-fix approval gate for them only.
+  Record a concrete failing case, proposed fix and verification before applying each fix, then
+  use Phase 4's serial verification discipline and recheck the affected behaviour and interfaces.
+  Leave medium and lower-priority findings for the final human-driven review.
+- If a fix requires scope changes, an unresolved design decision, additional authorization, or
+  cannot be verified, stop with the finding and options. Do not continue past an unresolved
+  high-impact finding. Existing Cognito budgets, test approvals and external-action limits apply.
+- Persist each unit's scope, evidence, findings, fixes, remaining findings and coverage gaps in
+  `review.md` in the task directory, and link that entry from `work-summary.md`. Post concise
+  progress and continue under Execution's recorded mode; do not ask for per-unit human triage,
+  produce the final PR guide or request the Review retrospective. After review, fixes and checks
+  pass, return the unit's review outcome and evidence to Execution's main agent, which makes and
+  records the single local unit commit under its Git rule before continuing. This is a workflow
+  boundary, not a request for human confirmation or a second commit. Do not push or deploy.
+  A failed commit blocks continuation.
+
+After the whole plan and required final verification are complete, run the human-driven Review
+workflow once. Reconcile the unit records against the final diff, review cross-unit integration
+and changes since those passes, and present unresolved findings for human decisions under the
+normal approval rules. Review all unit commits from the recorded starting HEAD through the final
+HEAD, plus remaining task changes in the working tree, including untracked files; a pending-only
+diff would miss the committed units. Keep unrelated changes outside scope. Use supported review
+tool inputs for that scope and report any coverage limitation instead of claiming the unit commits
+were scanned by a pending-diff-only check. Preserve the unit evidence and commit hashes in the
+final review guide. Interim unit passes
+do not satisfy the final Review retrospective or replace the final human review.
 
 
 
 ## Phase 0 — Start from green
 
-Ask the user to confirm the state of the code to be reviewed is green: all tests pass so does the full verification pipeline.
+Establish that the reviewed state is green, including the full verification pipeline. Reuse
+recorded successful evidence from Execution when it covers this same code state; otherwise ask
+the user to confirm. Do not repeat an already satisfied confirmation. Unit review mode uses its
+explicit Tier 1 entry condition instead.
   
 ## Phase 1 — Read the diff and reconstruct intent
 
@@ -90,6 +149,11 @@ git status --short
 ```bash
 git diff HEAD -- <plan-related paths>
 ```
+
+For a final review after local unit commits, use the recorded pre-execution HEAD instead of HEAD
+as the baseline. Inspect the commit sequence as well as the cumulative task diff and remaining
+working-tree changes; include relevant untracked files. For an interim unit review, use that
+unit's starting HEAD so earlier committed units are context, not changes attributed to this unit.
 
 Untracked files that the plan created will not appear in `git diff HEAD` — read them in full
 directly. Check for them explicitly rather than assuming the diff is complete.
@@ -118,7 +182,8 @@ When the size or risk of the change warrants it, supplement this pass with indep
 read-only sub-agent reviews under the shared orchestration independence rules. This also applies
 to an initial automatic adversarial review. Give each agent the goal, scope and raw artifacts in a
 fresh context, without prior conclusions or the implementation rationale. Ask for concrete failing
-cases; do not delegate edits, lint, builds or tests. Small reviews can remain entirely inline.
+cases; do not delegate edits, lint, builds or tests. Small adversarial passes can remain inline;
+distinct exploration or evidence-gathering assignments must still be delegated.
 
 These passes and the review commands below return candidate findings, not final verdicts. Verify,
 deduplicate and triage every finding yourself; prioritisation, presentation and fix approvals stay
@@ -237,8 +302,9 @@ above are not shell commands or evidence that a review ran.
 `~/.codex/skills/.system/review-agent/SKILL.md`. When an independent pass is warranted under the
 shared orchestration rules, delegate a read-only review with a fresh context and explicitly instruct
 the subagent to read and use that skill. Supply the task goal, scoped file paths, raw pending diff
-and relevant source artifacts, without earlier review conclusions. Include untracked task files;
-do not substitute a committed-revision diff for pending changes. Request concrete failing cases
+and relevant source artifacts, without earlier review conclusions. Include untracked task files
+and any unit commits required by Phase 1's baseline; do not substitute an incomplete committed-only
+or pending-only diff for the full task scope. Request concrete failing cases
 and security evidence. The reviewer returns findings to the main agent and does not edit, delegate
 further or run lint/build/test commands. The main agent verifies, deduplicates and triages the
 findings. If the skill or delegation is unavailable, record that limitation rather than claiming
@@ -248,8 +314,10 @@ an independent review occurred.
 `$codex-security:security-diff-scan` skill to review the task's pending changes. Read its `SKILL.md`
 from the installed skill path and follow its preflight, threat-model, discovery, validation,
 attack-path and report-finalization workflow; do not replace it with a generic reviewer prompt.
-Use the current working-tree patch, including relevant staged, unstaged, untracked and deleted
-files. Keep the scan baseline and patch fixed. If the working tree contains unrelated changes,
+Use the full task patch from Phase 1's baseline, including local unit commits where applicable
+and relevant staged, unstaged, untracked and deleted files, through the plugin's supported diff
+inputs. If it cannot cover that combined scope, state exactly which parts it covers and which it
+cannot; do not claim a complete task scan. Keep the scan baseline and patch fixed. If the working tree contains unrelated changes,
 use the plugin's supported scoped local-patch workflow to isolate the reviewed task; do not stage,
 stash, discard or silently expand scope to include unrelated work. If exact isolation is not
 supported, report the scope limitation before proceeding.
@@ -326,29 +394,31 @@ reproduce; do not report it as a "possible issue".
 2. **Medium-priority findings**, presented the same as the High-priority findings
 3. **Noted, not actioned** — every lower-priority finding, named in a concise list. No fix plan is needed for this initial list. Present the list to the user.
 
-Change nothing until the user approves a fix. If they amend the plan, fold the amendment in and
+Outside *Execution unit review mode*, change nothing until the user approves a fix. If they amend the plan, fold the amendment in and
 re-present it.
 
 ## Phase 4 — Fix
 
-Execute only fixes the user approved, regardless of the finding's initial priority. Leave all
+Execute only fixes the user approved (including the scoped high-impact authorization in
+*Execution unit review mode*), regardless of the finding's initial priority. Leave all
 other findings untouched, and do not fold in cleanup along the way — the diff must not grow beyond
 the approved fixes during its own review.
 
-Verify with the commands and the **four-tier discipline** — 1-A (dev, no Cognito), 1-B (dev, scoped
-Cognito), 1-C (dev, full Cognito, ask first), 2 (test env, full pipeline, ask first) — defined in
-*Phase 6 — Verify before marking done* of the `coding-task-execution` skill.
+Verify with the commands and **four-tier discipline** defined in *Phase 6 — Verify before
+marking done* of the [Execution skill](../coding-task-execution/SKILL.md), including its recorded
+approvals, clean-dev conditions and cumulative Cognito budget. Those rules govern whether to ask;
+do not add a new approval requirement for an already authorized run.
 
-That content is **not** loaded into this session. Read it from disk before relying on it:
-`.claude/skills/coding-task-execution/SKILL.md`. Do not reconstruct the commands or the tier gates
+Read that content from disk before relying on it, unless already loaded in this session.
+Resolve `../coding-task-execution/SKILL.md` relative to this skill. Do not reconstruct commands or tier gates
 from memory, and do not assume a tier is free — 1-B, 1-C and 2 all spend live Cognito and count
 against the budget defined there.
 
 A fix that does not go green is not done. If a fix turns out to be wrong or wider than it looked,
 stop and say so rather than expanding it silently.
 
-Re-running the full pipeline after the fixes is the user's call and the user's command — ask, state
-why it is needed, and wait.
+Re-run the full pipeline after fixes only under applicable recorded approval; otherwise explain
+why it is needed, ask and wait. A previous run does not itself authorize another run.
 
 ## Phase 5 — The PR-review guide
 
@@ -358,17 +428,17 @@ diff. Assume no memory of the plan, the execution session, or this codebase's co
 
 **It goes in its own document.** Write it, with the phase 2–4 findings, to
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/review.md` — a new
-file in the same `<slug>` directory, **not** appended to `work-summary.md`.
+file in the same `<slug>` directory if absent, **not** appended to `work-summary.md`. If unit
+reviews already created `review.md`, update that file and preserve their evidence and findings.
 
 ### Codex-specific persistence
 
-In Codex, also write the review guide to `.codex/coding-tasks/<task-slug>/review.md`, as a new file
-in the same task directory. Do not append it to `work-summary.md`; present the persisted file link
+In Codex, write the review guide to `.codex/coding-tasks/<task-slug>/review.md`, creating it if
+absent or updating it while preserving existing unit review records. Do not append it to `work-summary.md`; present the persisted file link
 when the review is handed off.
 
-**`MEMORY.md` gets at most one line, and only if the task produced something durable** — a decision
-or constraint worth carrying into unrelated future work. The review guide itself is not that: it is
-found by path. Never index the four task artifacts.
+Do not update memory without an explicit user request. Task artifacts are found by path;
+do not index them in `MEMORY.md`.
 
 When the review document is completed, present its link as a progress update; continue through
 the commit-message suggestion and retrospective before the final hand-off.
@@ -472,8 +542,10 @@ changed — if the reviewer could get it from the diff alone, leave it out.
 
 ## Phase 6 — Suggest the commit message
 
-Propose the text; **do not commit and do not stage**. Cover the whole set of pending changes,
-including the ones that rode along.
+Propose the text for any remaining task changes; **do not commit and do not stage** during final
+Review. If all task changes are already committed, list those unit commits instead of inventing
+a pending commit message. List unrelated pending work separately; do not bundle it into a task
+commit message without the user's explicit request.
 
 Body explains *why*, since the diff already shows *what*. Note user-facing behaviour changes,
 config-file structure changes, and anything a future bisect would want to find. Do not add an
@@ -510,17 +582,23 @@ and the commit message is proposed. **You do not commit** — staging and commit
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
-> The review is complete. The PR-review guide is at `<path>`, and the proposed commit message is
-> above. Nothing has been staged or committed. 
+> The review is complete. The PR-review guide is at `<path>`. Any remaining task changes and
+> their proposed commit message are listed above, for you to stage and commit.
+
+If automatic unit mode made local commits, also list their hashes and outcomes and distinguish
+them from any remaining uncommitted fixes; do not claim that nothing was committed.
 
 
 
 ## Standing rules
 
-**Git.** Stay on the current branch. No commits, no staging, no stash, no revert, no clean. The
-working tree stays exactly as the user left it, plus the approved fixes.
+**Git.** Stay on the current branch. Only *Execution unit review mode* permits staging and local
+unit commits, under Execution's Git rule and the recorded authorization. The final human-driven
+review leaves any additional fixes uncommitted. No push, stash, revert, clean or history rewriting.
+Preserve the user's unrelated changes.
 
-**Scope.** The plan defines what is reviewed and the approved fix plan defines what is changed.
+**Scope.** The plan defines what is reviewed; an approved fix plan or the recorded automatic
+unit mode's high-impact authorization defines what is changed.
 Review is not the moment to improve unrelated code.
 
 **Honesty over reassurance.** A review that finds nothing is a review that was not performed. If a
@@ -539,9 +617,9 @@ thorough, and do not soften a real finding into a suggestion.
 - Reporting findings you have not verified against the real files.
 - Confirming your own earlier work instead of attacking it.
 - Fixing lower-priority findings, or folding in cleanups, during the fix phase.
-- Starting fixes before the user approves the fix plan.
-- Launching the tier-2 pipeline without asking.
-- Committing or staging anything.
+- Starting fixes without an approved fix plan or the scoped authorization in *Execution unit review mode*.
+- Launching the tier-2 pipeline without applicable recorded approval.
+- Committing or staging outside the authorized *Execution unit review mode*.
 - Moving to the next finding before the current one is decided, fixed and verified.
 - Writing a PR guide that restates the diff instead of directing attention within it.
 - Writing a PR guide that explains *what* changed but not *why* — the feature it serves, the
@@ -557,9 +635,11 @@ For Codex, the corresponding files are `.codex/coding-tasks/<task-slug>/discover
   step owns — an end-to-end spec, a shared page object, a shared fixture — belong in a step of their
   own.
 - A step whose stated file count does not match the files the walkthrough lists beneath it.
-- Appending the PR guide to the work summary instead of giving it its own `review-<slug>.md`.
+- Appending the PR guide to the work summary instead of keeping it in the task's `review.md`.
 - Pasting the whole guide into the chat, or ending the final message with anything other than the
   link to it.
 - Handing back a question, a red pipeline or a fix plan without the context, cause and options the
   user needs to answer it.
-- Commands against live cloud and Cognito environment: Running a read-only command against the cloud environment, and Cognito is permitted. Running during this Review a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. 
+- Mutating live cloud or Cognito during Review, except for explicitly authorized verification
+  effects under Execution's test rules. Read-only commands are permitted; deployment and manual
+  provisioning are not implied by test approval.

@@ -7,6 +7,16 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 ---
 # Coding Task Inception
 
+## Codex-specific model and delegation
+
+Use **Sol** for this phase. Select the host's available Sol model; this instruction does not
+itself change the running session's model. If model selection is unavailable, report the
+limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
+Use sub-agents for work that can proceed in parallel, especially information gathering,
+research and exploration. Delegate every exploration under
+[the shared orchestration rules](../shared/orchestration.md); keep planning decisions,
+confirmation and user-facing synthesis with the main agent.
+
 ## Session name — at the start
 
 At skill entry, name the current chat `Inception — <existing topic>`. Remove any leading
@@ -40,8 +50,8 @@ cat ${CLAUDE_PROJECT_DIR}/.claude/skills/shared/orchestration.md
 
 Read the shared orchestration guidance at [../shared/orchestration.md](../shared/orchestration.md).
 
-An nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
-not code. Write no application code during phases 1–8.
+A nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
+not code. Write no application code during Inception.
 
 ## Phase 1 — Receive the general information
 
@@ -105,9 +115,28 @@ before proposing architecture; you may be re-deriving a decision already made.
 
 ## Phase 4 — Build the plan
 
+**Suggest deployable units for large or cross-component plans.** When the plan is large in scope,
+implementation effort or time, or touches different parts of the system (backend API, Lambdas,
+database, frontend configuration, client API, screens, infrastructure, and so on), assess whether
+it can be split into a sequence of distinct units that can each be
+implemented, verified and deployed without requiring unfinished later units. Where feasible,
+suggest that split to the user. Possible boundaries include backend and frontend changes,
+preparatory tidying or refactoring and feature implementation, or separately deliverable parts of
+a feature; use these only where the actual dependencies and contracts support them.
+
+For each proposed unit, state its outcome, included sub-tasks, prerequisites, verification and
+deployment boundary, and why the system remains usable after it is deployed. Earlier units may
+be prerequisites for later ones, but must work with the components that remain deployed at that
+point. Explain the benefits and any added effort or compatibility work so the user can assess the
+split. If no useful independent deployment boundary exists, explain why. Reassess the split when
+scope amendments materially change the plan's size or dependencies.
+
 Create sub-tasks with `TaskCreate`, then wire dependencies with `TaskUpdate` `addBlockedBy`. Each
 task's description must be self-contained: exact file paths, verified selectors, expected values,
 and *why* — a future agent reads the description, not this conversation.
+Apply the scope-impact rule in *Standing rules* to each sub-task and to their combined effect.
+Include any applicable callout in the affected sub-task's description and flag it when presenting
+the plan.
 
 **Analyse parallel execution across the whole dependency graph.** Identify the initial tasks with
 no blockers and every later group that can become ready together, not only the first ready set.
@@ -171,9 +200,13 @@ missing ownership or dependencies before presenting the plan.
 Present the full plan as a table: number, sub-task, blocked-by. Include the parallel execution
 groups, file ownership, and synchronization barriers. Add files created vs modified,
 decisions locked in, assumptions, and anything you would flag as accepted risk.
+For large or cross-component plans, present the suggested sequence of deployable units and its rationale, or explain
+why a split is not feasible. Fold the user's choice into the plan before confirmation.
 
 Invite amendment and **wait**. Expect several rounds; fold each amendment into the tasks before
-re-presenting.
+re-presenting. Apply the scope-impact rule in *Standing rules* to each scope refinement or change,
+and highlight any resulting changes to blast radius, implementation effort, risk or impact before
+asking for confirmation.
 
 Persist only after explicit confirmation, to
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md` — the same
@@ -188,8 +221,12 @@ task artifacts are found by path, not by recall. The file must carry:
 - the sub-task table with a **Status** column (`to be done` / `in progress` / `done`)
 - an execution schedule covering initial and later parallel groups, their prerequisites and file
   ownership, serial groups with reasons, and review/verification synchronization barriers
+- for large or cross-component plans, the agreed deployable units and their sequence, outcomes, sub-task membership,
+  prerequisites, verification and deployment boundaries, or the reason for keeping one unit
 - per-sub-task detail: paths, commands, expected values
 - standing assumptions and accepted risks
+- scope-impact callouts, with reasons, affected areas and uncertainties, including the consequences
+  of scope refinements or changes; surface the significant ones in the plan's opening summary
 - a dated progress log, and instructions that any agent may update it
 
 ### Codex-specific persistence
@@ -234,15 +271,28 @@ and that file — not this conversation — is what `coding-task-execution` read
 - Treating technical design lessons, another phase's retrospective, or an earlier generic answer
   as the Inception retrospective; closing without its distinct outcome in `plan.md`.
 
-- Writing application code before phase 6 confirmation.
+- Writing application code during Inception; implementation belongs to Execution after plan confirmation.
 - Planning against an external data source without fetching it first.
 - Inferring process rules from repo guideline docs instead of asking.
 - Declaring a change safe for another stack without running that stack's tests.
 - Persisting the plan only to the in-session task list, which the next session cannot read.
-- Delegating planning decisions or user-facing synthesis. Gathering and read-only verification
-  may be delegated within the shared orchestration rules; builds and tests stay with the main agent.
+- Delegating planning decisions or user-facing synthesis. Exploration and research must be
+  delegated within the shared orchestration rules; builds and tests stay with the main agent.
 
 ## Standing rules
+
+- **Highlight consequential scope.** For Domain items, Technical items, plan items (sub-tasks),
+  and any other scope considered for the task, explicitly flag to the user any item whose
+  implementation has a large blast radius, requires significant time or effort, or carries high
+  risk or impact. Call out which
+  of these applies, why, and the affected users, systems or dependencies, using the available
+  evidence. Distinguish confirmed consequences from estimates and unknowns; do not invent precise
+  effort estimates. Carry forward Discovery's relevant callouts and reassess them against the
+  proposed scope. Highlight these items when first presenting the scope or plan, and whenever
+  research, refinement or amendments materially change their significance. Explain how each scope
+  change increases, reduces or leaves uncertain these consequences before requesting confirmation,
+  and preserve the current assessment in the confirmed plan. A callout alone does not mean the
+  user has accepted the risk or authorized implementation.
 
 - **Commands against live cloud and Cognito environment** Running a read-only command against the cloud environment, and Cognito is permitted. Running during this Incpetion a mutating or state changing command against the cloud environment, and Cognito is NOT permitted. It is ok for that to be part of the plan the inception creates.
 

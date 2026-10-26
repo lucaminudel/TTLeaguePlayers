@@ -8,6 +8,18 @@ effort: high
 
 # Coding Task Execution
 
+## Codex-specific model and delegation
+
+Use **Terra** for this phase. Select the host's available Terra model; this instruction does not
+itself change the running session's model. If model selection is unavailable, report the
+limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
+Use sub-agents for work that can proceed in parallel. **Delegate every exploration, and dispatch
+parallel-ready implementation sub-tasks to sub-agents whenever dependencies, disjoint file
+ownership and the current unit/checkpoint barriers allow.** Follow
+[the shared orchestration rules](../shared/orchestration.md); keep verification, approvals,
+integration and commits serial on the main agent. Review work within automatic unit mode follows
+the Review skill's **Sol** model instruction.
+
 ## Session name — at the start
 
 At skill entry, name the current chat `Execution — <existing topic>`. Remove any leading
@@ -93,16 +105,23 @@ purpose of asking.
 
 Derive the execution order from the plan's *Blocked by* column. Never start a sub-task whose
 blockers are not all `done`. Name the tasks that are unblocked right now before starting.
+After the Phase 3 gate is satisfied, at every ready set dispatch independent sub-tasks to
+implementation sub-agents; do not execute a parallel-ready group entirely in the main agent.
+Reassess when completions unblock new tasks.
+Delegate each exploration to a read-only sub-agent, even when there is only one exploration.
+For plans with multiple deployable units, treat each unit's completion and recorded stop or
+automatic-review decision as a barrier: do not dispatch later-unit work across that boundary.
 
 **Parallelism is for writing code, never for verifying it.** The fast dev loop depends on a local
 SAM and web server bound to the main working tree and a single local DynamoDB. Two agents running
 `sam build` or the C# suite at once race on shared state and produce failures that look like
 regressions. So:
 
-- Subagents may draft code for sub-tasks that are unblocked *and* whose file sets are disjoint.
+- Subagents must draft code for parallel-ready sub-tasks that are unblocked *and* whose file sets
+  are disjoint, within available capacity and the current unit/checkpoint barriers.
 - Every lint, build and test run happens serially, on the main agent, in the main working tree.
-- Subagents work **directly in the main tree**, not in worktrees. With no commits being made (see
-  Standing rules), a worktree has no clean way to hand changes back.
+- Subagents work **directly in the main tree**, not in worktrees. Unit commits, when authorized,
+  are made by the main agent only after review and verification, never as a subagent hand-off.
 - Partition by file. Two agents must never hold the same file open for writing.
 
 Where the graph is a chain, say so and run it serially rather than manufacturing parallelism.
@@ -122,6 +141,18 @@ Identify every unresolved clarification, decision, missing fact, precondition or
 would otherwise cause a later ask. Reuse answers and authorizations already given; ask for
 what remains unresolved, then wait for the answers before starting dependent work.
 
+- **For plans with two or more independently deployable units, settle the unit-boundary mode.**
+  Present the units and ask whether the user wants to **stop after each completed unit** or
+  **automatically review, commit locally and continue**: after each unit, run the autonomous adversarial review
+  described in [the Review skill](../coding-task-review/SKILL.md#execution-unit-review-mode),
+  fix verified high-impact findings, re-verify, commit that unit locally, then continue to the next unit, leaving the
+  human-driven part of Review until the whole plan is implemented and verified. Record the
+  explicit choice in the plan and work summary; reuse an existing choice without asking again.
+  Until resolved, stop at unit boundaries. Choosing automatic mode authorizes the scoped
+  high-impact fixes, local unit commits and continuation at these boundaries, not pushing,
+  deployment or unrelated changes. If an older recorded choice did not include commits, resolve
+  that added authorization before committing. Record the starting HEAD and any pre-existing
+  staged or unstaged changes so unit commits and the final whole-plan review have a clear baseline.
 - Present **each checkpoint separately by name/number and purpose**, with what the user would
   inspect there. Ask whether execution should **stop** there or **ignore the stop and continue**.
   Record the explicit choice for each checkpoint; an unresolved choice defaults to stopping.
@@ -134,6 +165,30 @@ what remains unresolved, then wait for the answers before starting dependent wor
   Phase 1 and permissions for planned external mutations. Keep the Cognito budget and lockout
   stopping rules; upfront approval does not remove those limits.
 
+**Explain the consequences and sequence before asking for confirmation.** At this upfront gate,
+do not ask the user to choose mode names or skip checkpoints without explaining what will happen.
+For the actual plan, show a concise ordered sequence using its named units and checkpoints. Make
+clear where implementation and verification happen, where execution stops for the user, when
+autonomous adversarial review and high-impact fixes happen, when local commits are made, and when
+the final whole-plan verification and human-driven Review take place.
+
+Explain that stopping after a unit currently presents its outcome and evidence and waits; it does
+not automatically review, fix or commit that unit. Automatic mode reviews, fixes, re-verifies and
+commits each unit before continuing, including the last unit; separately retained checkpoints
+still stop execution. Skipping a checkpoint removes only its human hand-back, not its work or
+verification. Distinguish unit boundaries from other checkpoints and resolve conflicting choices
+before showing the resulting sequence. For a single-unit plan, explain that automatic unit mode
+does not apply: normal final Review requires human approval of fixes and leaves committing to the
+user. Do not imply unsupported combinations or promise uninterrupted execution; identify retained
+approval gates and the circumstances that can still require a stop.
+
+After the choices are assembled, present the resulting sequence and its authorization scope and
+ask the user to explicitly confirm it before implementation starts. If they change a choice,
+update the affected sequence and consequences before confirmation. A clear earlier confirmation
+of the same sequence and scope satisfies this gate; summarize it without asking again. Persist
+the confirmed sequence alongside the mode and checkpoint decisions so resumed execution follows
+the same agreement.
+
 Persist each question and answer, checkpoint choice, and approval scope in the plan and relevant
 sub-task descriptions. Do not treat silence as approval. Do not skip this discussion because the
 plan is detailed or already confirmed. If everything is already explicitly settled, state the
@@ -145,6 +200,10 @@ an exceeded limit, or an action outside the recorded authorization.
 
 ## Phase 4 — Execute
 
+Before starting each deployable unit, record its starting HEAD and existing task changes in the
+plan. Preserve that baseline on resume rather than replacing it with the latest HEAD; it defines
+the interim unit review scope. Keep the overall pre-execution baseline for final whole-plan Review.
+
 For each implementation sub-task, in dependency order:
 
 1. Set its Status to `in progress` in the persisted plan **before** starting.
@@ -155,6 +214,19 @@ For each implementation sub-task, in dependency order:
 5. **Replace the comments you just wrote with self-explaining code (Phase 7), then re-verify.**
 6. Write its entry in the work summary report (Phase 8) and post that entry in the chat.
 
+At each deployable-unit boundary, after its sub-tasks and applicable Tier 1 checks are complete,
+apply the recorded unit-boundary mode before starting the next unit. In stop mode, present the
+unit's outcome and evidence and wait. In automatic mode, read and follow the Review skill's
+*Execution unit review mode*, record its findings, fixes and verification, then make a local commit
+of that unit under the Git rule below. Continue only when the unit has no unresolved high-impact
+findings, the checks pass and its commit succeeds. Review and commit the last unit too.
+Execution's main agent is the sole commit owner: the Review portion returns findings and green
+evidence; it does not make a second commit. On resume, verify any recorded unit commit and do not
+recommit an already committed unit. If no changes remain to commit, record why rather than creating
+an empty commit. Additional fixes after a recorded unit commit need their own scope and evidence.
+Keep Tier 2 as the final whole-plan stage; a unit review does not establish full-pipeline green
+or mean the unit has actually been deployed.
+
 A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
 tests, or anything you worked around rather than solved — report it and stop.
 
@@ -162,6 +234,9 @@ After all Phase 4 implementation work and its Tier 1 checks are complete, perfor
 stage defined in Phase 6, then complete the work summary and retrospective before hand-off. If the plan includes a final
 verification sub-task, leave it pending until this stage passes; do not mark the overall execution
 complete before required Tier 2 checks and approved deterministic mutation testing are complete.
+If final verification requires repairs, verify and record them as remaining task changes for
+final Review; automatic unit commits do not implicitly authorize amending earlier commits or
+committing these later repairs. Resolve any desired additional commit authorization explicitly.
 
 ### Read-only commands against the live cloud and Cognito — permitted without asking
 
@@ -193,6 +268,10 @@ exists for the same reason.
 
 
 ## Phase 5 — Checkpoints
+
+Deployable-unit boundaries use the mode recorded in Phase 3. Automatic review and continuation
+replaces only the hand-back at those boundaries; separately retained checkpoints, plan-drift stops
+and authorization limits still apply. Resolve any conflicting checkpoint choices in Phase 3.
 
 Apply the per-checkpoint choice recorded in Phase 3:
 
@@ -873,12 +952,24 @@ Phase 9 if it is missing; another phase's retrospective cannot fill this gate.
 
 Say also that compacting is optional and the hand-off does not depend on it: the plan and the work
 summary are on disk, and those files — not this conversation — are what `coding-task-review` reads.
+In automatic unit mode, after the required Execution retrospective is settled or explicitly
+skipped, continue into the final Review under the recorded sequence without asking again to start
+it. That Review reconciles unit commits and remaining changes and includes the human-driven
+decisions and review guide. In other modes, hand off to the user to start Review.
 
 
 ## Standing rules
 
-**Git.** Stay on the current branch. Make no commits. Leave the working tree for the user to stage
-themselves. Never stash, revert, or clean their pre-existing uncommitted changes.
+**Git.** Stay on the current branch. Outside the explicitly selected automatic unit mode, leave
+staging and committing to the user. In that mode, after each unit's adversarial review, high-impact
+fixes and applicable checks pass, stage only that unit's changes and make a local commit with a
+message describing its outcome. Inspect the staged patch before committing and confirm the
+resulting commit contains only the intended changes. Preserve unrelated staged and unstaged work;
+use selective staging or an isolated index where needed, and stop if ownership cannot be safely
+separated. Never use blanket staging, include unrelated pre-existing work, bypass failing hooks,
+push, amend earlier commits, or rewrite history. Record each commit hash, unit and verification
+evidence in the plan and work summary. A failed commit blocks continuation; report its cause.
+Never stash, revert, or clean the user's pre-existing uncommitted changes.
 
 **Plan drift.** If anything contradicts the plan — a selector that does not match, a design that
 proves unworkable, a dependency that was missed — **stop and ask, always**. Report the finding and
@@ -907,7 +998,7 @@ passing, and do not narrow it because a step looks awkward.
 - Running builds or tests in parallel, or from a worktree, against the shared local dev services.
 - Continuing past a checkpoint whose recorded choice is to stop, or asking again at a checkpoint
   explicitly approved for continuation in Phase 3.
-- Committing, branching, or tidying the working tree.
+- Committing outside the authorized automatic unit mode, branching, or tidying the working tree.
 - Batching the work summary to the end instead of reporting per sub-task.
 - Adapting the plan quietly when it turns out to be wrong.
 - Handing back a question, blocker or checkpoint without the context, cause and options the user

@@ -8,6 +8,16 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 # Coding Task Discovery
 
+## Codex-specific model and delegation
+
+Use **Sol** for this phase. Select the host's available Sol model; this instruction does not
+itself change the running session's model. If model selection is unavailable, report the
+limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
+Use sub-agents for work that can proceed in parallel, especially information gathering,
+research and exploration. Delegate every exploration under
+[the shared orchestration rules](../shared/orchestration.md); keep topic agreement, synthesis
+and user-facing discussion with the main agent.
+
 ## Session name — at the start
 
 At skill entry, name the current chat `Discovery — <existing topic>`. Remove any leading
@@ -49,7 +59,8 @@ technical implementation details the task depends on. Not a plan, not sub-tasks,
 belongs to inception; if you find yourself sequencing work, you have left this skill.
 
 Discovery is **read-only**. Read the codebase, fetch live external pages, search the web. Write
-nothing into the repo tree except the report's own scratch notes, and no application code at all.
+nothing into the repo tree except its findings report, task metadata and report scratch notes;
+write no application code.
 
 ## Phase 1 — Frame the task
 Ask for:
@@ -77,6 +88,7 @@ before exploring. Separate:
 Add topics and questions of your own that the framing implies but the user did not name, and mark
 them as yours so they can drop them. Note the ones you judge highest-risk — the ones where being
 wrong would cost the most later — and propose starting there.
+Apply the scope-impact rule in *Standing rules* when presenting this list.
 
 Get agreement on the list before phase 3. The list is not frozen (see *Standing rules*), only
 agreed.
@@ -160,6 +172,8 @@ The file carries:
   keys, environments, existing tests covering the area
 - **Contradictions and gaps** — where docs disagree with code, where the external source disagrees
   with expectations, and what remains unknown
+- **Scope-impact callouts** — the flagged items from *Standing rules*, with their reasons,
+  affected areas and uncertainties; surface the significant ones in the report's top summary
 - **Open questions for inception** — decisions this discovery deliberately did not make
 - a dated log of the discovery sessions, and instructions that any agent may update the file
 
@@ -228,6 +242,16 @@ is on disk, and that file — not this conversation — is what `coding-task-inc
 
 ## Standing rules
 
+**Highlight consequential scope.** For Domain topics, Technical topics, and any other scope
+considered for the task, explicitly flag to the user any item whose implementation has a large
+blast radius, requires significant time or effort, or carries high risk or impact. Call out which
+of these applies, why, and the affected users, systems or dependencies, using the available
+evidence. Distinguish confirmed consequences from estimates and unknowns; do not invent precise
+effort estimates. Highlight these items when first presenting the topic list and whenever later
+findings reveal or materially change their significance, and preserve the callouts in the findings
+report. This informs scope decisions; it does not authorize implementation or turn discovery into
+a plan.
+
 **The topic list is open, always.** At any point the user may add a topic, add a sub-topic, ask a
 new question, or drill into an earlier answer. Take it, add it to the numbered list in the report,
 and place it — either explore it now or say where it sits in the order. Never treat an addition as
@@ -241,7 +265,7 @@ finding and belongs in the report. Filling a gap with a plausible guess is the o
 survives into the plan and then into the code.
 
 **Git.** Stay on the current branch. No commits, no staging, no stash, no clean. The working tree
-ends exactly as the user left it.
+ends as the user left it, except for this workflow's report, task metadata and scratch notes.
 
 ## Anti-patterns
 
@@ -249,7 +273,7 @@ ends exactly as the user left it.
   Discovery retrospective; closing without its distinct outcome in `discovery.md`.
 
 - Exploring before the framing questions are answered.
-- Writing application code, or modifying the repo tree at all.
+- Writing application code, or modifying the repo tree beyond the report, task metadata and scratch notes.
 - Producing a plan, sub-tasks or an implementation sequence — that is inception's job.
 - Describing an external data source without fetching it.
 - Recording a finding without a file:line, URL or command backing it.
