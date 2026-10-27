@@ -113,6 +113,38 @@ contains dead ends of exactly that kind.
 intended structure that the code has not grown yet — including inside mermaid diagrams. Read them
 before proposing architecture; you may be re-deriving a decision already made.
 
+### Simplicity review — before building the plan
+
+Separate **user-required outcomes, constraints and guarantees** from **agent-proposed mechanisms**.
+Completeness means covering the confirmed scope; it does not justify general-purpose machinery,
+future capabilities or extra guarantees the user did not request.
+
+Before turning a consequential design choice into sub-tasks, check:
+
+1. **Use the existing boundary.** Before adding an abstraction, changing a shared interface or
+   passing context across layers, find where the required information already exists. Compare
+   the smallest viable design using existing return values, errors, callbacks or data owners.
+   Place decisions where their inputs are known; preserve original evidence when it crosses layers.
+2. **Justify new machinery.** Tie each new mechanism to a current requirement. Keep machinery
+   needed only by an optional or later deliverable out of the core, except a small seam justified
+   by the current feature. Do not build a framework for hypothetical future callers.
+3. **Assess actual change surface.** Identify affected files, shared consumers and behaviours.
+   Fewer edited files are not automatically safer if complexity moves into global state or a
+   more widely used component. Preserve the user's delivery, review and commit boundaries.
+4. **Explain real savings.** For each proposed simplification, state which logic, dependencies
+   or tests disappear. Distinguish implementation savings from traffic limits, weaker reliability,
+   reduced verification or changed workflow. Do not present those trade-offs as less code without
+   evidence, or drop required guarantees merely to make the design smaller.
+5. **Assign test responsibilities.** Give each property a primary test layer. Use higher layers
+   for additional integration risks and representative journeys; do not repeat the full behaviour
+   matrix at every layer unless the repeated coverage establishes something distinct.
+6. **Keep the comparison proportional.** Record a brief rationale and any viable smaller
+   alternative for consequential choices, including why it was rejected. Local, routine changes
+   need no elaborate alternatives exercise or extra user approval.
+
+Prefer the smallest design that satisfies the confirmed requirements and verification obligations.
+Resolve unnecessary complexity before presenting it as part of the plan.
+
 ## Phase 4 — Build the plan
 
 **Suggest deployable units for large or cross-component plans.** When the plan is large in scope,
@@ -188,6 +220,13 @@ Walk the sub-task list and list every point where the executing agent would have
 permission gate, an unverified precondition, a detail left to judgement. Close and document each one now.
 
 
+**Recheck simplicity as well as completeness.** Repeat the Phase 3 simplicity review against the
+actual decisions, sub-tasks, shared-file changes and test responsibilities. Remove mechanisms that
+do not serve confirmed requirements, and explain why consequential remaining complexity is needed.
+Check that optional work has not leaked into the core and that each claimed simplification removes
+real implementation work. Close genuine gaps without inventing extra requirements to eliminate
+every possible future interruption.
+
 **Check the execution graph for completeness.** Walk the initial ready set and each later ready
 set against the actual blockers, file boundaries and real-world sequencing constraints. Confirm
 that every safe parallel opportunity is recorded, each conflicting write is ordered, and every
@@ -206,7 +245,10 @@ why a split is not feasible. Fold the user's choice into the plan before confirm
 Invite amendment and **wait**. Expect several rounds; fold each amendment into the tasks before
 re-presenting. Apply the scope-impact rule in *Standing rules* to each scope refinement or change,
 and highlight any resulting changes to blast radius, implementation effort, risk or impact before
-asking for confirmation.
+asking for confirmation. Repeat the simplicity review whenever an amendment adds mechanisms,
+shared-interface changes or context propagation, materially changes the risk/effort, or changes
+delivery/test boundaries. Reconsider the design instead of automatically adding another layer of
+plumbing; update the rationale, affected tasks and dependencies before re-presenting.
 
 Persist only after explicit confirmation, to
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md` — the same
@@ -217,6 +259,8 @@ task artifacts are found by path, not by recall. The file must carry:
 - frontmatter with `name`, `description`, `metadata.type: project`
 - goal and explicit out-of-scope
 - the decision table, with the *why* for each
+- a concise simplicity assessment for consequential choices: required outcomes versus proposed
+  mechanisms, actual change surface, viable smaller alternatives and reasons for the selected design
 - research findings, with file:line citations
 - the sub-task table with a **Status** column (`to be done` / `in progress` / `done`)
 - an execution schedule covering initial and later parallel groups, their prerequisites and file
