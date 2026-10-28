@@ -89,3 +89,4 @@ node_modules/
 /.stryker-tmp/
 /reports/
 test-results
+TTLeaguePlayersApp.FrontEnd/dist

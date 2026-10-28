@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text;
+using TTLeaguePlayersApp.BackEnd.FrontendEvents;
 using System.Web;
 using System.Text.Json;
 using System.Security;
@@ -267,6 +269,15 @@ public partial class ApiGatewayProxyHandler
                 (var m, "/clubs") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
 
+                //
+                // FRONTEND-EVENTS ENDPOINTS
+                //
+
+                ("OPTIONS", "/frontend-events") => CreatePreflightResponse("OPTIONS,POST", request),
+                ("POST", "/frontend-events") => await HandleFrontendEvent(request, context),
+                (var m, "/frontend-events") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+
                 // ENDPOINTS CURRENTLY NOT USED BY THE FRONTEND
 
 
@@ -336,6 +347,37 @@ public partial class ApiGatewayProxyHandler
 
             _observer.OnRuntimeCriticalError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Internal Server Error: {{Additional info: Error type:{ex.GetType()}; Error message:{ex.Message}}}" });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleFrontendEvent(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var source = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleFrontendEvent));
+        var parameters = new Dictionary<string, string>();
+        string body;
+        try
+        {
+            body = request.IsBase64Encoded
+                ? new UTF8Encoding(false, true).GetString(Convert.FromBase64String(request.Body ?? string.Empty))
+                : request.Body ?? string.Empty;
+        }
+        catch (Exception ex) when (ex is FormatException or DecoderFallbackException)
+        {
+            _observer.OnRuntimeIrregularEvent("FRONTEND EVENT INVALID", source, context, parameters.With(HttpStatusCode.BadRequest, "Invalid encoded body"));
+            return CreateResponse(HttpStatusCode.BadRequest, new { message = "Invalid encoded body" });
+        }
+
+        ExtractBodyOrCreateResponseAndNotifyObserver<FrontendApiCallDiagnostic>("FRONTEND EVENT INVALID", context, request.Headers, body, source, parameters, out var diagnostic, out var error);
+        if (error != null) return error;
+        try
+        {
+            await new FrontendEventsLambda(_observer).HandleAsync(diagnostic!, context);
+            return CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ValidationException ex)
+        {
+            _observer.OnRuntimeIrregularEvent("FRONTEND EVENT INVALID", source, context, parameters.With(HttpStatusCode.BadRequest, ex.Message));
+            return CreateResponse(HttpStatusCode.BadRequest, new { message = ex.Message, errors = ex.Errors });
         }
     }
 

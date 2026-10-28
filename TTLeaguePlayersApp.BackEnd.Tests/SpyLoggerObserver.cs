@@ -1,4 +1,5 @@
 using Amazon.Lambda.Core;
+using TTLeaguePlayersApp.BackEnd.FrontendEvents;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests;
 
@@ -22,4 +23,12 @@ public sealed class SpyLoggerObserver : ILoggerObserver
     public void OnRuntimeIrregularEvent(string eventName, Dictionary<string, string> source, ILambdaContext context, Dictionary<string, string>? parameters = null, object? userClaims = null)
         => RuntimeIrregularEvents.Add((eventName, parameters));
     public void OnRuntimeRegularEvent(string eventName, Dictionary<string, string> source, ILambdaContext context, Dictionary<string, string>? parameters = null, object? userClaims = null) { }
+
+    public List<IFrontendApiCallDiagnostic> FrontendApiCallErrors { get; } = new();
+    public List<IFrontendApiCallDiagnostic> FrontendApiCallIrregularEvents { get; } = new();
+
+    public void OnFrontendApiCallError(IFrontendApiCallDiagnostic diagnostic, ILambdaContext context)
+        => FrontendApiCallErrors.Add(diagnostic);
+    public void OnFrontendApiCallIrregularEvent(IFrontendApiCallDiagnostic diagnostic, ILambdaContext context)
+        => FrontendApiCallIrregularEvents.Add(diagnostic);
 }

@@ -309,6 +309,21 @@ Resources:
             Path: /{proxy+}
             Method: ANY
         # OPTIONS handlers for protected endpoints (bypass auth for CORS preflight)
+        # The explicit OPTIONS resource also needs its own protected POST route.
+        FrontendEventsPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /frontend-events
+            Method: POST
+        FrontendEventsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /frontend-events
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         KudosOptions:
           Type: Api
           Properties:
