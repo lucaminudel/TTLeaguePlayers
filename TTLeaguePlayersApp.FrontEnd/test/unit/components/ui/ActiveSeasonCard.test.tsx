@@ -113,8 +113,8 @@ describe('ActiveSeasonCard Error Handling', () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching match data:', expect.any(Error));
 
         // Verify "No fixture found" message is displayed
-        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No fixture found, retry later or tomorrow');
-        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('No fixture found, retry later or tomorrow');
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
     });
 
     it('should display "No previous match" when the first fixture is upcoming', async () => {
@@ -141,6 +141,30 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Upcoming Opponent');
+    });
+
+    it('replaces previously displayed fixtures with an error when a later load fails', async () => {
+        const processor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn()
+                .mockResolvedValueOnce([
+                    createFixture({ homeTeam: 'Test Team', awayTeam: 'Previous Opponent', startDateTime: new Date('2025-01-14T12:00:00Z') }),
+                    createFixture({ homeTeam: 'Test Team', awayTeam: 'Next Opponent' }),
+                ])
+                .mockRejectedValueOnce(new Error('Network error')),
+            getTeamPlayers: vi.fn().mockResolvedValue([]),
+        };
+        const card = (expanded: boolean) => <ActiveSeasonCard season={mockSeason} processor={processor} isExpanded={expanded} onToggle={mockOnToggle} />;
+        const view = render(card(true));
+        await waitFor(() => { expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('Previous Opponent'); });
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Next Opponent');
+        expect(screen.getByTestId('rate-button')).toBeInTheDocument();
+
+        view.rerender(card(false));
+        view.rerender(card(true));
+
+        await waitFor(() => { expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.'); });
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
+        expect(screen.queryByTestId('rate-button')).not.toBeInTheDocument();
     });
 
     it('should display successful empty-fixture states instead of the fetch-failure message', async () => {
@@ -425,7 +449,7 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         // Verify error handling
         expect(consoleErrorSpy).toHaveBeenCalled();
-        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No fixture found, retry later or tomorrow');
+        expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
     });
 
     it('shows Today’s Match for a same-day previous and next fixture, and shows the matching chevron state', async () => {

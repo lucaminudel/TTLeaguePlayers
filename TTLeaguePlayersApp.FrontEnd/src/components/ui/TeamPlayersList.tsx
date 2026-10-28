@@ -221,7 +221,7 @@ export const TeamPlayersList: React.FC<TeamPlayersListProps> = ({
     if (isRosterUnavailable) {
         return (
             <p className="text-sm text-secondary-text" data-testid="team-players-unavailable">
-                The player list for this league is not available.
+                The player list for this league could not be loaded. Please retry again later. If the problem persists, contact us.
             </p>
         );
     }

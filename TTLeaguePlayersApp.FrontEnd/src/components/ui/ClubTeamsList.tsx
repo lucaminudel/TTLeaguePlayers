@@ -67,6 +67,7 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
 }) => {
     const [teams, setTeams] = useState<TeamRegistrationEntry[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasClubTeamsError, setHasClubTeamsError] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -104,6 +105,7 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
         const load = async () => {
             setIsLoading(true);
             setTeams(null);
+            setHasClubTeamsError(false);
             try {
                 await readWithUpdates(
                     (onUpdate) => processor.getClubTeams(onUpdate),
@@ -113,6 +115,7 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
             } catch (error) {
                 console.error('❌ Page event log loading club teams:', error);
                 if (!cancelled) {
+                    setHasClubTeamsError(true);
                     setIsLoading(false);
                 }
             }
@@ -123,6 +126,10 @@ export const ClubTeamsList: React.FC<ClubTeamsListProps> = ({
 
     if (isLoading) {
         return <p className="text-sm text-secondary-text" data-testid="club-teams-loading">Loading teams…</p>;
+    }
+
+    if (hasClubTeamsError) {
+        return <p className="text-sm text-secondary-text" data-testid="club-teams-error">The teams for this club could not be loaded. Please retry again later. If the problem persists, contact us.</p>;
     }
 
     if (teams === null) {

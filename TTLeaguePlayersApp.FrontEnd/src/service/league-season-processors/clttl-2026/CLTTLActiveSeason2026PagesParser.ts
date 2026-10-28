@@ -74,7 +74,11 @@ function teamsFromSummary(value: string | undefined): { homeTeam: string; awayTe
 
 export class CLTTLActiveSeason2026PagesParser {
     public getTeamFixtures(fixturesCalendar: string): Fixture[] {
-        const events = this.parseCompleteCalendarEvents(fixturesCalendar);
+        if (!/^BEGIN:VCALENDAR\s*$/im.test(fixturesCalendar) || !/^END:VCALENDAR\s*$/im.test(fixturesCalendar)) {
+            throw new Error('Invalid fixtures calendar');
+        }
+        const { events, incompleteCount } = this.parseCompleteCalendarEvents(fixturesCalendar);
+        let rejectedCount = incompleteCount;
         const fixtures: Fixture[] = [];
 
         for (const event of events) {
@@ -87,6 +91,7 @@ export class CLTTLActiveSeason2026PagesParser {
             const teams = teamsFromSummary(event.get('SUMMARY'));
             if (!startDateTime || !teams) {
                 this.reportUnusableEvent(event, !startDateTime ? 'missing or invalid DTSTART' : 'invalid SUMMARY');
+                rejectedCount++;
                 continue;
             }
 
@@ -98,10 +103,13 @@ export class CLTTLActiveSeason2026PagesParser {
             });
         }
 
+        if (fixtures.length === 0 && rejectedCount > 0) {
+            throw new Error('No usable fixture events in calendar');
+        }
         return fixtures;
     }
 
-    private parseCompleteCalendarEvents(calendar: string): CalendarEvent[] {
+    private parseCompleteCalendarEvents(calendar: string): { events: CalendarEvent[]; incompleteCount: number } {
         const unfoldedLines = calendar
             .replace(/\r\n?/g, '\n')
             .split('\n')
@@ -116,12 +124,14 @@ export class CLTTLActiveSeason2026PagesParser {
 
         const events: CalendarEvent[] = [];
         let eventLines: string[] | null = null;
+        let incompleteCount = 0;
 
         for (const line of unfoldedLines) {
             const normalizedLine = line.trim().toUpperCase();
             if (normalizedLine === 'BEGIN:VEVENT') {
                 if (eventLines) {
                     this.reportIncompleteEvent(eventLines);
+                    incompleteCount++;
                 }
                 eventLines = [];
                 continue;
@@ -131,6 +141,8 @@ export class CLTTLActiveSeason2026PagesParser {
                 if (eventLines) {
                     events.push(this.propertiesFromLines(eventLines));
                     eventLines = null;
+                } else {
+                    incompleteCount++;
                 }
                 continue;
             }
@@ -142,9 +154,10 @@ export class CLTTLActiveSeason2026PagesParser {
 
         if (eventLines) {
             this.reportIncompleteEvent(eventLines);
+            incompleteCount++;
         }
 
-        return events;
+        return { events, incompleteCount };
     }
 
     private propertiesFromLines(lines: string[]): CalendarEvent {
@@ -181,8 +194,8 @@ export class CLTTLActiveSeason2026PagesParser {
         let response: unknown;
         try {
             response = JSON.parse(playersApiResponse) as unknown;
-        } catch {
-            return [];
+        } catch (cause) {
+            throw new Error('Invalid player response JSON', { cause });
         }
 
         const playerEntries = response && typeof response === 'object' && Array.isArray((response as { teamPlayers?: unknown }).teamPlayers)
@@ -191,9 +204,13 @@ export class CLTTLActiveSeason2026PagesParser {
                 ? (response as { players: unknown[] }).players
                 : Array.isArray(response)
                     ? response
-                    : [];
+                    : null;
 
-        return playerEntries.flatMap((entry) => {
+        if (!playerEntries) {
+            throw new Error('Unsupported player response');
+        }
+
+        const players = playerEntries.flatMap((entry) => {
             if (typeof entry === 'string') {
                 return entry.trim() ? [entry.trim()] : [];
             }
@@ -207,6 +224,10 @@ export class CLTTLActiveSeason2026PagesParser {
 
             return name ? [name.trim()] : [];
         });
+        if (playerEntries.length > 0 && players.length === 0) {
+            throw new Error('No usable players in response');
+        }
+        return players;
     }
 
     /**
@@ -221,14 +242,17 @@ export class CLTTLActiveSeason2026PagesParser {
         const teamSelect = doc.querySelector('select#teamSelect, select#teamId, select#filterTeam');
 
         if (!teamSelect) {
-            return [];
+            throw new Error('Team selector missing');
         }
 
         const teamIds: { team: string; id: number }[] = [];
 
-        teamSelect.querySelectorAll('option').forEach((option) => {
+        const options = teamSelect.querySelectorAll('option');
+        let candidateCount = 0;
+        options.forEach((option) => {
             const idValue = option.getAttribute('value');
-            if (idValue && /^\d+$/.test(idValue)) {
+            if (idValue?.trim()) candidateCount++;
+            if (idValue && /^\d+$/.test(idValue) && option.textContent.trim()) {
                 teamIds.push({
                     team: option.textContent.trim(),
                     id: parseInt(idValue, 10)
@@ -236,6 +260,9 @@ export class CLTTLActiveSeason2026PagesParser {
             }
         });
 
+        if (candidateCount > 0 && teamIds.length === 0) {
+            throw new Error('No usable teams in selector');
+        }
         return teamIds;
     }
 

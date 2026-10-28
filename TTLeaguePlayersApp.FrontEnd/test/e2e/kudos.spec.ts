@@ -453,7 +453,7 @@ test.describe('Kudos', () => {
     });
 
     test.describe('error handling scenarios', () => {
-        stubbedTest('shows "No fixture found" when network request fails', async ({ page, tableTennis365Stub }) => {
+        stubbedTest('shows a loading error when network request fails', async ({ page, tableTennis365Stub }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
 
@@ -464,7 +464,6 @@ test.describe('Kudos', () => {
             });
 
             tableTennis365Stub.fixtures.failWithNetworkError();
-
             const user = new UserFlow(page);
             // Set fixed clock time
             await user.setFixedClockTime('2026-10-16T15:26:00Z');
@@ -479,12 +478,12 @@ test.describe('Kudos', () => {
             // Wait for loading to complete
             await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
 
-            // Verify "No fixture found" message is displayed
-            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('No fixture found, retry later or tomorrow');
-            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
+            // Verify the loading error is displayed
+            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
+            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
         });
 
-        stubbedTest('shows "No fixture found" when server returns HTTP error', async ({ page, tableTennis365Stub }) => {
+        stubbedTest('shows a loading error when server returns HTTP error', async ({ page, tableTennis365Stub }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
 
@@ -511,12 +510,12 @@ test.describe('Kudos', () => {
             // Wait for loading to complete
             await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
 
-            // Verify "No fixture found" message is displayed
-            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('No fixture found, retry later or tomorrow');
-            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
+            // Verify the loading error is displayed
+            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
+            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
         });
 
-        stubbedTest('shows "No fixture found" when server returns "service unavailable"', async ({ page, tableTennis365Stub }) => {
+        stubbedTest('shows a loading error when server returns "service unavailable"', async ({ page, tableTennis365Stub }) => {
             test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
 
 
@@ -542,9 +541,9 @@ test.describe('Kudos', () => {
             // Wait for loading to complete
             await expect(cards.first().getByTestId('active-season-loading')).not.toBeVisible({ timeout: 15000 });
 
-            // Verify "No fixture found" message is displayed
-            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('No fixture found, retry later or tomorrow');
-            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('No fixture found, retry later or tomorrow');
+            // Verify the loading error is displayed
+            await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
+            await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
         });
     });
 });

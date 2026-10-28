@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { withSWR, invalidateCache, invalidateCacheByPrefix, type CacheEntry } from '../../../src/utils/CacheUtils';
 import { setUnitFixedClockTime } from '../TestClockUtils';
+import { CLTTLManagedClub2026PagesParser } from '../../../src/service/league-season-processors/clttl-2026/CLTTLManagedClub2026PagesParser';
 
 
 describe('CacheUtils', () => {
@@ -87,6 +88,29 @@ describe('CacheUtils', () => {
 
         expect(result).toEqual({ version: 2 });
         expect(fetcher2).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['missing', 'expired'] as const)('propagates a parsing failure with %s cache without writing it', async (state) => {
+        setUnitFixedClockTime('2025-01-01T10:00:10Z');
+        const previous = JSON.stringify({ timestamp: Date.parse('2025-01-01T10:00:00Z'), data: ['old'] });
+        if (state === 'expired') localStorage.setItem(CACHE_KEY, previous);
+        const fetcher = () => Promise.resolve().then(() => new CLTTLManagedClub2026PagesParser().getClubTeams('<html></html>'));
+
+        await expect(withSWR(CACHE_KEY, fetcher, OPTIONS)).rejects.toThrow('Club teams table missing');
+        expect(localStorage.getItem(CACHE_KEY)).toBe(state === 'expired' ? previous : null);
+    });
+
+    it('keeps stale data unchanged when parsing a refresh fails', async () => {
+        setUnitFixedClockTime('2025-01-01T10:00:02Z');
+        const previous = JSON.stringify({ timestamp: Date.parse('2025-01-01T10:00:00Z'), data: ['old'] });
+        localStorage.setItem(CACHE_KEY, previous);
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const fetcher = () => Promise.resolve().then(() => new CLTTLManagedClub2026PagesParser().getClubTeams('<html></html>'));
+
+        expect(await withSWR(CACHE_KEY, fetcher, OPTIONS)).toEqual(['old']);
+        await vi.waitFor(() => { expect(warn).toHaveBeenCalled(); });
+        expect(localStorage.getItem(CACHE_KEY)).toBe(previous);
+        warn.mockRestore();
     });
 
     it('Invalidate individual key', () => {

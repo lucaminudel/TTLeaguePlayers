@@ -14,12 +14,13 @@ export class CLTTLManagedClub2026PagesParser {
         const table = doc.querySelector('table.tt-contact-table');
 
         if (!table) {
-            return [];
+            throw new Error('Club teams table missing');
         }
 
         const teams: ClubTeamWithDivision[] = [];
 
-        table.querySelectorAll('tbody tr').forEach((row) => {
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((row) => {
             // League | Division | Team | Captain
             const cells = row.querySelectorAll('td');
             const team = cells.length > 2 ? cells[2].textContent.trim() : '';
@@ -32,6 +33,9 @@ export class CLTTLManagedClub2026PagesParser {
             }
         });
 
+        if (rows.length > 0 && teams.length === 0) {
+            throw new Error('No usable club team rows');
+        }
         return teams;
     }
 }

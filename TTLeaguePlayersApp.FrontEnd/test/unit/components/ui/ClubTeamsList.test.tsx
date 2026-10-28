@@ -304,6 +304,7 @@ describe('ClubTeamsList', () => {
 
         expect(screen.queryAllByTestId('club-team-name')).toHaveLength(0);
         expect(screen.queryByTestId('club-teams')).not.toBeInTheDocument();
+        expect(screen.getByTestId('club-teams-error')).toHaveTextContent('The teams for this club could not be loaded. Please retry again later. If the problem persists, contact us.');
     });
 
     it('shows a loading indicator until the data arrives', async () => {

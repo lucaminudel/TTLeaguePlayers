@@ -216,6 +216,7 @@ describe('ClubStandingsList', () => {
         await waitFor(() => { expect(screen.getByTestId('club-standings-error')).toBeInTheDocument(); });
 
         expect(screen.queryAllByTestId('club-standing-name')).toHaveLength(0);
+        expect(screen.getByTestId('club-standings-error')).toHaveTextContent('The standings for this club could not be loaded. Please retry again later. If the problem persists, contact us.');
     });
 
     // WORDING: a club with no club_teams entry in the config (BCS, FLICK) throws from the fetcher and
@@ -225,6 +226,7 @@ describe('ClubStandingsList', () => {
 
         await waitFor(() => { expect(screen.getByTestId('club-standings-error')).toBeInTheDocument(); });
 
+        expect(screen.getByTestId('club-standings-error')).toHaveTextContent('The standings for this club could not be loaded. Please retry again later. If the problem persists, contact us.');
         expect(screen.queryByText('No teams found for this club.')).not.toBeInTheDocument();
     });
 

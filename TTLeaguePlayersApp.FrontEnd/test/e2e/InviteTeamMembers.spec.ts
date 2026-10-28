@@ -75,6 +75,19 @@ test.describe('Invite Team Members Page', () => {
         }
     });
 
+    test('shows a player loading error after an invalid roster response', async ({ page, tableTennis365Stub }) => {
+        tableTennis365Stub.setResponse('https://www.tabletennis365.com/CentralLondon/Team/Eligibility?handler=Players&leagueId=4760&teamId=73142', {
+            status: 200, contentType: 'application/json', body: 'not valid JSON'
+        });
+        const user = new User(page);
+        await user.setFixedClockTime(FIXED_CLOCK_TIME);
+        const loginPage = await user.navigateToLogin();
+        await loginPage.loginAndWaitForHome(CAPTAIN_EMAIL, CAPTAIN_PASSWORD);
+        const invitePage = await user.navigateToInviteTeamMembers();
+        await invitePage.openTeamCard(LEAGUE, SEASON, TEAM);
+        await expect(page.getByTestId('team-players-unavailable')).toHaveText('The player list for this league could not be loaded. Please retry again later. If the problem persists, contact us.');
+    });
+
     test('lists every player of the captained team with its registration status', async ({ page }) => {
         const user = new User(page);
         let inviteTeamMembersPage: InviteTeamMembersPage;

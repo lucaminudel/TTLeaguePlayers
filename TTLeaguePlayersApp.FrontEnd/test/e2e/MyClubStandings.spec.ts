@@ -101,9 +101,7 @@ test.describe('My Club Standings Page', () => {
         // the website nor the disputes info modal appears.
         await myClubStandingsPage.selectClub('Islington', 'CLTTL', 'Highbury Table Tennis Club', 'expect-absent');
 
-        // Deliberately UNLIKE My Club Teams, which renders blank and logs to the console: a blank
-        // standings area is indistinguishable from a club with nothing to show.
-        await expect(page.getByTestId('club-standings-error')).toBeVisible();
+        await expect(page.getByTestId('club-standings-error')).toHaveText('The standings for this club could not be loaded. Please retry again later. If the problem persists, contact us.');
         await expect(page.getByTestId('club-standing-name')).toHaveCount(0);
 
         // WORDING: a club with no club_teams entry in the config throws into this same branch, so

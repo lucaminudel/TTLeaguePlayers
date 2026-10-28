@@ -330,11 +330,11 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
             const parser = new CLTTLActiveSeason2026PagesParser();
 
-            parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+            expect(() => parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
                 'invalid-summary-reason@example.test',
                 'DTSTART;TZID=Europe/London:20261010T184500',
                 'SUMMARY:Morpeth 10 (Division 4)'
-            )));
+            )))).toThrow();
 
             expect(consoleError).toHaveBeenCalledWith(
                 'Skipping unusable CLTTL fixture event "invalid-summary-reason@example.test": invalid SUMMARY.'
@@ -357,7 +357,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
                 )
             );
 
-            expect(parser.getTeamFixtures(calendar)).toEqual([]);
+            expect(() => parser.getTeamFixtures(calendar)).toThrow();
             expect(consoleError).toHaveBeenCalledTimes(2);
         });
 
@@ -372,6 +372,25 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
 
             expect(parser.getTeamFixtures(calendarWithEvents())).toEqual([]);
+        });
+
+        it.each(['BEGIN:VCALENDAR', 'END:VCALENDAR'])('rejects a calendar missing %s', (delimiter) => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            expect(() => parser.getTeamFixtures(calendarWithEvents().replace(delimiter, ''))).toThrow('Invalid fixtures calendar');
+        });
+
+        it('rejects an unmatched event ending unless there is a usable event', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            expect(() => parser.getTeamFixtures(calendarWithEvents('END:VEVENT'))).toThrow('No usable fixture events in calendar');
+            expect(parser.getTeamFixtures(calendarWithEvents('END:VEVENT', validNeighbourEvent))).toHaveLength(1);
+        });
+
+        it('rejects malformed calendars and calendars containing only unusable events', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            expect(() => parser.getTeamFixtures('not a calendar')).toThrow();
+            expect(() => parser.getTeamFixtures(calendarWithEvents('BEGIN:VEVENT\nUID:unfinished'))).toThrow();
+            expect(parser.getTeamFixtures(calendarWithEvents(fixtureEvent('cancelled', 'STATUS:CANCELLED')))).toEqual([]);
         });
 
         it('normalizes bare carriage-return line endings', () => {
@@ -436,10 +455,17 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(players).toEqual(['Luca Minudel', 'Michele de Giovanni', 'Dave Mesfin']);
         });
 
-        it('should support a legacy bare array and return empty for an invalid response', () => {
+        it('supports a legacy bare array and rejects invalid JSON', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             expect(parser.getTeamPlayers(JSON.stringify(['Luca Minudel', '']))).toEqual(['Luca Minudel']);
-            expect(parser.getTeamPlayers('<html><body></body></html>')).toEqual([]);
+            expect(() => parser.getTeamPlayers('<html><body></body></html>')).toThrow();
+        });
+
+        it('distinguishes empty valid rosters from unsupported and unusable responses', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            expect(parser.getTeamPlayers('{"teamPlayers":[]}')).toEqual([]);
+            expect(() => parser.getTeamPlayers('{}')).toThrow();
+            expect(() => parser.getTeamPlayers('{"teamPlayers":[{},null," "]}')).toThrow();
         });
 
         it('keeps only non-empty player names and trims each supported payload shape', () => {
@@ -489,10 +515,14 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(teamIds).toEqual([{ team: 'Morpeth 10', id: 73142 }]);
         });
 
-        it('should return empty array if the team select is missing', () => {
+        it('rejects a missing team selector', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
-            const teamIds = parser.getTeamIds('<html><body></body></html>');
-            expect(teamIds).toEqual([]);
+            expect(() => parser.getTeamIds('<html><body></body></html>')).toThrow();
+        });
+
+        it('accepts a selector with only the default option', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            expect(parser.getTeamIds('<select id="teamSelect"><option value="">All Teams</option></select>')).toEqual([]);
         });
 
         it('ignores options whose value is not entirely numeric', () => {

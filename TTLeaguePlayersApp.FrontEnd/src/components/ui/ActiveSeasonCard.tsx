@@ -64,7 +64,11 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                 );
             } catch (error) {
                 console.error('Error fetching match data:', error);
-                if (!cancelled) setFixtureLoadStatus('error');
+                if (!cancelled) {
+                    setPrevMatch(null);
+                    setNextMatch(null);
+                    setFixtureLoadStatus('error');
+                }
             } finally {
                 if (!cancelled) setIsLoadingData(false);
             }
@@ -146,7 +150,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
         if (!fixture) {
             const message = fixtureLoadStatus === 'success'
                 ? (isPreviousMatch ? 'No previous match' : 'None')
-                : 'No fixture found, retry later or tomorrow';
+                : 'The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.';
             return <p className="text-base sm:text-lg" data-testid={testId}>{message}</p>;
         }
 

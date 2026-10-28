@@ -339,7 +339,7 @@ describe('TeamPlayersList', () => {
 
         await waitFor(() => {
             expect(screen.getByTestId('team-players-unavailable'))
-                .toHaveTextContent('The player list for this league is not available.');
+                .toHaveTextContent('The player list for this league could not be loaded. Please retry again later. If the problem persists, contact us.');
         });
         expect(screen.queryByTestId('team-players')).toBeNull();
         expect(consoleErrorSpy).toHaveBeenCalled();

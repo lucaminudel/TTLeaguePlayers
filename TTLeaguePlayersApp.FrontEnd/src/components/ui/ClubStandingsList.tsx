@@ -127,7 +127,7 @@ export const ClubStandingsList: React.FC<ClubStandingsListProps> = ({
         // "this club has no teams" here would state something false about the club.
         return (
             <ErrorMessage testId="club-standings-error">
-                The standings for this club could not be loaded. Please try again later.
+                The standings for this club could not be loaded. Please retry again later. If the problem persists, contact us.
             </ErrorMessage>
         );
     }

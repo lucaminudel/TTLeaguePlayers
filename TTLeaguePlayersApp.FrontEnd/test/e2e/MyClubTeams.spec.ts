@@ -71,7 +71,7 @@ test.describe('My Club Teams Page', () => {
         });
     });
 
-    test('shows a blank list, and no teams message, when the club page cannot be read', async ({ page, tableTennis365Stub }) => {
+    test('shows a loading error when the club request fails', async ({ page, tableTennis365Stub }) => {
         const user = new User(page);
 
         await user.setFixedClockTime(FIXED_CLOCK_TIME);
@@ -83,10 +83,30 @@ test.describe('My Club Teams Page', () => {
 
         const myClubTeamsPage = await user.navigateToMyClubTeams();
         await myClubTeamsPage.selectClub('London', 'CLTTL', 'Walworth Table Tennis Club');
-
-        // Errors are console-only by design: the area renders blank, and the "no teams" sentence is
-        // deliberately NOT shown, so a failed load cannot be mistaken for a club with no teams.
+        await expect(page.getByTestId('club-teams-error')).toHaveText('The teams for this club could not be loaded. Please retry again later. If the problem persists, contact us.');
         await expect(page.getByTestId('club-team-name')).toHaveCount(0);
         await expect(page.getByText('No teams found for this club.')).toHaveCount(0);
     });
+    for (const useStaleCache of [false, true]) {
+        test(`handles a complete parsing failure with ${useStaleCache ? 'stale' : 'no'} cache`, async ({ page, tableTennis365Stub }) => {
+            const user = new User(page);
+            await user.setFixedClockTime(FIXED_CLOCK_TIME);
+            tableTennis365Stub.setResponse(WALWORTH_CLUB_URL, { status: 200, contentType: 'text/html', body: '<html><body>invalid club page</body></html>' });
+            const loginPage = await user.navigateToLogin();
+            await loginPage.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
+            const cacheKey = 'cache_club_CLTTL_2026-2027_London_Walworth Table Tennis Club';
+            const entry = { timestamp: Date.parse(FIXED_CLOCK_TIME) - 2 * 24 * 60 * 60 * 1000, data: [{ team_name: 'Walworth Tigers', team_division: 'Division 4' }] };
+            if (useStaleCache) await page.evaluate(({ key, value }) => { localStorage.setItem(key, JSON.stringify(value)); }, { key: cacheKey, value: entry });
+            const myClubTeamsPage = await user.navigateToMyClubTeams();
+            await myClubTeamsPage.selectClub('London', 'CLTTL', 'Walworth Table Tennis Club');
+            if (useStaleCache) {
+                await expect(page.getByTestId('club-team-name')).toHaveText(['Walworth Tigers']);
+                expect(await page.evaluate(key => localStorage.getItem(key), cacheKey)).toBe(JSON.stringify(entry));
+            } else {
+                await expect(page.getByTestId('club-teams-error')).toBeVisible();
+                expect(await page.evaluate(key => localStorage.getItem(key), cacheKey)).toBeNull();
+            }
+        });
+    }
+
 });

@@ -128,14 +128,21 @@ describe('ExternalContractsLiveTesting', () => {
     it('rejects a selector with no numeric options', async () => {
         queueActiveResponses('<select id="teamSelect"><option value="">All Teams</option><option value="bad">Broken ID</option></select>');
         renderDiagnostic();
-        await expectError('did not contain any numeric team options');
+        await expectError('No usable teams in selector');
         expect(requestedTargets()).toHaveLength(2);
     });
 
-    it.each([['zero ID', teamSelector('0')], ['unsafe ID', teamSelector('9007199254740992')], ['blank team name', teamSelector('424242', '  ')]])('rejects %s before requesting a roster', async (_label, selector) => {
+    it.each([['zero ID', teamSelector('0')], ['unsafe ID', teamSelector('9007199254740992')]])('rejects %s before requesting a roster', async (_label, selector) => {
         queueActiveResponses(selector);
         renderDiagnostic();
         await expectError('invalid team names or IDs');
+        expect(requestedTargets()).toHaveLength(2);
+    });
+
+    it('rejects a blank representative team name after the parser skips it', async () => {
+        queueActiveResponses(teamSelector('424242', '  '));
+        renderDiagnostic();
+        await expectError('did not contain Morpeth 10');
         expect(requestedTargets()).toHaveLength(2);
     });
 
@@ -192,8 +199,17 @@ describe('ExternalContractsLiveTesting', () => {
     });
 
     it.each([
-        ['absent table', '<p>Upstream response</p>'], ['empty table', '<table class="tt-contact-table"><tbody></tbody></table>'],
-        ['blank division', clubTable('  ')], ['blank team', clubTable('Division 4', '  ')],
+        ['absent table', '<p>Upstream response</p>', 'Club teams table missing'],
+        ['blank team', clubTable('Division 4', '  '), 'No usable club team rows'],
+    ])('reports %s as a parsing failure in club mode', async (_label, html, message) => {
+        vi.mocked(fetch).mockResolvedValueOnce(new Response(html));
+        renderDiagnostic('managed-club');
+        await expectError(message);
+    });
+
+    it.each([
+        ['empty table', '<table class="tt-contact-table"><tbody></tbody></table>'],
+        ['blank division', clubTable('  ')],
         ['one invalid division among valid rows', clubTable().replace('</tbody>', '<tr><td>Season</td><td></td><td>Another Team</td></tr></tbody>')],
     ])('rejects %s in club mode', async (_label, html) => {
         vi.mocked(fetch).mockResolvedValueOnce(new Response(html));

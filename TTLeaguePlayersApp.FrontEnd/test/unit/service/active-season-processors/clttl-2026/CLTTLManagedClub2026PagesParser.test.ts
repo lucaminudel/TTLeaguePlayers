@@ -112,10 +112,11 @@ describe('CLTTLManagedClub2026PagesParser', () => {
             ]);
         });
 
-        it('should return empty array if the teams table is missing', () => {
+        it('rejects a missing table or rows with no usable teams but accepts an empty table', () => {
             const parser = new CLTTLManagedClub2026PagesParser();
-            const teams = parser.getClubTeams('<html><body></body></html>');
-            expect(teams).toEqual([]);
+            expect(() => parser.getClubTeams('<html><body></body></html>')).toThrow();
+            expect(() => parser.getClubTeams('<table class="tt-contact-table"><tbody><tr><td>bad</td></tr></tbody></table>')).toThrow();
+            expect(parser.getClubTeams('<table class="tt-contact-table"><tbody></tbody></table>')).toEqual([]);
         });
     });
 });
