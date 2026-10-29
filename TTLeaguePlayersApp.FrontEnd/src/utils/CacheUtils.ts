@@ -35,7 +35,8 @@ export async function withSWR<T>(
     fetcher: () => Promise<T>,
     options: SWROptions,
     transformer?: (data: T) => T, // Optional transformer for deserialization
-    onBackgroundUpdate?: (data: T) => void // Callback for fresh data after a stale hit
+    onBackgroundUpdate?: (data: T) => void, // Callback for fresh data after a stale hit
+    onRefreshError?: (error: unknown, context: { usableCache: boolean }) => void | Promise<void>
 ): Promise<T> {
     const cached = localStorage.getItem(cacheKey);
 
@@ -59,6 +60,7 @@ export async function withSWR<T>(
                     // Case 2: Cache is stale but within revalidation window
                     // Return stale data immediately, trigger background refresh
                     void refreshCache(cacheKey, fetcher, transformer, onBackgroundUpdate).catch((err: unknown) => {
+                        notifyRefreshError(onRefreshError, err, true);
                         console.warn(`Background cache refresh failed for ${cacheKey}:`, err);
                     });
                     return transformedData;
@@ -74,8 +76,13 @@ export async function withSWR<T>(
     }
 
     // Case 3: No cache or expired
-    const data = await refreshCache(cacheKey, fetcher, transformer);
-    return transformer ? transformer(data) : data;
+    try {
+        const data = await refreshCache(cacheKey, fetcher, transformer);
+        return transformer ? transformer(data) : data;
+    } catch (error) {
+        notifyRefreshError(onRefreshError, error, false);
+        throw error;
+    }
 }
 
 /**
@@ -134,4 +141,17 @@ function isValidCacheEntry(obj: unknown): obj is CacheEntry<unknown> {
         typeof (obj as Record<string, unknown>).timestamp === 'number' &&
         'data' in obj
     );
+}
+
+function notifyRefreshError(
+    callback: ((error: unknown, context: { usableCache: boolean }) => void | Promise<void>) | undefined,
+    error: unknown,
+    usableCache: boolean
+): void {
+    if (!callback) return;
+    try {
+        void Promise.resolve(callback(error, { usableCache })).catch(() => undefined);
+    } catch {
+        // Reporting must not affect the cached result or original failure.
+    }
 }

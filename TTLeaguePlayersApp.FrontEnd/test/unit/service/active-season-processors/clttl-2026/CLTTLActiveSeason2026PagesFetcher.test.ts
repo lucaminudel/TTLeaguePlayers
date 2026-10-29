@@ -45,6 +45,38 @@ describe('CLTTLActiveSeason2026PagesFetcher', () => {
         expect(requestedUrl.searchParams.get('url')).toBe('http://fixtures/div1');
     });
 
+    it('records the actual proxied browser URL in the final request failure', async () => {
+        vi.mocked(fetch).mockRejectedValue(new Error('network failure'));
+        const proxiedFetcher = new CLTTLActiveSeason2026PagesFetcher(mockDataSource, true);
+        const result = proxiedFetcher.getTeamPlayers('Division 1', 123).catch((error: unknown) => error);
+
+        await vi.runAllTimersAsync();
+        const error = await result;
+
+        expect(error).toBeInstanceOf(PageFetcherError);
+        const request = (error as PageFetcherError).details.request;
+        expect(request?.url).toBe(vi.mocked(fetch).mock.calls[2][0]);
+        expect(new URL(request?.url as string).searchParams.get('apiKey')).toBeTruthy();
+        expect(new URL(request?.url as string).searchParams.get('url')).toBe('http://players/div1?handler=Players&leagueId=4760&teamId=123');
+    });
+
+    it('retries a stalled HTTP error body and propagates the final failure', async () => {
+        vi.mocked(fetch).mockResolvedValue({
+            ok: false,
+            status: 503,
+            statusText: 'Unavailable',
+            headers: new Headers(),
+            arrayBuffer: () => new Promise<ArrayBuffer>(() => undefined),
+        } as unknown as Response);
+
+        const result = fetcher.getTeamFixtures('Division 1').catch((error: unknown) => error);
+
+        await vi.advanceTimersByTimeAsync(7_000);
+
+        expect(await result).toBeInstanceOf(PageFetcherError);
+        expect(fetch).toHaveBeenCalledTimes(3);
+    });
+
     it('should successfully fetch content on the first try', async () => {
         const mockResponse = {
             ok: true,

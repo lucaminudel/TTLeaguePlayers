@@ -1,3 +1,4 @@
+import { reportParsingFailure } from './clttl-2026/TT365Diagnostics';
 import { TT365_PROCESSOR_MEDIUM } from '../../utils/CacheWindows';
 import { withSWR } from '../../utils/CacheUtils';
 import type { ManagedClubProcessor } from './ManagedClubProcessor';
@@ -21,7 +22,8 @@ export class ManagedClubProcessorWithLocalStorageCache implements ManagedClubPro
             () => this.realProcessor.getClubTeams(),
             TT365_PROCESSOR_MEDIUM,
             undefined,
-            onDataUpdate
+            onDataUpdate,
+            reportParsingFailure
         );
     }
 }

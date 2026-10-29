@@ -1,3 +1,4 @@
+import { reportParsingFailure } from './clttl-2026/TT365Diagnostics';
 import { TT365_PROCESSOR_SHORT, TT365_PROCESSOR_MEDIUM } from '../../utils/CacheWindows';
 import { withSWR } from '../../utils/CacheUtils';
 import type { ActiveSeasonProcessor } from './ActiveSeasonProcessor';
@@ -33,7 +34,8 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
                     startDateTime: new Date(f.startDateTime)
                 }));
             },
-            onDataUpdate
+            onDataUpdate,
+            reportParsingFailure
         );
     }
 
@@ -44,7 +46,8 @@ export class ActiveSeasonProcessorWithLocalStorageCache implements ActiveSeasonP
             () => this.realProcessor.getTeamPlayers(),
             TT365_PROCESSOR_SHORT,
             undefined,
-            onDataUpdate
+            onDataUpdate,
+            reportParsingFailure
         );
     }
 }

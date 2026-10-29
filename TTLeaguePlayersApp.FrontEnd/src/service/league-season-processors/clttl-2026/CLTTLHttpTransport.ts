@@ -1,5 +1,8 @@
 import { decompress as decompressZstd } from 'fzstd';
+import type { TT365HttpDetails } from './PageFetcherError';
 import { PageFetcherError } from './PageFetcherError';
+
+const ERROR_RESPONSE_BODY_CAPTURE_TIMEOUT_MS = 1_000;
 
 export class CLTTLHttpTransport {
     private corsAnyWherePrefix: string;
@@ -17,24 +20,47 @@ export class CLTTLHttpTransport {
         // sent raw, its first "&" ends that parameter and every later one (divisionName, vm, t) is lost.
         const target = this.corsAnyWherePrefix ? this.corsAnyWherePrefix + encodeURIComponent(url) : url;
         for (let i = 0; i <= retries; i++) {
+            const http: TT365HttpDetails = { request: { method: 'GET', url: target, attempt: i + 1 } };
             try {
                 const response = await fetch(target);
+                const headers = (response as Partial<Response>).headers;
+                http.response = { status: response.status, statusText: response.statusText,
+                    headers: headers ? Object.fromEntries(headers.entries()) : undefined };
                 if (!response.ok) {
+                    try {
+                        const body = await this.readErrorResponseText(response);
+                        if (body !== undefined) http.response.body = body;
+                    } catch { /* Keep the HTTP error. */ }
                     throw new Error('HTTP error! status: ' + String(response.status));
                 }
                 const text = await this.readResponseText(response);
+                http.response.body = text;
                 if (text.toLowerCase().includes("service unavailable")) {
                     throw new Error("Service unavailable");
                 }
                 return text;
             } catch (error) {
                 if (i === retries) {
-                    throw new PageFetcherError('The page or website is not available after ' + String(retries + 1) + ' attempts: ' + url + '. Details: ' + (error as Error).message);
+                    throw new PageFetcherError('The page or website is not available after ' + String(retries + 1) + ' attempts: ' + url + '. Details: ' + (error as Error).message, http, error);
                 }
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
         throw new PageFetcherError("Unreachable fetch state");
+    }
+
+    private async readErrorResponseText(response: Response): Promise<string | undefined> {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        try {
+            return await Promise.race([
+                this.readResponseText(response),
+                new Promise<undefined>(resolve => {
+                    timeoutId = setTimeout(() => { resolve(undefined); }, ERROR_RESPONSE_BODY_CAPTURE_TIMEOUT_MS);
+                }),
+            ]);
+        } finally {
+            if (timeoutId !== undefined) clearTimeout(timeoutId);
+        }
     }
 
     /**

@@ -1,3 +1,4 @@
+import { fetchAndParse } from './clttl-2026/TT365Diagnostics';
 import type { ActiveSeasonDataSource } from '../../config/environment';
 import { CLTTLActiveSeason2026PagesFetcher } from './clttl-2026/CLTTLActiveSeason2026PagesFetcher';
 import { CLTTLActiveSeason2026PagesParser } from './clttl-2026/CLTTLActiveSeason2026PagesParser';
@@ -21,8 +22,9 @@ export class CLTTLActiveSeason2026Processor implements ActiveSeasonProcessor {
      * Fetches and parses the fixtures for the current division.
      */
     public async getTeamFixtures(): Promise<Fixture[]> {
-        const calendar = await this.fetcher.getTeamFixtures(this.division);
-        const allFixtures = this.parser.getTeamFixtures(calendar);
+        const allFixtures = await fetchAndParse('getTeamFixtures',
+            () => this.fetcher.getTeamFixtures(this.division),
+            body => this.parser.getTeamFixtures(body), { division: this.division, team: this.team });
 
         return allFixtures
             .filter(f => f.homeTeam === this.team || f.awayTeam === this.team)
@@ -33,15 +35,17 @@ export class CLTTLActiveSeason2026Processor implements ActiveSeasonProcessor {
      * Orchestrates multiple calls: gets team IDs first, finds current team ID, then fetches players.
      */
     public async getTeamPlayers(): Promise<string[]> {
-        const teamCheckerHtml = await this.fetcher.getTeamIds(this.division);
-        const teamIds = this.parser.getTeamIds(teamCheckerHtml);
+        const teamIds = await fetchAndParse('getTeamIds',
+            () => this.fetcher.getTeamIds(this.division),
+            body => this.parser.getTeamIds(body), { division: this.division, team: this.team });
 
         const teamEntry = teamIds.find(t => t.team.toLowerCase() === this.team.toLowerCase());
         if (!teamEntry) {
             throw new Error('Team "' + this.team + '" not found in division "' + this.division + '".');
         }
 
-        const playersApiResponse = await this.fetcher.getTeamPlayers(this.division, teamEntry.id);
-        return this.parser.getTeamPlayers(playersApiResponse);
+        return fetchAndParse('getTeamPlayers',
+            () => this.fetcher.getTeamPlayers(this.division, teamEntry.id),
+            body => this.parser.getTeamPlayers(body), { division: this.division, team: this.team, teamId: teamEntry.id });
     }
 }

@@ -71,7 +71,7 @@ test.describe('My Club Teams Page', () => {
         });
     });
 
-    test('shows a loading error when the club request fails', async ({ page, tableTennis365Stub }) => {
+    test('shows a loading error and reports a failed club request', async ({ page, tableTennis365Stub }) => {
         const user = new User(page);
 
         await user.setFixedClockTime(FIXED_CLOCK_TIME);
@@ -82,13 +82,20 @@ test.describe('My Club Teams Page', () => {
         await loginPage.loginAndWaitForHome(MANAGER_EMAIL, MANAGER_PASSWORD);
 
         const myClubTeamsPage = await user.navigateToMyClubTeams();
+        const diagnostic = page.waitForResponse(response => response.url().endsWith('/frontend-events') && response.request().method() === 'POST');
         await myClubTeamsPage.selectClub('London', 'CLTTL', 'Walworth Table Tennis Club');
+        const response = await diagnostic;
+        expect(response.status()).toBe(204);
+        const body = response.request().postDataJSON() as { event_category: string; client_api_type: string; operation: string };
+        expect(body.event_category).toBe('FRONTEND_API_CALL_ERROR');
+        expect(body.client_api_type).toBe('TT365');
+        expect(body.operation).toBe('getClubTeams');
         await expect(page.getByTestId('club-teams-error')).toHaveText('The teams for this club could not be loaded. Please retry again later. If the problem persists, contact us.');
         await expect(page.getByTestId('club-team-name')).toHaveCount(0);
         await expect(page.getByText('No teams found for this club.')).toHaveCount(0);
     });
     for (const useStaleCache of [false, true]) {
-        test(`handles a complete parsing failure with ${useStaleCache ? 'stale' : 'no'} cache`, async ({ page, tableTennis365Stub }) => {
+        test(`reports a complete parsing failure with ${useStaleCache ? 'stale' : 'no'} cache`, async ({ page, tableTennis365Stub }) => {
             const user = new User(page);
             await user.setFixedClockTime(FIXED_CLOCK_TIME);
             tableTennis365Stub.setResponse(WALWORTH_CLUB_URL, { status: 200, contentType: 'text/html', body: '<html><body>invalid club page</body></html>' });
@@ -98,7 +105,12 @@ test.describe('My Club Teams Page', () => {
             const entry = { timestamp: Date.parse(FIXED_CLOCK_TIME) - 2 * 24 * 60 * 60 * 1000, data: [{ team_name: 'Walworth Tigers', team_division: 'Division 4' }] };
             if (useStaleCache) await page.evaluate(({ key, value }) => { localStorage.setItem(key, JSON.stringify(value)); }, { key: cacheKey, value: entry });
             const myClubTeamsPage = await user.navigateToMyClubTeams();
+            const diagnostic = page.waitForResponse(response => response.url().endsWith('/frontend-events') && response.request().method() === 'POST');
             await myClubTeamsPage.selectClub('London', 'CLTTL', 'Walworth Table Tennis Club');
+            const response = await diagnostic;
+            expect(response.status()).toBe(204);
+            const body = response.request().postDataJSON() as { event_category: string };
+            expect(body.event_category).toBe(useStaleCache ? 'FRONTEND_API_CALL_IRREGULAR' : 'FRONTEND_API_CALL_ERROR');
             if (useStaleCache) {
                 await expect(page.getByTestId('club-team-name')).toHaveText(['Walworth Tigers']);
                 expect(await page.evaluate(key => localStorage.getItem(key), cacheKey)).toBe(JSON.stringify(entry));

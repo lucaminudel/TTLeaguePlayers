@@ -84,7 +84,13 @@ test.describe('Invite Team Members Page', () => {
         const loginPage = await user.navigateToLogin();
         await loginPage.loginAndWaitForHome(CAPTAIN_EMAIL, CAPTAIN_PASSWORD);
         const invitePage = await user.navigateToInviteTeamMembers();
+        const diagnostic = page.waitForResponse(response => response.url().endsWith('/frontend-events') && response.request().method() === 'POST');
         await invitePage.openTeamCard(LEAGUE, SEASON, TEAM);
+        const response = await diagnostic;
+        expect(response.status()).toBe(204);
+        const body = response.request().postDataJSON() as { event_category: string; operation: string };
+        expect(body.event_category).toBe('FRONTEND_API_CALL_ERROR');
+        expect(body.operation).toBe('getTeamPlayers');
         await expect(page.getByTestId('team-players-unavailable')).toHaveText('The player list for this league could not be loaded. Please retry again later. If the problem persists, contact us.');
     });
 

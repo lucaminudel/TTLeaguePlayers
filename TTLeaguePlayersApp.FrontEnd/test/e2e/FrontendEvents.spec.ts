@@ -23,7 +23,6 @@ function diagnostic(type: string, marker: string, body = '<raw>response</raw>') 
         exception: { name: 'TypeError', message: marker, stackTrace: 'original stack' },
         request: { method: 'POST', url: 'https://example.test', headers: { 'X-Test': 'request' }, body: 'request body', body_original_length: 12, body_truncated: false },
         response: { status: 503, status_text: 'Unavailable', headers: { 'X-Test': 'response' }, body, body_original_length: Buffer.byteLength(body), body_truncated: false },
-        user_claims: { sub: 'client-reported', extra: { roles: ['captain'], active: true } },
     };
 }
 
@@ -61,6 +60,8 @@ test.describe('Frontend events endpoint', () => {
             return key ? localStorage.getItem(key) : null;
         });
         if (!token) throw new Error('Authenticated staging session has no ID token');
+        const tokenClaims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as { sub?: string; email?: string };
+        if (!tokenClaims.sub) throw new Error('Authenticated staging ID token has no sub claim');
         const marker = `frontend-events-${String(Date.now())}-${Math.random().toString(36).slice(2)}`;
         const start = Date.now() - 5000;
         const largeBody = 'x'.repeat(80 * 1024);
@@ -78,7 +79,7 @@ test.describe('Frontend events endpoint', () => {
                 request: { body: string; method: string; url: string; headers: Record<string, string> };
                 response: { body: string; status: number; status_text: string; headers: Record<string, string> };
             };
-            user_claims: { sub: string; extra: { roles: string[]; active: boolean } };
+            user_claims: { sub: string; email?: string };
         }
         const found = new Map<string, Log>();
         const deadline = Date.now() + 90000;
@@ -113,7 +114,8 @@ test.describe('Frontend events endpoint', () => {
         expect(error.parameters.request.body).toBe('request body');
         expect(error.parameters.response.body).toBe('<raw>response</raw>');
         expect(warning.parameters.response.body).toBe(largeBody);
-        expect(error.user_claims).toEqual({ sub: 'client-reported', extra: { roles: ['captain'], active: true } });
+        expect(error.user_claims.sub).toBe(tokenClaims.sub);
+        expect(error.user_claims.email).toBe(tokenClaims.email);
         expect(warning.user_claims).toEqual(error.user_claims);
         expect(error.parameters).not.toHaveProperty('user_claims');
         expect(warning.parameters).not.toHaveProperty('user_claims');

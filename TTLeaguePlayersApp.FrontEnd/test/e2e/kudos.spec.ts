@@ -464,6 +464,16 @@ test.describe('Kudos', () => {
             });
 
             tableTennis365Stub.fixtures.failWithNetworkError();
+            let diagnosticAttempts = 0;
+            await page.route('**/frontend-events', async route => {
+                if (route.request().method() === 'POST') {
+                    diagnosticAttempts++;
+                    await route.abort('failed');
+                } else {
+                    await route.continue();
+                }
+            });
+
             const user = new UserFlow(page);
             // Set fixed clock time
             await user.setFixedClockTime('2026-10-16T15:26:00Z');
@@ -481,6 +491,7 @@ test.describe('Kudos', () => {
             // Verify the loading error is displayed
             await expect(cards.first().getByTestId('active-season-prev-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
             await expect(cards.first().getByTestId('active-season-next-match')).toHaveText('The fixtures could not be loaded. Please retry again later. If the problem persists, contact us.');
+            await expect.poll(() => diagnosticAttempts).toBe(1);
         });
 
         stubbedTest('shows a loading error when server returns HTTP error', async ({ page, tableTennis365Stub }) => {

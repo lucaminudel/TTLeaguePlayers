@@ -1,3 +1,4 @@
+import { fetchAndParse } from './clttl-2026/TT365Diagnostics';
 import type { ActiveSeasonDataSource } from '../../config/environment';
 import { CLTTLManagedClub2026PagesFetcher } from './clttl-2026/CLTTLManagedClub2026PagesFetcher';
 import { CLTTLManagedClub2026PagesParser } from './clttl-2026/CLTTLManagedClub2026PagesParser';
@@ -19,7 +20,8 @@ export class CLTTLManagedClub2026Processor implements ManagedClubProcessor {
      * Fetches and parses the teams of the current club from the club's page, each with its division.
      */
     public async getClubTeams(): Promise<ClubTeamWithDivision[]> {
-        const html = await this.fetcher.getClubTeams(this.clubName);
-        return this.parser.getClubTeams(html);
+        return fetchAndParse('getClubTeams',
+            () => this.fetcher.getClubTeams(this.clubName),
+            body => this.parser.getClubTeams(body), { club: this.clubName });
     }
 }

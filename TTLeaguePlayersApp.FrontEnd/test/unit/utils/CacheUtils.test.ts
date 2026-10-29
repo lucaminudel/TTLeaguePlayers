@@ -166,4 +166,53 @@ describe('CacheUtils', () => {
         expect(onBackgroundUpdate).toHaveBeenCalledTimes(1);
         expect(onBackgroundUpdate).toHaveBeenCalledWith({ version: 2 });
     });
+    it.each(['cold', 'expired'])('reports a %s refresh failure and retains the original error and cache', async (state) => {
+        setUnitFixedClockTime('2025-01-01T10:00:10Z');
+        const previous = JSON.stringify({ timestamp: new Date('2025-01-01T10:00:00Z').getTime(), data: 'old' });
+        if (state === 'expired') localStorage.setItem(CACHE_KEY, previous);
+        const failure = new Error('fetch failed');
+        const fetcher = vi.fn().mockRejectedValue(failure);
+        const callback = vi.fn();
+
+        await expect(withSWR(CACHE_KEY, fetcher, OPTIONS, undefined, undefined, callback)).rejects.toBe(failure);
+        expect(callback).toHaveBeenCalledWith(failure, { usableCache: false });
+        expect(fetcher).toHaveBeenCalledWith();
+        expect(localStorage.getItem(CACHE_KEY)).toBe(state === 'expired' ? previous : null);
+    });
+
+    it('reports a stale refresh failure without replacing cached data', async () => {
+        setUnitFixedClockTime('2025-01-01T10:00:02Z');
+        const previous = JSON.stringify({ timestamp: new Date('2025-01-01T10:00:00Z').getTime(), data: 'old' });
+        localStorage.setItem(CACHE_KEY, previous);
+        const failure = new Error('fetch failed');
+        const callback = vi.fn();
+        const update = vi.fn();
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        expect(await withSWR(CACHE_KEY, () => Promise.reject(failure), OPTIONS, undefined, update, callback)).toBe('old');
+        await vi.waitFor(() => { expect(callback).toHaveBeenCalledWith(failure, { usableCache: true }); });
+        expect(update).not.toHaveBeenCalled();
+        expect(localStorage.getItem(CACHE_KEY)).toBe(previous);
+        vi.restoreAllMocks();
+    });
+
+    it('does not report or fetch for fresh cache', async () => {
+        setUnitFixedClockTime('2025-01-01T10:00:00Z');
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: new Date('2025-01-01T10:00:00Z').getTime(), data: 'old' }));
+        const fetcher = vi.fn();
+        const callback = vi.fn();
+        expect(await withSWR(CACHE_KEY, fetcher, OPTIONS, undefined, undefined, callback)).toBe('old');
+        expect(fetcher).not.toHaveBeenCalled();
+        expect(callback).not.toHaveBeenCalled();
+    });
+
+    it.each(['throw', 'reject'])('isolates a callback that may %s from the original failure', async (mode) => {
+        const failure = new Error('fetch failed');
+        const callback = () => {
+            if (mode === 'throw') throw new Error('report failed');
+            return Promise.reject(new Error('report failed'));
+        };
+        await expect(withSWR(CACHE_KEY, () => Promise.reject(failure), OPTIONS, undefined, undefined, callback)).rejects.toBe(failure);
+    });
+
 });
