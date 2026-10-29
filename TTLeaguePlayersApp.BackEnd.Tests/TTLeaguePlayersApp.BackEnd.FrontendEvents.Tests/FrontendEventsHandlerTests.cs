@@ -16,6 +16,11 @@ public class FrontendEventsHandlerTests
         Headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" }
     };
 
+    private static JsonDocument FrontendDiagnosticLog(TestLambdaContext context) => JsonDocument.Parse(
+        ((TestLambdaLogger)context.Logger).Buffer.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .First(line => line.Contains("\"event_category\":\"FRONTEND_API_CALL_")));
+
     [Fact]
     public async Task Dispatch_ReturnsEmpty204AndCorsForValidDiagnostic()
     {
@@ -65,6 +70,53 @@ public class FrontendEventsHandlerTests
         var response = await Handler().Dispatch(Request("POST", requestBody), context);
         response.StatusCode.Should().Be(204);
         ((TestLambdaLogger)context.Logger).Buffer.ToString().Should().Contain(body);
+    }
+
+    [Theory]
+    [InlineData("FRONTEND_API_CALL_ERROR")]
+    [InlineData("FRONTEND_API_CALL_IRREGULAR")]
+    public async Task Dispatch_UsesAuthorizerClaimsInsteadOfBrowserSuppliedClaims(string category)
+    {
+        var request = Request("POST", JsonSerializer.Serialize(new
+        {
+            event_category = category,
+            client_api_type = "TT365",
+            user_claims = new { sub = "browser-supplied" }
+        }));
+        request.RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
+        {
+            Authorizer = new APIGatewayCustomAuthorizerContext
+            {
+                Claims = new Dictionary<string, string>
+                {
+                    ["sub"] = "authorizer-sub",
+                    ["email"] = "authorizer@example.test"
+                }
+            }
+        };
+        var context = new TestLambdaContext();
+
+        var response = await Handler().Dispatch(request, context);
+
+        response.StatusCode.Should().Be(204);
+        using var log = FrontendDiagnosticLog(context);
+        var userClaims = log.RootElement.GetProperty("user_claims");
+        userClaims.GetProperty("sub").GetString().Should().Be("authorizer-sub");
+        userClaims.GetProperty("email").GetString().Should().Be("authorizer@example.test");
+        userClaims.GetProperty("sub").GetString().Should().NotBe("browser-supplied");
+    }
+
+    [Fact]
+    public async Task Dispatch_UsesAnEmptyClaimsObjectWhenAuthorizerClaimsAreUnavailable()
+    {
+        var request = Request("POST", """{"event_category":"FRONTEND_API_CALL_ERROR","client_api_type":"TT365","user_claims":{"sub":"browser-supplied"}}""");
+        var context = new TestLambdaContext();
+
+        var response = await Handler().Dispatch(request, context);
+
+        response.StatusCode.Should().Be(204);
+        using var log = FrontendDiagnosticLog(context);
+        log.RootElement.GetProperty("user_claims").EnumerateObject().Should().BeEmpty();
     }
     [Fact]
     public async Task Dispatch_RejectsMalformedBase64AndUnsupportedContentType()

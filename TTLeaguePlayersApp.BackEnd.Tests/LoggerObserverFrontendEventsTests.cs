@@ -1,10 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.TestUtilities;
-using TTLeaguePlayersApp.BackEnd.FrontendEvents;
 using Xunit;
 
-namespace TTLeaguePlayersApp.BackEnd.Tests;
+namespace TTLeaguePlayersApp.BackEnd.FrontendEvents.Tests;
 
 public class LoggerObserverFrontendEventsTests
 {

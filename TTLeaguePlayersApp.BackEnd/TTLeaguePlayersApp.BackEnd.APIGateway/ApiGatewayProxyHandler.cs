@@ -371,6 +371,9 @@ public partial class ApiGatewayProxyHandler
         if (error != null) return error;
         try
         {
+            diagnostic!.Details ??= new();
+            diagnostic.Details["user_claims"] = JsonSerializer.SerializeToElement(
+                CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers));
             await new FrontendEventsLambda(_observer).HandleAsync(diagnostic!, context);
             return CreateResponse(HttpStatusCode.NoContent);
         }
