@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchAndParse, reportParsingFailure } from '../../../../../src/service/league-season-processors/clttl-2026/TT365Diagnostics';
 import { PageFetcherError } from '../../../../../src/service/league-season-processors/clttl-2026/PageFetcherError';
 import { TT365ParsingError } from '../../../../../src/service/league-season-processors/clttl-2026/TT365ParsingError';
-import { sendFrontendEvent } from '../../../../../src/api/frontendEventsApi';
+import { submitFrontendEvent } from '../../../../../src/service/frontend-diagnostics/FrontendEventQueue';
 
-vi.mock('../../../../../src/api/frontendEventsApi', () => ({
-    sendFrontendEvent: vi.fn().mockResolvedValue({ success: true }),
+vi.mock('../../../../../src/service/frontend-diagnostics/FrontendEventQueue', () => ({
+    submitFrontendEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('TT365 diagnostics', () => {
@@ -18,16 +18,16 @@ describe('TT365 diagnostics', () => {
             return Promise.reject(error);
         }, value => value, { division: 'A' });
         await expect(promise).rejects.toBe(error);
-        expect(sendFrontendEvent).toHaveBeenCalledOnce();
-        expect(sendFrontendEvent).toHaveBeenCalledWith(expect.objectContaining({
+        expect(submitFrontendEvent).toHaveBeenCalledOnce();
+        expect(submitFrontendEvent).toHaveBeenCalledWith(expect.objectContaining({
             event_category: 'FRONTEND_API_CALL_ERROR',
             request: { url: 'https://tt365.test', parameters: { division: 'A' } }, response: { status: 503, body: 'down' },
             exception: { name: error.name, message: error.message, stackTrace: error.stack,
                 cause: { name: original.name, message: original.message, stackTrace: original.stack } },
         }));
-        expect(vi.mocked(sendFrontendEvent).mock.calls[0][0]).not.toHaveProperty('user_claims');
+        expect(vi.mocked(submitFrontendEvent).mock.calls[0][0]).not.toHaveProperty('user_claims');
         reportParsingFailure(error, { usableCache: true });
-        expect(sendFrontendEvent).toHaveBeenCalledOnce();
+        expect(submitFrontendEvent).toHaveBeenCalledOnce();
     });
 
     it.each([[true, 'FRONTEND_API_CALL_IRREGULAR'], [false, 'FRONTEND_API_CALL_ERROR']] as const)(
@@ -38,14 +38,14 @@ describe('TT365 diagnostics', () => {
             expect(error).toBeInstanceOf(TT365ParsingError);
             if (!(error instanceof TT365ParsingError)) throw new Error('Expected a parsing error');
             expect(error.cause).toBe(cause);
-            expect(sendFrontendEvent).not.toHaveBeenCalled();
+            expect(submitFrontendEvent).not.toHaveBeenCalled();
             reportParsingFailure(error, { usableCache });
-            expect(sendFrontendEvent).toHaveBeenCalledWith(expect.objectContaining({
+            expect(submitFrontendEvent).toHaveBeenCalledWith(expect.objectContaining({
                 event_category: category, response: { body: 'bad' },
                 request: { parameters: { division: 'A', teamId: 10 } },
                 source: { Class: 'CLTTLActiveSeason2026PagesParser', Method: 'getTeamPlayers' }, timestamp: error.timestamp,
             }));
-            expect(vi.mocked(sendFrontendEvent).mock.calls[0][0]).not.toHaveProperty('user_claims');
+            expect(vi.mocked(submitFrontendEvent).mock.calls[0][0]).not.toHaveProperty('user_claims');
         },
     );
 
@@ -56,12 +56,28 @@ describe('TT365 diagnostics', () => {
 
         reportParsingFailure(error, { usableCache: false });
 
-        expect(sendFrontendEvent).toHaveBeenCalledWith(expect.objectContaining({
+        expect(submitFrontendEvent).toHaveBeenCalledWith(expect.objectContaining({
             exception: {
                 name: error.name, message: error.message, stackTrace: error.stack,
                 cause: { name: parserError.name, message: parserError.message, stackTrace: parserError.stack,
                     cause: { name: cause.name, message: cause.message, stackTrace: cause.stack } },
             },
         }));
+    });
+
+    it('preserves the original request failure if queue submission throws', async () => {
+        const error = new PageFetcherError('failed');
+        vi.mocked(submitFrontendEvent).mockImplementationOnce(() => { throw new Error('storage unavailable'); });
+
+        await expect(fetchAndParse('getTeamFixtures', () => Promise.reject(error), value => value, {}))
+            .rejects.toBe(error);
+    });
+
+    it('does not propagate a rejected queue submission for a parsing failure', async () => {
+        vi.mocked(submitFrontendEvent).mockRejectedValueOnce(new Error('storage unavailable'));
+        const error = new TT365ParsingError('bad page', 'Parser', 'getClubTeams', new Error('bad page'));
+
+        expect(() => { reportParsingFailure(error, { usableCache: true }); }).not.toThrow();
+        await Promise.resolve();
     });
 });

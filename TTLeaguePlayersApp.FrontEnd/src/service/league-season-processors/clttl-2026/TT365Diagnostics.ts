@@ -1,5 +1,5 @@
 import { frontendException } from '../../frontend-diagnostics/FrontendDiagnostics';
-import { sendFrontendEvent } from '../../../api/frontendEventsApi';
+import { submitFrontendEvent } from '../../frontend-diagnostics/FrontendEventQueue';
 import type { FrontendDiagnostic } from '../../../types/frontendDiagnostic';
 import { PageFetcherError } from './PageFetcherError';
 import { TT365ParsingError } from './TT365ParsingError';
@@ -25,7 +25,7 @@ export async function fetchAndParse<T>(
                 },
                 request: { ...error.details.request, parameters }, response: error.details.response,
             };
-            try { void sendFrontendEvent(diagnostic).catch(() => undefined); } catch { /* Preserve the original failure. */ }
+            try { void submitFrontendEvent(diagnostic).catch(() => undefined); } catch { /* Preserve the original failure. */ }
         }
         throw error;
     }
@@ -56,5 +56,5 @@ export function reportParsingFailure(error: unknown, { usableCache }: { usableCa
             } }),
         },
     };
-    try { void sendFrontendEvent(diagnostic).catch(() => undefined); } catch { /* Preserve the original failure. */ }
+    try { void submitFrontendEvent(diagnostic).catch(() => undefined); } catch { /* Preserve the original failure. */ }
 }

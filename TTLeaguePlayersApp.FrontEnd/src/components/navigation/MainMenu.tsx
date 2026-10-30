@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { drainFrontendEvents } from '../../service/frontend-diagnostics/FrontendEventQueue';
 
 interface MenuItem {
     label: string;
@@ -110,7 +111,10 @@ export const MainMenu: React.FC = () => {
         }
     ];
 
-    const toggleMenu = () => { setIsOpen(!isOpen); };
+    const toggleMenu = () => {
+        if (!isOpen && isAuthenticated) void drainFrontendEvents();
+        setIsOpen(!isOpen);
+    };
 
     const handleLogout = () => {
         setIsOpen(false);

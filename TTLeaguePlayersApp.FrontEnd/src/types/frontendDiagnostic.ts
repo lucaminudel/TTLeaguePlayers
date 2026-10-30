@@ -11,6 +11,7 @@ export interface FrontendDiagnostic {
     response?: Record<string, unknown>;
     page?: string;
     app_version?: string;
+    deferred?: boolean;
 }
 
 export interface FrontendDiagnosticDelivery {

@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { MainMenu } from '../../../../src/components/navigation/MainMenu';
+import { drainFrontendEvents } from '../../../../src/service/frontend-diagnostics/FrontendEventQueue';
+
+vi.mock('../../../../src/service/frontend-diagnostics/FrontendEventQueue', () => ({
+    drainFrontendEvents: vi.fn().mockResolvedValue(undefined),
+}));
 
 const mockUseAuth = vi.fn();
 vi.mock('../../../../src/hooks/useAuth', () => ({
@@ -40,6 +45,34 @@ describe('MainMenu', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('drains pending diagnostics on authenticated opening, but not closing or navigation', () => {
+        setAuth({ isAuthenticated: true });
+        renderAndOpenMenu();
+
+        expect(drainFrontendEvents).toHaveBeenCalledOnce();
+        fireEvent.click(screen.getByTestId('main-menu-toggle'));
+        expect(drainFrontendEvents).toHaveBeenCalledOnce();
+        fireEvent.click(screen.getByTestId('main-menu-toggle'));
+        expect(drainFrontendEvents).toHaveBeenCalledTimes(2);
+        fireEvent.click(screen.getByTestId('main-menu-nav-home'));
+        expect(drainFrontendEvents).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not drain pending diagnostics when an unauthenticated user opens the menu', () => {
+        setAuth({ isAuthenticated: false });
+        renderAndOpenMenu();
+
+        expect(drainFrontendEvents).not.toHaveBeenCalled();
+    });
+
+    it('opens the menu without waiting for the diagnostic drain', () => {
+        setAuth({ isAuthenticated: true });
+        vi.mocked(drainFrontendEvents).mockImplementationOnce(() => new Promise(() => undefined));
+        renderAndOpenMenu();
+
+        expect(screen.getByTestId('main-menu-overlay')).toHaveClass('pointer-events-auto');
     });
 
     it('shows the captain item to a captain', () => {
@@ -175,6 +208,7 @@ describe('MainMenu', () => {
         fireEvent.click(screen.getByTestId('main-menu-logout-button'));
 
         expect(signOut).toHaveBeenCalledTimes(1);
+        expect(drainFrontendEvents).toHaveBeenCalledOnce();
         expect(screen.getByTestId('main-menu-overlay').className).toContain('pointer-events-none');
 
         await act(async () => { await vi.runAllTimersAsync(); });
