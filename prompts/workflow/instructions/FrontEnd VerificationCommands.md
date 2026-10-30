@@ -73,16 +73,57 @@ Run the configured frontend mutation suite incrementally. It reuses prior result
 `npm run "mutation-tests-web:run"`
 
 Force a complete run of every configured frontend mutant:
-`npm run "mutation-tests-web:run-file"`
+`npm run "mutation-tests-web:full"`
 
 For the fast feedback loop, force mutation testing for only changed production file(s) and their
 covering Vitest spec(s):
 `npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts`
 
-For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`. The HTML
-report from command-line mutation runs is at
-`TTLeaguePlayersApp.FrontEnd/reports/mutation/mutation.html`. Test Explorer results are shown in VS
-Code and are not written to that report.
+For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`.
+
+#### Configurations, caches and reports
+
+All paths in the table below are relative to `TTLeaguePlayersApp.FrontEnd/`.
+
+| Entry point | Configuration | Cache and HTML directory |
+| --- | --- | --- |
+| `npm run mutation-tests-web:run` | `stryker.config.mjs` | `reports/mutation/incremental/` |
+| `npm run mutation-tests-web:run-file -- --mutate src/path/File.ts` | `stryker.config.mjs` (forced selected scope) | `reports/mutation/incremental/` |
+| VS Code Stryker extension | `stryker.config.mjs` | `reports/mutation/incremental/` |
+| `npm run mutation-tests-web:full` | `stryker.full.config.mjs` (forced entire configured scope) | `reports/mutation/full/` |
+
+Each directory contains `stryker-incremental.json` (the reusable machine-readable cache)
+and `mutation.html` (the interactive report). Output paths are absolute paths derived
+from the configuration file location, so changing the working directory does not
+change the output destination. Source/test glob paths still require the configured
+working directory; the npm commands and VS Code tasks/extension provide it.
+
+Incremental runs and editor runs use the incremental configuration. A full run
+overwrites the full outputs. Both configurations enable incremental persistence;
+the full configuration additionally forces retesting instead of reusing verdicts.
+Use `mutation-tests-web:full` for full verification rather than appending `--force`
+to the incremental command, which would still write into the incremental directory.
+Similarly, `mutation-tests-web:run-file` without filters forces the entire configured
+scope but still writes into the incremental directory.
+
+The matching VS Code terminal tasks are `mutation-tests-web:run (incremental)` and
+`mutation-tests-web:full (forced)`. The Stryker extension uses the frontend working
+directory and `stryker.config.mjs`, as defined in `.vscode/settings.json`.
+
+Avoid running the editor extension and an incremental npm run concurrently because
+they share the incremental cache and configured HTML destination. Full and incremental
+runs also share Stryker's temporary workspace, so run them sequentially.
+
+These generated outputs remain ignored by Git. Archive completed full-run outputs
+separately if historical evidence is required. Legacy reports at
+`reports/stryker-incremental.json` and `reports/mutation/mutation.html` are not used
+by the new configurations and may still contain older results.
+
+Record mutation findings and dated decisions in
+[Unit-testing mutation triage](../steps_guidelines/UnitTestingMutationTriage.md).
+Include pending fixes/investigations, justified accepted findings and any actual Stryker
+exclusions. A decision recorded there does not itself suppress a mutation. Reevaluate
+decisions when the relevant code, tests or assumptions change.
 
 ### 4) Command to run FrontEnd end-to-end tests
 From the dev environment, use the IDE test explorer.

@@ -2,6 +2,26 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "mutation-tests-web:run (incremental)",
+      "type": "shell",
+      "command": "npm run mutation-tests-web:run",
+      "options": {
+        "cwd": "${workspaceFolder}/TTLeaguePlayersApp.FrontEnd"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "mutation-tests-web:full (forced)",
+      "type": "shell",
+      "command": "npm run mutation-tests-web:full",
+      "options": {
+        "cwd": "${workspaceFolder}/TTLeaguePlayersApp.FrontEnd"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
       "label": "sam-refresh-build dev-env",
       "type": "shell",
       "command": "sam build --config-env dev",

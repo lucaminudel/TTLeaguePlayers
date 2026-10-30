@@ -1,5 +1,9 @@
 # Automated Testing Guidelines
 
+Record unit-test mutation findings, dated triage decisions and justified exclusions in
+[Unit-testing mutation triage](UnitTestingMutationTriage.md). Keep unresolved test gaps
+and investigations visible; revisit decisions when their supporting code, tests or assumptions change.
+
 
 ## Core Principles
 *  **No Implementation Changes:** Never modify the implementation code of the system under test (SUT). Only write or modify test code. This includes not increasing the visibility of implementation code private methods.

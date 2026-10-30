@@ -17,8 +17,10 @@ export default {
   },
   concurrency: 2,
   cleanTempDir: 'always',
+  incremental: true,
+  incrementalFile: path.join(frontendRoot, 'reports/mutation/incremental/stryker-incremental.json'),
   reporters: ['clear-text', 'progress', 'html'],
   htmlReporter: {
-    fileName: 'reports/mutation/mutation.html',
+    fileName: path.join(frontendRoot, 'reports/mutation/incremental/mutation.html'),
   },
 };
