@@ -10,7 +10,7 @@ effort: high
 
 ## Codex-specific model and delegation
 
-Use **Terra** for this phase. Select the host's available Terra model; this instruction does not
+Use **Terra 5.6**, Medium for this phase. Select the host's available Terra model; this instruction does not
 itself change the running session's model. If model selection is unavailable, report the
 limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
 Use sub-agents for work that can proceed in parallel. **Delegate every exploration, and dispatch
@@ -19,6 +19,12 @@ ownership and the current unit/checkpoint barriers allow.** Follow
 [the shared orchestration rules](../shared/orchestration.md); keep verification, approvals,
 integration and commits serial on the main agent. Review work within automatic unit mode follows
 the Review skill's **Sol** model instruction.
+
+### Suggested model — at phase start
+
+Before beginning or resuming this phase, send this one-time commentary message:
+
+Suggested model for this phase, for you to switch: <the model and effor suggested above>.
 
 ## Session name — at the start
 
@@ -73,6 +79,8 @@ plan exists, stop and report that Coding Task Inception must run first.
 
 Read the plan in full: decision table, research findings, sub-task table, standing assumptions,
 progress log.
+Read `prompts/codebase_info/CodeDesignGuidelines.md` before implementing or reviewing the planned
+changes.
 
 Reconcile it against reality before doing anything:
 
@@ -925,7 +933,9 @@ evidence, and any item requiring human review. Present the persisted file link w
 
 ## Phase 9 — Retrospect
 
-Retrospect on the **Execution workflow itself** after implementation, verification and the work
+Retrospect (reflect on the work just completed with this coding-task-execute Skill, 
+list what worked well, what did not work well, what challenges were met, and suggest improvements 
+to the skill) on the **Execution workflow itself** after implementation, verification and the work
 summary are settled. Assess how task tracking, implementation, tests, verification and hand-off
 worked. Technical lessons from the code alone do not satisfy this retrospective. Present supported
 improvements to this skill, or say explicitly that none were identified.

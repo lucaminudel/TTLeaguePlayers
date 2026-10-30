@@ -10,13 +10,19 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 ## Codex-specific model and delegation
 
-Use **Sol** for this phase. Select the host's available Sol model; this instruction does not
+Use **Sol 5.6**, Medium for this phase. Select the host's available Sol model; this instruction does not
 itself change the running session's model. If model selection is unavailable, report the
 limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
 Use sub-agents for work that can proceed in parallel, especially information gathering,
 research and exploration. Delegate every exploration under
 [the shared orchestration rules](../shared/orchestration.md); keep topic agreement, synthesis
 and user-facing discussion with the main agent.
+
+### Suggested model — at phase start
+
+Before beginning or resuming this phase, send this one-time commentary message:
+
+Suggested model for this phase, for you to switch: <the model and effor suggested above>.
 
 ## Session name — at the start
 
@@ -121,7 +127,7 @@ season structure, a library's behaviour, a protocol. Cite what you used.
 | For | Read |
 |---|---|
 | Domain topics | the `prompts/codebase_info/*DomainLogic.md` covering the area the task touches |
-| Technical topics | `prompts/codebase_info/ArchitectureAndTechStack.md`, `prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md`, `prompts/workflow/steps_guidelines/` |
+| Technical topics | `prompts/codebase_info/ArchitectureAndTechStack.md`, `prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md`, `prompts/codebase_info/CodeDesignGuidelines.md`, `prompts/workflow/steps_guidelines/` |
 | Verification and environments | `prompts/workflow/instructions/` |
 
 List those directories rather than working from this table — they gain files.
@@ -210,7 +216,9 @@ After the retrospective, tell the user the report is ready and where it is. Do n
 
 ## Phase 6 — Retrospect
 
-Retrospect on the **Discovery workflow itself** after the findings report is settled. Assess how
+Retrospect (reflect on the work just completed with this coding-task-discovery Skill, 
+list what worked well, what did not work well, what challenges were met, and suggest improvements 
+to the skill) on the **Discovery workflow itself** after the findings report is settled. Assess how
 the framing, evidence gathering, scope decisions and hand-off worked. Technical findings alone do
 not satisfy this retrospective. Present supported improvements to this skill, or say explicitly
 that none were identified.

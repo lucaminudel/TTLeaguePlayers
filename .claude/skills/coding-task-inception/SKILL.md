@@ -9,13 +9,19 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 ## Codex-specific model and delegation
 
-Use **Sol** for this phase. Select the host's available Sol model; this instruction does not
+Use **Sol 5.6**, Medium for this phase. Select the host's available Sol model; this instruction does not
 itself change the running session's model. If model selection is unavailable, report the
 limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
 Use sub-agents for work that can proceed in parallel, especially information gathering,
 research and exploration. Delegate every exploration under
 [the shared orchestration rules](../shared/orchestration.md); keep planning decisions,
 confirmation and user-facing synthesis with the main agent.
+
+### Suggested model — at phase start
+
+Before beginning or resuming this phase, send this one-time commentary message:
+
+Suggested model for this phase, for you to switch: <the model and effor suggested above>.
 
 ## Session name — at the start
 
@@ -75,6 +81,7 @@ completed rather than guessing a path.
 
 Always read, whether or not they are named:
 - `prompts/codebase_info/ArchitectureAndTechStack.md` — stack, environments, known debt
+- `prompts/codebase_info/CodeDesignGuidelines.md` — cross-cutting design principles
 - The `prompts/codebase_info/*DomainLogic.md` covering the touched area
 - `prompts/workflow/instructions/` — verification commands, local SAM debug
 - `prompts/workflow/steps_guidelines/` — testing and red-test guidelines
@@ -281,7 +288,9 @@ source of truth for later Execution and Review skills.
 
 ## Phase 8 — Retrospect
 
-Retrospect on the **Inception workflow itself** after the plan is confirmed and persisted. Assess
+Retrospect (reflect on the work just completed with this coding-task-inception Skill, 
+list what worked well, what did not work well, what challenges were met, and suggest improvements 
+to the skill) on the **Inception workflow itself** after the plan is confirmed and persisted. Assess
 how research, questions, decisions, plan confirmation and hand-off worked. Technical design lessons
 alone do not satisfy this retrospective. Present supported improvements to this skill, or say
 explicitly that none were identified.

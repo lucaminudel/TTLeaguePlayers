@@ -10,7 +10,7 @@ allowed-tools: Bash(cat:*)
 
 ## Codex-specific model and delegation
 
-Use **Sol** for this phase, including autonomous unit reviews invoked from Execution. Select the
+Use **Sol 5.6**, Medium for this phase, including autonomous unit reviews invoked from Execution. Select the
 host's available Sol model; this instruction does not itself change the running session's model.
 If model selection is unavailable, report the limitation rather than claiming a switch. The
 frontmatter `model` is for Claude Code.
@@ -19,6 +19,12 @@ research and exploration. Delegate every exploration under
 [the shared orchestration rules](../shared/orchestration.md). The main adversarial pass, final
 judgement and human-facing review remain with the main agent; independent read-only review
 passes may supplement them under the existing independence rules.
+
+### Suggested model — at phase start
+
+Before beginning or resuming this phase, send this one-time commentary message:
+
+Suggested model for this phase, for you to switch: <the model and effor suggested above>.
 
 ## Session name — at the start
 
@@ -197,6 +203,7 @@ Re-read the standards before judging against them, rather than from memory:
 
 - `prompts/workflow/steps_guidelines/WriteTestsGuidelines.md`
 - `prompts/workflow/steps_guidelines/FixRedTestGuidelines.md`
+- `prompts/codebase_info/CodeDesignGuidelines.md`
 - the `prompts/codebase_info/*DomainLogic.md` for the area touched
 
 ### The lenses
@@ -553,7 +560,9 @@ assistant signature unless the user asks.
 
 ## Phase 7 — Retrospect
 
-Complete a retrospective of the **Review workflow itself** after the findings, fixes,
+Complete a retrospective (reflect on the work just completed with this coding-task-review Skill, 
+list what worked well, what did not work well, what challenges were met, and suggest improvements 
+to the skill) of the **Review workflow itself** after the findings, fixes,
 verification and review guide are settled. The Execution retrospective is a separate phase and
 never satisfies this one, even when both happen in the same chat. Review technical lessons from
 the code only as evidence for a workflow improvement; they are not by themselves this
