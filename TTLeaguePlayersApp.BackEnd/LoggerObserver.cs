@@ -93,7 +93,8 @@ public class LoggerObserver : ILoggerObserver
                 request = Detail("request"),
                 response = Detail("response"),
                 page = diagnostic.Page,
-                app_version = diagnostic.AppVersion
+                app_version = diagnostic.AppVersion,
+                deferred = Detail("deferred")
             },
             user_claims = Detail("user_claims"),
             requestId = context.AwsRequestId,

@@ -42,6 +42,7 @@ public class LoggerObserverFrontendEventsTests
         var parameters = log.GetProperty("parameters");
         Assert.InRange(parameters.GetProperty("ingestion_timestamp").GetDateTimeOffset(), before, after);
         Assert.Equal("event-123", parameters.GetProperty("event_id").GetString());
+        Assert.False(parameters.TryGetProperty("deferred", out _));
         Assert.Equal("TT365", parameters.GetProperty("client_api_type").GetString());
         Assert.Equal("getTeamFixtures", parameters.GetProperty("operation").GetString());
         Assert.Equal("fetch failed", parameters.GetProperty("event_name").GetString());
@@ -86,6 +87,27 @@ public class LoggerObserverFrontendEventsTests
         Assert.Equal("7", log.GetProperty("functionVersion").GetString());
         Assert.Equal("/fixtures", parameters.GetProperty("page").GetString());
         Assert.Equal("1.2", parameters.GetProperty("app_version").GetString());
+    }
+
+    [Theory]
+    [InlineData(false, "ERROR", "FRONTEND_API_CALL_ERROR")]
+    [InlineData(true, "WARN", "FRONTEND_API_CALL_IRREGULAR")]
+    public void DeferredFrontendDiagnosticIncludesMarkerInParameters(bool irregular, string level, string category)
+    {
+        var diagnostic = JsonSerializer.Deserialize<FrontendApiCallDiagnostic>(
+            $$"""{"event_category":"{{category}}","client_api_type":"TT365","deferred":true}""")!;
+        var context = new TestLambdaContext();
+        var observer = new LoggerObserver();
+
+        if (irregular) observer.OnFrontendApiCallIrregularEvent(diagnostic, context);
+        else observer.OnFrontendApiCallError(diagnostic, context);
+
+        using var document = JsonDocument.Parse(((TestLambdaLogger)context.Logger).Buffer.ToString());
+        var log = document.RootElement;
+        Assert.Equal(level, log.GetProperty("log_level").GetString());
+        Assert.Equal(category, log.GetProperty("event_category").GetString());
+        Assert.Equal("TT365", log.GetProperty("parameters").GetProperty("client_api_type").GetString());
+        Assert.True(log.GetProperty("parameters").GetProperty("deferred").GetBoolean());
     }
 
     [Fact]
