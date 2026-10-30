@@ -102,6 +102,28 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(fixture.venue).toBe('Morpeth School');
         });
 
+        it('removes a case-insensitive division suffix from SUMMARY before splitting teams', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'lowercase-division@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (division 4)'
+            )));
+
+            expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
+        });
+
+        it('removes a division suffix despite extra surrounding whitespace', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'spaced-division@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away   (Division 4)   '
+            )));
+
+            expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
+        });
+
         it('matches calendar property names case-insensitively', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             const fixtures = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
@@ -268,6 +290,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
                 ['an overflowing hour', '20261010T244500'],
                 ['an overflowing minute', '20261010T186000'],
                 ['an overflowing second', '20261010T184560'],
+                ['a zero year', '00000110T184500'],
                 ['a date with a prefix', 'prefix20261010T184500'],
                 ['a date with trailing text', '20261010T184500unexpected']
             ].map(([name, value]) => ({
@@ -338,6 +361,21 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
 
             expect(consoleError).toHaveBeenCalledWith(
                 'Skipping unusable CLTTL fixture event "invalid-summary-reason@example.test": invalid SUMMARY.'
+            );
+        });
+
+        it('uses the fallback identifier in the observability diagnostic when an unusable event has no UID or SUMMARY', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(() => parser.getTeamFixtures(calendarWithEvents([
+                'BEGIN:VEVENT',
+                'DTSTART;TZID=Europe/London:20261010T184500',
+                'END:VEVENT',
+            ].join('\n')))).toThrow('No usable fixture events in calendar');
+
+            expect(consoleError).toHaveBeenCalledWith(
+                'Skipping unusable CLTTL fixture event "unknown event": invalid SUMMARY.'
             );
         });
 
@@ -461,6 +499,14 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(() => parser.getTeamPlayers('<html><body></body></html>')).toThrow();
         });
 
+        it('supports the legacy object payload using players instead of teamPlayers', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(parser.getTeamPlayers(JSON.stringify({
+                players: [{ name: 'Ada Lovelace' }, { fullName: 'Grace Hopper' }],
+            }))).toEqual(['Ada Lovelace', 'Grace Hopper']);
+        });
+
         it('distinguishes empty valid rosters from unsupported and unusable responses', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             expect(parser.getTeamPlayers('{"teamPlayers":[]}')).toEqual([]);
@@ -523,6 +569,17 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
         it('accepts a selector with only the default option', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             expect(parser.getTeamIds('<select id="teamSelect"><option value="">All Teams</option></select>')).toEqual([]);
+        });
+
+        it('ignores selector options with absent or blank values', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(parser.getTeamIds(`
+                <select id="teamSelect">
+                    <option>All Teams</option>
+                    <option value="   ">Blank</option>
+                </select>
+            `)).toEqual([]);
         });
 
         it('ignores options whose value is not entirely numeric', () => {

@@ -37,6 +37,7 @@ describe('TT365 diagnostics', () => {
                 () => { throw cause; }, { division: 'A', teamId: 10 }).catch((failure: unknown) => failure);
             expect(error).toBeInstanceOf(TT365ParsingError);
             if (!(error instanceof TT365ParsingError)) throw new Error('Expected a parsing error');
+            expect(error.name).toBe('TT365ParsingError');
             expect(error.cause).toBe(cause);
             expect(submitFrontendEvent).not.toHaveBeenCalled();
             reportParsingFailure(error, { usableCache });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Component, type ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { MainMenu } from '../../../../src/components/navigation/MainMenu';
@@ -12,6 +13,20 @@ const mockUseAuth = vi.fn();
 vi.mock('../../../../src/hooks/useAuth', () => ({
     useAuth: () => mockUseAuth() as unknown,
 }));
+
+class TestErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+    state: { error: Error | null } = { error: null };
+
+    static getDerivedStateFromError(error: Error) {
+        return { error };
+    }
+
+    render() {
+        return this.state.error === null
+            ? this.props.children
+            : <p data-testid="main-menu-unexpected-error">{this.state.error.message}</p>;
+    }
+}
 
 describe('MainMenu', () => {
     const CAPTAIN_ITEM = 'main-menu-nav-invite-team-members';
@@ -32,11 +47,14 @@ describe('MainMenu', () => {
         });
     };
 
-    const renderAndOpenMenu = () => {
-        render(
+    const renderAndOpenMenu = (withErrorBoundary = false) => {
+        const menu = (
             <MemoryRouter>
                 <MainMenu />
             </MemoryRouter>
+        );
+        render(
+            withErrorBoundary ? <TestErrorBoundary>{menu}</TestErrorBoundary> : menu
         );
         fireEvent.click(screen.getByTestId('main-menu-toggle'));
     };
@@ -219,9 +237,10 @@ describe('MainMenu', () => {
     it('uses the username when no season or club record supplies a display name', () => {
         setAuth({ isAuthenticated: true }, { activeSeasons: [], managedClubs: [] });
 
-        renderAndOpenMenu();
+        renderAndOpenMenu(true);
 
         expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Luca');
+        expect(screen.queryByTestId('main-menu-unexpected-error')).toBeNull();
     });
 
     it('does not repeat the first player or manager name in the additional records', () => {

@@ -681,9 +681,29 @@ Use comma-separated paths for a small set of changed source files and their cove
 `npm run "mutation-tests-web:run"` for an incremental configured-suite run and
 `npm run "mutation-tests-web:run-file"` without filters for an intentional, forced full run.
 
-For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`. The HTML
-report from command-line mutation runs is at
-`TTLeaguePlayersApp.FrontEnd/reports/mutation/mutation.html`.
+For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`.
+
+#### Record every completed deterministic mutation run
+
+After a successful deterministic mutation run, update the version-controlled
+[unit-testing mutation triage register](../../../prompts/workflow/steps_guidelines/UnitTestingMutationTriage.md).
+Follow its **Document update procedure** and keep its single inventory table intact.
+
+- For a targeted incremental run, update only the rows for its exact mutated source and selected
+  test scope. Add or update that incremental run in the referenced-runs register and set the
+  affected rows' **Evidence run** label. Do not alter out-of-scope full-baseline rows or the full
+  baseline total.
+- For a completed full run, reconcile the full JSON result and refresh the full-baseline rows and
+  total before claiming whole-suite triage.
+- Record the run's local time to the minute, revision, scope, outcome and artifact status. The
+  incremental JSON/HTML are mutable working artifacts; retain their run metadata while a current
+  table row references them, and archive an artifact separately only when later detailed inspection
+  is needed.
+
+The generated artifacts are not the decision record: the triage register holds the reviewed
+decision and its provenance. Targeted incremental runs write to
+`TTLeaguePlayersApp.FrontEnd/reports/mutation/incremental/`; full forced runs write to
+`TTLeaguePlayersApp.FrontEnd/reports/mutation/full/`.
 
 Prioritise mutation findings in this order, in order to start fixing the highest priority failures:
 

@@ -3,6 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import { CLTTLManagedClub2026Processor } from '../../../../src/service/league-season-processors/CLTTLManagedClub2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
+import { submitFrontendEvent } from '../../../../src/service/frontend-diagnostics/FrontendEventQueue';
+
+vi.mock('../../../../src/service/frontend-diagnostics/FrontendEventQueue', () => ({
+    submitFrontendEvent: vi.fn().mockResolvedValue(undefined),
+}));
 
 /**
  * These tests run against the HTML captured from the live site and persisted under
@@ -137,5 +142,8 @@ describe('CLTTLManagedClub2026Processor Integration', () => {
         // Fetcher retries 3 times (1 initial + 2 retries)
         await expect(processor.getClubTeams()).rejects.toThrow('The page or website is not available after 3 attempts');
         expect(fetch).toHaveBeenCalledTimes(3);
+        const diagnostic = vi.mocked(submitFrontendEvent).mock.calls.at(-1)?.[0];
+        expect(diagnostic?.operation).toBe('getClubTeams');
+        expect(diagnostic?.request?.parameters).toEqual({ club: 'Morpeth Table Tennis Club' });
     });
 });

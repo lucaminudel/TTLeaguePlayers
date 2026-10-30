@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CLTTLActiveSeason2026Processor } from '../../../../src/service/league-season-processors/CLTTLActiveSeason2026Processor';
 import type { ActiveSeasonDataSource } from '../../../../src/config/environment';
+import { submitFrontendEvent } from '../../../../src/service/frontend-diagnostics/FrontendEventQueue';
+
+vi.mock('../../../../src/service/frontend-diagnostics/FrontendEventQueue', () => ({
+    submitFrontendEvent: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe('CLTTLActiveSeason2026Processor Integration', () => {
     const mockDataSource: ActiveSeasonDataSource = {
@@ -100,5 +105,31 @@ describe('CLTTLActiveSeason2026Processor Integration', () => {
         // Fetcher retries 3 times (1 initial + 2 retries)
         await expect(processor.getTeamFixtures()).rejects.toThrow('The page or website is not available after 3 attempts');
         expect(fetch).toHaveBeenCalledTimes(3);
+        const diagnostic = vi.mocked(submitFrontendEvent).mock.calls.at(-1)?.[0];
+        expect(diagnostic?.operation).toBe('getTeamFixtures');
+        expect(diagnostic?.request?.parameters).toEqual({ division: 'Division 1', team: 'Morpeth 10' });
+    });
+
+    it('reports the team-ID lookup diagnostic context when the selector request fails', async () => {
+        vi.mocked(fetch).mockResolvedValue({ ok: false, status: 404 } as Response);
+
+        await expect(processor.getTeamPlayers()).rejects.toThrow('The page or website is not available after 3 attempts');
+        const diagnostic = vi.mocked(submitFrontendEvent).mock.calls.at(-1)?.[0];
+        expect(diagnostic?.operation).toBe('getTeamIds');
+        expect(diagnostic?.request?.parameters).toEqual({ division: 'Division 1', team: 'Morpeth 10' });
+    });
+
+    it('reports the team-player diagnostic context when the roster request fails', async () => {
+        vi.mocked(fetch)
+            .mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve('<select id="teamSelect"><option value="73142">Morpeth 10</option></select>'),
+            } as Response)
+            .mockResolvedValue({ ok: false, status: 404 } as Response);
+
+        await expect(processor.getTeamPlayers()).rejects.toThrow('The page or website is not available after 3 attempts');
+        const diagnostic = vi.mocked(submitFrontendEvent).mock.calls.at(-1)?.[0];
+        expect(diagnostic?.operation).toBe('getTeamPlayers');
+        expect(diagnostic?.request?.parameters).toEqual({ division: 'Division 1', team: 'Morpeth 10', teamId: 73142 });
     });
 });

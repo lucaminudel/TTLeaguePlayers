@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
+import { Component, type ReactNode } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { ClubTeamsList } from '../../../../src/components/ui/ClubTeamsList';
 import type { ManagedClubProcessor } from '../../../../src/service/league-season-processors/ManagedClubProcessor';
@@ -9,6 +10,20 @@ import { setUnitFixedClockTime } from '../../TestClockUtils';
 const inviteApiMocks = vi.hoisted(() => ({
     getCachedTeamRegistrations: vi.fn(),
 }));
+
+class TestErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+    state: { error: Error | null } = { error: null };
+
+    static getDerivedStateFromError(error: Error) {
+        return { error };
+    }
+
+    render() {
+        return this.state.error === null
+            ? this.props.children
+            : <p data-testid="club-teams-unexpected-error">{this.state.error.message}</p>;
+    }
+}
 
 vi.mock('../../../../src/api/cachedInviteApi', () => ({
     getCachedTeamRegistrations: inviteApiMocks.getCachedTeamRegistrations,
@@ -91,7 +106,7 @@ describe('ClubTeamsList', () => {
     }
 
     function renderList(processor: ManagedClubProcessor) {
-        return render(listFor(processor));
+        return render(<TestErrorBoundary>{listFor(processor)}</TestErrorBoundary>);
     }
 
     const rowCells = (teamName: string) => {
@@ -261,6 +276,7 @@ describe('ClubTeamsList', () => {
 
         expect(screen.queryAllByTestId('club-team-name')).toHaveLength(0);
         expect(screen.queryByText('No teams found for this club.')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('club-teams-unexpected-error')).toBeNull();
         expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
@@ -274,6 +290,7 @@ describe('ClubTeamsList', () => {
         });
 
         expect(screen.queryAllByTestId('club-team-name')).toHaveLength(0);
+        expect(screen.queryByTestId('club-teams-unexpected-error')).toBeNull();
         expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
