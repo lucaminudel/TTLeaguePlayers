@@ -145,10 +145,24 @@ for the test environment:
 for the staging environment:
 `npm run "C+ e2e-tests-web:run staging-env"`
 
-Run these commands from the frontend project directly.
-They are defined here: TTLeaguePlayers/.vscode/tasks.json and here TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/package.json
+Run these commands from the frontend project directly (`TTLeaguePlayersApp.FrontEnd/`).
+They are defined in `TTLeaguePlayersApp.FrontEnd/package.json` (the full-stack pipeline tasks are defined in `.vscode/tasks.json`).
 
-You can find the info on FrontEnd end-to-end tests failures under this folder: TTLeaguePlayers/TTLeaguePlayersApp.FrontEnd/test-results
+#### Reports, failure logs, artifacts, and persistence
+
+All paths below are relative to `TTLeaguePlayersApp.FrontEnd/`.
+
+| Output | Location | Format / How to view | Lifecycle & Persistence |
+| --- | --- | --- | --- |
+| **Interactive HTML Report** | `playwright-report/index.html` | Full HTML report with step logs, error call logs, and trace links. View via `npm run "e2e-tests-web:report"` or open directly in a browser. | Overwritten on each test run. **Remains available after the web server or SAM stops.** Ignored by Git. |
+| **Terminal Output** | `stdout` / `stderr` | Real-time console output with assertions, stack traces, and test list (from `list` reporter). | Ephemeral; exists in the terminal scrollback buffer. |
+| **Failure Artifacts** | `test-results/<test-dir>/` | Folders created per failed test containing `trace.zip`, screenshots (`*.png`), and videos (`*.webm`). View trace via HTML report or `npx playwright show-trace <path-to-trace.zip>`. | Created only on failure. Cleared/replaced on subsequent test runs. **Remains available after web server stops.** Ignored by Git. |
+| **JSON Test Results** | `test-results/results.json` | Machine-readable JSON summary of test execution. | Overwritten on each test run. |
+| **VS Code Test Explorer** | VS Code Test Results panel | Inline error diffs, step logs, and clickable trace links. | Displayed in VS Code during the active editor session. |
+
+> [!NOTE]
+> **Server stops vs. Test outputs:** Stopping the Vite web server or the SAM Docker container does **not** delete or clear the test reports or artifacts. Playwright writes directly to the local project filesystem, so `playwright-report/` and `test-results/` remain intact and readable after server shutdown until a subsequent test run overwrites them.
+
 
 
 ###  5) Command to run the full pipeline lint and build and unit, integration, acceptance, e2e tests (before asking me about staging)

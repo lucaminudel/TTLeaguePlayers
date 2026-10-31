@@ -427,6 +427,7 @@ this skill.**
 
 | Source | Owns |
 |---|---|
+| `prompts/workflow/instructions/*`| Verification commands and output foolders |
 | `TTLeaguePlayersApp.FrontEnd/package.json` | every frontend command — build, lint, Vitest, Playwright, and which of them set `EXECUTE_LIVE_COGNITO_TESTS` |
 | `.vscode/tasks.json` | `sam build` / `sam local start-api` / `sam deploy` per environment, and the labels the user knows them by |
 | `scripts/ci_tasks/` | what the pipelines actually run, in what order, and **the test filters** — `--filter Cognito!=Live`, `--filter "Environment=Staging"` |
