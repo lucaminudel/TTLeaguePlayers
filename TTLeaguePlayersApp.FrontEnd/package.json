@@ -44,6 +44,7 @@
     "@playwright/test": "^1.57.0",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/node": "^24.10.4",
@@ -60,11 +61,10 @@
     "eslint-plugin-react-x": "^2.3.13",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
-    "@tailwindcss/vite": "^4.3.3",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.3.6",
+    "vite": "^7.3.7",
     "vitest": "^4.1.11"
   },
   "allowScripts": {
