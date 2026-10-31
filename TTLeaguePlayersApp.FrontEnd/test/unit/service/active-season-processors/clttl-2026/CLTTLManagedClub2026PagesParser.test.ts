@@ -21,18 +21,31 @@ describe('CLTTLManagedClub2026PagesParser', () => {
         expect(parser.getClubTeams(html)).toEqual([{ team_name: 'Real Team', team_division: 'Division 1' }]);
     });
 
-    it('selects the club table and trims names and divisions without filtering league labels', () => {
+    it('selects the club table, trims names and normalizes word-form division numbers', () => {
         const parser = new CLTTLManagedClub2026PagesParser();
         const html = `<table><tbody><tr><td>Other</td><td>Other</td><td>Decoy Team</td></tr></tbody></table>
             <table class="tt-contact-table"><tbody>
                 <tr><td>Winter 2025-26</td><td>  Division Four  </td><td>  Older Team  </td></tr>
                 <tr><td>Winter 2026-27</td><td>  Premier  </td><td>  Current Team  </td></tr>
+                <tr><td>Winter 2026-27</td><td>  Division 1  </td><td>  Numeric Team  </td></tr>
             </tbody></table>`;
 
         expect(parser.getClubTeams(html)).toEqual([
-            { team_name: 'Older Team', team_division: 'Division Four' },
-            { team_name: 'Current Team', team_division: 'Premier' }
+            { team_name: 'Older Team', team_division: 'Division 4' },
+            { team_name: 'Current Team', team_division: 'Premier' },
+            { team_name: 'Numeric Team', team_division: 'Division 1' }
         ]);
+    });
+
+    it('normalizes each configured word-form division number', () => {
+        const parser = new CLTTLManagedClub2026PagesParser();
+        const divisionWords = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'];
+        const html = `<table class="tt-contact-table"><tbody>${divisionWords.map((word, index) =>
+            `<tr><td>Winter</td><td>Division ${word}</td><td>Team ${String(index + 1)}</td></tr>`
+        ).join('')}</tbody></table>`;
+
+        expect(parser.getClubTeams(html).map((team) => team.team_division))
+            .toEqual(divisionWords.map((_word, index) => `Division ${String(index + 1)}`));
     });
 
     describe('getClubTeams', () => {
@@ -40,8 +53,8 @@ describe('CLTTLManagedClub2026PagesParser', () => {
             const parser = new CLTTLManagedClub2026PagesParser();
             const teams = parser.getClubTeams(readSnapshot('club_teams_morpeth.html'));
 
-            // Page order and division labels are preserved after trimming. The League column is ignored:
-            // the page shows the season the site considers current.
+            // Page order is preserved. The League column is ignored: the page shows the season
+            // the site considers current.
             expect(teams).toHaveLength(12);
             expect(teams).toEqual([
                 { team_name: 'Morpeth 1', team_division: 'Premier' },

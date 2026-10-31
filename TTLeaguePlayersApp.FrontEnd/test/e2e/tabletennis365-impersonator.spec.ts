@@ -112,13 +112,18 @@ stubbedTest('direct and proxied F P C requests receive the matching saved respon
         const selected = new DOMParser().parseFromString(selector, 'text/html').querySelector('option[value="75706"]');
         const roster = await fetch(`${selectorUrl}?teamId=75706&leagueId=4760&handler=Players`).then(response => response.json()) as { teamPlayers: { id: number; name: string }[] };
         const club = await fetch(`https://go.x2u.in/proxy?url=${encodeURIComponent(clubUrl)}`).then(response => response.text());
-        return { calendar: calendar.includes('BEGIN:VEVENT'), team: selected?.textContent, players: roster.teamPlayers, rows: new DOMParser().parseFromString(club, 'text/html').querySelectorAll('table.tt-contact-table tbody tr').length };
+        const clubDocument = new DOMParser().parseFromString(club, 'text/html');
+        const rows = clubDocument.querySelectorAll('table.tt-contact-table tbody tr');
+        const divisions = Array.from(rows, row => row.querySelectorAll('td').item(1).textContent.trim());
+        return { calendar: calendar.includes('BEGIN:VEVENT'), team: selected?.textContent, players: roster.teamPlayers, rows: rows.length, divisions };
     }, { calendarUrl, selectorUrl, clubUrl });
     expect(results.calendar).toBe(true);
     expect(results.team).toBe('Morpeth 10');
     expect(results.players.length).toBeGreaterThan(0);
     for (const player of results.players) { expect(player.id).toBeGreaterThan(0); expect(player.name).toMatch(/\S/); }
     expect(results.rows).toBe(12);
+    expect(results.divisions).toContain('Division One');
+    expect(results.divisions).toContain('Division Four');
     expect(tableTennis365Stub.outcomes.every(outcome => outcome.outcome === 'manifest')).toBe(true);
 });
 

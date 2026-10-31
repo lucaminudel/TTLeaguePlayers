@@ -1,12 +1,31 @@
 import type { ClubTeamWithDivision } from '../../../types/clubTeam';
 
+const DIVISION_WORDS: Record<string, string> = {
+    one: '1',
+    two: '2',
+    three: '3',
+    four: '4',
+    five: '5',
+    six: '6',
+    seven: '7',
+};
+
+function normalizeDivision(division: string): string {
+    const match = /^Division\s+([a-z]+)$/i.exec(division);
+    if (!match) {
+        return division;
+    }
+
+    const number = DIVISION_WORDS[match[1].toLowerCase()];
+    return number ? `Division ${number}` : division;
+}
+
 export class CLTTLManagedClub2026PagesParser {
     /**
      * Every row of the Teams table is returned: the page shows the season the site considers
      * current, and its League column is not used to filter.
      *
-     * Division text is trimmed and returned verbatim; it is not mapped to configured
-     * division labels (for example, "Division Four" is not converted to "Division 4").
+     * Word-form division numbers are normalized to the numeric labels used by the app.
      */
     public getClubTeams(clubHtmlPage: string): ClubTeamWithDivision[] {
         const parser = new DOMParser();
@@ -28,7 +47,7 @@ export class CLTTLManagedClub2026PagesParser {
             if (team) {
                 teams.push({
                     team_name: team,
-                    team_division: cells[1].textContent.trim()
+                    team_division: normalizeDivision(cells[1].textContent.trim())
                 });
             }
         });

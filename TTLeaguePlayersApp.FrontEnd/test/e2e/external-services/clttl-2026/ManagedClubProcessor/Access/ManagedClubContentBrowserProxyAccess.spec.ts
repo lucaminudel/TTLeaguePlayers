@@ -16,7 +16,10 @@ test.describe('CLTTL managed-club browser/proxy access', () => {
         const names = await teamNames.allTextContents();
         const divisions = await teamDivisions.allTextContents();
         expect(divisions).toHaveLength(names.length);
-        for (const value of [...names, ...divisions]) expect(value).toMatch(/\S/);
+        for (const value of names) expect(value).toMatch(/\S/);
+        for (const division of divisions) {
+            expect(division).toMatch(/^(Premier|Division [1-7])$/);
+        }
         await expect(page.getByTestId('external-contract-club-team-count')).toHaveText(`Club teams: ${String(names.length)}`);
         await expect(page.getByTestId('external-contract-team-player-json')).toHaveCount(0);
     });

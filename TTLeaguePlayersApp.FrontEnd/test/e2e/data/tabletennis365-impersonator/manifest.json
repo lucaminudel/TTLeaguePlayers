@@ -29,7 +29,7 @@
     "contentType": "text/html; charset=utf-8",
     "bodyFile": "clubs/walworth.html",
     "capturedAt": null,
-    "provenance": "Reused existing test/e2e/data/club_teams_walworth.html scenario fixture; original capture date/status unknown. HTTP 200 is the existing test success response. Retains original table.tt-contact-table and its league/division/team/captain cells; all other page content removed."
+    "provenance": "Reused existing test/e2e/data/club_teams_walworth.html scenario fixture; original capture date/status unknown. Division labels are represented in word form to exercise parser normalization. HTTP 200 is the existing test success response. Retains the table.tt-contact-table team rows; all other page content removed."
   },
   {
     "url": "https://www.tabletennis365.com/CentralLondon/Clubs/Highbury",
@@ -37,7 +37,7 @@
     "contentType": "text/html; charset=utf-8",
     "bodyFile": "clubs/highbury.html",
     "capturedAt": null,
-    "provenance": "Reused existing test/e2e/data/club_teams_highbury.html scenario fixture; original capture date/status unknown. HTTP 200 is the existing test success response. Retains original table.tt-contact-table and its league/division/team/captain cells; all other page content removed."
+    "provenance": "Reused existing test/e2e/data/club_teams_highbury.html scenario fixture; original capture date/status unknown. Division labels are represented in word form to exercise parser normalization. HTTP 200 is the existing test success response. Retains the table.tt-contact-table team rows; all other page content removed."
   },
   {
     "url": "https://www.tabletennis365.com/CentralLondon/Clubs/Morpeth",
@@ -45,6 +45,6 @@
     "contentType": "text/html; charset=utf-8",
     "bodyFile": "clubs/morpeth.html",
     "capturedAt": null,
-    "provenance": "Reused existing test/e2e/data/club_teams_morpeth.html scenario fixture; original capture date/status unknown. HTTP 200 is the existing test success response. Retains original table.tt-contact-table and its league/division/team/captain cells; all other page content removed."
+    "provenance": "Reused existing test/e2e/data/club_teams_morpeth.html scenario fixture; original capture date/status unknown. Division labels are represented in word form to exercise parser normalization, matching the upstream format observed on 2026-10-30. HTTP 200 is the existing test success response. Retains the table.tt-contact-table team rows; all other page content removed."
   }
 ]

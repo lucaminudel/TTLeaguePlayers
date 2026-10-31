@@ -174,9 +174,9 @@ describe('ExternalContractsLiveTesting', () => {
         expect(screen.queryByTestId('go-x2u-in-proxy-result')).not.toBeInTheDocument();
     });
 
-    it('fetches and parses club teams through the proxy independently of active-season configuration', async () => {
+    it('normalizes word-form club divisions from the proxy independently of active-season configuration', async () => {
         mockGetConfig.mockReturnValue({ active_seasons_data_source: [dataSource({ division_fixtures: [], division_players: [] })] } as EnvironmentConfig);
-        vi.mocked(fetch).mockResolvedValueOnce(new Response(clubTable(' Division 4 ', ' Morpeth 10 ')));
+        vi.mocked(fetch).mockResolvedValueOnce(new Response(clubTable(' Division Four ', ' Morpeth 10 ')));
         renderDiagnostic('managed-club');
         await waitFor(() => { expect(screen.getByTestId('external-contract-status')).toHaveTextContent('ready'); });
         expect(screen.getByTestId('external-contract-season')).toHaveTextContent('CLTTL 2026-2027');
