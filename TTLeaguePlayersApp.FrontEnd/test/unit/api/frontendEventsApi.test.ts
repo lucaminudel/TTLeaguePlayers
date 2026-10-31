@@ -22,6 +22,7 @@ function response(status: number): Response {
 
 describe('sendFrontendEvent', () => {
   beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.mocked(getConfig).mockReturnValue({ ApiGateWay: { ApiBaseUrl: 'https://api.example.test' } } as EnvironmentConfig);
     setAuthTokenProvider(() => Promise.resolve(token));
   });
