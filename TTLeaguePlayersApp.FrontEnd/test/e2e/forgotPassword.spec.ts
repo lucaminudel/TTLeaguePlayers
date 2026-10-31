@@ -185,11 +185,12 @@ test.describe('Forgot Password Flow', () => {
 
     test('live - real code request for a never-registered address, simulated confirmation', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+        test.setTimeout(60_000);
         await mockPasswordResetCalls(page, { forgotPassword: 'real' });
         const email = uniqueTestEmail();
 
         const forgotPasswordPage = await new User(page).navigateToForgotPassword();
-        await forgotPasswordPage.requestCode(email);
+        await forgotPasswordPage.requestCode(email, 30_000);
         await forgotPasswordPage.setNewPassword('123456', validPassword);
 
         await expectLoginAfterReset(page, email);

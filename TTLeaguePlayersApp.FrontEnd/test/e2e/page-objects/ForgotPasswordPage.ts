@@ -19,11 +19,25 @@ export class ForgotPasswordPage {
         await this.page.getByTestId('forgot-password-send-code-button').click();
     }
 
-    async requestCode(email?: string): Promise<void> {
+    async requestCode(email?: string, timeoutMs = 5_000): Promise<void> {
         const requestedEmail = email ?? await this.page.locator('#email').inputValue();
         await this.tentativelyRequestCode(email);
 
-        await expect(this.page.locator('h2')).toHaveText('Reset Password');
+        const requestOutcome = await this.page.waitForFunction(() => {
+            const headingText = document.querySelector('h2')?.textContent;
+            if (headingText?.trim() === 'Reset Password') {
+                return 'success';
+            }
+
+            const errorMessage = document.querySelector('[data-testid="forgot-password-error-message"]')?.textContent;
+            return errorMessage?.trim() ? `error: ${errorMessage.trim()}` : false;
+        }, undefined, { timeout: timeoutMs });
+        const outcome = await requestOutcome.jsonValue();
+
+        if (outcome !== 'success') {
+            throw new Error(`Requesting password reset code failed: ${String(outcome)}`);
+        }
+
         await expect(this.page.getByTestId('forgot-password-code-sent-message')).toContainText(requestedEmail);
     }
 
