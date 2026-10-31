@@ -74,6 +74,14 @@
         },
         {
             "queryLanguage": "CWLI",
+            "queryDefinitionId": "3303040f-cd2a-4f4a-b3da-c1f4df90d7d5",
+            "name": "Frontend Observability/All Frontend Logs",
+            "queryString": "SOURCE logGroups(namePrefix: [], class: \"STANDARD\") START=-1h END=0s |\nfields @timestamp, log_level, event_category, @message \n| filter event_category in [\"FRONTEND_API_CALL_IRREGULAR\", \"FRONTEND_API_CALL_ERROR\"]\n| sort @timestamp desc\n| limit 10000",
+            "lastModified": 1793403389018,
+            "logGroupNames": []
+        },
+        {
+            "queryLanguage": "CWLI",
             "queryDefinitionId": "30fe861e-e1ad-44c4-8f8a-7d6a580bbf26",
             "name": "General/Errors CRITICAL",
             "queryString": "fields @timestamp, log_level, event_category, @message \n| filter log_level = \"CRITICAL\" \n| sort @timestamp desc \n| limit 10000",
