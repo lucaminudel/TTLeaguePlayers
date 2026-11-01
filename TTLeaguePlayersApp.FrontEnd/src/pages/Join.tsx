@@ -41,15 +41,17 @@ export const Join: React.FC = () => {
     }, [title]);
 
     useEffect(() => {
-
+        let isCurrentRequest = true;
         const fetchInvite = async () => {
             try {
                 setLoading(true);
                 // 5s timeout * (1 initial + 3 retries) = ~20s total wait
                 const data = await inviteApi.getInvite(effectiveInviteId, 5000, 3);
+                if (!isCurrentRequest) return;
                 setInvite(data);
                 setError(null);
             } catch (err: unknown) {
+                if (!isCurrentRequest) return;
                 let message = 'An unexpected error occurred. Please try again.';
                 let showRetry = true;
 
@@ -88,11 +90,16 @@ export const Join: React.FC = () => {
                 setError({ message, showRetry });
                 console.error('Error fetching invite:', err);
             } finally {
-                setLoading(false);
+                if (isCurrentRequest) {
+                    setLoading(false);
+                }
             }
         };
 
         void fetchInvite();
+        return () => {
+            isCurrentRequest = false;
+        };
     }, [effectiveInviteId]);
 
     const displayRole = (role?: string) => {

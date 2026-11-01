@@ -111,21 +111,42 @@ describe('parseActiveSeasonsJson', () => {
   });
 
   it('skips entries missing required string fields', () => {
-    const input = JSON.stringify([
-      { league: 'CLTTL', season: '2025-2026', team_name: 'Eagles' },
-      {
-        league: 'BLTTL',
-        season: '2024-2025',
-        team_name: 'Hawks',
-        team_division: 'Division 2',
-        person_name: 'Bob',
-        role: 'captain'
-      }
-    ]);
+    const validEntry: Record<string, unknown> = {
+      league: 'CLTTL',
+      season: '2025-2026',
+      team_name: 'Eagles',
+      team_division: 'Division 1',
+      person_name: 'Alice',
+      role: 'player',
+      latest_kudos: [10]
+    };
+    const requiredFields = [
+      'league',
+      'season',
+      'team_name',
+      'team_division',
+      'person_name',
+      'role'
+    ];
+    const invalidEntries = requiredFields.flatMap((field) => {
+      return [
+        { ...validEntry, [field]: undefined },
+        { ...validEntry, [field]: 42 }
+      ];
+    });
+    const input = JSON.stringify([...invalidEntries, validEntry]);
 
     const result = parseActiveSeasonsJson(input);
     expect(result).toHaveLength(1);
-    expect(result[0].league).toBe('BLTTL');
+    expect(result[0]).toEqual({
+      league: 'CLTTL',
+      season: '2025-2026',
+      team_name: 'Eagles',
+      team_division: 'Division 1',
+      person_name: 'Alice',
+      role: 'player',
+      latest_kudos: [10]
+    });
   });
 
   it('skips null and non-object items in the array', () => {
@@ -227,20 +248,31 @@ describe('parseManagedClubsJson', () => {
   });
 
   it('skips entries missing required string fields', () => {
-    const input = JSON.stringify([
-      { league: 'CLTTL', season: '2025-2026', club_name: 'London TTC' },
-      {
-        league: 'BLTTL',
-        season: '2024-2025',
-        club_name: 'Brighton TTC',
-        club_location: 'Brighton',
-        manager_name: 'Bob Jones'
-      }
-    ]);
+    const validEntry: Record<string, unknown> = {
+      league: 'CLTTL',
+      season: '2025-2026',
+      club_name: 'London TTC',
+      club_location: 'London',
+      manager_name: 'Alice Smith'
+    };
+    const requiredFields = ['league', 'season', 'club_name', 'club_location', 'manager_name'];
+    const invalidEntries = requiredFields.flatMap((field) => {
+      return [
+        { ...validEntry, [field]: undefined },
+        { ...validEntry, [field]: 42 }
+      ];
+    });
+    const input = JSON.stringify([...invalidEntries, validEntry]);
 
     const result = parseManagedClubsJson(input);
     expect(result).toHaveLength(1);
-    expect(result[0].club_name).toBe('Brighton TTC');
+    expect(result[0]).toEqual({
+      league: 'CLTTL',
+      season: '2025-2026',
+      club_name: 'London TTC',
+      club_location: 'London',
+      manager_name: 'Alice Smith'
+    });
   });
 
   it('skips entries where a required field has a non-string type', () => {

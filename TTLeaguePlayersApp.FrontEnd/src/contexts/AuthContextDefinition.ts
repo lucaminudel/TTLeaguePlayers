@@ -36,6 +36,7 @@ export interface AuthContextType {
   userId: string | null;
   activeSeasons: ActiveSeason[];
   managedClubs: ManagedClub[];
+  userAttributesLoadFailed: boolean;
   isPlayerOrCaptain: boolean;
   isClubManager: boolean;
   isCaptain: boolean;

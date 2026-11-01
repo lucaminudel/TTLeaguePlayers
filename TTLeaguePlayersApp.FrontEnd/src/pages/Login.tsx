@@ -7,8 +7,7 @@ import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { FormField } from '../components/common/FormField';
 import { ErrorMessage } from '../components/common/ErrorMessage';
-
-const AUTH_INIT_FAILED_PREFIX = 'AuthProvider.initAuth() has failed.';
+import { getCognitoErrorRecord, getUserFacingAuthError, isAuthInitFailure } from '../utils/cognitoErrorUtils';
 
 export interface LoginNavigationState {
   errorFromPreviousPage?: string;
@@ -86,17 +85,15 @@ export const Login: React.FC = () => {
         void navigate(returnUrl);
       }
     } catch (error: unknown) {
-      const message = (typeof error === 'object' && error !== null && 'message' in error)
-        ? (error as { message?: unknown }).message
-        : undefined;
-      if (typeof message === 'string' && message.startsWith(AUTH_INIT_FAILED_PREFIX)) {
-        setLocalError('Unexpected authentication initialisation error: reload the page and try again.');
+      if (isAuthInitFailure(error)) {
+        setLocalError(getUserFacingAuthError(error));
         return;
       }
 
-      const errorType = (error as Record<string, unknown>).__type
-        ?? (error as Record<string, unknown>).code
-        ?? (error as Record<string, unknown>).name;
+      const errorRecord = getCognitoErrorRecord(error);
+      const errorType = errorRecord.__type
+        ?? errorRecord.code
+        ?? errorRecord.name;
 
       if (errorType === 'UserNotConfirmedException') {
         const returnUrl = getReturnUrl();

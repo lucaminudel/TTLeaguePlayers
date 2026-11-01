@@ -9,12 +9,9 @@ import { FormField } from '../components/common/FormField';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { FieldError } from '../components/common/FieldError';
 import { isValidEmail } from '../utils/emailUtils';
-import { USER_INIT_ERROR_MESSAGE, isAuthInitFailure, getUserFriendlyCognitoError } from '../utils/cognitoErrorUtils';
+import { getUserFacingAuthError } from '../utils/cognitoErrorUtils';
 
 type ForgotPasswordStep = 'request' | 'confirm';
-
-const toUserMessage = (error: unknown): string =>
-  isAuthInitFailure(error) ? USER_INIT_ERROR_MESSAGE : getUserFriendlyCognitoError(error);
 
 export const ForgotPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -50,7 +47,7 @@ export const ForgotPassword: React.FC = () => {
       await forgotPassword(email);
       setStep('confirm');
     } catch (error: unknown) {
-      setLocalError(toUserMessage(error));
+      setLocalError(getUserFacingAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +67,7 @@ export const ForgotPassword: React.FC = () => {
       await confirmForgotPassword(email, verificationCode.trim(), newPassword);
       void navigate(`/login?email=${encodedEmail}&reset=success${returnUrlParam}`);
     } catch (error: unknown) {
-      setLocalError(toUserMessage(error));
+      setLocalError(getUserFacingAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +81,7 @@ export const ForgotPassword: React.FC = () => {
       await forgotPassword(email);
       setInfoMessage(`If an account exists for ${email}, a new code has been sent.`);
     } catch (error: unknown) {
-      setLocalError(toUserMessage(error));
+      setLocalError(getUserFacingAuthError(error));
     } finally {
       setIsLoading(false);
     }

@@ -16,7 +16,7 @@ interface MenuItem {
 export const MainMenu: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
-    const { isAuthenticated, isPlayerOrCaptain, isClubManager, isCaptain, username, activeSeasons, managedClubs, signOut } = useAuth();
+    const { isAuthenticated, isPlayerOrCaptain, isClubManager, isCaptain, username, activeSeasons, managedClubs, userAttributesLoadFailed, signOut } = useAuth();
 
     const menuItems: MenuItem[] = [
         {
@@ -118,8 +118,19 @@ export const MainMenu: React.FC = () => {
 
     const handleLogout = () => {
         setIsOpen(false);
-        // Update auth state first - all protected pages will redirect to Login
-        signOut();
+        try {
+            signOut();
+        } catch (error) {
+            console.error('Failed to clear the Cognito session during sign-out:', error);
+            void navigate('/login', {
+                replace: true,
+                state: {
+                    errorFromPreviousPage: 'There was a problem signing out from your session. Please refresh the page and try again. If the problem persists, contact us.'
+                }
+            });
+            return;
+        }
+
         // Then override navigation to Home after auth state updates
         setTimeout(() => void navigate('/'), 0);
     };
@@ -152,7 +163,7 @@ export const MainMenu: React.FC = () => {
             <div
                 data-testid="main-menu-overlay"
                 className={`
-                fixed inset-0 bg-primary-base z-40 flex flex-col items-center justify-center transition-opacity duration-300 ease-in-out
+                fixed inset-0 bg-primary-base z-40 flex flex-col items-center justify-center overflow-y-auto py-8 transition-opacity duration-300 ease-in-out
                 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
             `}
             >
@@ -171,6 +182,16 @@ export const MainMenu: React.FC = () => {
                             </li>
                         ) : (
                             <li className="text-center">
+                                {userAttributesLoadFailed && (
+                                    <div
+                                        role="status"
+                                        aria-live="polite"
+                                        className="mx-auto mb-4 max-w-md rounded border border-amber-300 bg-amber-950 px-4 py-3 text-base font-semibold leading-snug text-amber-200"
+                                        data-testid="main-menu-user-attributes-warning"
+                                    >
+                                        ⚠️ There is a temporary problem loading your account details. Please refresh the page later. If the problem persists, contact us.
+                                    </div>
+                                )}
                                 <div className="text-red-600 mb-4" data-testid="main-menu-user-info">
                                     <div className="text-lg" data-testid="main-menu-welcome-message">
                                         Welcome,{` ${welcomeName ?? ''}`}

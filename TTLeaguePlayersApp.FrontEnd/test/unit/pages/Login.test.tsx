@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Login, type LoginNavigationState } from '../../../src/pages/Login';
+import { ForgotPassword } from '../../../src/pages/ForgotPassword';
 import type { ActiveSeason, ManagedClub, SignInProfile } from '../../../src/contexts/AuthContextDefinition';
 
 const mockNavigate = vi.fn();
@@ -105,6 +106,21 @@ describe('Login page', () => {
             expect(forgotPasswordLink()).toHaveAttribute('href', '/forgot-password');
         });
 
+        it('keeps the reset email editable when the email query parameter is empty', async () => {
+            render(
+                <MemoryRouter initialEntries={['/login?email=']}>
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            fireEvent.click(forgotPasswordLink());
+
+            expect(await screen.findByLabelText('Email')).toBeEnabled();
+        });
+
         it('carries the returnUrl', () => {
             renderLoginPage('?email=a%40b.com&returnUrl=%2Fkudos');
 
@@ -113,6 +129,12 @@ describe('Login page', () => {
     });
 
     describe('after a password reset (?reset=success)', () => {
+        it('does not show the success line for an ordinary login', () => {
+            renderLoginPage();
+
+            expect(screen.queryByTestId('login-success-message')).not.toBeInTheDocument();
+        });
+
         it('shows the success line', () => {
             renderLoginPage('?reset=success');
 
@@ -143,6 +165,30 @@ describe('Login page', () => {
             expect(emailInput().value).toBe('');
             expect(emailInput()).toBeEnabled();
         });
+
+        it('updates when the email query parameter changes', () => {
+            render(
+                <MemoryRouter initialEntries={['/login']}>
+                    <Link to="/login?email=changed%40b.com">Load invite email</Link>
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            fireEvent.click(screen.getByText('Load invite email'));
+
+            expect(emailInput()).toHaveValue('changed@b.com');
+            expect(emailInput()).toBeDisabled();
+        });
+    });
+
+    describe('the password field', () => {
+        it('starts empty', () => {
+            renderLoginPage();
+
+            expect(screen.getByLabelText<HTMLInputElement>('Password')).toHaveValue('');
+        });
     });
 
     describe('a successful sign-in goes to', () => {
@@ -168,6 +214,22 @@ describe('Login page', () => {
             await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/'); });
         });
 
+        it('does not redirect club managers to promotion without a /kudos returnUrl', async () => {
+            signIn.mockResolvedValue({ seasons: [], clubs: [managedClub] });
+            renderLoginPage('?email=a%40b.com');
+            signInWith();
+
+            await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/'); });
+        });
+
+        it('/kudos when a user has no club-manager role to redirect', async () => {
+            signIn.mockResolvedValue({ seasons: [], clubs: [] });
+            renderLoginPage('?email=a%40b.com&returnUrl=%2Fkudos');
+            signInWith();
+
+            await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/kudos'); });
+        });
+
         it('Promote My Club instead of /kudos for a club manager with no active seasons', async () => {
             signIn.mockResolvedValue({ seasons: [], clubs: [managedClub] });
             renderLoginPage('?email=a%40b.com&returnUrl=%2Fkudos');
@@ -182,6 +244,52 @@ describe('Login page', () => {
             signInWith();
 
             await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/kudos'); });
+        });
+    });
+
+    it('shows and clears the pending sign-in state', async () => {
+        let resolveSignIn!: (profile: SignInProfile) => void;
+        signIn.mockImplementation(() => new Promise<SignInProfile>((resolve) => {
+            resolveSignIn = resolve;
+        }));
+        renderLoginPage('?email=a%40b.com');
+        signInWith();
+
+        await waitFor(() => {
+            expect(screen.getByTestId('login-submit-button')).toBeDisabled();
+            expect(screen.getByTestId('login-submit-button')).toHaveTextContent('Signing in...');
+        });
+
+        await act(async () => {
+            resolveSignIn({ seasons: [], clubs: [] });
+            await Promise.resolve();
+        });
+
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/');
+            expect(screen.getByTestId('login-submit-button')).toBeEnabled();
+            expect(screen.getByTestId('login-submit-button')).toHaveTextContent('Sign In');
+        });
+    });
+
+    it('does not redirect or show the auth-initialisation message for other sign-in errors', async () => {
+        let rejectSignIn!: (error: unknown) => void;
+        signIn.mockImplementation(() => new Promise<SignInProfile>((_, reject) => {
+            rejectSignIn = reject;
+        }));
+        renderLoginPage('?email=a%40b.com');
+        signInWith();
+
+        await waitFor(() => { expect(screen.getByTestId('login-submit-button')).toBeDisabled(); });
+        await act(async () => {
+            rejectSignIn({ code: 'NotAuthorizedException', message: 'Incorrect username or password.' });
+            await Promise.resolve();
+        });
+
+        await waitFor(() => {
+            expect(mockNavigate).not.toHaveBeenCalled();
+            expect(screen.queryByTestId('login-error-message')).not.toBeInTheDocument();
+            expect(screen.getByTestId('login-submit-button')).toBeEnabled();
         });
     });
 

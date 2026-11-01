@@ -10,7 +10,7 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { FieldError } from '../components/common/FieldError';
 import { useAcceptInvite } from '../hooks/useAcceptInvite';
 import { isValidEmail } from '../utils/emailUtils';
-import { USER_INIT_ERROR_MESSAGE, isAuthInitFailure, getUserFriendlyCognitoError } from '../utils/cognitoErrorUtils';
+import { getUserFacingAuthError, isAuthInitFailure, getUserFriendlyCognitoError } from '../utils/cognitoErrorUtils';
 import type { Invite } from '../types/invite';
 import type { LoginNavigationState } from './Login';
 
@@ -96,7 +96,7 @@ export const Register: React.FC = () => {
 
     } catch (error: unknown) {
       if (isAuthInitFailure(error)) {
-        setLocalError(USER_INIT_ERROR_MESSAGE);
+        setLocalError(getUserFacingAuthError(error));
         return;
       }
 
@@ -130,11 +130,7 @@ export const Register: React.FC = () => {
       const returnUrlParam = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : '';
       void navigate(`/login${returnUrlParam}`);
     } catch (error: unknown) {
-      if (isAuthInitFailure(error)) {
-        setLocalError(USER_INIT_ERROR_MESSAGE);
-        return;
-      }
-      setLocalError(getUserFriendlyCognitoError(error));
+      setLocalError(getUserFacingAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -148,11 +144,7 @@ export const Register: React.FC = () => {
       await resendConfirmationCode(email);
       setLocalError('New verification code sent to your email.');
     } catch (error: unknown) {
-      if (isAuthInitFailure(error)) {
-        setLocalError(USER_INIT_ERROR_MESSAGE);
-        return;
-      }
-      setLocalError(getUserFriendlyCognitoError(error));
+      setLocalError(getUserFacingAuthError(error));
     } finally {
       setIsLoading(false);
     }

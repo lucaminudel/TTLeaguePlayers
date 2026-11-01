@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import {
   CognitoUserPool,
   CognitoUser,
@@ -19,6 +19,43 @@ interface AuthProviderProps {
 interface InitialAuthState {
   userPool: CognitoUserPool | null;
   authInitialisationError: string | null;
+}
+
+function getTokenClaims(idToken: string): Record<string, unknown> | null {
+  if (!idToken || typeof idToken !== 'string') {
+    return null;
+  }
+
+  try {
+    const payload: unknown = JSON.parse(atob(idToken.split('.')[1]));
+    return typeof payload === 'object' && payload !== null && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function getStringClaim(claims: Record<string, unknown> | null, claim: string): string | undefined {
+  const value = claims?.[claim];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function extractUsernameFromToken(idToken: string): string {
+  const claims = getTokenClaims(idToken);
+  return getStringClaim(claims, 'preferred_username')
+    ?? getStringClaim(claims, 'name')
+    ?? getStringClaim(claims, 'email')
+    ?? getStringClaim(claims, 'sub')
+    ?? 'user';
+}
+
+function extractEmailFromToken(idToken: string): string | null {
+  return getStringClaim(getTokenClaims(idToken), 'email') ?? null;
+}
+
+function extractSubFromToken(idToken: string): string | null {
+  return getStringClaim(getTokenClaims(idToken), 'sub') ?? null;
 }
 
 function formatUnknownError(error: unknown): string {
@@ -64,48 +101,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [activeSeasons, setActiveSeasons] = useState<ActiveSeason[]>([]);
   const [managedClubs, setManagedClubs] = useState<ManagedClub[]>([]);
+  const [userAttributesLoadFailed, setUserAttributesLoadFailed] = useState(false);
+  const authSessionVersion = useRef(0);
   
   const [authError, setAuthError] = useState<string | null>(null);
-
-  const extractUsernameFromToken = (idToken: string): string => {
-    if (!idToken || typeof idToken !== 'string') {
-      return 'user';
-    }
-    try {
-      const payload = JSON.parse(atob(idToken.split('.')[1])) as Record<string, unknown>;
-      return (payload.preferred_username as string | undefined)
-        ?? (payload.name as string | undefined)
-        ?? (payload.email as string | undefined)
-        ?? (payload.sub as string | undefined)
-        ?? 'user';
-    } catch {
-      return 'user';
-    }
-  };
-
-  const extractEmailFromToken = (idToken: string): string | null => {
-    if (!idToken || typeof idToken !== 'string') {
-      return null;
-    }
-    try {
-      const payload = JSON.parse(atob(idToken.split('.')[1])) as Record<string, unknown>;
-      return (payload.email as string | undefined) ?? null;
-    } catch {
-      return null;
-    }
-  };
-
-  const extractSubFromToken = (idToken: string): string | null => {
-    if (!idToken || typeof idToken !== 'string') {
-      return null;
-    }
-    try {
-      const payload = JSON.parse(atob(idToken.split('.')[1])) as Record<string, unknown>;
-      return (payload.sub as string | undefined) ?? null;
-    } catch {
-      return null;
-    }
-  };
 
   const throwInitAuthFailed = (extraInfo?: string): never => {
     const details = authInitialisationError
@@ -118,10 +117,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const fetchCustomAttributes = useCallback((cognitoUser: CognitoUser): Promise<{ seasons: ActiveSeason[]; clubs: ManagedClub[] }> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       cognitoUser.getUserAttributes((err, attributes) => {
-        if (err || !attributes) {
-          resolve({ seasons: [], clubs: [] });
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (!attributes) {
+          reject(new Error('Cognito returned no user attributes.'));
           return;
         }
 
@@ -158,21 +162,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = useCallback(() => {
-    if (userPool) {
-      const currentUser = userPool.getCurrentUser();
-      if (currentUser) {
-        currentUser.signOut();
+    try {
+      if (userPool) {
+        const currentUser = userPool.getCurrentUser();
+        if (currentUser) {
+          currentUser.signOut();
+        }
       }
+    } finally {
+      authSessionVersion.current += 1;
+      setIsAuthenticated(false);
+      setUsername(null);
+      setEmail(null);
+      setUserId(null);
+      setActiveSeasons([]);
+      setManagedClubs([]);
+      setUserAttributesLoadFailed(false);
+      setAuthError(null);
+      setIsLoading(false);
     }
-
-    setIsAuthenticated(false);
-    setUsername(null);
-    setEmail(null);
-    setUserId(null);
-    setActiveSeasons([]);
-    setManagedClubs([]);
-    setAuthError(null);
-    setIsLoading(false);
   }, [userPool]);
 
   useEffect(() => {
@@ -192,9 +200,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     let isMounted = true;
+    const sessionVersion = authSessionVersion.current;
 
     currentUser.getSession((err: unknown, session: CognitoUserSession) => {
-      if (!isMounted) {
+      if (!isMounted || authSessionVersion.current !== sessionVersion) {
         return;
       }
 
@@ -204,13 +213,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const extractedEmail = extractEmailFromToken(idToken);
         const extractedUserId = extractSubFromToken(idToken);
 
-        // Fetch active seasons synchronously to get the seasons data
+        // Load role attributes before completing session bootstrap.
         currentUser.getUserAttributes((userErr, attributes) => {
-          if (!isMounted) return;
+          if (!isMounted || authSessionVersion.current !== sessionVersion) return;
 
           let seasons: ActiveSeason[] = [];
           let clubs: ManagedClub[] = [];
-          if (!userErr && attributes) {
+          if (userErr || !attributes) {
+            setUserAttributesLoadFailed(true);
+          } else {
+            setUserAttributesLoadFailed(false);
             const activeSeasonsAttribute = attributes.find((attr) => {
               const name = attr.getName();
               return name === 'custom:active_seasons' || name === 'active_seasons';
@@ -243,6 +255,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUserId(null);
       setActiveSeasons([]);
       setManagedClubs([]);
+      setUserAttributesLoadFailed(false);
       setAuthError(null);
       setIsLoading(false);
     });
@@ -275,15 +288,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const extractedEmail = extractEmailFromToken(idToken);
           const extractedUserId = extractSubFromToken(idToken);
 
-          void fetchCustomAttributes(cognitoUser).then(({ seasons, clubs }) => {
-            setIsAuthenticated(true);
-            setUsername(extractedUsername);
-            setEmail(extractedEmail);
-            setUserId(extractedUserId);
-            setActiveSeasons(seasons);
-            setManagedClubs(clubs);
-            resolve({ seasons, clubs });
-          });
+          void fetchCustomAttributes(cognitoUser)
+            .then(({ seasons, clubs }) => {
+              setIsAuthenticated(true);
+              setUsername(extractedUsername);
+              setEmail(extractedEmail);
+              setUserId(extractedUserId);
+              setActiveSeasons(seasons);
+              setManagedClubs(clubs);
+              setUserAttributesLoadFailed(false);
+              resolve({ seasons, clubs });
+            })
+            .catch((error: unknown) => {
+              console.error('Failed to load user attributes during sign-in:', error);
+              setIsAuthenticated(true);
+              setUsername(extractedUsername);
+              setEmail(extractedEmail);
+              setUserId(extractedUserId);
+              setActiveSeasons([]);
+              setManagedClubs([]);
+              setUserAttributesLoadFailed(true);
+              resolve({ seasons: [], clubs: [] });
+            });
         },
         onFailure: (err: Error) => {
           setAuthError(err.message || 'Authentication failed');
@@ -383,6 +409,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const getIdToken = useCallback(async (): Promise<string | null> => {
     if (!userPool || !isAuthenticated) return null;
 
+    const sessionVersion = authSessionVersion.current;
+
     return new Promise((resolve) => {
       const currentUser = userPool.getCurrentUser();
       if (!currentUser) {
@@ -390,8 +418,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      currentUser.getSession((err: unknown, session: CognitoUserSession) => {
-        if (err || !session.isValid()) {
+      currentUser.getSession((err: unknown, session: CognitoUserSession | null) => {
+        if (authSessionVersion.current !== sessionVersion || err || !session?.isValid()) {
           resolve(null);
           return;
         }
@@ -418,8 +446,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
+    const sessionVersion = authSessionVersion.current;
+
     return new Promise((resolve) => {
       currentUser.getSession((err: unknown, session: CognitoUserSession | null) => {
+        if (authSessionVersion.current !== sessionVersion) {
+          resolve();
+          return;
+        }
         if (err || !session?.isValid()) {
           resolve();
           return;
@@ -427,7 +461,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         try {
           currentUser.getUserAttributes((attrErr, attributes) => {
+            if (authSessionVersion.current !== sessionVersion) {
+              resolve();
+              return;
+            }
             if (attrErr || !attributes) {
+              setUserAttributesLoadFailed(true);
               resolve();
               return;
             }
@@ -440,10 +479,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const rawValue = activeSeasonsAttribute?.getValue();
 
             const seasons = parseActiveSeasonsJson(rawValue);
-
-            if (seasons.length > 0) {
-              setActiveSeasons(seasons);
-            }
+            setActiveSeasons(seasons);
 
             const managedClubsAttribute = attributes.find((attr) => {
               const name = attr.getName();
@@ -451,14 +487,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             });
 
             const clubs = parseManagedClubsJson(managedClubsAttribute?.getValue());
-
-            if (clubs.length > 0) {
-              setManagedClubs(clubs);
-            }
+            setManagedClubs(clubs);
+            setUserAttributesLoadFailed(false);
             resolve();
           });
         } catch (error) {
           console.error('Failed to refresh seasons:', error);
+          setUserAttributesLoadFailed(true);
           resolve();
         }
       });
@@ -475,6 +510,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         userId,
         activeSeasons,
         managedClubs,
+        userAttributesLoadFailed,
         isPlayerOrCaptain: activeSeasons.length > 0,
         isClubManager: managedClubs.length > 0,
         isCaptain: hasCaptainRole(activeSeasons),

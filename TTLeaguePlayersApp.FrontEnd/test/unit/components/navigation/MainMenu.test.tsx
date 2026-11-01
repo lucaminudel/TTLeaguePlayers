@@ -33,7 +33,7 @@ describe('MainMenu', () => {
 
     const setAuth = (
         flags: { isAuthenticated: boolean; isPlayerOrCaptain?: boolean; isClubManager?: boolean; isCaptain?: boolean },
-        details: { activeSeasons?: unknown[]; managedClubs?: unknown[]; signOut?: ReturnType<typeof vi.fn> } = {}
+        details: { activeSeasons?: unknown[]; managedClubs?: unknown[]; userAttributesLoadFailed?: boolean; signOut?: ReturnType<typeof vi.fn> } = {}
     ) => {
         mockUseAuth.mockReturnValue({
             isAuthenticated: flags.isAuthenticated,
@@ -43,6 +43,7 @@ describe('MainMenu', () => {
             username: 'Luca',
             activeSeasons: details.activeSeasons ?? [],
             managedClubs: details.managedClubs ?? [],
+            userAttributesLoadFailed: details.userAttributesLoadFailed ?? false,
             signOut: details.signOut ?? vi.fn(),
         });
     };
@@ -59,7 +60,16 @@ describe('MainMenu', () => {
         fireEvent.click(screen.getByTestId('main-menu-toggle'));
     };
 
-    const CurrentLocation = () => <span data-testid="current-location">{useLocation().pathname}</span>;
+    const CurrentLocation = () => {
+        const location = useLocation();
+        const locationState = location.state as { errorFromPreviousPage?: string } | null;
+        return (
+            <>
+                <span data-testid="current-location">{location.pathname}</span>
+                <span data-testid="current-location-error">{locationState?.errorFromPreviousPage}</span>
+            </>
+        );
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -234,6 +244,31 @@ describe('MainMenu', () => {
         vi.useRealTimers();
     });
 
+    it('shows a clear login error if Cognito cache cleanup fails during sign-out', () => {
+        const signOut = vi.fn(() => {
+            throw new Error('Cognito storage cleanup failed');
+        });
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        setAuth({ isAuthenticated: true }, { signOut });
+
+        render(
+            <MemoryRouter initialEntries={['/kudos']}>
+                <MainMenu />
+                <CurrentLocation />
+            </MemoryRouter>
+        );
+        fireEvent.click(screen.getByTestId('main-menu-toggle'));
+        fireEvent.click(screen.getByTestId('main-menu-logout-button'));
+
+        expect(signOut).toHaveBeenCalledOnce();
+        expect(consoleError).toHaveBeenCalledOnce();
+        expect(screen.getByTestId('current-location')).toHaveTextContent('/login');
+        expect(screen.getByTestId('current-location-error')).toHaveTextContent(
+            'There was a problem signing out from your session. Please refresh the page and try again. If the problem persists, contact us.'
+        );
+        consoleError.mockRestore();
+    });
+
     it('uses the username when no season or club record supplies a display name', () => {
         setAuth({ isAuthenticated: true }, { activeSeasons: [], managedClubs: [] });
 
@@ -241,6 +276,22 @@ describe('MainMenu', () => {
 
         expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Luca');
         expect(screen.queryByTestId('main-menu-unexpected-error')).toBeNull();
+    });
+
+    it('shows the account-details warning when attributes could not be loaded', () => {
+        setAuth(
+            { isAuthenticated: true },
+            { userAttributesLoadFailed: true }
+        );
+
+        renderAndOpenMenu();
+
+        const warning = screen.getByTestId('main-menu-user-attributes-warning');
+        expect(warning).toHaveAttribute('role', 'status');
+        expect(warning).toHaveTextContent(
+            '⚠️ There is a temporary problem loading your account details. Please refresh the page later. If the problem persists, contact us.'
+        );
+        expect(warning.compareDocumentPosition(screen.getByTestId('main-menu-user-info')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('does not repeat the first player or manager name in the additional records', () => {
