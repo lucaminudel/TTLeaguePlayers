@@ -102,6 +102,18 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(fixture.venue).toBe('Morpeth School');
         });
 
+        it('trims the venue label before returning it', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'trimmed-location@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division 4)',
+                'LOCATION:  Morpeth School  , Morpeth Street'
+            )));
+
+            expect(fixture.venue).toBe('Morpeth School');
+        });
+
         it('removes a case-insensitive division suffix from SUMMARY before splitting teams', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
@@ -113,12 +125,56 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
         });
 
-        it('removes a division suffix despite extra surrounding whitespace', () => {
+        it('removes a division suffix despite extra surrounding whitespace and multi-digit division numbers', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
                 'spaced-division@example.test',
                 'DTSTART;TZID=Europe/London:20261009T184500',
-                'SUMMARY:Home v Away   (Division 4)   '
+                'SUMMARY:Home v Away   (Division 12)   '
+            )));
+
+            expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
+        });
+
+        it('removes a division suffix even when it directly follows the away-team name', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'adjacent-division@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away(Division 4)'
+            )));
+
+            expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
+        });
+
+        it('preserves division-like text inside a team name when removing the trailing suffix', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'division-in-team-name@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home (Division 4) v Away (Division 2)'
+            )));
+
+            expect(fixture).toMatchObject({ homeTeam: 'Home (Division 4)', awayTeam: 'Away' });
+        });
+
+        it('accepts multiple spaces between Division and its number', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'multi-space-division@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:Home v Away (Division   4)'
+            )));
+
+            expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
+        });
+
+        it('trims both team names around the fixture separator', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'trimmed-team-names@example.test',
+                'DTSTART;TZID=Europe/London:20261009T184500',
+                'SUMMARY:  Home   v   Away  '
             )));
 
             expect(fixture).toMatchObject({ homeTeam: 'Home', awayTeam: 'Away' });
@@ -138,6 +194,21 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
                 startDateTime: new Date('2026-10-09T18:45:00.000Z'),
                 venue: 'Venue',
                 googleMapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=51.5311%2C-0.0821',
+                homeTeam: 'Home',
+                awayTeam: 'Away'
+            });
+        });
+
+        it('trims whitespace from calendar property names', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const [fixture] = parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                'whitespace-property-name@example.test',
+                'DTSTART ;TZID=Europe/London:20261009T184500',
+                'SUMMARY :Home v Away (Division 4)'
+            )));
+
+            expect(fixture).toMatchObject({
+                startDateTime: new Date('2026-10-09T18:45:00.000Z'),
                 homeTeam: 'Home',
                 awayTeam: 'Away'
             });
@@ -260,6 +331,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             {
                 name: 'an incomplete event',
                 uid: 'incomplete@example.test',
+                reason: 'incomplete VEVENT',
                 invalidEvent: [
                     'BEGIN:VEVENT',
                     'UID:incomplete@example.test',
@@ -270,6 +342,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             {
                 name: 'an event with no date',
                 uid: 'missing-date@example.test',
+                reason: 'missing or invalid DTSTART',
                 invalidEvent: fixtureEvent(
                     'missing-date@example.test',
                     'SUMMARY:Home v Away (Division 4)'
@@ -278,6 +351,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             {
                 name: 'an event with an invalid date',
                 uid: 'invalid-date@example.test',
+                reason: 'missing or invalid DTSTART',
                 invalidEvent: fixtureEvent(
                     'invalid-date@example.test',
                     'DTSTART;TZID=Europe/London:not-a-date',
@@ -296,6 +370,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             ].map(([name, value]) => ({
                 name,
                 uid: `${value}@example.test`,
+                reason: 'missing or invalid DTSTART',
                 invalidEvent: fixtureEvent(
                     `${value}@example.test`,
                     `DTSTART;TZID=Europe/London:${value}`,
@@ -305,6 +380,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             {
                 name: 'an event without two teams',
                 uid: 'invalid-summary@example.test',
+                reason: 'invalid SUMMARY',
                 invalidEvent: fixtureEvent(
                     'invalid-summary@example.test',
                     'DTSTART;TZID=Europe/London:20261010T184500',
@@ -314,6 +390,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             {
                 name: 'an event without a home team',
                 uid: 'missing-home@example.test',
+                reason: 'invalid SUMMARY',
                 invalidEvent: fixtureEvent(
                     'missing-home@example.test',
                     'DTSTART;TZID=Europe/London:20261010T184500',
@@ -323,13 +400,14 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             {
                 name: 'an event without an away team',
                 uid: 'missing-away@example.test',
+                reason: 'invalid SUMMARY',
                 invalidEvent: fixtureEvent(
                     'missing-away@example.test',
                     'DTSTART;TZID=Europe/London:20261010T184500',
                     'SUMMARY:Morpeth 10 v  (Division 4)'
                 )
             }
-        ])('logs and skips $name without losing valid neighbours', ({ uid, invalidEvent }) => {
+        ])('logs and skips $name without losing valid neighbours', ({ uid, reason, invalidEvent }) => {
             vi.useFakeTimers();
             vi.setSystemTime(new Date('2040-01-02T03:04:05.000Z'));
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -346,7 +424,9 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             }]);
             expect(fixtures.some(({ startDateTime }) => startDateTime.getTime() === Date.now())).toBe(false);
             expect(consoleError).toHaveBeenCalledTimes(1);
-            expect(JSON.stringify(consoleError.mock.calls)).toContain(uid);
+            expect(consoleError).toHaveBeenCalledWith(
+                `Skipping unusable CLTTL fixture event "${uid}": ${reason}.`
+            );
         });
 
         it('includes the unusable-event reason in the observability diagnostic', () => {
@@ -376,6 +456,21 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
 
             expect(consoleError).toHaveBeenCalledWith(
                 'Skipping unusable CLTTL fixture event "unknown event": invalid SUMMARY.'
+            );
+        });
+
+        it('uses a non-blank summary when the event UID is blank', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(() => parser.getTeamFixtures(calendarWithEvents(fixtureEvent(
+                '   ',
+                'DTSTART;TZID=Europe/London:not-a-date',
+                'SUMMARY:Home v Away'
+            )))).toThrow('No usable fixture events in calendar');
+
+            expect(consoleError).toHaveBeenCalledWith(
+                'Skipping unusable CLTTL fixture event "Home v Away": missing or invalid DTSTART.'
             );
         });
 
@@ -415,6 +510,21 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
         it.each(['BEGIN:VCALENDAR', 'END:VCALENDAR'])('rejects a calendar missing %s', (delimiter) => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             expect(() => parser.getTeamFixtures(calendarWithEvents().replace(delimiter, ''))).toThrow('Invalid fixtures calendar');
+        });
+
+        it.each([
+            ['a prefix before BEGIN:VCALENDAR', 'prefixBEGIN:VCALENDAR'],
+            ['text after BEGIN:VCALENDAR', 'BEGIN:VCALENDARextra'],
+            ['a prefix before END:VCALENDAR', 'prefixEND:VCALENDAR'],
+            ['text after END:VCALENDAR', 'END:VCALENDARextra']
+        ])('rejects calendar markers with %s', (_description, malformedMarker) => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const calendar = calendarWithEvents().replace(
+                malformedMarker.startsWith('prefix') ? malformedMarker.slice('prefix'.length) : malformedMarker.startsWith('BEGIN') ? 'BEGIN:VCALENDAR' : 'END:VCALENDAR',
+                malformedMarker
+            );
+
+            expect(() => parser.getTeamFixtures(calendar)).toThrow('Invalid fixtures calendar');
         });
 
         it('rejects an unmatched event ending unless there is a usable event', () => {
@@ -476,6 +586,28 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(consoleError).toHaveBeenCalledTimes(1);
             expect(JSON.stringify(consoleError.mock.calls)).toContain('outer-incomplete@example.test');
         });
+
+        it('rejects an incomplete outer event when its complete nested event is also unusable', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            const parser = new CLTTLActiveSeason2026PagesParser();
+            const calendar = [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'UID:outer-incomplete@example.test',
+                'BEGIN:VEVENT',
+                'UID:inner-unusable@example.test',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n');
+
+            expect(() => parser.getTeamFixtures(calendar)).toThrow('No usable fixture events in calendar');
+            expect(consoleError).toHaveBeenCalledWith(
+                'Skipping unusable CLTTL fixture event "outer-incomplete@example.test": incomplete VEVENT.'
+            );
+            expect(consoleError).toHaveBeenCalledWith(
+                'Skipping unusable CLTTL fixture event "inner-unusable@example.test": missing or invalid DTSTART.'
+            );
+        });
     });
 
     describe('getTeamPlayers', () => {
@@ -493,10 +625,22 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
             expect(players).toEqual(['Luca Minudel', 'Michele de Giovanni', 'Dave Mesfin']);
         });
 
-        it('supports a legacy bare array and rejects invalid JSON', () => {
+        it('supports a legacy bare array and reports invalid JSON with its parsing cause', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             expect(parser.getTeamPlayers(JSON.stringify(['Luca Minudel', '']))).toEqual(['Luca Minudel']);
-            expect(() => parser.getTeamPlayers('<html><body></body></html>')).toThrow();
+            let error: unknown;
+            try {
+                parser.getTeamPlayers('<html><body></body></html>');
+            } catch (caught) {
+                error = caught;
+            }
+
+            expect(error).toBeInstanceOf(Error);
+            if (!(error instanceof Error)) {
+                throw new Error('Expected invalid JSON to throw an Error');
+            }
+            expect(error.message).toBe('Invalid player response JSON');
+            expect(error.cause).toBeInstanceOf(SyntaxError);
         });
 
         it('supports the legacy object payload using players instead of teamPlayers', () => {
@@ -510,8 +654,19 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
         it('distinguishes empty valid rosters from unsupported and unusable responses', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
             expect(parser.getTeamPlayers('{"teamPlayers":[]}')).toEqual([]);
-            expect(() => parser.getTeamPlayers('{}')).toThrow();
-            expect(() => parser.getTeamPlayers('{"teamPlayers":[{},null," "]}')).toThrow();
+            expect(() => parser.getTeamPlayers('{"teamPlayers":[{},null," "]}')).toThrow('No usable players in response');
+        });
+
+        it.each([
+            ['an empty object', '{}'],
+            ['a JSON string', '"123"'],
+            ['a JSON number', '123'],
+            ['a JSON boolean', 'true'],
+            ['JSON null', 'null']
+        ])('rejects %s as an unsupported response shape', (_description, response) => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(() => parser.getTeamPlayers(response)).toThrow('Unsupported player response');
         });
 
         it('keeps only non-empty player names and trims each supported payload shape', () => {
@@ -522,6 +677,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
                     '   ',
                     null,
                     42,
+                    false,
                     { playerName: '  Ada Lovelace  ' },
                     { name: '   ', fullName: '  Grace Hopper  ' },
                     { name: '  Michele de Giovanni  ' },
@@ -563,7 +719,7 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
 
         it('rejects a missing team selector', () => {
             const parser = new CLTTLActiveSeason2026PagesParser();
-            expect(() => parser.getTeamIds('<html><body></body></html>')).toThrow();
+            expect(() => parser.getTeamIds('<html><body></body></html>')).toThrow('Team selector missing');
         });
 
         it('accepts a selector with only the default option', () => {
@@ -589,11 +745,30 @@ describe('CLTTLActiveSeason2026PagesParser', () => {
                     <option value="73142">Morpeth 10</option>
                     <option value="73142abc">Malformed suffix</option>
                     <option value="abc73142">Malformed prefix</option>
+                    <option value=" 73142 ">Whitespace around ID</option>
                     <option value="">All Teams</option>
                 </select>
             `);
 
             expect(teamIds).toEqual([{ team: 'Morpeth 10', id: 73142 }]);
+        });
+
+        it('trims team names from selector option text', () => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(parser.getTeamIds('<select id="teamSelect"><option value="73142">  Morpeth 10  </option></select>'))
+                .toEqual([{ team: 'Morpeth 10', id: 73142 }]);
+        });
+
+        it.each([
+            ['a non-numeric ID', '<option value="abc">Invalid</option>'],
+            ['a numeric ID without a team name', '<option value="123"></option>'],
+            ['a numeric ID with only a whitespace team name', '<option value="123">   </option>']
+        ])('rejects a selector with %s but no usable teams', (_description, option) => {
+            const parser = new CLTTLActiveSeason2026PagesParser();
+
+            expect(() => parser.getTeamIds(`<select id="teamSelect">${option}</select>`))
+                .toThrow('No usable teams in selector');
         });
     });
 

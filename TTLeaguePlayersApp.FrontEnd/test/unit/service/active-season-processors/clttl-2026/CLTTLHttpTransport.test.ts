@@ -26,22 +26,81 @@ describe('CLTTLHttpTransport', () => {
     });
 
     it('rejects readable HTTP error bodies with the original status, URL and error identity', async () => {
-        vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response('error page', { status: 503 })));
+        vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response('error page', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'content-type': 'text/plain' }
+        })));
 
-        const fetchPromise = transport.fetchText('http://fixtures/div1');
-        const assertionPromise = expect(fetchPromise).rejects.toMatchObject({
+        const fetchPromise = transport.fetchText('http://fixtures/div1').catch((error: unknown) => error);
+        await vi.runAllTimersAsync();
+        const error = await fetchPromise;
+
+        expect(error).toBeInstanceOf(PageFetcherError);
+        expect(error).toMatchObject({
             name: 'PageFetcherError',
-            message: 'The page or website is not available after 3 attempts: http://fixtures/div1. Details: HTTP error! status: 503'
+            message: 'The page or website is not available after 3 attempts: http://fixtures/div1. Details: HTTP error! status: 503',
+            details: {
+                request: { method: 'GET', url: 'http://fixtures/div1', attempt: 3 },
+                response: {
+                    status: 503,
+                    statusText: 'Service Unavailable',
+                    headers: { 'content-type': 'text/plain' },
+                    body: 'error page'
+                }
+            }
         });
+        expect(fetch).toHaveBeenCalledTimes(3);
+    });
 
-        await vi.advanceTimersByTimeAsync(1999);
-        expect(fetch).toHaveBeenCalledTimes(1);
-        await vi.advanceTimersByTimeAsync(1);
-        expect(fetch).toHaveBeenCalledTimes(2);
-        await vi.advanceTimersByTimeAsync(1999);
-        expect(fetch).toHaveBeenCalledTimes(2);
-        await vi.advanceTimersByTimeAsync(1);
-        await assertionPromise;
+    it('retries abort failures and retains the final abort as the diagnostic cause', async () => {
+        const abortError = new DOMException('The operation was aborted', 'AbortError');
+        vi.mocked(fetch).mockRejectedValue(abortError);
+
+        const fetchPromise = transport.fetchText('http://fixtures/div1').catch((error: unknown) => error);
+        await vi.runAllTimersAsync();
+        const error = await fetchPromise;
+
+        expect(error).toBeInstanceOf(PageFetcherError);
+        expect(error).toMatchObject({
+            details: {
+                request: { method: 'GET', url: 'http://fixtures/div1', attempt: 3 }
+            },
+            cause: abortError
+        });
+        expect(fetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('omits an error body when reading it exceeds the capture timeout', async () => {
+        vi.mocked(fetch).mockResolvedValue({
+            ok: false,
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers(),
+            arrayBuffer: () => new Promise<ArrayBuffer>(() => undefined)
+        } as Response);
+
+        const fetchPromise = transport.fetchText('http://fixtures/div1').catch((error: unknown) => error);
+        await vi.runAllTimersAsync();
+        const error = await fetchPromise;
+
+        if (!(error instanceof PageFetcherError)) {
+            throw new Error('Expected an HTTP failure to produce a PageFetcherError');
+        }
+        expect(error.details.response).not.toHaveProperty('body');
+        expect(error.details.request).toMatchObject({ attempt: 3 });
+        expect(fetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('clears the error-body capture timeout after a fast read', async () => {
+        vi.mocked(fetch).mockResolvedValue(new Response('error page', { status: 503 }));
+
+        const fetchPromise = transport.fetchText('http://fixtures/div1').catch((error: unknown) => error);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(vi.getTimerCount()).toBe(1);
+        await vi.runAllTimersAsync();
+        expect(await fetchPromise).toBeInstanceOf(PageFetcherError);
         expect(fetch).toHaveBeenCalledTimes(3);
     });
 
@@ -182,6 +241,34 @@ describe('CLTTLHttpTransport', () => {
                 await vi.runAllTimersAsync();
                 await assertionPromise;
 
+                expect(fetch).toHaveBeenCalledTimes(3);
+            });
+
+            it('reports a missing compressed-response body explicitly', async () => {
+                class ResponseWithoutBody extends Response {
+                    override get body(): Response['body'] {
+                        return null;
+                    }
+                }
+
+                vi.stubGlobal('Response', ResponseWithoutBody);
+                vi.mocked(fetch).mockResolvedValue({
+                    ok: true,
+                    status: 200,
+                    statusText: 'OK',
+                    headers: new Headers(),
+                    arrayBuffer: () => Promise.resolve(gzipSync('calendar').buffer)
+                } as Response);
+
+                const fetchPromise = transport.fetchText('http://fixtures/div1').catch((error: unknown) => error);
+                await vi.runAllTimersAsync();
+                const error = await fetchPromise;
+
+                expect(error).toBeInstanceOf(PageFetcherError);
+                expect(error).toMatchObject({
+                    details: { request: { attempt: 3 } },
+                    cause: new Error('The response is gzip-compressed but this runtime cannot read its body.')
+                });
                 expect(fetch).toHaveBeenCalledTimes(3);
             });
 
