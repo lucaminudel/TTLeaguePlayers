@@ -101,7 +101,7 @@ describe('frontend event queue', () => {
         expect(stored()).toEqual([]);
     });
 
-    it.each([undefined, 429, 500, 503])('retains temporary failure %s and continues', async status => {
+    it.each([undefined, 399, 429, 500, 503])('retains temporary failure %s and continues', async status => {
         setQueue([entry('retry'), entry('good')]);
         vi.mocked(sendFrontendEvent).mockResolvedValueOnce({ success: false, status }).mockResolvedValueOnce({ success: true });
         await queue.drainFrontendEvents();
@@ -135,6 +135,43 @@ describe('frontend event queue', () => {
         expect(stored()).toEqual([]);
     });
 
+    it('does not overlap a pending drain even after its cooldown has elapsed', async () => {
+        setQueue([entry('pending')]);
+        let finish!: (value: { success: boolean }) => void;
+        vi.mocked(sendFrontendEvent).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        const first = queue.drainFrontendEvents();
+        vi.mocked(Date.now).mockReturnValue(NOW + 5000);
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledOnce();
+        finish({ success: false });
+        await first;
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledTimes(2);
+        expect(stored()).toEqual([]);
+    });
+
+    it('does not start a cooldown for an empty drain', async () => {
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).not.toHaveBeenCalled();
+        setQueue([entry('new')]);
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledWith({ ...diagnostic('new'), deferred: true });
+        expect(stored()).toEqual([]);
+    });
+
+    it('applies cooldown when the first drain starts at epoch zero', async () => {
+        vi.mocked(Date.now).mockReturnValue(0);
+        setQueue([entry('retry', 0)]);
+        vi.mocked(sendFrontendEvent).mockResolvedValueOnce({ success: false });
+        await queue.drainFrontendEvents();
+        vi.mocked(Date.now).mockReturnValue(4999);
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledOnce();
+        vi.mocked(Date.now).mockReturnValue(5000);
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledTimes(2);
+    });
+
     it('tolerates corrupt queue content and can store a later diagnostic', async () => {
         localStorage.setItem(KEY, '{invalid');
         vi.mocked(sendFrontendEvent).mockResolvedValue({ success: false });
@@ -142,13 +179,132 @@ describe('frontend event queue', () => {
         expect(stored().map(item => item.diagnostic.operation)).toEqual(['new']);
     });
 
-    it('drops malformed versioned entries while retaining usable entries', async () => {
+    it.each([null, [], {}, { version: 2, entries: [] }, { version: 1 }, { version: 1, entries: {} }])(
+        'removes an invalid envelope and recovers on a later submission: %s', async envelope => {
+            localStorage.setItem(KEY, JSON.stringify(envelope));
+            await queue.drainFrontendEvents();
+            expect(sendFrontendEvent).not.toHaveBeenCalled();
+            expect(stored()).toEqual([]);
+            vi.mocked(sendFrontendEvent).mockResolvedValue({ success: false });
+            await queue.submitFrontendEvent(diagnostic('recovered'));
+            expect(stored().map(item => item.diagnostic.operation)).toEqual(['recovered']);
+        },
+    );
+
+    it('removes a mismatched version even when it contains a valid entry', async () => {
+        localStorage.setItem(KEY, JSON.stringify({ version: 2, entries: [entry('old-version')] }));
+        const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
+        await queue.drainFrontendEvents();
+        expect(removeItem).toHaveBeenCalledWith(KEY);
+        expect(sendFrontendEvent).not.toHaveBeenCalled();
+        expect(stored()).toEqual([]);
+    });
+
+    it('removes malformed JSON on drain without sending an event', async () => {
+        localStorage.setItem(KEY, '{invalid');
+        const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
+        await queue.drainFrontendEvents();
+        expect(removeItem).toHaveBeenCalledWith(KEY);
+        expect(sendFrontendEvent).not.toHaveBeenCalled();
+        expect(stored()).toEqual([]);
+    });
+
+    it('persists only usable entries before attempting delivery', async () => {
         localStorage.setItem(KEY, JSON.stringify({
             version: 1,
-            entries: [entry('usable'), { id: 'missing-diagnostic', queuedAt: NOW }],
+            entries: [null, 'invalid', entry('usable'), { id: 1, queuedAt: NOW, diagnostic: diagnostic('bad-id') },
+                { id: 'bad-time', queuedAt: String(NOW), diagnostic: diagnostic('bad-time') },
+                { id: 'missing-diagnostic', queuedAt: NOW }, { id: 'bad-diagnostic', queuedAt: NOW, diagnostic: 'invalid' }],
         }));
+        let entriesAtDelivery: ReturnType<typeof entry>[] | undefined;
+        vi.mocked(sendFrontendEvent).mockImplementation(() => {
+            entriesAtDelivery = stored();
+            return Promise.resolve({ success: false });
+        });
         await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledOnce();
         expect(sendFrontendEvent).toHaveBeenCalledWith({ ...diagnostic('usable'), deferred: true });
+        expect(entriesAtDelivery).toEqual([entry('usable')]);
+        expect(stored()).toEqual([entry('usable')]);
+    });
+
+    it('caps entries read from storage before delivering and persisting them', async () => {
+        setQueue(Array.from({ length: 22 }, (_, index) => entry(String(index))));
+        vi.mocked(sendFrontendEvent).mockResolvedValue({ success: false });
+        await queue.drainFrontendEvents();
+        expect(stored().map(item => item.id)).toEqual(Array.from({ length: 20 }, (_, index) => String(index + 2)));
+        expect(sendFrontendEvent.mock.calls.map(([event]) => event.operation)).toEqual(Array.from({ length: 20 }, (_, index) => String(index + 2)));
+    });
+
+    it('continues after a rejected delivery and releases the lock for a later pass', async () => {
+        setQueue([entry('rejected'), entry('accepted')]);
+        vi.mocked(sendFrontendEvent).mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ success: true });
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledTimes(2);
+        expect(stored()).toEqual([entry('rejected')]);
+        vi.mocked(Date.now).mockReturnValue(NOW + 5000);
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledTimes(3);
+        expect(stored()).toEqual([]);
+    });
+
+    it.each(['rejection', 'throw'])('drains the earlier snapshot and enqueues an immediate %s', async failure => {
+        setQueue([entry('old')]);
+        vi.mocked(sendFrontendEvent).mockImplementationOnce(() => {
+            if (failure === 'throw') throw new Error('offline');
+            return Promise.reject(new Error('offline'));
+        }).mockResolvedValueOnce({ success: false });
+        await queue.submitFrontendEvent(diagnostic('new'));
+        await vi.waitFor(() => { expect(sendFrontendEvent).toHaveBeenCalledTimes(2); });
+        expect(sendFrontendEvent).toHaveBeenNthCalledWith(1, diagnostic('new'));
+        expect(sendFrontendEvent).toHaveBeenNthCalledWith(2, { ...diagnostic('old'), deferred: true });
+        expect(stored().map(item => item.diagnostic.operation)).toEqual(['old', 'new']);
+    });
+
+    it('preserves a concurrently enqueued failure when acknowledging an earlier snapshot', async () => {
+        setQueue([entry('old')]);
+        let finish!: (value: { success: boolean }) => void;
+        vi.mocked(sendFrontendEvent).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+            .mockResolvedValueOnce({ success: false });
+        const draining = queue.drainFrontendEvents();
+        await queue.submitFrontendEvent(diagnostic('new'));
+        expect(stored().map(item => item.diagnostic.operation)).toEqual(['old', 'new']);
+        finish({ success: true });
+        await draining;
+        expect(stored().map(item => item.diagnostic.operation)).toEqual(['new']);
+        expect(sendFrontendEvent).toHaveBeenCalledTimes(2);
+    });
+
+    it('isolates removal failure for a corrupt envelope and still attempts the submission', async () => {
+        localStorage.setItem(KEY, '{invalid');
+        vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('denied'); });
+        vi.mocked(sendFrontendEvent).mockResolvedValue({ success: false });
+        await expect(queue.submitFrontendEvent(diagnostic('new'))).resolves.toBeUndefined();
+        expect(sendFrontendEvent).toHaveBeenCalledOnce();
+        expect(localStorage.getItem(KEY)).toBe('{invalid');
+    });
+
+    it('persists a failed submission when the queue is absent and removal is unavailable', async () => {
+        const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('denied'); });
+        vi.mocked(sendFrontendEvent).mockResolvedValue({ success: false });
+        await queue.submitFrontendEvent(diagnostic('new'));
+        expect(removeItem).not.toHaveBeenCalled();
+        expect(stored().map(item => item.diagnostic.operation)).toEqual(['new']);
+    });
+
+    it('releases the drain lock after an acknowledgement write fails', async () => {
+        setQueue([entry('retry')]);
+        const originalSetItem = localStorage.setItem.bind(localStorage);
+        const setItem = vi.spyOn(Storage.prototype, 'setItem');
+        setItem.mockImplementationOnce((key, value) => { originalSetItem(key, value); });
+        // Fail the acknowledgement write, after the initial normalized queue write succeeds.
+        setItem.mockImplementationOnce(() => { throw new Error('denied'); });
+        await queue.drainFrontendEvents();
+        expect(stored()).toEqual([entry('retry')]);
+        setItem.mockRestore();
+        vi.mocked(Date.now).mockReturnValue(NOW + 5000);
+        await queue.drainFrontendEvents();
+        expect(sendFrontendEvent).toHaveBeenCalledTimes(2);
         expect(stored()).toEqual([]);
     });
 
