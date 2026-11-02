@@ -246,6 +246,79 @@ describe('ClubTeamsList', () => {
         expect(cells.date).toBe('5 Mar');
     });
 
+    it('shows no date on an ACCEPTED row whose accepted_at is null', async () => {
+        // A conforming entry always has accepted_at, but the API contract allows null — for example
+        // before the invite has been acted on. The date cell must be empty, not crash.
+        respondWith([entry({
+            team_name: 'Walworth 5',
+            status: 'ACCEPTED',
+            accepted_at: null,
+        })]);
+
+        renderList(stubProcessor(['Walworth 5']));
+
+        await waitFor(() => { expect(screen.getByTestId('club-team-name')).toBeInTheDocument(); });
+
+        const cells = rowCells('Walworth 5');
+        expect(cells.status).toBe('Registered');
+        expect(cells.date).toBe('');
+    });
+
+    it('shows no date on a PENDING row whose created_at is absent', async () => {
+        // created_at is optional on PENDING — omit it and verify the cell is empty, not undefined.
+        respondWith([entry({
+            team_name: 'Walworth 6',
+            status: 'PENDING',
+            accepted_at: null,
+            // created_at deliberately omitted
+        })]);
+
+        renderList(stubProcessor(['Walworth 6']));
+
+        await waitFor(() => { expect(screen.getByTestId('club-team-name')).toBeInTheDocument(); });
+
+        const cells = rowCells('Walworth 6');
+        expect(cells.status).toBe('Invite sent');
+        expect(cells.date).toBe('');
+    });
+
+    it('shows the separator only when both a date and an invitee are present', async () => {
+        // All four combinations of date × invitee.
+        respondWith([
+            entry({ team_name: 'Both',    status: 'ACCEPTED', accepted_at: epochOf('2026-04-09T00:00:00Z'), invitee_name: 'Ada Lovelace' }),
+            entry({ team_name: 'DateOnly', status: 'ACCEPTED', accepted_at: epochOf('2026-04-09T00:00:00Z') }),
+            entry({ team_name: 'Neither',  status: 'NOT_INVITED' }),
+        ]);
+
+        renderList(stubProcessor(['Both', 'DateOnly', 'Neither']));
+
+        await waitFor(() => { expect(screen.getAllByTestId('club-team-name')).toHaveLength(3); });
+
+        // The separator '·' sits between the two data-testid spans — check it in the parent text.
+        expect(screen.getByTestId('club-team-row-Both').textContent).toContain('·');
+        expect(screen.getByTestId('club-team-row-DateOnly').textContent).not.toContain('·');
+        expect(screen.getByTestId('club-team-row-Neither').textContent).not.toContain('·');
+    });
+
+    it('shows no separator on a PENDING row that has an invitee but no date', async () => {
+        // inviteeFor returns the name on PENDING, but created_at is absent → no date → no separator.
+        respondWith([entry({
+            team_name: 'Walworth 7',
+            status: 'PENDING',
+            accepted_at: null,
+            invitee_name: 'Grace Hopper',
+            // created_at deliberately omitted → dateFor returns ''
+        })]);
+
+        renderList(stubProcessor(['Walworth 7']));
+
+        await waitFor(() => { expect(screen.getByTestId('club-team-name')).toBeInTheDocument(); });
+
+        const rowText = screen.getByTestId('club-team-row-Walworth 7').textContent;
+        expect(rowText).not.toContain('·');
+        expect(rowCells('Walworth 7').invitee).toBe('Grace Hopper');
+    });
+
     it('leaves an empty action cell on every row, for the future invite icons', async () => {
         respondWith([entry({ team_name: 'Walworth 1' })]);
 
@@ -335,6 +408,103 @@ describe('ClubTeamsList', () => {
             expect(screen.queryByTestId('club-teams-loading')).not.toBeInTheDocument();
         });
     });
+    it('uses a distinct status colour for registered, pending, and not-invited rows', async () => {
+        respondWith([
+            entry({ team_name: 'Accepted team', status: 'ACCEPTED', accepted_at: epochOf('2026-04-09T00:00:00Z') }),
+            entry({ team_name: 'Pending team', status: 'PENDING', created_at: epochOf('2026-03-05T00:00:00Z') }),
+            entry({ team_name: 'Not invited team', status: 'NOT_INVITED' }),
+        ]);
+
+        renderList(stubProcessor(['Accepted team', 'Pending team', 'Not invited team']));
+
+        await waitFor(() => { expect(screen.getAllByTestId('club-team-name')).toHaveLength(3); });
+
+        expect(within(screen.getByTestId('club-team-row-Accepted team')).getByTestId('club-team-status')).toHaveClass('bg-[#004d27]', 'text-white');
+        expect(within(screen.getByTestId('club-team-row-Pending team')).getByTestId('club-team-status')).toHaveClass('bg-[#85a3c2]', 'text-white');
+        expect(within(screen.getByTestId('club-team-row-Not invited team')).getByTestId('club-team-status')).toHaveClass('bg-[#F06400]', 'text-white');
+    });
+
+    it('does not update state after unmounting during the registrations fetch', async () => {
+        // Unmounting while getCachedTeamRegistrations is in flight must not call setTeams or
+        // setIsLoading — the cancelled flag and isCurrent guards must both fire.
+        let resolveRegistrations!: (value: TeamRegistrationsResponse) => void;
+        inviteApiMocks.getCachedTeamRegistrations.mockReturnValue(
+            new Promise<TeamRegistrationsResponse>((resolve) => { resolveRegistrations = resolve; })
+        );
+
+        const { unmount } = renderList(stubProcessor(['Walworth 1']));
+
+        await waitFor(() => {
+            expect(inviteApiMocks.getCachedTeamRegistrations).toHaveBeenCalled();
+        });
+
+        unmount();
+
+        // Resolving after unmount must not throw or update state.
+        await act(async () => {
+            resolveRegistrations({
+                league: LEAGUE, season: SEASON, club_name: CLUB_NAME, club_location: CLUB_LOCATION,
+                teams: [entry({ team_name: 'Walworth 1' })],
+            });
+            await Promise.resolve();
+        });
+    });
+
+    it('does not update state after unmounting during the club-teams fetch', async () => {
+        // Unmounting while getClubTeams is in flight must not call setHasClubTeamsError or
+        // setIsLoading — the cancelled flag in the catch block must suppress state updates.
+        let rejectClubTeams!: (error: Error) => void;
+        const processor: ManagedClubProcessor = {
+            getClubTeams: vi.fn(() =>
+                new Promise<never>((_, reject) => { rejectClubTeams = reject; })
+            ),
+        };
+
+        const { unmount } = render(<TestErrorBoundary>{listFor(processor)}</TestErrorBoundary>);
+
+        unmount();
+
+        await act(async () => {
+            rejectClubTeams(new Error('Network failure after unmount'));
+            await Promise.resolve();
+        });
+
+        // console.error is still called (it's before the cancelled check), but no state update
+        // should occur because the component is unmounted.
+        expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it('discards the empty-teams result when the club changes before it is applied', async () => {
+        // isCurrent() guards the setTeams([]) call in the empty-teams branch. If the club changes
+        // while getClubTeams is resolving with an empty list, the new club's load must not be
+        // overwritten by the stale empty result.
+        type ClubTeams = Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>;
+        let resolveEmptyTeams!: (value: ClubTeams) => void;
+        const slowEmptyProcessor: ManagedClubProcessor = {
+            getClubTeams: vi.fn((): Promise<ClubTeams> =>
+                new Promise((resolve) => { resolveEmptyTeams = resolve; })
+            ),
+        };
+        respondWith([entry({ team_name: 'New Club Team' })]);
+
+        const { rerender } = render(<TestErrorBoundary>{listFor(slowEmptyProcessor)}</TestErrorBoundary>);
+
+        // Switch to a new club before the first club's empty result arrives.
+        rerender(listFor(stubProcessor(['New Club Team']), 'New Club', 'Hackney'));
+
+        // Now resolve the first club's getClubTeams with an empty list.
+        await act(async () => {
+            resolveEmptyTeams([]);
+            await Promise.resolve();
+        });
+
+        // The new club's teams should be shown, not the empty state from the first club.
+        await waitFor(() => {
+            expect(screen.getByTestId('club-team-row-New Club Team')).toBeInTheDocument();
+        });
+        expect(screen.queryByText('No teams found for this club.')).not.toBeInTheDocument();
+    });
+
     it('updates registration rows and reloads statuses when the club teams refresh, ignoring obsolete callbacks', async () => {
         type Teams = Awaited<ReturnType<ManagedClubProcessor['getClubTeams']>>;
         let refreshTeams!: (data: Teams) => void;

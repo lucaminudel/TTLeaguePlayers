@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { TeamPlayersList } from '../../../../src/components/ui/TeamPlayersList';
 import type { ActiveSeasonProcessor } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
 import type { PlayerRegistrationEntry, TeamPlayersRegistrationsResponse } from '../../../../src/types/invite';
@@ -96,7 +97,18 @@ describe('TeamPlayersList', () => {
             response([entry({ player_name: 'Kevin Ji' })])
         );
 
-        renderList(stubProcessor(['Kevin Ji']));
+        const processor = stubProcessor(['Kevin Ji']);
+        expect(renderToStaticMarkup(
+            <TeamPlayersList
+                processor={processor}
+                league={LEAGUE}
+                season={SEASON}
+                teamDivision={TEAM_DIVISION}
+                teamName={TEAM_NAME}
+                invitedBy={INVITED_BY}
+            />
+        )).toContain('Loading players…');
+        renderList(processor);
 
         expect(screen.getByTestId('team-players-loading')).toHaveTextContent('Loading players…');
         await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
@@ -146,19 +158,91 @@ describe('TeamPlayersList', () => {
         expect(within(rowOf('Pending Player')).getByTestId('team-player-status')).toHaveTextContent('Invite sent');
         expect(within(rowOf('New Player')).queryByTestId('team-player-status')).toBeNull();
         expect(within(rowOf('New Player')).getByTestId('team-player-invite-button')).toHaveTextContent('Invite');
+        expect(within(rowOf('New Player')).getByTestId('team-player-invite-button')).toHaveClass('border-2', 'bg-[#F06400]', 'text-white');
     });
 
-    it('gives the Invite control a border, and the status labels none', async () => {
+    it('uses a distinct status color for registered, pending, and not-invited rows', async () => {
         inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValue(response([
-            entry({ player_name: 'New Player' }),
+            entry({ player_name: 'Registered Player', status: 'ACCEPTED', accepted_at: epochOf('2026-02-03T00:00:00Z') }),
             entry({ player_name: 'Pending Player', status: 'PENDING', created_at: epochOf('2026-01-09T00:00:00Z') }),
+            entry({ player_name: INVITED_BY }),
         ]));
 
-        renderList(stubProcessor(['New Player', 'Pending Player']));
+        renderList(stubProcessor(['Registered Player', 'Pending Player', INVITED_BY]));
 
         await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
-        expect(screen.getByTestId('team-player-invite-button').className).toContain('border');
-        expect(within(rowOf('Pending Player')).getByTestId('team-player-status').className).not.toContain('border');
+
+        expect(within(rowOf('Registered Player')).getByTestId('team-player-status')).toHaveClass('bg-[#004d27]', 'text-white');
+        expect(within(rowOf('Pending Player')).getByTestId('team-player-status')).toHaveClass('bg-[#85a3c2]', 'text-white');
+        expect(within(rowOf(INVITED_BY)).getByTestId('team-player-status')).toHaveClass('bg-[#F06400]', 'text-white');
+    });
+
+    it('combines only the available date, e-mail, and drifted invitee details in each subtitle', async () => {
+        inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValue(response([
+            entry({
+                player_name: 'Date only',
+                status: 'ACCEPTED',
+                accepted_at: epochOf('2026-02-03T00:00:00Z'),
+            }),
+            entry({
+                player_name: 'E-mail only',
+                status: 'PENDING',
+                invitee_email_id: 'email-only@user.test',
+            }),
+            entry({
+                player_name: 'Date and drifted invitee',
+                status: 'ACCEPTED',
+                accepted_at: epochOf('2026-02-03T00:00:00Z'),
+                invitee_name: 'Alternate Date Name',
+            }),
+            entry({
+                player_name: 'E-mail and drifted invitee',
+                status: 'PENDING',
+                invitee_email_id: 'alternate-email@user.test',
+                invitee_name: 'Alternate E-mail Name',
+            }),
+            entry({
+                player_name: 'Drifted invitee without metadata',
+                status: 'PENDING',
+                invitee_name: 'Alternate Name without metadata',
+            }),
+            entry({
+                player_name: 'Date and e-mail',
+                status: 'PENDING',
+                created_at: epochOf('2026-01-09T00:00:00Z'),
+                invitee_email_id: 'player@user.test',
+                invitee_name: 'Date and e-mail',
+            }),
+            entry({
+                player_name: 'Drifted invitee',
+                status: 'PENDING',
+                created_at: epochOf('2026-01-09T00:00:00Z'),
+                invitee_email_id: 'drifted@user.test',
+                invitee_name: 'Alternate Name',
+            }),
+        ]));
+
+        renderList(stubProcessor([
+            'Date only',
+            'E-mail only',
+            'Date and drifted invitee',
+            'E-mail and drifted invitee',
+            'Drifted invitee without metadata',
+            'Date and e-mail',
+            'Drifted invitee',
+        ]));
+
+        await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
+
+        const subtitleOf = (playerName: string) =>
+            within(rowOf(playerName)).getByTestId('team-player-date').parentElement?.textContent;
+        expect(subtitleOf('Date only')).toBe('3 Feb');
+        expect(subtitleOf('E-mail only')).toBe('email-only@user.test');
+        expect(subtitleOf('Date and drifted invitee')).toBe('3 Feb · invited as Alternate Date Name');
+        expect(subtitleOf('E-mail and drifted invitee')).toBe('alternate-email@user.test · invited as Alternate E-mail Name');
+        expect(subtitleOf('Drifted invitee without metadata')).toBe('invited as Alternate Name without metadata');
+        expect(subtitleOf('Date and e-mail')).toBe('9 Jan · player@user.test');
+        expect(subtitleOf('Drifted invitee')).toBe('9 Jan · drifted@user.test · invited as Alternate Name');
     });
 
     it('keeps the Not invited label on a row that cannot be invited', async () => {
@@ -191,6 +275,22 @@ describe('TeamPlayersList', () => {
         expect(within(rowOf('Registered Player')).getByTestId('team-player-date')).toHaveTextContent('3 Feb');
         expect(within(rowOf('Pending Player')).getByTestId('team-player-date')).toHaveTextContent('9 Jan');
         expect(within(rowOf('New Player')).getByTestId('team-player-date')).toHaveTextContent('');
+    });
+
+    it('does not show an acceptance date when an accepted registration has no acceptance timestamp', async () => {
+        inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValue(response([
+            entry({
+                player_name: 'Accepted without timestamp',
+                status: 'ACCEPTED',
+                accepted_at: null,
+                created_at: epochOf('2026-01-09T00:00:00Z'),
+            }),
+        ]));
+
+        renderList(stubProcessor(['Accepted without timestamp']));
+
+        await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
+        expect(within(rowOf('Accepted without timestamp')).getByTestId('team-player-date').textContent).toBe('');
     });
 
     it('shows no date on a not-invited row even when the payload carries dates', async () => {
@@ -269,6 +369,8 @@ describe('TeamPlayersList', () => {
         expect(within(extraRow).getByTestId('team-player-name')).toHaveTextContent('Left The Team');
         expect(within(extraRow).getByTestId('team-player-status')).toHaveTextContent('Invite sent');
         expect(within(extraRow).getByTestId('team-player-email')).toHaveTextContent('left@user.test');
+        expect(screen.getAllByTestId('team-player-name').map((element) => element.textContent))
+            .toEqual(['On The Roster', 'Left The Team']);
     });
 
     it('shows no extras label when every invite matched a roster name', async () => {
@@ -315,6 +417,23 @@ describe('TeamPlayersList', () => {
 
         await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
         expect(within(rowOf('Michele de Giovanni')).queryByTestId('team-player-invitee')).toBeNull();
+    });
+
+    it('does not report drift when only the roster spelling has surrounding whitespace', async () => {
+        const rosterName = '  Michele de Giovanni  ';
+        inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValue(response([
+            entry({
+                player_name: rosterName,
+                status: 'ACCEPTED',
+                accepted_at: epochOf('2026-02-03T00:00:00Z'),
+                invitee_name: 'Michele De Giovanni',
+            }),
+        ]));
+
+        renderList(stubProcessor([rosterName]));
+
+        await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
+        expect(screen.queryByTestId('team-player-invitee')).toBeNull();
     });
 
     // ---------------------------------------------------------------- the capability token
@@ -386,13 +505,30 @@ describe('TeamPlayersList', () => {
 
     it('appends the field-level reasons a rejected request came back with', async () => {
         inviteApiMocks.getCachedTeamPlayersRegistrations.mockRejectedValue(
-            new GeneralApiError('Validation failed', 400, undefined, ['player_names is required'])
+            new GeneralApiError('Validation failed', 400, undefined, [
+                'player_names is required',
+                'the request contains duplicate player names',
+            ])
         );
 
         renderList(stubProcessor(['Kevin Ji']));
 
         await waitFor(() => {
-            expect(screen.getByTestId('team-players-error')).toHaveTextContent('player_names is required');
+            expect(screen.getByTestId('team-players-error').textContent).toBe(
+                'Validation failed ( player_names is required, the request contains duplicate player names )'
+            );
+        });
+    });
+
+    it('does not append empty field-level reasons to the registrations error', async () => {
+        inviteApiMocks.getCachedTeamPlayersRegistrations.mockRejectedValue(
+            new GeneralApiError('Validation failed', 400, undefined, [])
+        );
+
+        renderList(stubProcessor(['Kevin Ji']));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('team-players-error').textContent).toBe('Validation failed');
         });
     });
 
@@ -575,7 +711,16 @@ describe('TeamPlayersList', () => {
                 entry({ player_name: '  luca MINUDEL ' }),
             ]));
 
-            renderList(stubProcessor(['  luca MINUDEL ']));
+            render(
+                <TeamPlayersList
+                    processor={stubProcessor(['  luca MINUDEL '])}
+                    league={LEAGUE}
+                    season={SEASON}
+                    teamDivision={TEAM_DIVISION}
+                    teamName={TEAM_NAME}
+                    invitedBy="  Luca Minudel  "
+                />
+            );
 
             await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
             expect(screen.queryByTestId('team-player-invite-button')).toBeNull();
@@ -682,6 +827,134 @@ describe('TeamPlayersList', () => {
             expect(within(row).getByTestId('team-player-email')).toHaveTextContent('kevin@user.test');
             // No second chance to invite the same person, which is the point of the whole thing.
             expect(within(row).queryByTestId('team-player-invite-button')).toBeNull();
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                '❌ Page event log refreshing team players after an invite:',
+                expect.any(Error)
+            );
+        });
+
+        it('closes the open invite dialog if a refreshed roster drops the player being invited', async () => {
+            let refreshRoster!: (names: string[]) => void;
+            const processor: ActiveSeasonProcessor = {
+                ...stubProcessor(['Kevin Ji', 'Suzy Song']),
+                getTeamPlayers: vi.fn((onUpdate?: (names: string[]) => void) => {
+                    if (onUpdate) refreshRoster = onUpdate;
+                    return Promise.resolve(['Kevin Ji', 'Suzy Song']);
+                }),
+            };
+            inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValue(response([
+                entry({ player_name: 'Kevin Ji' }),
+                entry({ player_name: 'Suzy Song' }),
+            ]));
+
+            renderList(processor);
+            await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
+
+            fireEvent.click(within(rowOf('Kevin Ji')).getByTestId('team-player-invite-button'));
+            expect(screen.getByTestId('invite-player-dialog')).toBeInTheDocument();
+
+            // Refresh arrives from league site dropping Kevin Ji
+            inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValue(response([
+                entry({ player_name: 'Suzy Song' }),
+            ]));
+            act(() => {
+                refreshRoster(['Suzy Song']);
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByTestId('invite-player-dialog')).toBeNull();
+            });
+            expect(screen.queryByTestId('team-player-row-Kevin Ji')).toBeNull();
+            expect(screen.getByTestId('team-player-row-Suzy Song')).toBeInTheDocument();
+        });
+
+        it('discards a post-invite status refresh if the selected team changes while the refresh is in flight', async () => {
+            const postInviteRefresh = deferred<TeamPlayersRegistrationsResponse>();
+            inviteApiMocks.getCachedTeamPlayersRegistrations
+                .mockResolvedValueOnce(response([entry({ player_name: 'Kevin Ji' })]))
+                .mockReturnValueOnce(postInviteRefresh.promise);
+
+            createInviteMocks.createInvite.mockResolvedValue({
+                nano_id: 'NEWINVITE',
+                invitee_name: 'Kevin Ji',
+                invitee_email_id: 'kevin@user.test',
+                invitee_role: 'PLAYER',
+                created_at: epochOf('2026-05-20T00:00:00Z'),
+                accepted_at: null,
+            });
+
+            const view = renderList(stubProcessor(['Kevin Ji']));
+            await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
+
+            fireEvent.click(screen.getByTestId('team-player-invite-button'));
+            typeEmailAndSend('kevin@user.test');
+
+            await waitFor(() => { expect(screen.queryByTestId('invite-player-dialog')).toBeNull(); });
+            expect(inviteApiMocks.getCachedTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+
+            // Switch to Other Team before post-invite refresh finishes
+            inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValueOnce(
+                response([entry({ player_name: 'Other Team Player' })])
+            );
+            view.rerender(
+                <TeamPlayersList
+                    processor={stubProcessor(['Other Team Player'])}
+                    league={LEAGUE}
+                    season={SEASON}
+                    teamDivision="Division 2"
+                    teamName="Other Team"
+                    invitedBy={INVITED_BY}
+                />
+            );
+            await waitFor(() => { expect(screen.getByTestId('team-player-row-Other Team Player')).toBeInTheDocument(); });
+
+            // Post-invite refresh for Old Team resolves late
+            await act(async () => {
+                postInviteRefresh.resolve(response([
+                    entry({ player_name: 'Kevin Ji', status: 'PENDING', created_at: epochOf('2026-05-20T00:00:00Z') }),
+                ]));
+                await postInviteRefresh.promise;
+            });
+
+            // The late refresh for Kevin Ji must not clobber Other Team
+            expect(screen.queryByTestId('team-player-row-Kevin Ji')).toBeNull();
+            expect(screen.getByTestId('team-player-row-Other Team Player')).toBeInTheDocument();
+        });
+
+        it('updates only the invited player while the post-send status refresh is pending', async () => {
+            const refreshedStatuses = deferred<TeamPlayersRegistrationsResponse>();
+            inviteApiMocks.getCachedTeamPlayersRegistrations.mockResolvedValueOnce(response([
+                entry({ player_name: 'Kevin Ji' }),
+                entry({ player_name: 'New Player' }),
+            ])).mockReturnValueOnce(refreshedStatuses.promise);
+            createInviteMocks.createInvite.mockResolvedValue({
+                nano_id: 'NEWINVITE',
+                invitee_name: 'Kevin Ji',
+                invitee_email_id: 'kevin@user.test',
+                invitee_role: 'PLAYER',
+                created_at: epochOf('2026-05-20T00:00:00Z'),
+                accepted_at: null,
+            });
+
+            renderList(stubProcessor(['Kevin Ji', 'New Player']));
+            await waitFor(() => { expect(screen.getByTestId('team-players')).toBeTruthy(); });
+
+            fireEvent.click(within(rowOf('Kevin Ji')).getByTestId('team-player-invite-button'));
+            typeEmailAndSend('kevin@user.test');
+
+            await waitFor(() => {
+                expect(inviteApiMocks.getCachedTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+            });
+            expect(within(rowOf('Kevin Ji')).getByTestId('team-player-status')).toHaveTextContent('Invite sent');
+            expect(within(rowOf('New Player')).getByTestId('team-player-invite-button')).toHaveTextContent('Invite');
+
+            await act(async () => {
+                refreshedStatuses.resolve(response([
+                    entry({ player_name: 'Kevin Ji', status: 'PENDING', created_at: epochOf('2026-05-20T00:00:00Z') }),
+                    entry({ player_name: 'New Player' }),
+                ]));
+                await refreshedStatuses.promise;
+            });
         });
 
         it('keeps the dialog open, with the reason, when creating the invite fails', async () => {
@@ -760,6 +1033,169 @@ describe('TeamPlayersList', () => {
         await waitFor(() => { expect(screen.getByTestId('team-player-row-Other Team Player')).toBeTruthy(); });
         expect(screen.queryByTestId('team-player-row-Kevin Ji')).toBeNull();
     });
+
+    it('loads the selected team when its props change without replacing the processor', async () => {
+        const processor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn(),
+            getTeamPlayers: vi.fn()
+                .mockResolvedValueOnce(['First Team Player'])
+                .mockResolvedValueOnce(['Second Team Player']),
+        };
+        inviteApiMocks.getCachedTeamPlayersRegistrations
+            .mockResolvedValueOnce(response([entry({ player_name: 'First Team Player' })]))
+            .mockResolvedValueOnce(response([entry({ player_name: 'Second Team Player' })]));
+
+        const view = render(
+            <TeamPlayersList
+                processor={processor}
+                league={LEAGUE}
+                season={SEASON}
+                teamDivision={TEAM_DIVISION}
+                teamName="First Team"
+                invitedBy={INVITED_BY}
+            />
+        );
+        await waitFor(() => { expect(rowOf('First Team Player')).toBeInTheDocument(); });
+
+        view.rerender(
+            <TeamPlayersList
+                processor={processor}
+                league={LEAGUE}
+                season={SEASON}
+                teamDivision={TEAM_DIVISION}
+                teamName="Second Team"
+                invitedBy={INVITED_BY}
+            />
+        );
+
+        await waitFor(() => { expect(rowOf('Second Team Player')).toBeInTheDocument(); });
+        expect(screen.queryByTestId('team-player-row-First Team Player')).toBeNull();
+        expect(inviteApiMocks.getCachedTeamPlayersRegistrations).toHaveBeenLastCalledWith(
+            expect.objectContaining({ team_name: 'Second Team', player_names: ['Second Team Player'] }),
+            expect.any(Function)
+        );
+    });
+
+    it.each(['resolves', 'fails'])(
+        'does not let a previous team registration request %s overtake the current team',
+        async (oldRequestOutcome) => {
+            const oldStatuses = deferred<TeamPlayersRegistrationsResponse>();
+            const currentStatuses = deferred<TeamPlayersRegistrationsResponse>();
+            const processor: ActiveSeasonProcessor = {
+                getTeamFixtures: vi.fn(),
+                getTeamPlayers: vi.fn()
+                    .mockResolvedValueOnce(['Old Team Player'])
+                    .mockResolvedValueOnce(['Current Team Player']),
+            };
+            inviteApiMocks.getCachedTeamPlayersRegistrations
+                .mockReturnValueOnce(oldStatuses.promise)
+                .mockReturnValueOnce(currentStatuses.promise);
+
+            const view = render(
+                <TeamPlayersList
+                    processor={processor}
+                    league={LEAGUE}
+                    season={SEASON}
+                    teamDivision={TEAM_DIVISION}
+                    teamName="Old Team"
+                    invitedBy={INVITED_BY}
+                />
+            );
+            await waitFor(() => {
+                expect(inviteApiMocks.getCachedTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+            });
+
+            view.rerender(
+                <TeamPlayersList
+                    processor={processor}
+                    league={LEAGUE}
+                    season={SEASON}
+                    teamDivision={TEAM_DIVISION}
+                    teamName="Current Team"
+                    invitedBy={INVITED_BY}
+                />
+            );
+            await waitFor(() => {
+                expect(inviteApiMocks.getCachedTeamPlayersRegistrations).toHaveBeenCalledTimes(2);
+            });
+            expect(screen.getByTestId('team-players-loading')).toBeInTheDocument();
+
+            await act(async () => {
+                currentStatuses.resolve(response([
+                    entry({ player_name: 'Current Team Player', status: 'PENDING', created_at: epochOf('2026-05-20T00:00:00Z') }),
+                ]));
+                await currentStatuses.promise;
+            });
+            await waitFor(() => { expect(rowOf('Current Team Player')).toBeInTheDocument(); });
+
+            await act(async () => {
+                if (oldRequestOutcome === 'fails') oldStatuses.reject(new Error('Old team status request failed'));
+                else oldStatuses.resolve(response([entry({ player_name: 'Old Team Player' })]));
+                await oldStatuses.promise.catch(() => undefined);
+                await Promise.resolve();
+            });
+            expect(screen.queryByTestId('team-players-error')).toBeNull();
+            expect(screen.queryByTestId('team-player-row-Old Team Player')).toBeNull();
+            expect(rowOf('Current Team Player')).toBeInTheDocument();
+            expect(screen.queryByTestId('team-player-row-Old Team Player')).toBeNull();
+        }
+    );
+
+    it('keeps the current team loading when a superseded league-roster request fails', async () => {
+        const oldRoster = deferred<string[]>();
+        const currentStatuses = deferred<TeamPlayersRegistrationsResponse>();
+        const getTeamPlayers = vi.fn()
+            .mockReturnValueOnce(oldRoster.promise)
+            .mockResolvedValueOnce(['Current Team Player']);
+        const processor: ActiveSeasonProcessor = {
+            getTeamFixtures: vi.fn(),
+            getTeamPlayers,
+        };
+        inviteApiMocks.getCachedTeamPlayersRegistrations.mockReturnValueOnce(currentStatuses.promise);
+
+        const view = render(
+            <TeamPlayersList
+                processor={processor}
+                league={LEAGUE}
+                season={SEASON}
+                teamDivision={TEAM_DIVISION}
+                teamName="Old Team"
+                invitedBy={INVITED_BY}
+            />
+        );
+        await waitFor(() => { expect(getTeamPlayers).toHaveBeenCalledTimes(1); });
+
+        view.rerender(
+            <TeamPlayersList
+                processor={processor}
+                league={LEAGUE}
+                season={SEASON}
+                teamDivision={TEAM_DIVISION}
+                teamName="Current Team"
+                invitedBy={INVITED_BY}
+            />
+        );
+        await waitFor(() => {
+            expect(inviteApiMocks.getCachedTeamPlayersRegistrations).toHaveBeenCalledTimes(1);
+        });
+        expect(screen.getByTestId('team-players-loading')).toBeInTheDocument();
+
+        await act(async () => {
+            oldRoster.reject(new Error('Old team roster request failed'));
+            await oldRoster.promise.catch(() => undefined);
+            await Promise.resolve();
+        });
+        expect(screen.getByTestId('team-players-loading')).toBeInTheDocument();
+        expect(screen.queryByTestId('team-players-unavailable')).toBeNull();
+
+        await act(async () => {
+            currentStatuses.resolve(response([entry({ player_name: 'Current Team Player' })]));
+            await currentStatuses.promise;
+        });
+        await waitFor(() => { expect(rowOf('Current Team Player')).toBeInTheDocument(); });
+        expect(screen.queryByTestId('team-players-unavailable')).toBeNull();
+    });
+
     it('updates registration statuses and re-queries them for a refreshed roster', async () => {
         let refreshRoster!: (names: string[]) => void;
         const processor: ActiveSeasonProcessor = {

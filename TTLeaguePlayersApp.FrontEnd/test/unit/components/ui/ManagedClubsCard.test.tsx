@@ -286,8 +286,16 @@ describe('ManagedClubsCard – groupByLocation, multiple club names at same loca
 
 describe('ManagedClubsCard – groupByLocation, selection state', () => {
     const onSelectClub = vi.fn();
+    let consoleErrorSpy: MockInstance;
 
-    beforeEach(() => { vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore();
+    });
 
     it('marks a location button as selected when selectedClubKey matches any club in that group', () => {
         // There are two entries for London TTC (different seasons); select the second one's key
@@ -326,6 +334,60 @@ describe('ManagedClubsCard – groupByLocation, selection state', () => {
 
         expect(screen.getByRole('button', { name: 'London' })).not.toHaveClass('bg-action-accent');
         expect(screen.getByRole('button', { name: 'Berlin' })).toHaveClass('bg-action-accent');
+    });
+
+    it('does not select a same-location button when a different club name at that location is selected', () => {
+        const londonStarsKey = key('League B', '2025', 'London Stars');
+
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC'),
+                    club('London', 'London Stars', 'League B'),
+                ]}
+                selectedClubKey={londonStarsKey}
+                onSelectClub={onSelectClub}
+                groupByLocation
+            />
+        );
+
+        expect(screen.getByRole('button', { name: 'London / London TTC' })).not.toHaveClass('bg-action-accent');
+        expect(screen.getByRole('button', { name: 'London / London Stars' })).toHaveClass('bg-action-accent');
+    });
+
+    it('does not select a same-name button when a different location sharing that club name is selected', () => {
+        const parisKey = key('League B', '2025', 'TTC');
+
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'TTC'),
+                    club('Paris', 'TTC', 'League B'),
+                ]}
+                selectedClubKey={parisKey}
+                onSelectClub={onSelectClub}
+                groupByLocation
+            />
+        );
+
+        expect(screen.getByRole('button', { name: 'London' })).not.toHaveClass('bg-action-accent');
+        expect(screen.getByRole('button', { name: 'Paris' })).toHaveClass('bg-action-accent');
+    });
+
+    it('does not log an error for duplicate location and league combinations when groupByLocation is true', () => {
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC', 'League A', '2024'),
+                    club('London', 'London TTC', 'League A', '2025'),
+                ]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+                groupByLocation
+            />
+        );
+
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 });
 
@@ -400,6 +462,35 @@ describe('ManagedClubsCard – auto-selection', () => {
 
         expect(onSelectClub).toHaveBeenCalledOnce();
         expect(onSelectClub).toHaveBeenCalledWith(firstEntryKey);
+    });
+
+    it('auto-selects when props change from multiple buttons to a single button without a selection', () => {
+        const singleClub = club('London', 'London TTC');
+        const expectedKey = key('League A', '2025', 'London TTC');
+
+        const { rerender } = render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC'),
+                    club('Berlin', 'Berlin TTC', 'League B'),
+                ]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+            />
+        );
+
+        expect(onSelectClub).not.toHaveBeenCalled();
+
+        rerender(
+            <ManagedClubsCard
+                managedClubs={[singleClub]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+            />
+        );
+
+        expect(onSelectClub).toHaveBeenCalledOnce();
+        expect(onSelectClub).toHaveBeenCalledWith(expectedKey);
     });
 });
 

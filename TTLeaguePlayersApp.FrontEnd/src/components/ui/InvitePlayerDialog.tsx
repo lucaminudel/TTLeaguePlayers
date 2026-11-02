@@ -4,6 +4,7 @@ import { ErrorMessage } from '../common/ErrorMessage';
 import { FieldError } from '../common/FieldError';
 import { FormField } from '../common/FormField';
 import { Input } from '../common/Input';
+import { GeneralApiError } from '../../api/api';
 import { toUserFriendlyApiError } from '../../utils/apiErrorUtils';
 import { isValidEmail } from '../../utils/emailUtils';
 
@@ -44,7 +45,10 @@ export const InvitePlayerDialog: React.FC<InvitePlayerDialogProps> = ({ playerNa
             await onSend(trimmedEmail);
         } catch (error: unknown) {
             const reasons = (error as { errors?: string[] }).errors;
-            const message = toUserFriendlyApiError(error, 'Could not send the invite. Please try again.');
+            const fallback = 'Could not send the invite. Please try again.';
+            const message = error instanceof GeneralApiError
+                ? toUserFriendlyApiError(error, fallback)
+                : fallback;
 
             setSendError(reasons && reasons.length > 0 ? `${message}: ${reasons.join('; ')}` : message);
         } finally {

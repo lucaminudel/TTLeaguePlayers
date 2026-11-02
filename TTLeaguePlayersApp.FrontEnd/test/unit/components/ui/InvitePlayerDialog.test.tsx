@@ -27,10 +27,16 @@ describe('InvitePlayerDialog', () => {
         expect(screen.getByTestId('invite-player-dialog')).toHaveTextContent(`Invite ${PLAYER}`);
     });
 
-    it('sends the trimmed e-mail', async () => {
+    it('labels the idle send button', () => {
+        renderDialog();
+
+        expect(screen.getByTestId('invite-player-send')).toHaveTextContent('Send invite');
+    });
+
+    it('trims whitespace around the e-mail before sending', async () => {
         const { onSend } = renderDialog();
 
-        typeEmail('  kevin@user.test  ');
+        typeEmail('\u00a0kevin@user.test\u00a0');
         clickSend();
 
         await waitFor(() => { expect(onSend).toHaveBeenCalledWith('kevin@user.test'); });
@@ -140,7 +146,10 @@ describe('InvitePlayerDialog', () => {
 
     it('shows the field-level reasons a rejected request came back with', async () => {
         const onSend = vi.fn().mockRejectedValue(
-            new GeneralApiError('Validation failed', 400, undefined, ['invitee_email_id must be a valid email address'])
+            new GeneralApiError('Validation failed', 400, undefined, [
+                'invitee_email_id must be a valid email address',
+                'The invite has expired',
+            ])
         );
         renderDialog(onSend);
 
@@ -149,7 +158,33 @@ describe('InvitePlayerDialog', () => {
 
         await waitFor(() => {
             expect(screen.getByTestId('invite-player-error'))
-                .toHaveTextContent('invitee_email_id must be a valid email address');
+                .toHaveTextContent('Validation failed: invitee_email_id must be a valid email address; The invite has expired');
+        });
+    });
+
+    it('does not append an empty reason list to an API error', async () => {
+        const onSend = vi.fn().mockRejectedValue(new GeneralApiError('Validation failed', 400, undefined, []));
+        renderDialog(onSend);
+
+        typeEmail('kevin@user.test');
+        clickSend();
+
+        await waitFor(() => {
+            expect(screen.getByTestId('invite-player-error')).toHaveTextContent('Validation failed');
+        });
+        expect(screen.getByTestId('invite-player-error').textContent).not.toContain(':');
+    });
+
+    it('shows a friendly fallback when a non-API error rejects the send', async () => {
+        const onSend = vi.fn().mockRejectedValue(new Error('Unexpected failure'));
+        renderDialog(onSend);
+
+        typeEmail('kevin@user.test');
+        clickSend();
+
+        await waitFor(() => {
+            expect(screen.getByTestId('invite-player-error'))
+                .toHaveTextContent('Could not send the invite. Please try again.');
         });
     });
 

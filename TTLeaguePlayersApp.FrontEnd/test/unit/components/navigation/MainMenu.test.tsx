@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Component, type ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { MainMenu } from '../../../../src/components/navigation/MainMenu';
 import { drainFrontendEvents } from '../../../../src/service/frontend-diagnostics/FrontendEventQueue';
 
@@ -71,6 +71,11 @@ describe('MainMenu', () => {
         );
     };
 
+    const NavigateBack = () => {
+        const navigate = useNavigate();
+        return <button onClick={() => { void navigate(-1); }}>Go back</button>;
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -138,6 +143,79 @@ describe('MainMenu', () => {
         expect(screen.queryByTestId(CAPTAIN_ITEM)).toBeNull();
     });
 
+    it.each([
+        {
+            role: 'an authenticated user with no team or club role',
+            flags: { isAuthenticated: true },
+            visibleRoleLinks: [],
+        },
+        {
+            role: 'a player',
+            flags: { isAuthenticated: true, isPlayerOrCaptain: true },
+            visibleRoleLinks: ['main-menu-nav-matches-and-kudos', 'main-menu-nav-kudos-standings'],
+        },
+        {
+            role: 'a captain',
+            flags: { isAuthenticated: true, isPlayerOrCaptain: true, isCaptain: true },
+            visibleRoleLinks: [
+                'main-menu-nav-matches-and-kudos',
+                'main-menu-nav-kudos-standings',
+                CAPTAIN_ITEM,
+            ],
+        },
+        {
+            role: 'a club manager',
+            flags: { isAuthenticated: true, isClubManager: true },
+            visibleRoleLinks: [
+                'main-menu-nav-my-club-teams',
+                'main-menu-nav-my-club-standings',
+                'main-menu-nav-promote-my-club',
+                'main-menu-nav-promote-my-tournaments',
+            ],
+        },
+        {
+            role: 'a user with all three roles',
+            flags: { isAuthenticated: true, isPlayerOrCaptain: true, isCaptain: true, isClubManager: true },
+            visibleRoleLinks: [
+                'main-menu-nav-matches-and-kudos',
+                'main-menu-nav-kudos-standings',
+                CAPTAIN_ITEM,
+                'main-menu-nav-my-club-teams',
+                'main-menu-nav-my-club-standings',
+                'main-menu-nav-promote-my-club',
+                'main-menu-nav-promote-my-tournaments',
+            ],
+        },
+    ])('shows the appropriate destinations to $role', ({ flags, visibleRoleLinks }) => {
+        setAuth(flags);
+
+        renderAndOpenMenu();
+        const visibleRoleLinkSet = new Set<string>(visibleRoleLinks);
+
+        for (const testId of [
+            'main-menu-nav-home',
+            'main-menu-nav-clubs-and-tournaments',
+            'main-menu-nav-about-and-contact-us',
+            ...visibleRoleLinks,
+        ]) {
+            expect(screen.getByTestId(testId)).toBeInTheDocument();
+        }
+
+        for (const testId of [
+            'main-menu-nav-matches-and-kudos',
+            'main-menu-nav-kudos-standings',
+            CAPTAIN_ITEM,
+            'main-menu-nav-my-club-teams',
+            'main-menu-nav-my-club-standings',
+            'main-menu-nav-promote-my-club',
+            'main-menu-nav-promote-my-tournaments',
+        ]) {
+            if (!visibleRoleLinkSet.has(testId)) {
+                expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+            }
+        }
+    });
+
     it('leaves the player items visible, and the club-manager items hidden, for a captain', () => {
         setAuth({ isAuthenticated: true, isPlayerOrCaptain: true, isCaptain: true });
 
@@ -148,6 +226,17 @@ describe('MainMenu', () => {
         expect(screen.getByTestId('main-menu-nav-home')).toHaveAttribute('href', '/');
         expect(screen.queryByTestId('main-menu-nav-my-club-teams')).toBeNull();
         expect(screen.queryByTestId('main-menu-nav-promote-my-club')).toBeNull();
+    });
+
+    it('keeps player-only destinations in the default style for a player', () => {
+        setAuth({ isAuthenticated: true, isPlayerOrCaptain: true });
+
+        renderAndOpenMenu();
+
+        for (const testId of ['main-menu-nav-matches-and-kudos', 'main-menu-nav-kudos-standings']) {
+            expect(screen.getByTestId(testId)).toHaveClass('text-main-text');
+            expect(screen.getByTestId(testId)).not.toHaveClass('text-club-manager-accent');
+        }
     });
 
     it('renders the captain item in the default colour, not the club-manager accent', () => {
@@ -169,10 +258,48 @@ describe('MainMenu', () => {
         expect(overlay.className).toContain('pointer-events-auto');
         expect(screen.getByTestId('main-menu-login-link')).toHaveAttribute('href', '/login');
         expect(screen.getByTestId('main-menu-nav-home')).toHaveAttribute('href', '/');
+        expect(screen.getByTestId('main-menu-nav-clubs-and-tournaments')).toBeInTheDocument();
+        expect(screen.getByTestId('main-menu-nav-about-and-contact-us')).toBeInTheDocument();
+        expect(screen.queryByTestId('main-menu-logout-button')).not.toBeInTheDocument();
         expect(screen.queryByTestId('main-menu-nav-matches-and-kudos')).toBeNull();
+        expect(screen.queryByTestId('main-menu-nav-kudos-standings')).toBeNull();
+        expect(screen.queryByTestId(CAPTAIN_ITEM)).toBeNull();
+        expect(screen.queryByTestId('main-menu-nav-my-club-teams')).toBeNull();
 
         fireEvent.click(screen.getByTestId('main-menu-login-link'));
         expect(overlay.className).toContain('pointer-events-none');
+    });
+
+    it('navigates to a selected destination and closes the menu', () => {
+        setAuth({ isAuthenticated: true, isPlayerOrCaptain: true });
+
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <MainMenu />
+                <CurrentLocation />
+            </MemoryRouter>
+        );
+        fireEvent.click(screen.getByTestId('main-menu-toggle'));
+        fireEvent.click(screen.getByTestId('main-menu-nav-matches-and-kudos'));
+
+        expect(screen.getByTestId('current-location')).toHaveTextContent('/kudos');
+        expect(screen.getByTestId('main-menu-overlay').className).toContain('pointer-events-none');
+    });
+
+    it('returns to Home from a nested destination and closes the menu', () => {
+        setAuth({ isAuthenticated: true });
+
+        render(
+            <MemoryRouter initialEntries={['/kudos']}>
+                <MainMenu />
+                <CurrentLocation />
+            </MemoryRouter>
+        );
+        fireEvent.click(screen.getByTestId('main-menu-toggle'));
+        fireEvent.click(screen.getByTestId('main-menu-nav-home'));
+
+        expect(screen.getByTestId('current-location').textContent).toBe('/');
+        expect(screen.getByTestId('main-menu-overlay').className).toContain('pointer-events-none');
     });
 
     it('shows club-management links with the manager accent to a club manager, while shared links keep the default style', () => {
@@ -215,7 +342,7 @@ describe('MainMenu', () => {
 
         renderAndOpenMenu();
 
-        expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, First Player');
+        expect(screen.getByTestId('main-menu-welcome-message').textContent).toBe('Welcome, First Player');
         expect(screen.getByTestId('main-menu-managed-club')).toHaveTextContent('MANAGER: Morpeth, Bethnal Green (CLTTL 2026-2027)');
         expect(screen.getByTestId('main-menu-first-season')).toHaveTextContent('CLTTL 2026-2027 - Morpeth 9, Division Four');
         expect(screen.getByTestId('main-menu-additional-season')).toHaveTextContent('CLTTL 2026-2027 - Morpeth 10, Division Five (Second Player)');
@@ -232,15 +359,15 @@ describe('MainMenu', () => {
                 <CurrentLocation />
             </MemoryRouter>
         );
+        expect(screen.getByTestId('current-location')).toHaveTextContent('/kudos');
         fireEvent.click(screen.getByTestId('main-menu-toggle'));
         fireEvent.click(screen.getByTestId('main-menu-logout-button'));
 
         expect(signOut).toHaveBeenCalledTimes(1);
         expect(drainFrontendEvents).toHaveBeenCalledOnce();
         expect(screen.getByTestId('main-menu-overlay').className).toContain('pointer-events-none');
-
         await act(async () => { await vi.runAllTimersAsync(); });
-        expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+        expect(screen.getByTestId('current-location').textContent).toBe('/');
         vi.useRealTimers();
     });
 
@@ -252,9 +379,10 @@ describe('MainMenu', () => {
         setAuth({ isAuthenticated: true }, { signOut });
 
         render(
-            <MemoryRouter initialEntries={['/kudos']}>
+            <MemoryRouter initialEntries={['/clubs-and-tournaments', '/kudos']} initialIndex={1}>
                 <MainMenu />
                 <CurrentLocation />
+                <NavigateBack />
             </MemoryRouter>
         );
         fireEvent.click(screen.getByTestId('main-menu-toggle'));
@@ -266,6 +394,8 @@ describe('MainMenu', () => {
         expect(screen.getByTestId('current-location-error')).toHaveTextContent(
             'There was a problem signing out from your session. Please refresh the page and try again. If the problem persists, contact us.'
         );
+        fireEvent.click(screen.getByRole('button', { name: 'Go back' }));
+        expect(screen.getByTestId('current-location')).toHaveTextContent('/clubs-and-tournaments');
         consoleError.mockRestore();
     });
 
@@ -276,6 +406,40 @@ describe('MainMenu', () => {
 
         expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Luca');
         expect(screen.queryByTestId('main-menu-unexpected-error')).toBeNull();
+    });
+
+    it('uses the first managed club manager name when no active season supplies a display name', () => {
+        setAuth(
+            { isAuthenticated: true, isClubManager: true },
+            {
+                activeSeasons: [],
+                managedClubs: [
+                    { league: 'CLTTL', season: '2026-2027', club_name: 'Morpeth', club_location: 'London', manager_name: 'Mara' },
+                ],
+            }
+        );
+
+        renderAndOpenMenu();
+
+        expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Mara');
+    });
+
+    it('falls back to the managed club manager name when the first season has no person name', () => {
+        setAuth(
+            { isAuthenticated: true, isClubManager: true },
+            {
+                activeSeasons: [
+                    { league: 'CLTTL', season: '2026-2027', team_name: 'Morpeth 9', team_division: 'Division Four', person_name: null },
+                ],
+                managedClubs: [
+                    { league: 'CLTTL', season: '2026-2027', club_name: 'Morpeth', club_location: 'London', manager_name: 'Mara' },
+                ],
+            }
+        );
+
+        renderAndOpenMenu();
+
+        expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Mara');
     });
 
     it('shows the account-details warning when attributes could not be loaded', () => {
@@ -311,8 +475,12 @@ describe('MainMenu', () => {
 
         renderAndOpenMenu();
 
-        expect(screen.getAllByTestId('main-menu-managed-club')[1]).not.toHaveTextContent('(Luca)');
-        expect(screen.getByTestId('main-menu-additional-season')).not.toHaveTextContent('(Luca)');
+        expect(screen.getAllByTestId('main-menu-managed-club')[1]).toHaveTextContent(
+            /^MANAGER: Brighton, Brighton \(BCS 2026-2027\)$/
+        );
+        expect(screen.getByTestId('main-menu-additional-season')).toHaveTextContent(
+            /^CLTTL 2026-2027 - Morpeth 10, Division Five$/
+        );
     });
 
     it('identifies a different manager on an additional club', () => {
