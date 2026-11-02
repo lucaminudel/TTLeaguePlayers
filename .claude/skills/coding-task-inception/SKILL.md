@@ -272,6 +272,17 @@ missing ownership or dependencies before presenting the plan.
 
 ## Phase 7 — Present, amend, confirm, persist
 
+Before final plan confirmation, ask the user each of the following questions; they may answer or
+explicitly skip each one. Record each answer or skip in the requirements, specifications,
+constraints and outcomes chapter of `plan.md`, and fold any resulting changes into the plan before
+confirmation. Do not invent answers or make a skipped answer a requirement:
+
+1. When this plan is implemented, which user needs or wants will be fulfilled?
+2. How will the user know this outcome has been achieved?
+3. What other product and business outcomes and impacts will be achieved?
+4. How can these be quantified and measured?
+
+
 Present the full plan as a table: number, sub-task, blocked-by. Include the parallel execution
 groups, file ownership, and synchronization barriers. Add files created vs modified,
 decisions locked in, assumptions, and anything you would flag as accepted risk.
@@ -294,6 +305,15 @@ task artifacts are found by path, not by recall. The file must carry:
 
 - frontmatter with `name`, `description`, `metadata.type: project`
 - goal and explicit out-of-scope
+- **Requirements, specifications, constraints and outcomes** — one combined, deduplicated index
+  of all requirements, technical and domain specifications and constraints discussed in Discovery
+  and Inception. Incorporate the Discovery index and reconcile it against the detailed reports;
+  for older Discovery reports without an index, derive it from their content. Use short labels with
+  links or section references to the detailed discussion in `plan.md` or `discovery.md`, without
+  duplicating it. Distinguish confirmed in-scope items from open, uncertain, superseded and
+  out-of-scope items; preserve their status and do not turn observations into requirements.
+  Include the four outcome questions and the user's answer or explicit skip for each in this same
+  chapter. Update the index and answers when the plan is amended, and reconcile them at confirmation.
 - the decision table, with the *why* for each
 - a concise simplicity assessment for consequential choices: required outcomes versus proposed
   mechanisms, actual change surface, viable smaller alternatives and reasons for the selected design

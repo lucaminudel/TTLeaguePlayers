@@ -409,6 +409,26 @@ analysis, executed checks and existing CI evidence; state what was unavailable, 
 Verify and deduplicate candidate findings using the four rules above before triage.
 
 
+### Requirements and outcomes coverage — finish the automatic review
+
+After the adversarial checks, assess every item in the combined requirements, specifications and
+constraints index in `plan.md`, and each user-provided need, outcome, impact and measure, against
+the implementation and available evidence. Use the linked detailed discussion and distinguish
+confirmed in-scope commitments from open, superseded or out-of-scope items. For each applicable
+item record in `review.md` a concise status (achieved, not achieved, partially achieved, or not
+verifiable yet), evidence or a concrete gap, and the relevant scope. Do not infer real-world impact
+from code or tests alone. If outcomes were skipped, say so rather than inventing them.
+
+In automatic unit review assess only what the completed unit can establish; mark whole-plan and
+later-unit items pending, not failed or achieved. After all units and final verification, reassess
+the complete plan and cross-unit behaviour during final Review. For older plans without the index,
+reconstruct what is possible from the plan and available Discovery report, and record limitations.
+Treat confirmed unmet in-scope commitments as candidate findings under normal triage and fix
+permissions. For anything that cannot be established automatically, include a specific question or
+check and the evidence needed in the human review guide; identify outcomes that require later
+measurement rather than implying a reviewer can establish them immediately. Do not add deployment,
+external actions or new test authorization solely for this check.
+
 ## Phase 3 — Triage, then stop
 
 Rank every finding. **High-priority** means it would break behaviour, lose or expose data, hide a
@@ -574,7 +594,8 @@ The document carries:
 
   Do not keep a separate flat "per file" section beside the walkthrough — it doubles the length
   and the two drift apart.
-- **What to check** — the specific things a human should verify that tests do not: values against
+- **What to check** — the unresolved requirements and outcome questions and measurement follow-ups
+  from the coverage assessment, plus the specific things a human should verify that tests do not: values against
   the live external source, config values per environment, judgement calls, anything the work
   summary flagged as needing human review, and every assumption baked into code.
 - **Riding along** — the pending files from phase 1 that were out of scope, so nothing gets

@@ -1001,6 +1001,8 @@ One section per completed sub-task:
 - **Sub-task** — number and title.
 - **Files** — each path created or modified, with one line on *why* that file changed.
 - **Verification** — what was run and the result, quoted rather than characterised.
+- **Requirements and outcomes evidence** — retain relevant verification evidence and any limits
+  needed to assess the combined index and user-provided outcomes in `plan.md` during Review.
 - **Needs human review** — the honest part. Judgement calls, anything that deviates from the plan,
   assumptions baked into code, brittleness knowingly accepted, and anything a reviewer would want
   to check against the live source. Write "nothing" only when it is true.

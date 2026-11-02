@@ -180,6 +180,12 @@ The file carries:
   with expectations, and what remains unknown
 - **Scope-impact callouts** — the flagged items from *Standing rules*, with their reasons,
   affected areas and uncertainties; surface the significant ones in the report's top summary
+- **Requirements, specifications and constraints** — one concise index of all requirements,
+  technical and domain specifications and constraints discussed, including those that remain open.
+  Each item is only a short label and a link or section reference to the detailed discussion and
+  evidence elsewhere in this report; do not repeat that content. Distinguish confirmed items from
+  open, uncertain, superseded or out-of-scope items, without presenting findings as decisions.
+  Maintain the index as topics evolve and reconcile it with the final report.
 - **Open questions for inception** — decisions this discovery deliberately did not make
 - a dated log of the discovery sessions, and instructions that any agent may update the file
 
