@@ -90,12 +90,33 @@ which one to review.
 The output is **a reviewed, green, committable working tree and a guide for reviewing it** — not a
 commit, except for the local unit commits explicitly authorized in *Execution unit review mode*.
 
+## Execution and Review continuation policy
+
+Read [the shared continuation-record guidance](../shared/no-stop-policy-guidance.md) and the
+task's `no-stop-policy.md` alongside the other task artifacts, for both unit and final Review.
+Consult that central record before every related question or stop/continue decision. Update it
+when Review receives or applies a continuation decision, permission or correction; check the
+entire record and workflow diagram for coherence after each update. Link central decision IDs
+from review records rather than maintaining a separate policy. Reconstruct missing records from
+clear existing evidence without repeating resolved questions; follow the shared guidance for
+any material unresolved ambiguity. Propagate changes back to Execution and affected active agents.
+
 ## Execution unit review mode
 
-When Execution has recorded the user's explicit choice to automatically review, commit locally and continue
-between two or more independently deployable units, use this mode after each completed unit,
-including the last. It is the autonomous part of Review within Execution; it does not rename the
-chat, close Execution, or start the human-driven Review phases at each boundary.
+Read Execution's recorded answer to `EXECUTION_UNIT_BOUNDARY_MODE` from `no-stop-policy.md`.
+Use this mode after each completed unit, including the last, for either continuation answer:
+
+- `AUTO_REVIEW_FIX_CONTINUE_USER_COMMITS`: automatically review, fix confirmed high-priority
+  findings, re-verify and continue; leave changes uncommitted for the user.
+- `AUTO_REVIEW_FIX_COMMIT_EACH_UNIT_CONTINUE`: perform the same automatic review, fixes and
+  verification; Execution's main agent then makes a separate scoped local commit for each unit.
+
+`STOP_AND_HAND_OVER` does not activate this mode. Reuse an applicable choice already given;
+map an unambiguous older natural-language answer to its code without asking again or inferring
+commit permission. Include the question and answer codes in the unit review record.
+This is the automatic part of Review within Execution; it does not rename the chat, close
+Execution, or start the manual Review phases at each boundary. Informational progress posts
+do not require a per-unit handover. Separately retained permission gates still apply.
 
 - Read the confirmed plan, unit boundaries, work summary and recorded authorization. Use the
   completed unit's applicable green Tier 1 evidence as the entry condition instead of Phase 0's
@@ -118,15 +139,19 @@ chat, close Execution, or start the human-driven Review phases at each boundary.
   `review.md` in the task directory, and link that entry from `work-summary.md`. Post concise
   progress and continue under Execution's recorded mode; do not ask for per-unit human triage,
   produce the final PR guide or request the Review retrospective. After review, fixes and checks
-  pass, return the unit's review outcome and evidence to Execution's main agent, which makes and
-  records the single local unit commit under its Git rule before continuing. This is a workflow
-  boundary, not a request for human confirmation or a second commit. Do not push or deploy.
-  A failed commit blocks continuation.
+  pass, return the unit's findings, fixes and verification evidence to Execution's main agent.
+  For `EXECUTION_UNIT_BOUNDARY_MODE = AUTO_REVIEW_FIX_CONTINUE_USER_COMMITS`, leave changes
+  uncommitted and continue. For `EXECUTION_UNIT_BOUNDARY_MODE = AUTO_REVIEW_FIX_COMMIT_EACH_UNIT_CONTINUE`,
+  Execution's main agent makes and records the scoped local unit commit before continuing;
+  a failed commit blocks continuation. The Review portion does not stage or commit. Do not push
+  or deploy.
 
 After the whole plan and required final verification are complete, run the human-driven Review
 workflow once. Reconcile the unit records against the final diff, review cross-unit integration
-and changes since those passes, and present unresolved findings for human decisions under the
-normal approval rules. Review all unit commits from the recorded starting HEAD through the final
+and changes since those passes. Present confirmed high-priority findings and their automatic
+fixes with verification evidence alongside the remaining findings. Clearly distinguish findings
+already fixed from those awaiting the user's decision under the normal approval rules.
+Review all unit commits from the recorded starting HEAD through the final
 HEAD, plus remaining task changes in the working tree, including untracked files; a pending-only
 diff would miss the committed units. Keep unrelated changes outside scope. Use supported review
 tool inputs for that scope and report any coverage limitation instead of claiming the unit commits
@@ -401,8 +426,11 @@ reproduce; do not report it as a "possible issue".
 2. **Medium-priority findings**, presented the same as the High-priority findings
 3. **Noted, not actioned** — every lower-priority finding, named in a concise list. No fix plan is needed for this initial list. Present the list to the user.
 
-Outside *Execution unit review mode*, change nothing until the user approves a fix. If they amend the plan, fold the amendment in and
-re-present it.
+Before requesting fix approval, check `no-stop-policy.md` and the existing user authorizations.
+Apply fixes already covered by an explicit approval within its recorded scope; do not ask again.
+Present findings requiring a new decision during manual Review. Approval to continue alone does
+not authorize unrelated fixes. If the user amends the approved fix plan, record the amendment
+and update the central policy when it changes authorization or handover decisions.
 
 ## Phase 4 — Fix
 
@@ -411,18 +439,26 @@ Execute only fixes the user approved (including the scoped high-impact authoriza
 other findings untouched, and do not fold in cleanup along the way — the diff must not grow beyond
 the approved fixes during its own review.
 
-Verify with the commands and **four-tier discipline** defined in *Phase 6 — Verify before
+Verify with the commands and **verification-tier discipline** defined in *Phase 6 — Verify before
 marking done* of the [Execution skill](../coding-task-execution/SKILL.md), including its recorded
 approvals, clean-dev conditions and cumulative Cognito budget. Those rules govern whether to ask;
 do not add a new approval requirement for an already authorized run.
+
+Tier 1-D localized mutation runs, test-gap fixes and evidence-backed triage updates run
+automatically without approval. For mutation-gap remediation that requires application-code
+changes affecting application behaviour, obtain approval for the concrete behaviour change
+before applying it. This specific boundary also applies during automatic unit review; do not
+infer behaviour-change approval from the finding's priority or the automatic continuation mode.
 
 Read that content from disk before relying on it, unless already loaded in this session.
 Resolve `../coding-task-execution/SKILL.md` relative to this skill. Do not reconstruct commands or tier gates
 from memory, and do not assume a tier is free — 1-B, 1-C and 2 all spend live Cognito and count
 against the budget defined there.
 
-A fix that does not go green is not done. If a fix turns out to be wrong or wider than it looked,
-stop and say so rather than expanding it silently.
+A fix that does not go green remains in progress. Diagnose, repair and re-verify autonomously
+within the approved outcome and authority. Record relevant adjustments without handing over.
+Consult `no-stop-policy.md` and ask only when the required change materially affects scope,
+blast radius, impact, delivery boundary or contracts, or requires additional authority.
 
 Re-run the full pipeline after fixes only under applicable recorded approval; otherwise explain
 why it is needed, ask and wait. A previous run does not itself authorize another run.

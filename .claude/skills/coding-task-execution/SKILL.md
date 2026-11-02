@@ -77,6 +77,15 @@ plan exists, stop and report that Coding Task Inception must run first.
 
 ## Phase 1 — Load and reconcile
 
+Read [the shared continuation-record guidance](../shared/no-stop-policy-guidance.md) and the
+task's `no-stop-policy.md` beside `plan.md`. Maintain it as the central record for Execution
+and Review stop/handover, continuation and upfront permissions. Reconstruct a missing record
+from existing evidence without repeating resolved questions. Update and check the entire record
+for coherence after every related decision/correction and consult it before each continuation
+or handover decision. Link its decision IDs from the plan and work summary; propagate changes
+to affected active agents and nested Review. See the guidance for the required diagram, effective
+decision table, attributed chronological log and coherence checks.
+
 Read the plan in full: decision table, research findings, sub-task table, standing assumptions,
 progress log.
 Read `prompts/codebase_info/CodeDesignGuidelines.md` before implementing or reviewing the planned
@@ -150,25 +159,43 @@ would otherwise cause a later ask. Reuse answers and authorizations already give
 what remains unresolved, then wait for the answers before starting dependent work.
 
 - **For plans with two or more independently deployable units, settle the unit-boundary mode.**
-  Present the units and ask whether the user wants to **stop after each completed unit** or
-  **automatically review, commit locally and continue**: after each unit, run the autonomous adversarial review
-  described in [the Review skill](../coding-task-review/SKILL.md#execution-unit-review-mode),
-  fix verified high-impact findings, re-verify, commit that unit locally, then continue to the next unit, leaving the
-  human-driven part of Review until the whole plan is implemented and verified. Record the
-  explicit choice in the plan and work summary; reuse an existing choice without asking again.
-  Until resolved, stop at unit boundaries. Choosing automatic mode authorizes the scoped
-  high-impact fixes, local unit commits and continuation at these boundaries, not pushing,
-  deployment or unrelated changes. If an older recorded choice did not include commits, resolve
-  that added authorization before committing. Record the starting HEAD and any pre-existing
+  Present the units and ask **`EXECUTION_UNIT_BOUNDARY_MODE`: How should execution proceed at each unit boundary?**
+
+  1. **`STOP_AND_HAND_OVER` — Stop and hand over.** Present the completed unit and verification evidence, then wait for
+     the user's direction. No automatic review, fixes or commits occur at this boundary.
+  2. **`AUTO_REVIEW_FIX_CONTINUE_USER_COMMITS` — Automatically review, fix and continue; you commit later.** Perform the automatic part of
+     Review, fix confirmed high-priority findings, re-verify and continue without handing over.
+     Leave changes uncommitted for the user to commit together later.
+  3. **`AUTO_REVIEW_FIX_COMMIT_EACH_UNIT_CONTINUE` — Automatically review, fix, automatically commit each unit and continue.** Perform the same
+     automatic review, fixes and verification, then make a separate local commit for each unit
+     before continuing.
+
+  For options 2 and 3, use the automatic review process described in
+  [the Review skill](../coding-task-review/SKILL.md#execution-unit-review-mode), including for the
+  last unit. Record confirmed high-priority findings, their fixes and verification; present them
+  during the later manual part of Review together with the other findings. These records are
+  informational during execution and do not require a per-unit handover. Option 2 authorizes no
+  commits; option 3 authorizes scoped local unit commits only. Neither option authorizes pushing,
+  deployment or unrelated changes; separately retained permission gates still apply. Record the
+  explicit choice in `no-stop-policy.md`, link it from the plan and work summary, and reuse it without asking again. In each report
+  of user answers, include the question code, selected answer code, descriptive label and any
+  user qualifications. For example: `EXECUTION_UNIT_BOUNDARY_MODE = AUTO_REVIEW_FIX_CONTINUE_USER_COMMITS`.
+  Map an unambiguous natural-language answer to its code without requiring the user to repeat it.
+  These codes are stable identifiers; retain them when editing the descriptive wording. Until resolved,
+  stop at unit boundaries. If an older choice did not include commits, do not infer commit
+  authorization from permission to continue. Record the starting HEAD and any pre-existing
   staged or unstaged changes so unit commits and the final whole-plan review have a clear baseline.
 - Present **each checkpoint separately by name/number and purpose**, with what the user would
   inspect there. Ask whether execution should **stop** there or **ignore the stop and continue**.
   Record the explicit choice for each checkpoint; an unresolved choice defaults to stopping.
   Ignoring a checkpoint waives its hand-back, not its work, evidence or verification.
-- Present the planned Tier 2 verification after Phase 4, including its environment, live Cognito
-  effects and deterministic mutation-testing scope/cost. Ask whether to preapprove Tier 2 and
-  deterministic mutation testing now or leave either approval until that final stage. Record
-  exactly what was approved; pipeline approval alone does not imply mutation-testing approval.
+- Present Tier 1-D localized mutation testing for each applicable deployable unit separately
+  from final Tier 2 verification and its live Cognito effects. Tier 1-D runs automatically and
+  requires no separate approval; record its unit scope and automatic continuation in
+  `no-stop-policy.md`. Resolve remaining Tier 2 permission questions upfront and record each
+  permission and its limits; approval for one run type does not authorize another.
+  Forced whole-codebase mutation testing is a rare,
+  optional post-commit follow-up, not a prerequisite for completing the plan.
 - Resolve other foreseeable asks, including any outstanding baseline/environment questions from
   Phase 1 and permissions for planned external mutations. Keep the Cognito budget and lockout
   stopping rules; upfront approval does not remove those limits.
@@ -181,8 +208,9 @@ autonomous adversarial review and high-impact fixes happen, when local commits a
 the final whole-plan verification and human-driven Review take place.
 
 Explain that stopping after a unit currently presents its outcome and evidence and waits; it does
-not automatically review, fix or commit that unit. Automatic mode reviews, fixes, re-verifies and
-commits each unit before continuing, including the last unit; separately retained checkpoints
+not automatically review, fix or commit that unit. Both continuation options automatically review,
+fix confirmed high-priority findings and re-verify each unit, including the last unit. Only option 3
+automatically commits each unit; option 2 leaves committing to the user. Separately retained checkpoints
 still stop execution. Skipping a checkpoint removes only its human hand-back, not its work or
 verification. Distinguish unit boundaries from other checkpoints and resolve conflicting choices
 before showing the resulting sequence. For a single-unit plan, explain that automatic unit mode
@@ -224,10 +252,13 @@ For each implementation sub-task, in dependency order:
 
 At each deployable-unit boundary, after its sub-tasks and applicable Tier 1 checks are complete,
 apply the recorded unit-boundary mode before starting the next unit. In stop mode, present the
-unit's outcome and evidence and wait. In automatic mode, read and follow the Review skill's
-*Execution unit review mode*, record its findings, fixes and verification, then make a local commit
-of that unit under the Git rule below. Continue only when the unit has no unresolved high-impact
-findings, the checks pass and its commit succeeds. Review and commit the last unit too.
+unit's outcome and evidence and wait. In either continuation option, read and follow the Review
+skill's *Execution unit review mode* for automatic review, fixes and verification. Apply the
+recorded Execution choice to committing: option 2 leaves changes uncommitted; option 3 makes a
+local commit under the Git rule below. Continue when the unit has no unresolved confirmed
+high-priority findings and its checks pass; option 3 also requires its commit to succeed. Apply
+the selected process to the last unit too. Record high-priority findings and fixes for presentation
+with all other findings during the later manual Review, without a per-unit handover.
 Execution's main agent is the sole commit owner: the Review portion returns findings and green
 evidence; it does not make a second commit. On resume, verify any recorded unit commit and do not
 recommit an already committed unit. If no changes remain to commit, record why rather than creating
@@ -235,8 +266,11 @@ an empty commit. Additional fixes after a recorded unit commit need their own sc
 Keep Tier 2 as the final whole-plan stage; a unit review does not establish full-pipeline green
 or mean the unit has actually been deployed.
 
-A sub-task that cannot be finished stays `in progress`. Never mark `done` on partial work, failing
-tests, or anything you worked around rather than solved — report it and stop.
+A sub-task execution that cannot be finished stays `in progress`. Never mark `done` on partial
+work, failing tests, or unresolved workarounds. Report the status without handing over to the user.
+Stop only the stalled attempt, then diagnose, repair, retry, or use another authorized approach.
+Continue independent unblocked work where available. Ask the user only when further progress
+requires missing information, additional authority, or an external change you cannot make.
 
 After all Phase 4 implementation work and its Tier 1 checks are complete, perform the final Tier 2
 stage defined in Phase 6, then complete the work summary and retrospective before hand-off. If the plan includes a final
@@ -292,14 +326,17 @@ Permission to implement the plan does not by itself waive every checkpoint. Pres
 and settle its choice in Phase 3; do not silently invent a waiver later.
 
 ## Phase 6 — Verify before marking done
-Four tiers, ordered by how much **live Cognito** they spend. They are **not** interchangeable, and the
-ordering is the point: you climb it only as far as the change requires.
+Use Tier 1-A through 1-D for applicable unit-level verification, then Tier 2 for final shared
+test-environment verification. These checks have different scope, cost and prerequisites; climb
+only as far as the change requires. Tier 1-D spends time on localized mutation analysis but no
+live Cognito, so the tier order is not a ranking of Cognito usage.
 
 | Tier | Build, lint, Vitest, C# | e2e | Cognito | Gate |
 |---|---|---|---|---|
 | **1-A** | dev | the **e2e environment** | **none** — excluded by filter / flag | run freely, constantly |
 | **1-B** | dev | the **e2e environment** | scoped — only the individual tests relevant to the changed files | counts against the budget |
 | **1-C** | dev | dev — **exists only if the user confirmed the dev DB is clean** | **full** — whole backend suite + whole e2e suite with live Cognito | counts against the budget; no separate ask |
+| **1-D** | localized deterministic mutation testing of the deployable unit's source and covering Vitest specs | none | none | automatic after relevant build/unit checks pass; no approval required |
 | **2** | test (clean-room) | test | **full**, plus Cognito user cleanup | after Phase 4; ask unless already preapproved |
 
 **Where the e2e tests run.** Every e2e test — Cognito-free or live — needs a clean DB; on a dev DB with
@@ -329,12 +366,26 @@ and Playwright screenshots, traces and videos land locally.
 Without a clean dev DB there is no 1-C: checkpoints and "application code finished" gates use 1-B, and
 the whole e2e suite runs only in Tier 2.
 
+**Tier 1-D — localized deterministic mutation testing.** Limit Stryker to the current deployable
+unit's relevant source files and covering Vitest specs after its build and relevant unit tests
+pass. This is slower than Tier 1-A/B/C, generally faster than Tier 2, and not an every-edit check.
+Use it at unit milestones and when mutation findings require targeted iteration. It may run
+during implementation and before unit review/commit; it does not require Tier 2 approval or a
+clean dev DB. Run automatically without asking for approval. Autonomously diagnose mutation
+findings, improve tests to close observable coverage gaps, re-verify and rerun the localized
+scope as needed. If closing a gap requires application-code changes affecting application
+behaviour, present the concrete finding, proposed behaviour change and verification for user
+approval before applying that change; continue independent test work where possible. Do not
+weaken assertions or change application behaviour merely to kill a mutant. Record this boundary
+in `no-stop-policy.md`. Run serially on the main agent and automatically update the triage
+register after each completed run using its evidence and acceptance rules.
+
 **Tier 2 — the complete verification.** On the **test** environment, with live Cognito and a clean-room
 build. Minutes. **Run only after Phase 4 implementation and its Tier 1 checks are complete.**
 Ask the user before launching unless the applicable Tier 2 run was explicitly preapproved, for
 example in Phase 3. Honour that approval without asking again, within its recorded scope and the
-Cognito budget. Deterministic mutation testing belongs only in this Tier 2 stage and needs its own
-explicit approval, which may also be recorded in Phase 3.
+Cognito budget. Localized mutation testing is automatic Tier 1-D and requires no separate
+approval; it is not coupled to this pipeline.
 
 Before Tier 2 starts, stop any test-env services you started yourself: the pipeline reuses a SAM
 already listening on 3003 instead of its own clean-room build.
@@ -414,7 +465,6 @@ than reaching for a second mutation that flatters the original guess.
 | Test or fixture only | just that suite, at the lowest tier that runs it |
 | Either, once 1-A is green **and** the change touches a Cognito-dependent path | **1-B**, narrowed to the relevant tests — counts against the budget |
 | Gate: plan verification sub-tasks, and **every checkpoint** | **1-C** front and back if the dev DB is clean; otherwise **1-B** — both count against the budget |
-| Application code finished, before writing its tests | same as the row above — establish the green baseline |
 | Final verification stage, after Phase 4 implementation and Tier 1 checks | **Tier 2** — ask unless explicitly preapproved |
 
 ---
@@ -661,17 +711,15 @@ npm run "C+ e2e-tests-web:run test-env"
 
 All three of these mutate Cognito: their cleanup deletes the dynamically created `test_*` users.
 
-#### Deterministic mutation testing — Tier 2 only, after user confirmation
+### Tier 1-D — localized deterministic mutation testing commands
 
-Run deterministic mutation testing only in the final Tier 2 stage, after Phase 4 implementation
-and Tier 1 checks are complete. Ask for explicit confirmation unless deterministic mutation testing
-was already explicitly preapproved with its scope, for example in Phase 3. Do not ask again for the
-same approved run. It is time-consuming and must not run as an ordinary inner-loop check or before
-Tier 2. Tier 2 pipeline approval alone does not approve deterministic mutation testing.
-
-Mutation testing runs the Vitest unit tests; do not use Playwright or live Cognito for it. Once the
-user has confirmed Tier 2 and the build and relevant Vitest specs are green, select only the changed
-`src/` production file(s) and their covering unit spec(s).
+Mutation testing runs Vitest only, with no Playwright or live Cognito. After the deployable unit's
+build and relevant unit tests pass, select its relevant `src/` files and covering specs. Tests-only
+mutation-gap work may target unchanged production files whose coverage the unit is improving.
+Consult `no-stop-policy.md` for unit scope and any retained application-behaviour decision gate.
+Localized runs, test-gap fixes and evidence-backed triage updates are automatic and need no
+approval. Changes to application code that affect application behaviour require user approval
+as described above; test success alone does not authorize a product-behaviour change.
 
 ```bash
 npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.ts --testFiles test/unit/<path-to-covering-spec>.test.ts
@@ -679,10 +727,25 @@ npm run "mutation-tests-web:run-file" -- --mutate src/<path-to-changed-source>.t
 
 Use comma-separated paths for a small set of changed source files and their covering specs. Use
 `npm run "mutation-tests-web:check"` to validate Stryker discovery without mutations; reserve
-`npm run "mutation-tests-web:run"` for an incremental configured-suite run and
-`npm run "mutation-tests-web:run-file"` without filters for an intentional, forced full run.
+`npm run "mutation-tests-web:run"` for an intentionally authorized incremental configured-suite
+run. Never omit localization filters as a shortcut to running the full codebase.
 
 For more than one file, provide comma-separated paths to `--mutate` and `--testFiles`.
+
+### Optional post-commit forced whole-codebase mutation testing
+
+After Tier 2, mention the forced full run as an optional follow-up the user may choose after
+committing. It is rare and takes about three hours (the user's current estimate, not a timeout
+or guarantee). Do not make it a completion gate, run it automatically, or commit on the user's
+behalf to enable it. Record whether it is deferred, declined or authorized in `no-stop-policy.md`.
+If authorized, run it after the intended commit exists and record the exact tested revision:
+
+```bash
+npm run "mutation-tests-web:full"
+```
+
+After completion, update the triage register from the full report, preserving run provenance.
+Full and localized runs must remain serial because they share Stryker's temporary workspace.
 
 #### Record every completed deterministic mutation run
 
@@ -991,8 +1054,8 @@ decisions and review guide. In other modes, hand off to the user to start Review
 
 ## Standing rules
 
-**Git.** Stay on the current branch. Outside the explicitly selected automatic unit mode, leave
-staging and committing to the user. In that mode, after each unit's adversarial review, high-impact
+**Git.** Stay on the current branch. Leave staging and committing to the user unless option 3
+(automatically commit each unit) was explicitly selected. Only in option 3, after each unit's adversarial review, high-impact
 fixes and applicable checks pass, stage only that unit's changes and make a local commit with a
 message describing its outcome. Inspect the staged patch before committing and confirm the
 resulting commit contains only the intended changes. Preserve unrelated staged and unstaged work;
@@ -1002,10 +1065,18 @@ push, amend earlier commits, or rewrite history. Record each commit hash, unit a
 evidence in the plan and work summary. A failed commit blocks continuation; report its cause.
 Never stash, revert, or clean the user's pre-existing uncommitted changes.
 
-**Plan drift.** If anything contradicts the plan — a selector that does not match, a design that
-proves unworkable, a dependency that was missed — **stop and ask, always**. Report the finding and
-the options; do not silently redesign, and do not silently comply with
-a plan you now know to be wrong. Record the resolution in the plan's progress log before resuming.
+**Plan drift.** Resolve ordinary implementation discoveries autonomously within the approved
+outcome and existing authority. Examples include repairing tests, correcting selectors, reconciling
+reports, and adjusting implementation details or dependencies without materially changing the
+agreed scope, blast radius, impact, delivery boundary or contracts. Verify the adjustment, record
+the reason and evidence in the plan's progress log, and continue; an informational update does
+not require a hand-back.
+
+Stop and ask only when the required adjustment materially changes one of those dimensions or
+requires authority the user has not already granted. Present the concrete finding, affected
+behaviour and consequences, and the available options. Reuse applicable decisions and approvals
+already given in the conversation or plan; do not ask again for the same authorized adjustment.
+Record the user's resolution before starting work that depends on the new decision or authority.
 
 **Scope.** The plan defines the work. Do not widen it, do not fold in unrelated cleanups noticed in
 passing, and do not narrow it because a step looks awkward.
@@ -1038,7 +1109,8 @@ passing, and do not narrow it because a step looks awkward.
 - Running a mutating Cognito command — the provisioning scripts, an `aws cognito-idp` write, applying a
   pending change to either — without asking first.
 - Climbing to Tier 1-C or Tier 2 or reaching for them when 1-A would have answered the question.
-- Running deterministic mutation testing outside Tier 2 or without user confirmation.
+- Running localized mutation testing outside its authorized unit scope or before relevant build/unit checks pass.
+- Starting a forced whole-codebase mutation run without applicable authorization or before its intended commit.
 - Re-running a Cognito-touching test to diagnose something unrelated to Cognito, instead of reading the
   trace, screenshot or `error-context.md` already on disk.
 - Losing count of the Cognito budget, or continuing past 10 without asking.

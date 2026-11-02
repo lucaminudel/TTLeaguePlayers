@@ -1,5 +1,10 @@
 ### Sub-agents and orchestration
 
+For Execution and Review, follow the task's current `no-stop-policy.md` under
+[the continuation-record guidance](no-stop-policy-guidance.md). The main agent communicates
+updated decisions to affected delegated agents. A dependency/verification barrier is not itself
+a user handover; the recorded policy determines whether human input is required.
+
 **The conversation is always the main agent's.** Whatever gathers the raw material, findings,
 options and questions are synthesised and presented by the main agent, one point per message. Fan
 out for *reading*; never for *presenting* — a sub-agent per topic that reports back in parallel
@@ -24,9 +29,17 @@ active barrier justify serial execution; convenience or a preference to work inl
 
 Record the assignment, agent identifier, scope/file boundary and returned evidence in the current
 task artifact. If tools are unavailable or a spawn fails, record the concrete limitation and
-report it; do not claim delegation occurred. Queue work when slots are occupied. If delegation is
-unavailable altogether, continue permitted nondelegated work and ask how to handle the blocked
-assignments rather than silently replacing mandatory delegation with inline work.
+report it without handing over to the user; do not claim delegation occurred. Queue work when
+slots are occupied. If delegation is unavailable, retry. If that retry also fails, continue the
+permitted work autonomously on the agent that started or attempted to start the subagent.
+This recovery path is an explicit exception to mandatory delegation; record the limitation and
+transfer of ownership, and preserve the task's existing scope and authorization.
+
+A pending agent response or incomplete tool-output window is not a failure or a user-handover
+point. Retain the agent or process identifier and check for completion. If progress stalls,
+inspect available evidence and attempt recovery. Before taking over edits, stop the previous
+writer and inspect partial changes. Follow the existing retry-and-return-to-spawning-agent rules
+if recovery fails. Report only verified execution states.
 
 | Phase | Sub-agents |
 |---|---|
@@ -118,9 +131,14 @@ dependency graph. Treat the table as a DAG, not as a checklist:
 6. Keep permission and confirmation gates with the main task. Delegation must not cause a sub-task to
    start a local service, use live credentials, mutate Cognito, run a long shared pipeline, or make
    an external change without the required user authorization.
-7. If a delegated task fails, report the failure against its sub-task number, keep dependent tasks
-   blocked, and either repair the task or ask the user for direction. Do not silently skip a failed
-   dependency or treat an unverified result as complete.
+7. If a delegated task fails, report the failure against its sub-task number without handing over
+   to the user. Keep dependent work blocked while retrying, repairing the task or finding a
+   workaround that meets its acceptance criteria. When those recovery approaches fail, return
+   the task to the agent that started the subagent for autonomous permitted execution, as an
+   explicit exception to mandatory delegation. Before transferring ownership, stop or confirm
+   completion of the former writer, inspect any partial changes and give the receiving agent the
+   failure evidence and remaining work. Do not silently skip a failed dependency or treat an
+   unverified result as complete. Existing scope, permission and verification constraints apply.
 
 This preserves the plan's intended execution shape: independent discovery or implementation work
 can run concurrently, dependency chains remain serial, and the main Codex task remains responsible

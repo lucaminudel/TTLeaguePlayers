@@ -59,6 +59,16 @@ Read the shared orchestration guidance at [../shared/orchestration.md](../shared
 A nine-phase protocol for the TTLeaguePlayers repo. The output is a **confirmed, persisted plan**,
 not code. Write no application code during Inception.
 
+## Execution and Review continuation policy
+
+Read [the shared continuation-record guidance](../shared/no-stop-policy-guidance.md).
+Create and maintain `<task-slug>/no-stop-policy.md` alongside the task artifacts as decisions
+about Execution and Review continuation or handover emerge. Record user answers, upfront
+permissions, corrections and their scope centrally; check the whole record for conflicts and
+ambiguities after each update and before a related question or decision. Include the effective
+workflow diagram in the confirmed handoff. Link central decision IDs from the plan rather than
+maintaining a second stop/continue policy there. In Codex use `.codex/coding-tasks/<task-slug>/`.
+
 ## Phase 1 — Receive the general information
 
 The user supplies background and references. Read every file they name, in full. Hold it; do not
@@ -196,9 +206,19 @@ write-path change before the backfill that depends on it. Those constraints usua
 or a script header rather than in the code, so re-read the ones you cited in research and walk the
 task order against them before presenting.
 
-Sequence verification as **two tiers**, never one:
+Sequence verification in two stages, using Execution's Tier 1-A/B/C/D definitions for unit work:
 - a fast inner loop on the dev environment, reusing the already-running local web server and SAM
 - one authoritative final run of the full pipeline on the test environment
+
+Include Tier 1-D localized deterministic mutation testing where applicable to each deployable
+unit, after relevant build and unit checks and before its review/commit. Localized runs, test-gap
+fixes and triage updates are automatic and require no approval. Record the unit scope and this
+continuation policy in `no-stop-policy.md`; if closing a gap requires application-code changes
+affecting application behaviour, obtain user approval for the concrete behaviour change before
+applying it. A forced whole-codebase mutation run is a rare,
+optional post-commit follow-up after Tier 2, taking about three hours by the user's current
+estimate; it is not a required completion gate. Record its user authorization separately from
+the automatic localized-mutation policy and shared-pipeline permissions.
 
 Offer **review checkpoints** — explicit stop-and-hand-back tasks where the user inspects the shape
 before the next layer goes on. Place each one at a state that compiles and runs; if the dependency
@@ -213,18 +233,27 @@ sensible default exists, take it and state it as an assumption instead.
 
 State your remaining assumptions explicitly, so silence counts as agreement.
 
-**Treat the spec's implementation directives as provisional.** The brief may name the interface and
-class to modify. If research says otherwise, present the trade-off with costs, flag the divergence
-from what they wrote, and get explicit confirmation. Do not silently comply, and do not silently
-deviate.
+**Treat implementation locations as provisional unless explicitly constrained.** The brief may
+name an interface or class to modify. Unless the user made that location a constraint, choose
+and explain routine implementation alternatives within the intended outcome. Request confirmation
+only when the alternative materially changes scope, blast radius, impact, delivery boundary or
+contracts, requires additional authority, or overrides an explicit user constraint. Reuse existing
+decisions and approvals, and record any resulting Execution or Review handover decision in
+`no-stop-policy.md`.
 
 ## Phase 6 — Review the plan for completeness
 Double-ckeck the plan decisions and sub-tasks making sure they are sufficiently detailed and have all the information required for  the agent to implement the plan-subtasks minimising the interruptions such as additional asks or reviews that need to be presented to the user.
 
 Where you can anticipate a gap and a missing information or a decision or a confirmation required, bridge the gap now with the user so the plan execution will have much much less interruptions
 
-Walk the sub-task list and list every point where the executing agent would have to stop: a
-permission gate, an unverified precondition, a detail left to judgement. Close and document each one now.
+Walk every sub-task and the complete Execution-to-Review workflow to identify foreseeable
+questions that could require a human answer and cause a later interruption. Inspect the code,
+tests, documentation, existing decisions and other available evidence, and perform authorized
+checks, to determine whether each question requires human input. When this establishes the
+answer, record it without asking the user. When a human answer is still required, ask during
+Inception rather than deferring the question until Execution. Record the answers, delegated
+judgment, retained gates and upfront permissions in `no-stop-policy.md`, then check the complete
+record for gaps, ambiguity and conflicts so Execution can proceed without avoidable interruptions.
 
 
 **Recheck simplicity as well as completeness.** Repeat the Phase 3 simplicity review against the
