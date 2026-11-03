@@ -411,13 +411,38 @@ Verify and deduplicate candidate findings using the four rules above before tria
 
 ### Requirements and outcomes coverage — finish the automatic review
 
-After the adversarial checks, assess every item in the combined requirements, specifications and
-constraints index in `plan.md`, and each user-provided need, outcome, impact and measure, against
-the implementation and available evidence. Use the linked detailed discussion and distinguish
-confirmed in-scope commitments from open, superseded or out-of-scope items. For each applicable
-item record in `review.md` a concise status (achieved, not achieved, partially achieved, or not
-verifiable yet), evidence or a concrete gap, and the relevant scope. Do not infer real-world impact
-from code or tests alone. If outcomes were skipped, say so rather than inventing them.
+After the adversarial checks, verify and double-check each item, one at a time, in the
+`Requirements, Specifications, Constraints and Outcomes` chapter of `plan.md`, including each
+user-provided need, outcome, impact and measure. Determine whether the implementation has fulfilled
+it by checking the item against:
+
+- the relevant sub-task completion status and detailed requirements in `plan.md`;
+- the relevant implementation and verification evidence and limitations in `work-summary.md`;
+- all relevant task changes: staged and unstaged changes, untracked files, and commits made for every
+  automatically committed delivery unit, using the recorded starting revision.
+
+Do not treat a completed task status or work-summary claim alone as proof. Inspect the actual changed
+files and supporting evidence, including the linked detailed discussion. Distinguish confirmed
+in-scope commitments from open, superseded or out-of-scope items. Where a gap or failed verification
+is found, investigate it and fix it where authorized under the recorded continuation policy and
+review fix permissions; reverify the affected item. Record whether each gap was fixed and verified,
+remains unfixed, or requires user input, and why. Do not infer new authorization or bypass existing
+approval gates. Distinguish checks actually performed from user-reported results and checks not run;
+do not infer real-world impact from code or tests alone. If outcomes were skipped, say so rather than
+inventing them.
+
+In a dedicated `Requirements, Specifications, Constraints and Outcomes Verification` chapter in
+`review.md`, record each plan item and its applicable verifications in this order:
+
+1. **Status:** achieved, not achieved, partially achieved, or not verifiable yet.
+2. **Evidence and scope:** what was checked, the results and supporting evidence, and the relevant
+   scope for the verification achieved.
+3. **Remaining gap:** the concrete gap and specific check and evidence needed when verification must
+   be left partially or entirely to the user; state whether any fix was completed or remains open.
+
+Start the chapter with a short summary of concrete gaps whose verification must be left partially or
+entirely to the user, and failed verifications that still need fixes. State explicitly when neither
+remains. Update both the per-item entries and the summary as fixes and verification results change.
 
 In automatic unit review assess only what the completed unit can establish; mark whole-plan and
 later-unit items pending, not failed or achieved. After all units and final verification, reassess
@@ -548,6 +573,9 @@ The document carries:
   scope (the plan's "left for later") goes here too, so the reviewer does not flag as missing what
   was deliberately not built.
 - **Verification status** — the tier-2 run and outcome, dated.
+- **`Requirements, Specifications, Constraints and Outcomes Verification`** — the per-item
+  assessment and verification evidence described in *Requirements and outcomes coverage*, with a
+  short summary of failed or incomplete checks needing fixes or user input.
 - **Findings** — high-priority ones with their resolution; noted-not-actioned ones as a list. Keep
   dismissed findings and *why* they were dismissed; that is what a later session needs most.
 - **What to review, in what order** — a short numbered index of the reading order that makes the
@@ -606,9 +634,10 @@ changed — if the reviewer could get it from the diff alone, leave it out.
 
 ## Phase 6 — Suggest the commit message
 
-Propose the text for any remaining task changes; **do not commit and do not stage** during final
-Review. If all task changes are already committed, list those unit commits instead of inventing
-a pending commit message. List unrelated pending work separately; do not bundle it into a task
+For remaining task changes, include the suggested commit message in the manual review report
+(`review.md`) before declaring the guide complete, and propose it in the handoff. **Do not commit
+and do not stage** during final Review. If all task changes are already committed, list those unit
+commits instead of inventing a pending commit message. List unrelated pending work separately; do not bundle it into a task
 commit message without the user's explicit request.
 
 Body explains *why*, since the diff already shows *what*. Note user-facing behaviour changes,

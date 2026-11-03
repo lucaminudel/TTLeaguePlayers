@@ -79,7 +79,9 @@ Read also the Discovery findings report persisted by the previous step, `coding-
 List the `coding-tasks/` directory to find the slug rather than guessing it: one match, use it;
 several, ask the user which; none, say so. It carries
 the framing, the domain concepts, the technical implementation details, the contradictions found,
-and the open questions it deliberately left for this phase. If it does not exist, say so and ask
+and the open questions it deliberately left for this phase. Read its `Requirements, Specifications and Constraints` chapter and combine those items with the requirements, specifications and
+constraints gathered during Inception in the plan chapter named below. For an older report without
+that chapter, derive its index from the report. If the report does not exist, say so and ask
 whether to run discovery first or proceed without it.
 
 ### Codex-specific retrieval
@@ -273,9 +275,11 @@ missing ownership or dependencies before presenting the plan.
 ## Phase 7 — Present, amend, confirm, persist
 
 Before final plan confirmation, ask the user each of the following questions; they may answer or
-explicitly skip each one. Record each answer or skip in the requirements, specifications,
-constraints and outcomes chapter of `plan.md`, and fold any resulting changes into the plan before
-confirmation. Do not invent answers or make a skipped answer a requirement:
+explicitly skip each one. In the `Requirements, Specifications, Constraints and Outcomes` chapter
+of `plan.md`, record the exact wording of each of these four questions and the user’s verbatim answer
+to it, or the user’s explicit skip. Preserve multi-question answers verbatim and associate them with
+each question they answer. Fold any resulting changes into the plan before confirmation. Do not
+invent answers or make a skipped answer a requirement:
 
 1. When this plan is implemented, which user needs or wants will be fulfilled?
 2. How will the user know this outcome has been achieved?
@@ -305,15 +309,14 @@ task artifacts are found by path, not by recall. The file must carry:
 
 - frontmatter with `name`, `description`, `metadata.type: project`
 - goal and explicit out-of-scope
-- **Requirements, specifications, constraints and outcomes** — one combined, deduplicated index
-  of all requirements, technical and domain specifications and constraints discussed in Discovery
-  and Inception. Incorporate the Discovery index and reconcile it against the detailed reports;
-  for older Discovery reports without an index, derive it from their content. Use short labels with
+- **`Requirements, Specifications, Constraints and Outcomes`** — a dedicated chapter in `plan.md`
+  with one combined, deduplicated index of all requirements, technical and domain specifications
+  and constraints as discussed in the Inception and in the  Discovery and documented in `Requirements, Specifications and Constraints` chapter from `discovery.md`.  Use short labels with
   links or section references to the detailed discussion in `plan.md` or `discovery.md`, without
   duplicating it. Distinguish confirmed in-scope items from open, uncertain, superseded and
   out-of-scope items; preserve their status and do not turn observations into requirements.
-  Include the four outcome questions and the user's answer or explicit skip for each in this same
-  chapter. Update the index and answers when the plan is amended, and reconcile them at confirmation.
+  Include the four outcome questions verbatim and the user's verbatim answer or explicit skip for
+  each in this same chapter. Update the index and answers when the plan is amended, and reconcile them at confirmation.
 - the decision table, with the *why* for each
 - a concise simplicity assessment for consequential choices: required outcomes versus proposed
   mechanisms, actual change surface, viable smaller alternatives and reasons for the selected design
