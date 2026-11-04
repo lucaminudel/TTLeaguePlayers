@@ -10,13 +10,10 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 ## Codex-specific model and delegation
 
-Use **Sol 5.6**, Medium for this phase. Select the host's available Sol model; this instruction does not
+Use **Sol 6.1**, Medium for this phase. Select the host's available Sol model; this instruction does not
 itself change the running session's model. If model selection is unavailable, report the
 limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
-Use sub-agents for work that can proceed in parallel, especially information gathering,
-research and exploration. Delegate every exploration under
-[the shared orchestration rules](../shared/orchestration.md); keep topic agreement, synthesis
-and user-facing discussion with the main agent.
+Follow [the shared orchestration rules](../shared/orchestration.md).
 
 ### Suggested model — at phase start
 

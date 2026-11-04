@@ -10,15 +10,11 @@ allowed-tools: Bash(cat:*)
 
 ## Codex-specific model and delegation
 
-Use **Sol 5.6**, Medium for this phase, including autonomous unit reviews invoked from Execution. Select the
+Use **Sol 6.1**, Medium for this phase, including autonomous unit reviews invoked from Execution. Select the
 host's available Sol model; this instruction does not itself change the running session's model.
 If model selection is unavailable, report the limitation rather than claiming a switch. The
 frontmatter `model` is for Claude Code.
-Use sub-agents for work that can proceed in parallel, especially information gathering,
-research and exploration. Delegate every exploration under
-[the shared orchestration rules](../shared/orchestration.md). The main adversarial pass, final
-judgement and human-facing review remain with the main agent; independent read-only review
-passes may supplement them under the existing independence rules.
+Follow [the shared orchestration rules](../shared/orchestration.md).
 
 ### Suggested model — at phase start
 
@@ -213,8 +209,7 @@ When the size or risk of the change warrants it, supplement this pass with indep
 read-only sub-agent reviews under the shared orchestration independence rules. This also applies
 to an initial automatic adversarial review. Give each agent the goal, scope and raw artifacts in a
 fresh context, without prior conclusions or the implementation rationale. Ask for concrete failing
-cases; do not delegate edits, lint, builds or tests. Small adversarial passes can remain inline;
-distinct exploration or evidence-gathering assignments must still be delegated.
+cases; do not delegate edits, lint, builds or tests.
 
 These passes and the review commands below return candidate findings, not final verdicts. Verify,
 deduplicate and triage every finding yourself; prioritisation, presentation and fix approvals stay

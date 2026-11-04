@@ -10,15 +10,11 @@ effort: high
 
 ## Codex-specific model and delegation
 
-Use **Terra 5.6**, Medium for this phase. Select the host's available Terra model; this instruction does not
+Use **Terra 6.1**, Medium for this phase. Select the host's available Terra model; this instruction does not
 itself change the running session's model. If model selection is unavailable, report the
 limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
-Use sub-agents for work that can proceed in parallel. **Delegate every exploration, and dispatch
-parallel-ready implementation sub-tasks to sub-agents whenever dependencies, disjoint file
-ownership and the current unit/checkpoint barriers allow.** Follow
-[the shared orchestration rules](../shared/orchestration.md); keep verification, approvals,
-integration and commits serial on the main agent. Review work within automatic unit mode follows
-the Review skill's **Sol** model instruction.
+Follow [the shared orchestration rules](../shared/orchestration.md). Review work within automatic
+unit mode follows the Review skill's **Sol** model instruction.
 
 ### Suggested model — at phase start
 
@@ -122,10 +118,8 @@ purpose of asking.
 
 Derive the execution order from the plan's *Blocked by* column. Never start a sub-task whose
 blockers are not all `done`. Name the tasks that are unblocked right now before starting.
-After the Phase 3 gate is satisfied, at every ready set dispatch independent sub-tasks to
-implementation sub-agents; do not execute a parallel-ready group entirely in the main agent.
-Reassess when completions unblock new tasks.
-Delegate each exploration to a read-only sub-agent, even when there is only one exploration.
+After the Phase 3 gate is satisfied, follow the shared orchestration guidance and reassess when
+completions unblock new tasks.
 For plans with multiple deployable units, treat each unit's completion and recorded stop or
 automatic-review decision as a barrier: do not dispatch later-unit work across that boundary.
 
@@ -134,8 +128,8 @@ SAM and web server bound to the main working tree and a single local DynamoDB. T
 `sam build` or the C# suite at once race on shared state and produce failures that look like
 regressions. So:
 
-- Subagents must draft code for parallel-ready sub-tasks that are unblocked *and* whose file sets
-  are disjoint, within available capacity and the current unit/checkpoint barriers.
+- Delegated implementation must be unblocked, with disjoint file ownership and within the current
+  unit/checkpoint barriers.
 - Every lint, build and test run happens serially, on the main agent, in the main working tree.
 - Subagents work **directly in the main tree**, not in worktrees. Unit commits, when authorized,
   are made by the main agent only after review and verification, never as a subagent hand-off.
@@ -777,6 +771,10 @@ Prioritise mutation findings in this order, in order to start fixing the highest
 4. Multiple survivors on one branch or decision, where one missing behavioural scenario may kill several mutants.
 5. Presentation-only, logging, or trivial adapter survivors, unless the code carries an important user-visible rule.
 6. Equivalent mutants: record and accept them when the mutation cannot change observable behaviour; do not add implementation-specific tests merely to improve the score.
+
+When fixing mutation survivors, inspect the exact Stryker mutations and group related survivors from the same source file. Try to address the group before the next localised Stryker run, then verify the exact outcomes before choosing the next batch.
+Localised Stryker runs are slow, so fixing related survivors together reduces the number of runs.
+Do not combine unrelated survivors just to reduce run count. Keep each run within the authorised source and test scope, and update the triage register from its evidence.
 
 Then triage the failures and suggest what actions to take to solve the problems found (identify which tests are missing, or which gaps existing tests have, or if bugs have been found and need fixing, and so no).
 

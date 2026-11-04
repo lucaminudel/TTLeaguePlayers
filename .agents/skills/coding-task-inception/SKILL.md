@@ -9,13 +9,10 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 ## Codex-specific model and delegation
 
-Use **Sol 5.6**, Medium for this phase. Select the host's available Sol model; this instruction does not
+Use **Sol 6.1**, Medium for this phase. Select the host's available Sol model; this instruction does not
 itself change the running session's model. If model selection is unavailable, report the
 limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
-Use sub-agents for work that can proceed in parallel, especially information gathering,
-research and exploration. Delegate every exploration under
-[the shared orchestration rules](../shared/orchestration.md); keep planning decisions,
-confirmation and user-facing synthesis with the main agent.
+Follow [the shared orchestration rules](../shared/orchestration.md).
 
 ### Suggested model — at phase start
 
@@ -381,8 +378,7 @@ and that file — not this conversation — is what `coding-task-execution` read
 - Inferring process rules from repo guideline docs instead of asking.
 - Declaring a change safe for another stack without running that stack's tests.
 - Persisting the plan only to the in-session task list, which the next session cannot read.
-- Delegating planning decisions or user-facing synthesis. Exploration and research must be
-  delegated within the shared orchestration rules; builds and tests stay with the main agent.
+- Delegating planning decisions or user-facing synthesis.
 
 ## Standing rules
 

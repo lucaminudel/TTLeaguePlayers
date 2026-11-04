@@ -10,30 +10,25 @@ options and questions are synthesised and presented by the main agent, one point
 out for *reading*; never for *presenting* — a sub-agent per topic that reports back in parallel
 produces exactly the batch the interaction protocol exists to prevent.
 
-**Delegate exploration; use parallelism where the work allows it.** Across all four skills,
-every exploration must be assigned to a read-only sub-agent, even when there is only one research
-question. An exploration is a bounded search, investigation, call-chain trace or evidence-gathering
-assignment; group related reads into useful assignments rather than spawning an agent per file.
-Reading the skill, plan or returned evidence, checking a specific claim, and the main adversarial
-pass are not separate exploration assignments. The main agent scopes the work, inspects the
-returned evidence and owns decisions. Delegate independent gathering/research assignments in
-parallel within the current agreed topic and phase gates; do not merely describe possible
-parallelism and then do all the exploration inline.
+**Choose delegation for its expected benefit.** Delegate a bounded, substantial investigation or
+implementation package when independent work can shorten the critical path or provide a useful
+independent perspective. Consider context setup, overlapping reads, coordination, integration and
+serial verification as well as the work itself. Handle short lookups and small related edits inline;
+group related reads or edits instead of creating an agent per file or plan row. The main agent scopes
+delegated work, checks its evidence and owns decisions.
 
-**Execution parallelism is mandatory when feasible.** After Execution's Phase 3 upfront-asks and
-confirmation gate is satisfied, at each dependency-ready set dispatch
-independent implementation sub-tasks with disjoint file ownership to sub-agents, up to available
-capacity. Reassess as tasks complete. Respect deployable-unit boundaries and retained checkpoints;
-readiness alone does not permit crossing them. Serial dependencies, conflicting ownership or an
-active barrier justify serial execution; convenience or a preference to work inline does not.
+Start with one or two sub-agents when useful; use more for several substantial independent packages
+whose expected benefit warrants the overhead. This is guidance, not a minimum or cap. Reassess as
+work completes instead of filling every available slot. After Execution's Phase 3 gate, parallel
+implementation requires dependency-ready work, disjoint file ownership and respect for deployable-unit
+boundaries and retained checkpoints. The main agent may work inline, including on a ready group.
 
 Record the assignment, agent identifier, scope/file boundary and returned evidence in the current
 task artifact. If tools are unavailable or a spawn fails, record the concrete limitation and
 report it without handing over to the user; do not claim delegation occurred. Queue work when
-slots are occupied. If delegation is unavailable, retry. If that retry also fails, continue the
-permitted work autonomously on the agent that started or attempted to start the subagent.
-This recovery path is an explicit exception to mandatory delegation; record the limitation and
-transfer of ownership, and preserve the task's existing scope and authorization.
+slots are occupied when waiting is worthwhile. If delegation is unavailable or fails, retry when useful
+or continue permitted work inline; record the limitation and any transfer of ownership, preserving
+the task's existing scope and authorization.
 
 A pending agent response or incomplete tool-output window is not a failure or a user-handover
 point. Retain the agent or process identifier and check for completion. If progress stalls,
@@ -43,10 +38,10 @@ if recovery fails. Report only verified execution states.
 
 | Phase | Sub-agents |
 |---|---|
-| Discovery | **Delegate every exploration, gathering only.** Parallelize independent evidence gathering within the current agreed topic. Present it and wait before exploring the next topic; do not fan out across future topics. The main agent reviews all returned material. |
-| Inception | **Delegate every exploration and research assignment.** Parallelize independent gathering and read-only source checks for topics emerged during Inception or agreed during Discovery. Planning decisions and user-facing synthesis stay with the main agent. |
-| Execution | **Delegate every exploration and all parallel-ready implementation groups**, under file-partitioning, dependency and unit/checkpoint rules. Never delegate lint, build or test. |
-| Review | **Delegate every exploration.** Parallelize independent evidence gathering where feasible. Main adversarial pass and final judgement stay inline. Independent scoped read-only review passes may supplement it under the independence rules below, including automatic unit reviews. |
+| Discovery | Delegate substantial independent gathering when useful within the current agreed topic. Present it and wait before exploring the next topic; do not fan out across future topics. The main agent reviews returned material. |
+| Inception | Delegate substantial independent gathering and source checks when useful for topics emerged during Inception or agreed during Discovery. Planning decisions and user-facing synthesis stay with the main agent. |
+| Execution | Delegate worthwhile independent exploration or implementation under file-partitioning, dependency and unit/checkpoint rules. Never delegate lint, build or test. |
+| Review | Delegate substantial independent evidence gathering when useful. The main adversarial pass and final judgement stay inline. Independent scoped read-only review passes may supplement it under the independence rules below, including automatic unit reviews. |
 
 **Which model a sub-agent gets.** Phase model choices belong in the Codex-specific paragraph at
 the start of each skill: Execution uses Terra; Discovery, Inception and Review use Sol. These
@@ -58,13 +53,24 @@ selection limitations. Autonomous Review within Execution follows the Review mod
 A sub-agent inherits the parent's model unless the spawn request selects one. Set it deliberately
 when the role calls for a different model; use a fresh context when required by the spawn API:
 
-- **Gathering** — reading files, grepping, following call chains, fetching pages: pass
-  Terra in Codex or `sonnet` in Claude Code. This work is retrieval, not judgement, and the volume is high;
-  running it on the skill's own model spends the expensive model on `cat`.
-- **Drafting code** — Terra in Codex Execution; in Claude Code, never below the skill's model. A cheaper drafting
-  agent hands back code the main agent must then rewrite, which costs more than it saved.
-- **Review passes** — Sol in Codex, including supplementary adversarial reviewers; do not apply
-  the cheaper gathering model rule to review analysis.
+- **Codex gathering** — use Luna at low effort for a narrow lookup or extraction with explicit
+  scope and checkable evidence. Use Terra at low or medium for bounded repository searches or
+  call-chain traces; use medium or high effort, or Sol, when completeness, ambiguity, cross-system
+  reasoning or consequences of a missed case require deeper judgement. Gathering is not always
+  mechanical retrieval. Check returned evidence and escalate or investigate inline if it is incomplete.
+- **Codex drafting code** — start with Terra at medium effort for a well-scoped implementation;
+  use high effort or Sol for difficult debugging, complex state or broad consequences. Luna may
+  handle a small, well-specified edit with clear acceptance criteria when delegation is worthwhile.
+- **Codex independent review** — start with Sol at medium or high effort based on complexity and
+  risk. Escalate effort or model for difficult, high-impact analysis; do not treat adversarial
+  review as simple retrieval. Judge capability by the actual review assignment, not a presumed
+  ordering of model families.
+- **Claude Code** — use `sonnet` for bounded gathering; choose a more capable available model for
+  complex investigation or review. For code drafting, use at least the skill's model.
+- **Effort and selection** — use the host's supported names and effort levels; "light" is not
+  assumed to mean a particular model or effort. These are starting points, not fixed requirements.
+  Consider task quality, total tokens and elapsed time including review and rework. Respect user
+  choices and host constraints; do not claim a model or effort switch that did not occur.
 - **Final decisions** — what to build, finding priority, approved fixes and user-facing synthesis
   stay with the main agent. Sub-agents may return evidence-backed candidate findings.
 
@@ -82,14 +88,14 @@ A sub-agent can provide a different perspective, but independence is not guarant
 spawning one. For a supplementary pass, provide a fresh context with the task goal, scope, raw diff
 and relevant source artifacts; omit the implementation rationale, intended answer and earlier
 review conclusions. Give it a concrete review question and ask for reproducible failing cases.
-Use a model at least as capable as the skill's drafting model; the cheaper gathering-model rule
-does not apply to adversarial analysis.
+Choose a model and effort suited to the difficulty and consequences of the review; the gathering
+defaults do not apply to adversarial analysis.
 
 These passes may inspect disjoint concerns concurrently, but do not edit files, run lint/build/test
 commands, or expand the agreed review scope. They return candidate findings, not final verdicts.
 The main agent verifies and deduplicates them, owns prioritisation and user-facing synthesis, and
 keeps all fix approvals and verification serial. Small adversarial passes can remain inline;
-any distinct exploration or evidence-gathering assignment must still be delegated.
+short evidence-gathering assignments may also remain inline.
 
 #### Where the work lands
 
@@ -115,10 +121,9 @@ redo it in the main tree.
 When a plan contains a sub-task table with `Blocked by` relationships, the main Codex task owns the
 dependency graph. Treat the table as a DAG, not as a checklist:
 
-1. Identify the currently unblocked sub-tasks and dispatch the parallel-ready, disjoint set to
-   sub-agents within available capacity and unit/checkpoint barriers. For example, when sub-tasks
-   `1`, `2`, and `5` have no blockers or shared writes, dispatch them in parallel. Repeat for each
-   newly ready set; recording parallel opportunities without dispatching them is not sufficient.
+1. Identify currently unblocked sub-tasks and evaluate substantial, disjoint packages for
+   delegation within unit/checkpoint barriers. Group small related tasks or handle them inline when
+   coordination would outweigh the benefit. Reassess newly ready work as tasks complete.
 2. Assign each delegated task an explicit sub-task number, file boundary, acceptance criteria, and
    required evidence. Do not start a task whose blockers are incomplete.
 3. Use Codex collaboration tools available in the current environment to dispatch, message, and
@@ -135,7 +140,7 @@ dependency graph. Treat the table as a DAG, not as a checklist:
    to the user. Keep dependent work blocked while retrying, repairing the task or finding a
    workaround that meets its acceptance criteria. When those recovery approaches fail, return
    the task to the agent that started the subagent for autonomous permitted execution, as an
-   explicit exception to mandatory delegation. Before transferring ownership, stop or confirm
+   permitted inline execution. Before transferring ownership, stop or confirm
    completion of the former writer, inspect any partial changes and give the receiving agent the
    failure evidence and remaining work. Do not silently skip a failed dependency or treat an
    unverified result as complete. Existing scope, permission and verification constraints apply.
