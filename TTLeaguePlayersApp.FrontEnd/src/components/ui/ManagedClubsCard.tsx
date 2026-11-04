@@ -13,6 +13,7 @@ interface ManagedClubsCardProps {
     selectedClubKey: string | null;
     onSelectClub: (key: string) => void;
     effectiveClubName?: string;
+    selectionDisabled?: boolean;
     /** When true, renders one button per unique club_location (showing only the location label).
      *  Clicking selects the first club matching that location. */
     groupByLocation?: boolean;
@@ -23,6 +24,7 @@ export const ManagedClubsCard: React.FC<ManagedClubsCardProps> = ({
     selectedClubKey,
     onSelectClub,
     effectiveClubName,
+    selectionDisabled = false,
     groupByLocation = false,
 }) => {
     const buttons: { label: string; key: string; isSelected: boolean }[] = groupByLocation
@@ -101,11 +103,11 @@ export const ManagedClubsCard: React.FC<ManagedClubsCardProps> = ({
     // Auto-select when there's only one button and no selection exists
     const soleButtonKey = buttons.length === 1 ? buttons[0].key : null;
     useEffect(() => {
-        if (soleButtonKey && !selectedClubKey) {
+        if (!selectionDisabled && soleButtonKey && !selectedClubKey) {
             onSelectClub(soleButtonKey);
         }
 
-    }, [soleButtonKey, selectedClubKey, onSelectClub]);
+    }, [soleButtonKey, selectedClubKey, onSelectClub, selectionDisabled]);
 
 
     return (
@@ -119,6 +121,7 @@ export const ManagedClubsCard: React.FC<ManagedClubsCardProps> = ({
                             key={key}
                             type="button"
                             onClick={() => { onSelectClub(key); }}
+                            disabled={selectionDisabled}
                             className={`rounded-full border px-3 py-2 text-sm font-semibold ${isSelected ? 'border-action-accent bg-action-accent text-white' : 'border-gray-600 text-main-text'}`}
                         >
                             {label}

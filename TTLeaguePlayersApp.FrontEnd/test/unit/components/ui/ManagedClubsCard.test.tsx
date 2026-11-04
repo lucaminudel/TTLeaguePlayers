@@ -118,6 +118,27 @@ describe('ManagedClubsCard – default mode', () => {
         expect(screen.getByRole('button', { name: 'Berlin / League B' })).not.toHaveClass('bg-action-accent');
     });
 
+    it('disables selection buttons while selectionDisabled is true', () => {
+        render(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC'),
+                    club('Berlin', 'Berlin TTC', 'League B'),
+                ]}
+                selectedClubKey={key('League A', '2025', 'London TTC')}
+                onSelectClub={onSelectClub}
+                selectionDisabled
+            />
+        );
+
+        const londonButton = screen.getByRole('button', { name: 'London / League A' });
+        const berlinButton = screen.getByRole('button', { name: 'Berlin / League B' });
+        expect(londonButton).toBeDisabled();
+        expect(berlinButton).toBeDisabled();
+        fireEvent.click(berlinButton);
+        expect(onSelectClub).not.toHaveBeenCalled();
+    });
+
     it('calls onSelectClub with the button key when clicked', () => {
         const expectedKey = key('League A', '2025', 'London TTC');
 

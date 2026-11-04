@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { act, render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent, cleanup, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { KudosStandings } from '../../../src/pages/KudosStandings';
 import { STANDINGS_INFO_MODAL_GUID, WEBSITE_INFO_MODAL_GUID } from '../../../src/components/common/infoModalMessages';
@@ -77,6 +77,36 @@ describe('KudosStandings info modal', () => {
         await waitFor(() => {
             expect(screen.getByTestId('standings-info-modal')).toBeInTheDocument();
         });
+    });
+
+    it('does not fetch a different tab while the awarded player identity is unavailable', async () => {
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true, userId: null, activeSeasons: [ACTIVE_SEASON], managedClubs: [],
+        });
+        renderPage();
+        await screen.findByText('Walworth 2');
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(kudosApiMocks.getCachedPlayerKudos).not.toHaveBeenCalled();
+        expect(kudosApiMocks.getCachedTeamKudos).not.toHaveBeenCalled();
+        expect(kudosApiMocks.getCachedKudosStandings).not.toHaveBeenCalled();
+    });
+
+    it('uses the current player suppression preferences when identity changes before a load completes', async () => {
+        const activeSeasons = [ACTIVE_SEASON];
+        mockUseAuth.mockReturnValue({ isAuthenticated: true, userId: 'test-user-sub', activeSeasons, managedClubs: [] });
+        kudosApiMocks.getCachedPlayerKudos.mockReturnValueOnce(new Promise(() => undefined));
+        localStorage.setItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_other-user`, 'true');
+        localStorage.setItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_other-user`, 'true');
+        const view = renderPage();
+        await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalledTimes(1); });
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true, userId: 'other-user', activeSeasons, managedClubs: [],
+        });
+        view.rerender(<MemoryRouter initialEntries={[{ pathname: '/kudos-standings', state: null }]}><KudosStandings /></MemoryRouter>);
+        await screen.findByText('No kudos awarded yet.');
+        expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalledTimes(2);
+        expect(screen.queryByTestId('standings-website-info-modal')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('standings-info-modal')).not.toBeInTheDocument();
     });
 
     it('does NOT show either modal when the Awarded load rejects', async () => {
@@ -304,6 +334,197 @@ describe('KudosStandings info modal', () => {
         await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalled(); });
         fireEvent.click(screen.getByText(tab));
         await waitFor(() => { expect(screen.getByTestId('standings-website-info-modal')).toBeInTheDocument(); });
+    });
+
+    describe('season selection and standings content', () => {
+        const secondSeason = {
+            ...ACTIVE_SEASON, league: 'Other League', season: '2026-2027',
+            team_name: 'Other Team', team_division: 'Division 2', person_name: 'Other Person',
+        };
+
+        beforeEach(() => {
+            localStorage.setItem(`hide_modal_${WEBSITE_INFO_MODAL_GUID}_test-user-sub`, 'true');
+            localStorage.setItem(`hide_modal_${STANDINGS_INFO_MODAL_GUID}_test-user-sub`, 'true');
+        });
+
+        it('shows the empty season message without requesting data', () => {
+            mockUseAuth.mockReturnValue({ isAuthenticated: true, userId: 'test-user-sub', activeSeasons: [], managedClubs: [] });
+            renderPage();
+            expect(screen.getByText('No active seasons configured.')).toBeInTheDocument();
+            expect(kudosApiMocks.getCachedPlayerKudos).not.toHaveBeenCalled();
+        });
+
+        it('selects a season and lets the user return and select another', async () => {
+            mockUseAuth.mockReturnValue({ isAuthenticated: true, userId: 'test-user-sub', activeSeasons: [ACTIVE_SEASON, secondSeason], managedClubs: [] });
+            renderPage();
+            expect(kudosApiMocks.getCachedPlayerKudos).not.toHaveBeenCalled();
+            fireEvent.click(screen.getByRole('button', { name: /Other Team/ }));
+            await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenLastCalledWith({
+                league: 'Other League', season: '2026-2027', teamDivision: 'Division 2', teamName: 'Other Team',
+                giver_person_name: 'Other Person', giverPersonSub: 'test-user-sub',
+            }, expect.any(Function)); });
+            expect(within(screen.getByTestId('active-season-header')).getByText('▶')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('active-season-header'));
+            fireEvent.click(screen.getByRole('button', { name: /Walworth 2/ }));
+            await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenLastCalledWith({
+                league: 'CLTTL', season: '2025-2026', teamDivision: 'Division 4', teamName: 'Walworth 2',
+                giver_person_name: 'Test Person', giverPersonSub: 'test-user-sub',
+            }, expect.any(Function)); });
+        });
+
+        it('uses navigation state in preference to the single active season', async () => {
+            render(<MemoryRouter initialEntries={[{ pathname: '/kudos-standings', state: secondSeason }]}><KudosStandings /></MemoryRouter>);
+            await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalledWith({
+                league: 'Other League', season: '2026-2027', teamDivision: 'Division 2', teamName: 'Other Team',
+                giver_person_name: 'Other Person', giverPersonSub: 'test-user-sub',
+            }, expect.any(Function)); });
+            expect(screen.getByText('Other Team')).toBeInTheDocument();
+        });
+
+        it('uses the current active season when it changes while the previous request is pending', async () => {
+            let resolvePrevious!: (data: unknown[]) => void;
+            kudosApiMocks.getCachedPlayerKudos.mockReturnValueOnce(new Promise((resolve) => { resolvePrevious = resolve; }));
+            const view = renderPage();
+            await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalledTimes(1); });
+
+            mockUseAuth.mockReturnValue({ isAuthenticated: true, userId: 'test-user-sub', activeSeasons: [secondSeason], managedClubs: [] });
+            view.rerender(<MemoryRouter initialEntries={[{ pathname: '/kudos-standings', state: null }]}><KudosStandings /></MemoryRouter>);
+            await waitFor(() => { expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenLastCalledWith({
+                league: 'Other League', season: '2026-2027', teamDivision: 'Division 2', teamName: 'Other Team',
+                giver_person_name: 'Other Person', giverPersonSub: 'test-user-sub',
+            }, expect.any(Function)); });
+            await screen.findByText('No kudos awarded yet.');
+            await act(async () => {
+                resolvePrevious([{ receiving_team: 'Old Opponent', match_date_time: 1735689600, kudos_value: 1 }]);
+                await Promise.resolve();
+            });
+            expect(screen.getByText('Other Team')).toBeInTheDocument();
+            expect(screen.getByText('No kudos awarded yet.')).toBeInTheDocument();
+            expect(screen.queryByText('Old Opponent')).not.toBeInTheDocument();
+        });
+
+        it('keeps the selected season and does not refetch when its header is clicked with one active season', async () => {
+            renderPage();
+            await screen.findByText('No kudos awarded yet.');
+            expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalledTimes(1);
+            expect(within(screen.getByTestId('active-season-header')).queryByText('▶')).not.toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('active-season-header'));
+            expect(screen.getByText('Walworth 2')).toBeInTheDocument();
+            expect(screen.getByText('No kudos awarded yet.')).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /Walworth 2/ })).not.toBeInTheDocument();
+            expect(kudosApiMocks.getCachedPlayerKudos).toHaveBeenCalledTimes(1);
+        });
+
+        it('indicates the selected tab as the user switches between views', async () => {
+            renderPage();
+            await screen.findByText('No kudos awarded yet.');
+            const tabs = ['Awarded', "Team's", 'Table'].map((name) => screen.getByRole('button', { name }));
+            for (const [selectedIndex, tab] of tabs.entries()) {
+                fireEvent.click(tab);
+                tabs.forEach((candidate, index) => {
+                    if (index === selectedIndex) expect(candidate).toHaveClass('border-blue-500');
+                    else expect(candidate).not.toHaveClass('border-blue-500');
+                });
+            }
+        });
+
+        it('renders awarded values and match dates for each opponent', async () => {
+            kudosApiMocks.getCachedPlayerKudos.mockResolvedValue([
+                { receiving_team: 'Extra Opponent', match_date_time: 1735689600, kudos_value: 1 },
+                { receiving_team: 'Standard Opponent', match_date_time: 1735689600, kudos_value: 0 },
+                { receiving_team: 'Fewer Opponent', match_date_time: 1735689600, kudos_value: -1 },
+            ]);
+            renderPage();
+            const items = await screen.findAllByTestId('my-kudos-item');
+            expect(items).toHaveLength(3);
+            for (const [index, name, label] of [[0, 'Extra Opponent', 'Extra'], [1, 'Standard Opponent', 'Standard'], [2, 'Fewer Opponent', 'Fewer']] as const) {
+                expect(within(items[index]).getByText(name)).toBeInTheDocument();
+                expect(within(items[index]).getByText(label)).toBeInTheDocument();
+                expect(within(items[index]).getByText(/We 1-Jan/)).toBeInTheDocument();
+            }
+        });
+
+        it('removes an obsolete awarded row when a background refresh changes the list', async () => {
+            const first = { receiving_team: 'First Opponent', match_date_time: 1735689600, kudos_value: 1 };
+            const second = { receiving_team: 'Second Opponent', match_date_time: 1735776000, kudos_value: 0 };
+            const third = { receiving_team: 'Third Opponent', match_date_time: 1735862400, kudos_value: -1 };
+            kudosApiMocks.getCachedPlayerKudos.mockResolvedValue([first, second]);
+            renderPage();
+            await screen.findByText('First Opponent');
+            const update = kudosApiMocks.getCachedPlayerKudos.mock.calls.at(-1)?.[1] as (data: unknown) => void;
+            act(() => { update([second, third]); });
+            expect(screen.queryByText('First Opponent')).not.toBeInTheDocument();
+            expect(screen.getAllByTestId('my-kudos-item')).toHaveLength(2);
+            expect(screen.getByText('Second Opponent')).toBeInTheDocument();
+            expect(screen.getByText('Third Opponent')).toBeInTheDocument();
+            act(() => { update([third, first, second]); });
+            expect(screen.getAllByTestId('my-kudos-item').map((item) => item.textContent)).toEqual([
+                expect.stringContaining('Third Opponent'),
+                expect.stringContaining('First Opponent'),
+                expect.stringContaining('Second Opponent'),
+            ]);
+            act(() => { update([first]); });
+            expect(screen.getAllByTestId('my-kudos-item')).toHaveLength(1);
+            expect(screen.getByText('First Opponent')).toBeInTheDocument();
+            expect(consoleErrorSpy).not.toHaveBeenCalled();
+        });
+
+        it('removes obsolete team categories when a background refresh changes the summary', async () => {
+            const summary = { receiving_team: 'Walworth 2', home_team: 'Walworth 2', away_team: 'Away Opponent',
+                match_date_time: 1735689600, positive_kudos_count: 1, neutral_kudos_count: 1, negative_kudos_count: 1 };
+            kudosApiMocks.getCachedTeamKudos.mockResolvedValue([
+                summary,
+                { ...summary, away_team: 'Another Opponent', match_date_time: 1735776000 },
+            ]);
+            renderPage();
+            await screen.findByText('No kudos awarded yet.');
+            fireEvent.click(screen.getByRole('button', { name: "Team's" }));
+            await screen.findAllByText('Fewer');
+            const update = kudosApiMocks.getCachedTeamKudos.mock.calls.at(-1)?.[1] as (data: unknown) => void;
+            act(() => { update([{ ...summary, positive_kudos_count: 0, neutral_kudos_count: 0 }]); });
+            expect(screen.getAllByTestId('team-kudos-item')).toHaveLength(1);
+            expect(screen.getByText('Fewer')).toBeInTheDocument();
+            expect(screen.queryByText('Extra')).not.toBeInTheDocument();
+            expect(screen.queryByText('Standard')).not.toBeInTheDocument();
+            expect(consoleErrorSpy).not.toHaveBeenCalled();
+        });
+
+        it('renders each received kudos category against the opposing home or away team', async () => {
+            kudosApiMocks.getCachedTeamKudos.mockResolvedValue([
+                { receiving_team: 'Walworth 2', home_team: 'Walworth 2', away_team: 'Away Opponent', match_date_time: 1735689600,
+                    positive_kudos_count: 2, neutral_kudos_count: 1, negative_kudos_count: 1 },
+                { receiving_team: 'Walworth 2', home_team: 'Home Opponent', away_team: 'Walworth 2', match_date_time: 1735689600,
+                    positive_kudos_count: 0, neutral_kudos_count: 0, negative_kudos_count: 1 },
+            ]);
+            renderPage();
+            await screen.findByText('No kudos awarded yet.');
+            fireEvent.click(screen.getByRole('button', { name: "Team's" }));
+            const items = await screen.findAllByTestId('team-kudos-item');
+            expect(items).toHaveLength(4);
+            for (const [index, opponent, label] of [[0, 'Away Opponent', 'Extra'], [1, 'Away Opponent', 'Standard'], [2, 'Away Opponent', 'Fewer'], [3, 'Home Opponent', 'Fewer']] as const) {
+                expect(within(items[index]).getByText(opponent)).toBeInTheDocument();
+                expect(within(items[index]).getByText(label)).toBeInTheDocument();
+                expect(within(items[index]).getByText(/We 1-Jan/)).toBeInTheDocument();
+            }
+        });
+
+        it.each([
+            ['positive', 'Extra Kudos Match Tally'], ['neutral', 'Standard Kudos Match Tally'], ['negative', 'Fewer Kudos Match Tally'],
+        ])('renders the %s table independently with its team and count', async (category, heading) => {
+            const tables = { positive_kudos_table: [], neutral_kudos_table: [], negative_kudos_table: [],
+                [`${category}_kudos_table`]: [{ team_name: 'Table Team', count: 7 }] };
+            kudosApiMocks.getCachedKudosStandings.mockResolvedValue(tables);
+            renderPage();
+            await screen.findByText('No kudos awarded yet.');
+            fireEvent.click(screen.getByRole('button', { name: 'Table' }));
+            expect(await screen.findByText(heading)).toBeInTheDocument();
+            expect(screen.getByText('Table Team')).toBeInTheDocument();
+            expect(screen.getByText('7')).toBeInTheDocument();
+            expect(screen.queryByText('No standings data available.')).not.toBeInTheDocument();
+            for (const other of ['Extra Kudos Match Tally', 'Standard Kudos Match Tally', 'Fewer Kudos Match Tally'].filter((value) => value !== heading)) {
+                expect(screen.queryByText(other)).not.toBeInTheDocument();
+            }
+        });
     });
 
 });

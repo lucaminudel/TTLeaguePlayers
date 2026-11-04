@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PromoteMyTournaments } from '../../../src/pages/PromoteMyTournaments';
 import { GeneralApiError } from '../../../src/api/api';
@@ -155,6 +155,56 @@ describe('PromoteMyTournaments', () => {
             });
         });
 
+        it('discards an open edit form if club management disappears and does not reopen it if it returns', async () => {
+            const page = render(
+                <MemoryRouter initialEntries={['/promote-my-tournaments']}>
+                    <PromoteMyTournaments />
+                </MemoryRouter>
+            );
+
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Edit'));
+            expect(screen.getByText('Edit Tournament')).toBeInTheDocument();
+
+            mockUseAuth.mockReturnValue({
+                isAuthenticated: true,
+                email: 'manager@example.test',
+                username: 'Luca',
+                activeSeasons: [],
+                managedClubs: [],
+                isPlayerOrCaptain: false,
+                isClubManager: false,
+                signOut: vi.fn(),
+                refreshActiveSeasons: vi.fn(),
+            });
+            page.rerender(
+                <MemoryRouter initialEntries={['/promote-my-tournaments']}>
+                    <PromoteMyTournaments />
+                </MemoryRouter>
+            );
+            await screen.findByText('⚠️ You are not currently registered as a club manager.');
+
+            mockUseAuth.mockReturnValue({
+                isAuthenticated: true,
+                email: 'manager@example.test',
+                username: 'Luca',
+                activeSeasons: [],
+                managedClubs: [managedClub],
+                isPlayerOrCaptain: false,
+                isClubManager: true,
+                signOut: vi.fn(),
+                refreshActiveSeasons: vi.fn(),
+            });
+            page.rerender(
+                <MemoryRouter initialEntries={['/promote-my-tournaments']}>
+                    <PromoteMyTournaments />
+                </MemoryRouter>
+            );
+            await screen.findByText(/London Open 2025/);
+
+            expect(screen.queryByText('Edit Tournament')).not.toBeInTheDocument();
+        });
+
         it('renders with groupByLocation prop for club selection', async () => {
             renderPage();
 
@@ -185,6 +235,7 @@ describe('PromoteMyTournaments', () => {
 
             expect(screen.getByText('⚠️ You are not currently registered as a club manager.')).toBeInTheDocument();
             expect(screen.getByText('Check your Inbox or Spam folder for the new season invite, or contact us.')).toBeInTheDocument();
+            expect(screen.queryByText('ADD TOURNAMENT')).not.toBeInTheDocument();
         });
 
         it('does not render ManagedClubsCard when no managed clubs', () => {
@@ -288,6 +339,112 @@ describe('PromoteMyTournaments', () => {
             // With multiple clubs, it should not auto-select
             // The promote message should not appear until a club is selected
             expect(screen.queryByText(/Now you can promote tournaments/)).not.toBeInTheDocument();
+            expect(screen.queryByText('ADD TOURNAMENT')).not.toBeInTheDocument();
+        });
+
+        it('does not carry a delete confirmation from one club to another after access changes', async () => {
+            const page = render(
+                <MemoryRouter initialEntries={['/promote-my-tournaments']}>
+                    <PromoteMyTournaments />
+                </MemoryRouter>
+            );
+            fireEvent.click(screen.getByText('London'));
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Delete'));
+            expect(screen.getByTestId('delete-confirm-title')).toHaveTextContent('London Open 2025');
+
+            mockUseAuth.mockReturnValue({
+                isAuthenticated: true,
+                email: 'manager@example.test',
+                username: 'Luca',
+                activeSeasons: [],
+                managedClubs: [],
+                isPlayerOrCaptain: false,
+                isClubManager: false,
+                signOut: vi.fn(),
+                refreshActiveSeasons: vi.fn(),
+            });
+            page.rerender(
+                <MemoryRouter initialEntries={['/promote-my-tournaments']}>
+                    <PromoteMyTournaments />
+                </MemoryRouter>
+            );
+            await screen.findByText('⚠️ You are not currently registered as a club manager.');
+
+            mockUseAuth.mockReturnValue({
+                isAuthenticated: true,
+                email: 'manager@example.test',
+                username: 'Luca',
+                activeSeasons: [],
+                managedClubs: [secondManagedClub],
+                isPlayerOrCaptain: false,
+                isClubManager: true,
+                signOut: vi.fn(),
+                refreshActiveSeasons: vi.fn(),
+            });
+            page.rerender(
+                <MemoryRouter initialEntries={['/promote-my-tournaments']}>
+                    <PromoteMyTournaments />
+                </MemoryRouter>
+            );
+            await screen.findByText(/Now you can promote tournaments for Another TTC in Manchester/);
+
+            expect(screen.queryByTestId('delete-confirm-title')).not.toBeInTheDocument();
+        });
+
+        it('keeps the selected club results when an earlier club request resolves later', async () => {
+            let resolveLondon!: (value: typeof sampleTournament[]) => void;
+            clubsApiMocks.getTournamentsForClub.mockImplementation((location: string) =>
+                location === 'London'
+                    ? new Promise<typeof sampleTournament[]>((resolve) => { resolveLondon = resolve; })
+                    : Promise.resolve([{ ...sampleTournament, tournament_name: 'Manchester Open' }])
+            );
+            renderPage();
+            fireEvent.click(screen.getByText('London'));
+            fireEvent.click(screen.getByText('Manchester'));
+            expect(await screen.findByText(/Manchester Open/)).toBeInTheDocument();
+            await act(async () => {
+                resolveLondon([sampleTournament]);
+                await Promise.resolve();
+            });
+            expect(screen.getByText(/Manchester Open/)).toBeInTheDocument();
+            expect(screen.queryByText(/London Open 2025/)).not.toBeInTheDocument();
+        });
+
+        it('ignores an obsolete load failure while the selected club is still loading', async () => {
+            let rejectLondon!: (reason: unknown) => void;
+            let resolveManchester!: (value: typeof sampleTournament[]) => void;
+            clubsApiMocks.getTournamentsForClub.mockImplementation((location: string) =>
+                location === 'London'
+                    ? new Promise<typeof sampleTournament[]>((_resolve, reject) => { rejectLondon = reject; })
+                    : new Promise<typeof sampleTournament[]>((resolve) => { resolveManchester = resolve; })
+            );
+            renderPage();
+            fireEvent.click(screen.getByText('London'));
+            fireEvent.click(screen.getByText('Manchester'));
+            await act(async () => {
+                rejectLondon(new Error('Old club failed'));
+                await Promise.resolve();
+            });
+            expect(screen.getByText('Loading tournaments…')).toBeInTheDocument();
+            expect(screen.queryByTestId('main-error')).not.toBeInTheDocument();
+            await act(async () => {
+                resolveManchester([{ ...sampleTournament, tournament_name: 'Manchester Open' }]);
+                await Promise.resolve();
+            });
+            expect(screen.getByText(/Manchester Open/)).toBeInTheDocument();
+        });
+
+        it('clears previous club results and shows a fallback for a non-Error load failure', async () => {
+            clubsApiMocks.getTournamentsForClub
+                .mockResolvedValueOnce([sampleTournament])
+                .mockRejectedValueOnce('offline');
+            renderPage();
+            fireEvent.click(screen.getByText('London'));
+            expect(await screen.findByText(/London Open 2025/)).toBeInTheDocument();
+            fireEvent.click(screen.getByText('Manchester'));
+            expect(await screen.findByTestId('main-error')).toHaveTextContent('Failed to load tournaments.');
+            expect(screen.queryByText(/London Open 2025/)).not.toBeInTheDocument();
         });
 
         it('fetches tournaments once per club selection, not for every managed club at once', async () => {
@@ -348,6 +505,7 @@ describe('PromoteMyTournaments', () => {
             renderPage();
 
             expect(screen.getByText('Loading tournaments…')).toBeInTheDocument();
+            expect(screen.queryByText('ADD TOURNAMENT')).not.toBeInTheDocument();
         });
 
         it('shows error message when tournament fetch fails', async () => {
@@ -473,6 +631,18 @@ describe('PromoteMyTournaments', () => {
             expect(screen.getByTestId('tournament-link').textContent).toBe(`${sampleTournament.tournament_name}, 1 - 20 Jul`);
         });
 
+        it('shows both days when different months have the same day number', async () => {
+            await renderWithTournamentDates(localEpoch(FIXED_CLOCK_YEAR, 3, 5), localEpoch(FIXED_CLOCK_YEAR, 4, 5));
+            expect(screen.getByTestId('tournament-link')).toHaveTextContent(`${sampleTournament.tournament_name}, 5 Mar - 5 Apr`);
+        });
+
+        it('shows both days when different years have the same month and day number', async () => {
+            await renderWithTournamentDates(localEpoch(FIXED_CLOCK_YEAR, 3, 5), localEpoch(FIXED_CLOCK_YEAR + 1, 3, 5));
+            expect(screen.getByTestId('tournament-link')).toHaveTextContent(
+                `${sampleTournament.tournament_name}, 5, ${String(FIXED_CLOCK_YEAR)} - 5 Mar, ${String(FIXED_CLOCK_YEAR + 1)}`
+            );
+        });
+
         it('shows the year once, on the end date, when start and end share a year different from the current year', async () => {
             const year = FIXED_CLOCK_YEAR + 1;
             const start = localEpoch(year, 3, 5);
@@ -509,6 +679,94 @@ describe('PromoteMyTournaments', () => {
             fireEvent.click(editButton);
 
             expect(screen.getByText('Edit Tournament')).toBeInTheDocument();
+            expect(screen.getByLabelText('Start Date')).toHaveValue('2025-01-01');
+            expect(screen.getByLabelText('End Date')).toHaveValue('2025-01-31');
+        });
+
+        it('allows saving an existing one-day tournament without changing equal dates', async () => {
+            vi.stubEnv('TZ', 'UTC');
+            const sameDate = Date.parse('2030-01-15T00:00:00Z') / 1000;
+            clubsApiMocks.getTournamentsForClub.mockResolvedValue([{
+                ...sampleTournament,
+                instagram: '',
+                facebook: '',
+                start_date: sameDate,
+                end_date: sameDate,
+            }]);
+
+            try {
+                renderPage();
+                await screen.findByText(/London Open 2025/);
+                fireEvent.click(screen.getByTitle('Edit'));
+                clubsApiMocks.upsertTournament.mockResolvedValue(sampleTournament);
+                fireEvent.click(screen.getByRole('button', { name: 'UPDATE' }));
+                expect(screen.queryByText('Start date cannot be earlier than today.')).not.toBeInTheDocument();
+                expect(screen.queryByText('End date must be on or after start date.')).not.toBeInTheDocument();
+
+                await waitFor(() => {
+                    expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                        managedClub.club_location,
+                        managedClub.club_name,
+                        sampleTournament.tournament_name,
+                        expect.objectContaining({ start_date: sameDate, end_date: sameDate })
+                    );
+                });
+            } finally {
+                vi.unstubAllEnvs();
+            }
+        });
+
+        it('prefills trimmed existing social values and saves the normalized Facebook handle', async () => {
+            clubsApiMocks.getTournamentsForClub.mockResolvedValue([{
+                ...sampleTournament, instagram: '  https://www.instagram.com/p/example  ', facebook: '  @club  ',
+            }]);
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Edit'));
+            expect(screen.getByLabelText('Instagram Post')).toHaveValue('https://www.instagram.com/p/example');
+            expect(screen.getByLabelText('Facebook Post')).toHaveValue('https://www.facebook.com/club');
+            const year = new Date().getFullYear() + 1;
+            fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(year)}-07-01` } });
+            fireEvent.change(screen.getByLabelText('End Date'), { target: { value: `${String(year)}-07-05` } });
+            fireEvent.click(screen.getByRole('button', { name: 'UPDATE' }));
+            await waitFor(() => {
+                expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                    managedClub.club_location, managedClub.club_name, sampleTournament.tournament_name,
+                    expect.objectContaining({ instagram: 'https://www.instagram.com/p/example', facebook: 'https://www.facebook.com/club' })
+                );
+            });
+        });
+
+        it('prefills a stored bare Facebook handle as a link when editing', async () => {
+            clubsApiMocks.getTournamentsForClub.mockResolvedValue([{ ...sampleTournament, facebook: 'club-page' }]);
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Edit'));
+            expect(screen.getByLabelText('Facebook Post')).toHaveValue('https://www.facebook.com/club-page');
+        });
+
+        it.each(['!club-page', 'club-page!'])(
+            'preserves an invalid stored Facebook handle instead of converting the valid substring: %s',
+            async (facebook) => {
+                clubsApiMocks.getTournamentsForClub.mockResolvedValue([{ ...sampleTournament, facebook }]);
+                renderPage();
+                await screen.findByText(/London Open 2025/);
+                fireEvent.click(screen.getByTitle('Edit'));
+                expect(screen.getByLabelText('Facebook Post')).toHaveValue(facebook);
+            }
+        );
+
+        it('opens an existing tournament for editing when optional social links are absent', async () => {
+            clubsApiMocks.getTournamentsForClub.mockResolvedValue([
+                { ...sampleTournament, instagram: null, facebook: null },
+            ]);
+            renderPage();
+
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Edit'));
+
+            expect(screen.getByLabelText('Instagram Post')).toHaveValue('');
+            expect(screen.getByLabelText('Facebook Post')).toHaveValue('');
         });
 
         it('closes edit modal when cancel is clicked', async () => {
@@ -703,7 +961,7 @@ describe('PromoteMyTournaments', () => {
             const cancelButton = screen.getByText('Cancel');
             fireEvent.click(cancelButton);
 
-            expect(screen.queryByText('Confirm Removal')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('delete-confirm-title')).not.toBeInTheDocument();
         });
 
         it('deletes tournament when confirm is clicked', async () => {
@@ -751,6 +1009,50 @@ describe('PromoteMyTournaments', () => {
             expect(screen.getByTestId('delete-confirm-title')).toBeInTheDocument();
             // The tournament is still in the grid — the failed delete never removed it.
             // (getByText would match the grid row AND the modal's "of London Open 2025" title.)
+            expect(screen.getByTestId('tournament-link')).toBeInTheDocument();
+        });
+
+        it('shows structured deletion errors and allows retry after a failure', async () => {
+            clubsApiMocks.deleteTournament
+                .mockRejectedValueOnce(new GeneralApiError('Deletion failed', 400, undefined, ['first reason', 'second reason']))
+                .mockResolvedValueOnce(undefined);
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Delete'));
+            fireEvent.click(screen.getByText('Confirm Remove'));
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('Deletion failed ( first reason, second reason )');
+            expect(screen.getByTestId('delete-confirm-title')).toBeInTheDocument();
+            expect(screen.getByText('Confirm Remove')).toBeEnabled();
+            expect(screen.getByText('Cancel')).toBeEnabled();
+            fireEvent.click(screen.getByText('Confirm Remove'));
+            await waitFor(() => {
+                expect(screen.queryByTestId('delete-confirm-title')).not.toBeInTheDocument();
+                expect(screen.queryByTestId('tournament-link')).not.toBeInTheDocument();
+            });
+            expect(clubsApiMocks.deleteTournament).toHaveBeenCalledTimes(2);
+        });
+
+        it('does not append empty parentheses when a deletion error has no validation details', async () => {
+            clubsApiMocks.deleteTournament.mockRejectedValue(
+                new GeneralApiError('Deletion failed', 400, undefined, [])
+            );
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Delete'));
+            fireEvent.click(screen.getByText('Confirm Remove'));
+
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('Deletion failed');
+            expect(screen.getByTestId('delete-error')).not.toHaveTextContent('(');
+            expect(screen.getByTestId('delete-confirm-title')).toBeInTheDocument();
+        });
+
+        it('shows a fallback and keeps the tournament when deletion rejects with null', async () => {
+            clubsApiMocks.deleteTournament.mockRejectedValue(null);
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Delete'));
+            fireEvent.click(screen.getByText('Confirm Remove'));
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('The tournament could not be deleted. Please try again.');
             expect(screen.getByTestId('tournament-link')).toBeInTheDocument();
         });
 
@@ -824,6 +1126,65 @@ describe('PromoteMyTournaments', () => {
             expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
         });
 
+        it.each([
+            'ftp://example.com/info',
+            'http://localhost/info',
+            'https://club.local/info',
+            'https://club/info',
+            'https://127.0.0.1/info',
+            'https://192.168.10.22/info',
+            'http://[::1]/info',
+        ])('rejects a tournament info URL with an unsupported protocol or host: %s', async (url) => {
+            await openAddModal();
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'New Tournament' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: url } });
+            fireEvent.click(screen.getByRole('button', { name: /^(ADD|UPDATE)$/ }));
+            expect(screen.getByText('Please enter a valid tournament info URL.')).toBeInTheDocument();
+            expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
+        });
+
+        it('accepts a public hostname with numeric labels resembling an IPv4 address', async () => {
+            const url = 'https://192.168.10.22.example.com/info';
+            await openAddModal();
+            const year = new Date().getFullYear() + 1;
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'Numeric label tournament' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: url } });
+            fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(year)}-07-01` } });
+            fireEvent.change(screen.getByLabelText('End Date'), { target: { value: `${String(year)}-07-05` } });
+            fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+
+            await waitFor(() => {
+                expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                    managedClub.club_location,
+                    managedClub.club_name,
+                    'Numeric label tournament',
+                    expect.objectContaining({ tournament_info: url })
+                );
+            });
+        });
+
+        it('accepts a bare authority URL and equal start and end dates', async () => {
+            await openAddModal();
+            const year = new Date().getFullYear() + 1;
+            const date = `${String(year)}-07-05`;
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'One Day' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com' } });
+            fireEvent.change(screen.getByLabelText('Facebook Post'), { target: { value: 'club-page' } });
+            fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: date } });
+            fireEvent.change(screen.getByLabelText('End Date'), { target: { value: date } });
+            fireEvent.click(screen.getByRole('button', { name: /^(ADD|UPDATE)$/ }));
+            await waitFor(() => {
+                expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                    managedClub.club_location, managedClub.club_name, 'One Day', expect.objectContaining({
+                        tournament_info: 'https://example.com',
+                        facebook: 'https://www.facebook.com/club-page',
+                        start_date: new Date(year, 6, 5).getTime() / 1000,
+                        end_date: new Date(year, 6, 6).getTime() / 1000 - 1,
+                    })
+                );
+            });
+        });
+
         it('shows validation error for invalid Instagram post URL', async () => {
             await openAddModal();
 
@@ -859,6 +1220,21 @@ describe('PromoteMyTournaments', () => {
             expect(screen.getByText('Please enter a valid Facebook link.')).toBeInTheDocument();
             expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
         });
+
+        it.each(['https://other-site.com/page', 'https://other-site.com'])(
+            'does not suggest a canonical but wrong-network Facebook URL: %s',
+            async (url) => {
+                await openAddModal();
+                fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'New Tournament' } });
+                fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+                fireEvent.change(screen.getByLabelText('Facebook Post'), { target: { value: url } });
+                fireEvent.click(screen.getByRole('button', { name: /^(ADD|UPDATE)$/ }));
+
+                const error = screen.getByText('Please enter a valid Facebook link.');
+                expect(error).not.toHaveTextContent('Did you mean:');
+                expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
+            }
+        );
 
         it('rejects a facebook URL with a backslash and suggests the normalised form', async () => {
             await openAddModal();
@@ -896,6 +1272,17 @@ describe('PromoteMyTournaments', () => {
             expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
         });
 
+        it('does not suggest a normalized URL when its hostname is still disallowed', async () => {
+            await openAddModal();
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'New Tournament' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'http://localhost\\info' } });
+            fireEvent.click(screen.getByRole('button', { name: /^(ADD|UPDATE)$/ }));
+
+            const error = screen.getByText('Please enter a valid tournament info URL.');
+            expect(error).not.toHaveTextContent('Did you mean:');
+            expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
+        });
+
         it('rejects an instagram URL with a backslash and suggests the normalised form', async () => {
             await openAddModal();
 
@@ -915,6 +1302,17 @@ describe('PromoteMyTournaments', () => {
             expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
         });
 
+        it('suggests the normalized HTTPS tournament URL when it contains a backslash', async () => {
+            await openAddModal();
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'New Tournament' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com\\info' } });
+            fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+            expect(screen.getByText(/Please enter a valid tournament info URL/)).toHaveTextContent(
+                'Did you mean: https://example.com/info?'
+            );
+            expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
+        });
+
         it('shows validation error when start date is earlier than today', async () => {
             await openAddModal();
 
@@ -931,6 +1329,92 @@ describe('PromoteMyTournaments', () => {
 
             expect(screen.getByText('Start date cannot be earlier than today.')).toBeInTheDocument();
             expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
+        });
+
+        it('rejects yesterday and accepts today as a tournament start date', async () => {
+            await openAddModal();
+            vi.stubEnv('TZ', 'UTC');
+            vi.useFakeTimers();
+            try {
+                vi.setSystemTime(new Date('2030-01-15T12:00:00Z'));
+                fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'Today Open' } });
+                fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+                fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: '2030-01-14' } });
+                fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2030-01-15' } });
+                fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+                expect(screen.getByText('Start date cannot be earlier than today.')).toBeInTheDocument();
+                expect(clubsApiMocks.upsertTournament).not.toHaveBeenCalled();
+                fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: '2030-01-15' } });
+                clubsApiMocks.upsertTournament.mockResolvedValue({ ...sampleTournament, tournament_name: 'Today Open' });
+                fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+                await act(async () => { await Promise.resolve(); });
+                expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                    managedClub.club_location, managedClub.club_name, 'Today Open',
+                    expect.objectContaining({ start_date: Date.parse('2030-01-15') / 1000 })
+                );
+            } finally {
+                vi.useRealTimers();
+                vi.unstubAllEnvs();
+            }
+        });
+
+        it('accepts the local current date as a tournament start date west of UTC', async () => {
+            await openAddModal();
+            vi.stubEnv('TZ', 'America/New_York');
+            vi.useFakeTimers();
+            try {
+                vi.setSystemTime(new Date('2030-01-15T17:00:00Z'));
+                fireEvent.click(screen.getByText('ADD TOURNAMENT'));
+                expect(screen.getByLabelText('Start Date')).toHaveValue('2030-01-15');
+                expect(screen.getByLabelText('End Date')).toHaveValue('2030-01-15');
+                fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'Today Open' } });
+                fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+                fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: '2030-01-15' } });
+                fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2030-01-15' } });
+                clubsApiMocks.upsertTournament.mockResolvedValue({ ...sampleTournament, tournament_name: 'Today Open' });
+                fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+                await act(async () => { await Promise.resolve(); });
+                expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                    managedClub.club_location, managedClub.club_name, 'Today Open',
+                    expect.objectContaining({
+                        start_date: new Date(2030, 0, 15).getTime() / 1000,
+                        end_date: new Date(2030, 0, 16).getTime() / 1000 - 1,
+                    })
+                );
+            } finally {
+                vi.useRealTimers();
+                vi.unstubAllEnvs();
+            }
+        });
+
+        it('accepts the default dates during the first hour of a UK summer day', async () => {
+            vi.stubEnv('TZ', 'Europe/London');
+            try {
+                renderPage();
+                await screen.findByText(/London Open 2025/);
+                vi.useFakeTimers();
+                vi.setSystemTime(new Date('2030-06-15T23:30:00Z'));
+                fireEvent.click(screen.getByText('ADD TOURNAMENT'));
+                expect(screen.getByLabelText('Start Date')).toHaveValue('2030-06-16');
+                expect(screen.getByLabelText('End Date')).toHaveValue('2030-06-16');
+                fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'Today Open' } });
+                fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+                clubsApiMocks.upsertTournament.mockResolvedValue({ ...sampleTournament, tournament_name: 'Today Open' });
+                fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+                await act(async () => { await Promise.resolve(); });
+
+                expect(screen.queryByText('Start date cannot be earlier than today.')).not.toBeInTheDocument();
+                expect(clubsApiMocks.upsertTournament).toHaveBeenCalledWith(
+                    managedClub.club_location, managedClub.club_name, 'Today Open',
+                    expect.objectContaining({
+                        start_date: new Date(2030, 5, 16).getTime() / 1000,
+                        end_date: new Date(2030, 5, 17).getTime() / 1000 - 1,
+                    })
+                );
+            } finally {
+                vi.useRealTimers();
+                vi.unstubAllEnvs();
+            }
         });
 
         it('shows validation error when end date is before start date', async () => {
@@ -960,11 +1444,13 @@ describe('PromoteMyTournaments', () => {
             fireEvent.click(submitButton);
 
             expect(screen.getByText('Tournament name is required.')).toBeInTheDocument();
+            expect(screen.getByText('Tournament info URL is required.')).toBeInTheDocument();
 
             const nameInput = screen.getByLabelText('Tournament Name');
             fireEvent.change(nameInput, { target: { value: 'New Tournament' } });
 
             expect(screen.queryByText('Tournament name is required.')).not.toBeInTheDocument();
+            expect(screen.getByText('Tournament info URL is required.')).toBeInTheDocument();
         });
 
         it('successfully saves valid tournament data and normalizes social fields', async () => {
@@ -1184,10 +1670,25 @@ describe('PromoteMyTournaments', () => {
             expect(screen.getByText('Add Tournament')).toBeInTheDocument();
         };
 
+        it('shows a fallback when saving rejects with null', async () => {
+            await openAddModal();
+            clubsApiMocks.upsertTournament.mockRejectedValue(null);
+            const year = new Date().getFullYear() + 1;
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'New Tournament' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+            fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(year)}-07-01` } });
+            fireEvent.change(screen.getByLabelText('End Date'), { target: { value: `${String(year)}-07-05` } });
+            fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('The tournament could not be saved. Please try again.');
+        });
+
         it('appends the validation errors array from GeneralApiError to the error message when saving', async () => {
             await openAddModal();
 
-            const apiError = new GeneralApiError('Validation failed', 400, undefined, ['facebook must be a valid absolute URI']);
+            const apiError = new GeneralApiError('Validation failed', 400, undefined, [
+                'facebook must be a valid absolute URI',
+                'end_date must be on or after start_date',
+            ]);
             clubsApiMocks.upsertTournament.mockRejectedValue(apiError);
 
             const nameInput = screen.getByLabelText('Tournament Name');
@@ -1206,7 +1707,25 @@ describe('PromoteMyTournaments', () => {
             fireEvent.click(submitButton);
 
             const errorElement = await screen.findByTestId('delete-error');
-            expect(errorElement).toHaveTextContent(/facebook must be a valid absolute URI/i);
+            expect(errorElement).toHaveTextContent(
+                'Validation failed ( facebook must be a valid absolute URI, end_date must be on or after start_date )'
+            );
+        });
+
+        it('does not append empty parentheses when a save error has no validation details', async () => {
+            await openAddModal();
+            clubsApiMocks.upsertTournament.mockRejectedValue(
+                new GeneralApiError('Validation failed', 400, undefined, [])
+            );
+            const nextYear = new Date().getFullYear() + 1;
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'Summer Grand Prix' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+            fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(nextYear)}-07-01` } });
+            fireEvent.change(screen.getByLabelText('End Date'), { target: { value: `${String(nextYear)}-07-05` } });
+            fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('Validation failed');
+            expect(screen.getByTestId('delete-error')).not.toHaveTextContent('(');
         });
 
         it('clears the API error when Cancel is clicked after a save failure', async () => {
@@ -1402,6 +1921,7 @@ describe('PromoteMyTournaments', () => {
             ['Tournament Info URL', 'https://example.com/info', 'https://example.com/info'],
             ['Instagram Post', 'https://www.instagram.com/p/abc123', 'https://www.instagram.com/p/abc123'],
             ['Facebook Post', 'https://facebook.com/tournament', 'https://facebook.com/tournament'],
+            ['Facebook Post', 'club-page', 'https://www.facebook.com/club-page'],
         ])('renders a Test link for valid %s input', async (label, value, expectedHref) => {
             await openAddModal();
 
@@ -1419,6 +1939,8 @@ describe('PromoteMyTournaments', () => {
             ['Tournament Info URL', 'not-a-url'],
             ['Instagram Post', 'https://twitter.com/post'],
             ['Facebook Post', 'https://other-site.com/page'],
+            ['Facebook Post', '!club'],
+            ['Facebook Post', 'club!'],
         ])('renders a disabled Test control for invalid %s input', async (label, value) => {
             await openAddModal();
 

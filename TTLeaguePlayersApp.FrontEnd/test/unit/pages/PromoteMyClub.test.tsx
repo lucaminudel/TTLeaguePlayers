@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PromoteMyClub } from '../../../src/pages/PromoteMyClub';
 import { GeneralApiError } from '../../../src/api/api';
@@ -151,6 +151,7 @@ describe('PromoteMyClub', () => {
             ['.local domain', 'https://morpeth.local'],
             ['single-word host', 'https://morpeth'],
             ['IPv4 address', 'https://192.168.1.1'],
+            ['IPv4 address with multi-digit final octets', 'https://192.168.10.22'],
             ['IPv6 address', 'https://[::1]'],
             ['malformed URL', 'not a url'],
         ])('rejects homepage %s', async (_caseName, homepage) => {
@@ -166,6 +167,7 @@ describe('PromoteMyClub', () => {
         it.each([
             ['http URL', 'http://morpeth.example.com'],
             ['https URL', 'https://new-morpeth.example.com'],
+            ['public hostname with numeric subdomain labels', 'https://192.168.1.1.example.com'],
         ])('accepts homepage %s', async (_caseName, homepage) => {
             await renderPage();
 
@@ -220,8 +222,11 @@ describe('PromoteMyClub', () => {
 
         it.each([
             ['Instagram Handle', 'not a handle!', 'Please enter a valid Instagram handle or URL.'],
+            ['Instagram Handle', 'https://facebook.com/morpeth', 'Please enter a valid Instagram handle or URL.'],
             ['Facebook Link', 'not a facebook link!', 'Please enter a valid Facebook link.'],
+            ['Facebook Link', 'https://youtube.com/@morpeth', 'Please enter a valid Facebook link.'],
             ['YouTube', 'youtube channel!', 'Please enter a valid YouTube URL or handle.'],
+            ['YouTube', 'https://facebook.com/morpeth', 'Please enter a valid YouTube URL or handle.'],
         ])('shows the field-specific validation message for invalid %s input', async (label, value, message) => {
             await renderPage();
 
@@ -252,6 +257,16 @@ describe('PromoteMyClub', () => {
 
             const errorEl = await screen.findByText(/Please enter a valid Facebook link/);
             expect(errorEl).toHaveTextContent('Did you mean: http://facebook.com/morpeth?');
+            expect(clubsApiMocks.upsertClub).not.toHaveBeenCalled();
+        });
+
+        it('suggests the normalized HTTPS homepage when it contains a backslash', async () => {
+            await renderPage();
+            typeIntoField('Homepage Link', 'https://morpeth.example.com\\info');
+            clickSave();
+            expect(await screen.findByText(/Please enter a valid homepage URL/)).toHaveTextContent(
+                'Did you mean: https://morpeth.example.com/info?'
+            );
             expect(clubsApiMocks.upsertClub).not.toHaveBeenCalled();
         });
 
@@ -372,6 +387,7 @@ describe('PromoteMyClub', () => {
 
             expect(screen.getByRole('button', { name: 'ADD' })).toBeDisabled();
             expect(getRemoveButton()).toBeDisabled();
+            expect(screen.queryByText('Failed to load the club details.')).not.toBeInTheDocument();
         });
 
         it('shows disabled UPDATE and enabled REMOVE when the selected club has existing club info', async () => {
@@ -393,17 +409,20 @@ describe('PromoteMyClub', () => {
             expect(getSaveButton()).toBeDisabled();
         });
 
-        it('clears a field error when that field changes', async () => {
+        it('clears only that field error when a field changes', async () => {
             await renderPage();
 
+            typeIntoField('Homepage Link', 'not a URL');
             typeIntoField('Instagram Handle', 'not a handle!');
             clickSave();
 
+            expect(await screen.findByText('Please enter a valid homepage URL.')).toBeInTheDocument();
             expect(await screen.findByText('Please enter a valid Instagram handle or URL.')).toBeInTheDocument();
 
             typeIntoField('Instagram Handle', '@morpeth.ttc');
 
             expect(screen.queryByText('Please enter a valid Instagram handle or URL.')).not.toBeInTheDocument();
+            expect(screen.getByText('Please enter a valid homepage URL.')).toBeInTheDocument();
         });
 
         it('clears the page-level error when any field changes', async () => {
@@ -648,6 +667,177 @@ describe('PromoteMyClub', () => {
         });
 
         describe('switching between location buttons', () => {
+            it('disables REMOVE when the selected club details fail to load', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+                clubsApiMocks.getClub.mockImplementation((location: string) => location === 'London'
+                    ? Promise.resolve({ homepage: 'https://morpeth.example.com', instagram: null, facebook: null, youtube: null })
+                    : Promise.reject(new Error('Manchester club details unavailable')));
+
+                renderPageShell();
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                expect(await screen.findByRole('button', { name: 'UPDATE' })).toBeDisabled();
+                expect(getRemoveButton()).toBeEnabled();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Manchester' }));
+                expect(await screen.findByText('Manchester club details unavailable')).toBeInTheDocument();
+                expect(getRemoveButton()).toBeDisabled();
+            });
+
+            it('clears remove confirmation and reenables club selection if management access disappears', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+
+                const page = render(
+                    <MemoryRouter initialEntries={['/promote-my-club']}>
+                        <PromoteMyClub />
+                    </MemoryRouter>
+                );
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                expect(await screen.findByRole('button', { name: 'UPDATE' })).toBeDisabled();
+                fireEvent.click(getRemoveButton());
+                expect(screen.getByText(/Confirm Removal/)).toHaveTextContent('Morpeth TTC');
+
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [] });
+                page.rerender(
+                    <MemoryRouter initialEntries={['/promote-my-club']}>
+                        <PromoteMyClub />
+                    </MemoryRouter>
+                );
+                expect(await screen.findByText(/not currently registered as a club manager/)).toBeInTheDocument();
+                expect(screen.queryByText(/Confirm Removal/)).not.toBeInTheDocument();
+
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [manchester] });
+                page.rerender(
+                    <MemoryRouter initialEntries={['/promote-my-club']}>
+                        <PromoteMyClub />
+                    </MemoryRouter>
+                );
+                await screen.findByLabelText('Homepage Link');
+                expect(screen.getByRole('button', { name: 'Manchester' })).toBeEnabled();
+            });
+
+            it('disables club selection while remove confirmation is open and reenables it on cancel', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+                clubsApiMocks.getClub.mockImplementation((location: string) => location === 'London'
+                    ? Promise.resolve({ homepage: 'https://morpeth.example.com', instagram: null, facebook: null, youtube: null })
+                    : Promise.resolve(null));
+
+                renderPageShell();
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                await screen.findByRole('button', { name: 'UPDATE' });
+                fireEvent.click(getRemoveButton());
+                expect(screen.getByText(/Confirm Removal/)).toHaveTextContent('Morpeth TTC');
+                expect(screen.getByRole('button', { name: 'London' })).toBeDisabled();
+                expect(screen.getByRole('button', { name: 'Manchester' })).toBeDisabled();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+                expect(screen.getByRole('button', { name: 'London' })).toBeEnabled();
+                expect(screen.getByRole('button', { name: 'Manchester' })).toBeEnabled();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Manchester' }));
+                expect(await screen.findByRole('button', { name: 'ADD' })).toBeDisabled();
+            });
+
+            it('resets the existing-club state when switching to a club without stored information', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+                clubsApiMocks.getClub.mockImplementation((location: string) => location === 'London'
+                    ? Promise.resolve({ homepage: 'https://morpeth.example.com', instagram: null, facebook: null, youtube: null })
+                    : Promise.resolve(null));
+
+                renderPageShell();
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                expect(await screen.findByRole('button', { name: 'UPDATE' })).toBeDisabled();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Manchester' }));
+                expect(await screen.findByRole('button', { name: 'ADD' })).toBeDisabled();
+                expect(getRemoveButton()).toBeDisabled();
+                expect(document.querySelector('.error-message')).not.toBeInTheDocument();
+            });
+
+            it('keeps the selected club details when an earlier request resolves last', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+                let resolveLondon!: (value: object) => void;
+                clubsApiMocks.getClub.mockImplementation((location: string) => location === 'London'
+                    ? new Promise(resolve => { resolveLondon = resolve; })
+                    : Promise.resolve({ homepage: 'https://manchester.example.com', instagram: null, facebook: null, youtube: null }));
+
+                renderPageShell();
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                expect(screen.getByText('Loading club information…')).toBeInTheDocument();
+                fireEvent.click(screen.getByRole('button', { name: 'Manchester' }));
+                expect(await screen.findByLabelText('Homepage Link')).toHaveValue('https://manchester.example.com');
+
+                await act(async () => {
+                    resolveLondon({ homepage: 'https://london.example.com', instagram: null, facebook: null, youtube: null });
+                    await Promise.resolve();
+                });
+                expect(screen.getByLabelText('Homepage Link')).toHaveValue('https://manchester.example.com');
+            });
+
+            it('ignores an earlier club load failure after the selected club loads', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+                let rejectLondon!: (reason: Error) => void;
+                clubsApiMocks.getClub.mockImplementation((location: string) => location === 'London'
+                    ? new Promise((_resolve, reject) => { rejectLondon = reject; })
+                    : Promise.resolve({ homepage: 'https://manchester.example.com', instagram: null, facebook: null, youtube: null }));
+                renderPageShell();
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Manchester' }));
+                expect(await screen.findByLabelText('Homepage Link')).toHaveValue('https://manchester.example.com');
+                await act(async () => {
+                    rejectLondon(new Error('Old club failed'));
+                    await Promise.resolve();
+                });
+                expect(screen.queryByText('Old club failed')).not.toBeInTheDocument();
+                expect(screen.getByLabelText('Homepage Link')).toHaveValue('https://manchester.example.com');
+                expect(getSaveButton()).toBeDisabled();
+            });
+
+            it('keeps loading the selected club when an earlier request finishes', async () => {
+                const london = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
+                const manchester = makeClub({ club_location: 'Manchester', club_name: 'Manchester TTC', league: 'CLTTL2' });
+                mockUseAuth.mockReturnValue({ ...mockUseAuth(), managedClubs: [london, manchester] });
+                mockGetConfig.mockReturnValue(makeConfigWithLeagues(['CLTTL', 'CLTTL2']));
+                let resolveLondon!: (value: object) => void;
+                let resolveManchester!: (value: object) => void;
+                clubsApiMocks.getClub.mockImplementation((location: string) => new Promise(resolve => {
+                    if (location === 'London') resolveLondon = resolve;
+                    else resolveManchester = resolve;
+                }));
+                renderPageShell();
+                fireEvent.click(screen.getByRole('button', { name: 'London' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Manchester' }));
+                await act(async () => {
+                    resolveLondon({ homepage: 'https://london.example.com', instagram: null, facebook: null, youtube: null });
+                    await Promise.resolve();
+                });
+                expect(screen.getByText('Loading club information…')).toBeInTheDocument();
+                expect(screen.queryByLabelText('Homepage Link')).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: /^(ADD|UPDATE|REMOVE)$/ })).not.toBeInTheDocument();
+                await act(async () => {
+                    resolveManchester({ homepage: 'https://manchester.example.com', instagram: null, facebook: null, youtube: null });
+                    await Promise.resolve();
+                });
+                expect(screen.getByLabelText('Homepage Link')).toHaveValue('https://manchester.example.com');
+            });
+
             it('reloads club info when clicking a different location button', async () => {
                 // Two clubs in different locations
                 const londonClub = makeClub({ club_location: 'London', club_name: 'Morpeth TTC' });
@@ -778,7 +968,80 @@ describe('PromoteMyClub', () => {
         });
     });
 
+    describe('pending operations', () => {
+        it('prevents repeated saves and removal while a save is pending', async () => {
+            clubsApiMocks.upsertClub.mockImplementation(() => new Promise(() => { /* Remains pending while controls are checked. */ }));
+            await renderPage();
+            typeIntoField('Homepage Link', 'https://new.example.com');
+            clickSave();
+            expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
+            expect(getRemoveButton()).toBeDisabled();
+            fireEvent.click(screen.getByRole('button', { name: 'Saving...' }));
+            expect(clubsApiMocks.upsertClub).toHaveBeenCalledTimes(1);
+        });
+
+        it('prevents repeated confirmation or cancellation while removal is pending', async () => {
+            clubsApiMocks.deleteClub.mockImplementation(() => new Promise(() => { /* Remains pending while controls are checked. */ }));
+            await renderPage();
+            fireEvent.click(getRemoveButton());
+            fireEvent.click(screen.getByRole('button', { name: 'Confirm Remove' }));
+            expect(screen.getByRole('button', { name: 'Removing...' })).toBeDisabled();
+            expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+            fireEvent.click(screen.getByRole('button', { name: 'Removing...' }));
+            expect(clubsApiMocks.deleteClub).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('error messages', () => {
+        it('shows the fallback when loading rejects with a non-Error', async () => {
+            clubsApiMocks.getClub.mockRejectedValue('unexpected');
+            renderPageShell();
+            expect(await screen.findByText('Failed to load the club details.')).toBeInTheDocument();
+            expect(screen.getByLabelText('Homepage Link')).toHaveValue('');
+        });
+
+        it('shows structured delete validation errors and closes the modal', async () => {
+            clubsApiMocks.deleteClub.mockRejectedValue(new GeneralApiError('Removal failed', 400, undefined, ['Club is in use', 'Retry later']));
+            await renderPage();
+            fireEvent.click(getRemoveButton());
+            fireEvent.click(screen.getByRole('button', { name: 'Confirm Remove' }));
+            expect(await screen.findByText(/Club is in use/)).toHaveTextContent('[ Club is in use ] [ Retry later ]');
+            expect(screen.queryByRole('heading', { name: /Confirm Removal/i })).not.toBeInTheDocument();
+            expect(mockNavigate).not.toHaveBeenCalled();
+        });
+
+        it.each(['save', 'delete'])('shows the base %s error when validation errors are empty', async (operation) => {
+            const error = new GeneralApiError('Request failed', 400, undefined, []);
+            if (operation === 'save') clubsApiMocks.upsertClub.mockRejectedValue(error);
+            else clubsApiMocks.deleteClub.mockRejectedValue(error);
+            await renderPage();
+            if (operation === 'save') {
+                typeIntoField('Homepage Link', 'https://new.example.com');
+                clickSave();
+            } else {
+                fireEvent.click(getRemoveButton());
+                fireEvent.click(screen.getByRole('button', { name: 'Confirm Remove' }));
+            }
+            expect(await screen.findByText('Request failed')).toBeInTheDocument();
+            expect(mockNavigate).not.toHaveBeenCalled();
+        });
+
+        it.each(['save', 'delete'])('ignores malformed non-array validation errors on %s', async (operation) => {
+            const error = Object.assign(new Error('Request failed'), { errors: 'invalid details' });
+            if (operation === 'save') clubsApiMocks.upsertClub.mockRejectedValue(error);
+            else clubsApiMocks.deleteClub.mockRejectedValue(error);
+            await renderPage();
+            if (operation === 'save') {
+                typeIntoField('Homepage Link', 'https://new.example.com');
+                clickSave();
+            } else {
+                fireEvent.click(getRemoveButton());
+                fireEvent.click(screen.getByRole('button', { name: 'Confirm Remove' }));
+            }
+            expect(await screen.findByText('Request failed')).toBeInTheDocument();
+            expect(mockNavigate).not.toHaveBeenCalled();
+        });
+
         it('shows the not-registered message and no form or footer when there are no eligible managed clubs', async () => {
             mockUseAuth.mockReturnValue({
                 isAuthenticated: true,
@@ -824,7 +1087,10 @@ describe('PromoteMyClub', () => {
         });
 
         it('appends the validation errors array from GeneralApiError to the error message', async () => {
-            const apiError = new GeneralApiError('Validation failed', 400, undefined, ['facebook must be a valid absolute URI']);
+            const apiError = new GeneralApiError('Validation failed', 400, undefined, [
+                'facebook must be a valid absolute URI',
+                'instagram must be a valid URI',
+            ]);
             clubsApiMocks.upsertClub.mockRejectedValue(apiError);
 
             await renderPage();
@@ -833,13 +1099,15 @@ describe('PromoteMyClub', () => {
             clickSave();
 
             const errorElement = await screen.findByText(/facebook must be a valid absolute URI/i);
-            expect(errorElement).toBeInTheDocument();
+            expect(errorElement).toHaveTextContent(
+                'Validation failed ( facebook must be a valid absolute URI, instagram must be a valid URI )'
+            );
             expect(getSaveButton()).toBeEnabled();
             expect(mockNavigate).not.toHaveBeenCalled();
         });
 
-        it('shows the fallback message when upsertClub rejects with a non-Error', async () => {
-            clubsApiMocks.upsertClub.mockRejectedValue('unexpected');
+        it.each(['unexpected', null])('shows the fallback message when upsertClub rejects with %s', async (reason) => {
+            clubsApiMocks.upsertClub.mockRejectedValue(reason);
 
             await renderPage();
 
@@ -862,8 +1130,8 @@ describe('PromoteMyClub', () => {
             expect(mockNavigate).not.toHaveBeenCalled();
         });
 
-        it('closes the modal, shows the fallback message on the main page when deleteClub rejects with a non-Error', async () => {
-            clubsApiMocks.deleteClub.mockRejectedValue('unexpected');
+        it.each(['unexpected', null])('closes the modal and shows the fallback when deleteClub rejects with %s', async (reason) => {
+            clubsApiMocks.deleteClub.mockRejectedValue(reason);
 
             await renderPage();
 
@@ -880,6 +1148,7 @@ describe('PromoteMyClub', () => {
             it.each([
                 ['full Instagram URL', 'https://www.instagram.com/morpeth.ttc/', '@morpeth.ttc'],
                 ['Instagram URL without trailing slash', 'https://www.instagram.com/morpeth.ttc', '@morpeth.ttc'],
+                ['Instagram handle with surrounding whitespace', '  @morpeth.ttc  ', '@morpeth.ttc'],
                 ['already an @handle', '@morpeth.ttc', '@morpeth.ttc'],
                 ['bare handle without @', 'morpeth.ttc', '@morpeth.ttc'],
             ])('displays %s as @handle in the Instagram field', async (_caseName, apiValue, expectedDisplay) => {
@@ -896,6 +1165,16 @@ describe('PromoteMyClub', () => {
                 await renderPage();
 
                 expect(screen.getByLabelText('Instagram Handle')).toHaveValue(expectedDisplay);
+            });
+
+            it.each([
+                ['', ''],
+                ['https://www.instagram.com/', 'https://www.instagram.com/'],
+                ['https://example.com/club', 'https://example.com/club'],
+            ])('displays Instagram value %s without inventing a handle', async (instagram, expected) => {
+                clubsApiMocks.getClub.mockResolvedValue({ homepage: 'https://morpeth.example.com', instagram, facebook: null, youtube: null });
+                await renderPage();
+                expect(screen.getByLabelText('Instagram Handle')).toHaveValue(expected);
             });
 
             it('displays empty string when Instagram is null', async () => {
@@ -915,7 +1194,40 @@ describe('PromoteMyClub', () => {
             });
         });
 
+        it.each([
+            ['@club-name', 'club.name', 'https://www.facebook.com/club-name', 'https://www.youtube.com/@club.name'],
+            ['club-name', '@club.name', 'https://www.facebook.com/club-name', 'https://www.youtube.com/@club.name'],
+            ['https://facebook.com/club/', 'https://youtu.be/video', 'https://facebook.com/club/', 'https://youtu.be/video'],
+            ['  unusual path/value  ', '  unusual path/value  ', 'unusual path/value', 'unusual path/value'],
+        ])('extracts Facebook and YouTube values for editing', async (facebook, youtube, expectedFacebook, expectedYoutube) => {
+            clubsApiMocks.getClub.mockResolvedValue({
+                homepage: 'https://morpeth.example.com', instagram: null, facebook, youtube,
+            });
+            await renderPage();
+            expect(screen.getByLabelText('Facebook Link')).toHaveValue(expectedFacebook);
+            expect(screen.getByLabelText('YouTube')).toHaveValue(expectedYoutube);
+        });
+
         describe('save request shaping', () => {
+            it('trims entered URLs and normalizes social handles in the saved request', async () => {
+                clubsApiMocks.getClub.mockResolvedValue(null);
+                clubsApiMocks.upsertClub.mockResolvedValue({ homepage: 'https://morpeth.example.com', instagram: null, facebook: null, youtube: null });
+                await renderPage();
+                typeIntoField('Homepage Link', '  https://morpeth.example.com  ');
+                typeIntoField('Instagram Handle', '  @morpeth.ttc  ');
+                typeIntoField('Facebook Link', '  @morpeth-ttc  ');
+                typeIntoField('YouTube', '  watch?v=video-1  ');
+                clickSave();
+                await waitFor(() => {
+                    expect(clubsApiMocks.upsertClub).toHaveBeenCalledWith('London', 'Morpeth TTC', {
+                    homepage: 'https://morpeth.example.com',
+                    instagram: 'https://www.instagram.com/morpeth.ttc',
+                    facebook: 'https://www.facebook.com/morpeth-ttc',
+                        youtube: 'https://www.youtube.com/watch?v=video-1',
+                    });
+                });
+            });
+
             it.each([
                 ['@handle', '@morpeth.ttc', 'https://www.instagram.com/morpeth.ttc'],
                 ['bare handle', 'morpeth.ttc', 'https://www.instagram.com/morpeth.ttc'],
@@ -962,6 +1274,9 @@ describe('PromoteMyClub', () => {
             it.each([
                 ['@handle', '@morpethttc', 'https://www.youtube.com/@morpethttc'],
                 ['full YouTube URL', 'https://www.youtube.com/@morpethttc', 'https://www.youtube.com/@morpethttc'],
+                ['channel path', 'channel/club123', 'https://www.youtube.com/channel/club123'],
+                ['nested channel path', 'channel/club123/videos', 'https://www.youtube.com/channel/club123/videos'],
+                ['playlist', 'playlist?list=playlist-123', 'https://www.youtube.com/playlist?list=playlist-123'],
             ])('normalises YouTube %s to canonical URL in upsertClub call', async (_caseName, input, expectedUrl) => {
                 clubsApiMocks.getClub.mockResolvedValue(null);
 
@@ -1045,8 +1360,11 @@ describe('PromoteMyClub', () => {
         it.each([
             ['Homepage Link', 'https://localhost'],
             ['Instagram Handle', 'not a handle!'],
+            ['Instagram Handle', '!club'],
             ['Facebook Link', 'not a facebook link!'],
+            ['Facebook Link', '!club'],
             ['YouTube', 'youtube channel!'],
+            ['YouTube', '!club'],
         ])('renders a disabled Test control for invalid %s input', async (label, value) => {
             await renderPage();
 

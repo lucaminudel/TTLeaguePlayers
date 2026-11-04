@@ -138,8 +138,7 @@ export function formatTournamentDateRange(startDate: number, endDate: number): s
     // If start and end share the same month, only show it once (on the end date).
     const showStartMonth = startMonth !== endMonth;
 
-    // If start and end share the same day, only show it once (on the end date).
-    const showStartDay = startDay !== endDay;
+    const showStartDay = startYear !== endYear || start.getMonth() !== end.getMonth() || startDay !== endDay;
 
     const startDayMonth = [
         showStartDay ? String(startDay) : null,

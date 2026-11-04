@@ -50,6 +50,32 @@ function isValidHttpUrl(value: string): boolean {
     }
 }
 
+function formatTournamentDateInput(epochSeconds: number): string {
+    const date = new Date(epochSeconds * 1000);
+    const year = String(date.getFullYear()).padStart(4, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function parseTournamentDateInput(value: string, isEndDate: boolean): number {
+    const [year, month, day] = value.split('-').map(Number);
+    const date = isEndDate
+        ? new Date(year, month - 1, day + 1)
+        : new Date(year, month - 1, day);
+    const epochSeconds = Math.floor(date.getTime() / 1000);
+    return isEndDate ? epochSeconds - 1 : epochSeconds;
+}
+
+function getLocalDayBounds(date: Date): { start: number; end: number } {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nextDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    return {
+        start: Math.floor(start.getTime() / 1000),
+        end: Math.floor(nextDay.getTime() / 1000) - 1,
+    };
+}
+
 // Returns the WHATWG-normalised URL when the input is a parseable URL that fails
 // the canonical form check (e.g. contains backslashes). Returns null when the
 // input is already canonical, unparseable, or when the normalised form is itself invalid.
@@ -205,9 +231,9 @@ function validateTournamentField(field: keyof TournamentInfo, value: TournamentI
         if (!numValue || isNaN(numValue)) {
             return 'Start date is required.';
         }
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        if (numValue < Math.floor(todayStart.getTime() / 1000)) {
+        const now = new Date();
+        const todayStart = getLocalDayBounds(now).start;
+        if (numValue < todayStart) {
             return 'Start date cannot be earlier than today.';
         }
         return null;
@@ -280,25 +306,32 @@ export const PromoteMyTournaments: React.FC = () => {
         if (!effectiveManagedClub) {
             setTournaments([]);
             setEditingTournament(null);
+            setShowDeleteConfirmModal(false);
+            setDeletingTournament(null);
             return;
         }
+
+        let isCurrentRequest = true;
 
         const loadTournaments = async () => {
             setIsLoading(true);
             setLoadError(null);
             try {
                 const clubTournaments = await clubsApi.getTournamentsForClub(effectiveManagedClub.club_location, effectiveManagedClub.club_name);
+                if (!isCurrentRequest) return;
                 setTournaments(clubTournaments);
             } catch (err) {
+                if (!isCurrentRequest) return;
                 const message = err instanceof Error ? err.message : 'Failed to load tournaments.';
                 setLoadError(message);
                 setTournaments([]);
             } finally {
-                setIsLoading(false);
+                if (isCurrentRequest) setIsLoading(false);
             }
         };
 
         void loadTournaments();
+        return () => { isCurrentRequest = false; };
     }, [effectiveManagedClub]);
 
     const handleEditTournament = (tournament: TournamentInfo) => {
@@ -412,13 +445,15 @@ export const PromoteMyTournaments: React.FC = () => {
                             <div className="space-y-3 pt-6">
                                 <Button
                                     onClick={() => {
+                                        const now = new Date();
+                                        const today = getLocalDayBounds(now);
                                         setEditingTournament({
                                             tournament_name: '',
                                             tournament_info: '',
                                             instagram: '',
                                             facebook: '',
-                                            start_date: Math.floor(Date.now() / 1000),
-                                            end_date: Math.floor(Date.now() / 1000)
+                                            start_date: today.start,
+                                            end_date: today.end
                                         } as TournamentInfo);
                                         setIsNewTournament(true);
                                         setFormErrors({});
@@ -685,14 +720,13 @@ export const PromoteMyTournaments: React.FC = () => {
                                         <Input
                                             id="start_date"
                                             type="date"
-                                            value={editingTournament.start_date ? new Date(editingTournament.start_date * 1000).toISOString().split('T')[0] : ''}
+                                            value={editingTournament.start_date ? formatTournamentDateInput(editingTournament.start_date) : ''}
                                             onChange={(e) => {
                                                 if (!e.target.value) {
                                                     handleFieldChange('start_date', NaN);
                                                     return;
                                                 }
-                                                const date = new Date(e.target.value);
-                                                handleFieldChange('start_date', Math.floor(date.getTime() / 1000));
+                                                handleFieldChange('start_date', parseTournamentDateInput(e.target.value, false));
                                             }}
                                             className={formErrors.start_date ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}
                                         />
@@ -706,14 +740,13 @@ export const PromoteMyTournaments: React.FC = () => {
                                         <Input
                                             id="end_date"
                                             type="date"
-                                            value={editingTournament.end_date ? new Date(editingTournament.end_date * 1000).toISOString().split('T')[0] : ''}
+                                            value={editingTournament.end_date ? formatTournamentDateInput(editingTournament.end_date) : ''}
                                             onChange={(e) => {
                                                 if (!e.target.value) {
                                                     handleFieldChange('end_date', NaN);
                                                     return;
                                                 }
-                                                const date = new Date(e.target.value);
-                                                handleFieldChange('end_date', Math.floor(date.getTime() / 1000));
+                                                handleFieldChange('end_date', parseTournamentDateInput(e.target.value, true));
                                             }}
                                             className={formErrors.end_date ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}
                                         />

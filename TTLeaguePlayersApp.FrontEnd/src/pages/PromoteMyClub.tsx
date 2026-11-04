@@ -343,18 +343,23 @@ export const PromoteMyClub: React.FC = () => {
             setInitialFormValues(emptyFormValues);
             setHasExistingClub(false);
             setHasFormChanged(false);
+            setShowRemoveConfirmModal(false);
             return;
         }
+
+        let isCurrentRequest = true;
 
         const loadClubInfo = async () => {
             setIsLoading(true);
             setError(null);
             setFormErrors({});
             setFormValues(emptyFormValues);
+            setHasExistingClub(false);
             setHasFormChanged(false);
 
             try {
                 const club = await clubsApi.getClub(effectiveManagedClub.club_location, effectiveManagedClub.club_name);
+                if (!isCurrentRequest) return;
                 if (club) {
                     const newFormValues = {
                         homepage: club.homepage,
@@ -370,15 +375,17 @@ export const PromoteMyClub: React.FC = () => {
                     setHasExistingClub(false);
                 }
             } catch (err) {
+                if (!isCurrentRequest) return;
                 const message = err instanceof Error ? err.message : 'Failed to load the club details.';
                 setError(message);
                 setInitialFormValues(emptyFormValues);
             } finally {
-                setIsLoading(false);
+                if (isCurrentRequest) setIsLoading(false);
             }
         };
 
         void loadClubInfo();
+        return () => { isCurrentRequest = false; };
     }, [effectiveManagedClub]);
 
     const handleFieldChange = (field: ClubFieldName, value: string) => {
@@ -587,6 +594,7 @@ export const PromoteMyClub: React.FC = () => {
                                     selectedClubKey={selectedClubKey}
                                     onSelectClub={setSelectedClubKey}
                                     effectiveClubName={effectiveManagedClub?.club_name}
+                                    selectionDisabled={showRemoveConfirmModal}
                                     groupByLocation
                                 />
 
