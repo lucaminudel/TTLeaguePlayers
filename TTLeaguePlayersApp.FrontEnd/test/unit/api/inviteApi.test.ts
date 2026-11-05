@@ -11,7 +11,6 @@ import {
   Role,
 } from '../../../src/types/invite';
 import { invalidateCacheByPrefix } from '../../../src/utils/CacheUtils';
-import { INVITE_CACHE_PREFIX } from '../../../src/api/cachedInviteApi';
 
 // Mock dependencies
 vi.mock('../../../src/api/api', () => ({
@@ -353,7 +352,7 @@ describe('inviteApi', () => {
 
       await inviteApi.createInvite(request);
 
-      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(INVITE_CACHE_PREFIX);
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith('invite_cache_');
     });
 
     it('should invalidate the invite cache after accepting an invite', async () => {
@@ -361,7 +360,7 @@ describe('inviteApi', () => {
 
       await inviteApi.acceptInvite('abcd1234', 1786000000);
 
-      expect(invalidateCacheByPrefix).toHaveBeenCalledWith(INVITE_CACHE_PREFIX);
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith('invite_cache_');
     });
 
     it('should not invalidate the cache when reading a single invite', async () => {

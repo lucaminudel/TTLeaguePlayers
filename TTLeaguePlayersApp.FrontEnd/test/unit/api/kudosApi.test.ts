@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { awardKudos, getKudos, getTeamKudos, getKudosStandings, type KudosRequest, type GetKudosRequest, type GetTeamKudosRequest, type GetKudosStandingsRequest } from '../../../src/api/kudosApi';
+import { awardKudos, getKudos, getTeamKudos, getKudosStandings, getClubKudosStandings, type KudosRequest, type GetKudosRequest, type GetTeamKudosRequest, type GetKudosStandingsRequest, type ClubKudosStandingsRequest } from '../../../src/api/kudosApi';
 import { apiFetch } from '../../../src/api/api';
 import { getConfig, type EnvironmentConfig } from '../../../src/config/environment';
 import { invalidateCacheByPrefix } from '../../../src/utils/CacheUtils';
@@ -59,7 +59,7 @@ describe('kudosApi', () => {
           body: expect.stringContaining('"league":"CLTTL"') as string,
         })
       );
-      expect(invalidateCacheByPrefix).toHaveBeenCalled();
+      expect(invalidateCacheByPrefix).toHaveBeenCalledWith('kudos_cache_');
       expect(result).toEqual(mockResponse);
     });
 
@@ -466,6 +466,33 @@ describe('kudosApi', () => {
       expect(result.neutral_kudos_table).toHaveLength(1);
       expect(result.negative_kudos_table).toHaveLength(1);
       expect(result.positive_kudos_table[0].team_name).toBe('Team A');
+    });
+  });
+
+  describe('getClubKudosStandings', () => {
+    it('posts the club and requested teams and returns the backend response', async () => {
+      const request: ClubKudosStandingsRequest = {
+        league: 'CLTTL',
+        season: '2025-2026',
+        club_name: 'Walworth Table Tennis Club',
+        club_location: 'London',
+        teams: [{ team_name: 'Walworth Tigers', team_division: 'Division 4' }],
+      };
+      const response = {
+        league: request.league,
+        season: request.season,
+        club_name: request.club_name,
+        club_location: request.club_location,
+        teams: [{ team_name: 'Walworth Tigers', positive_count: 4, neutral_count: 2, negative_count: 0 }],
+      };
+      vi.mocked(apiFetch).mockResolvedValue(response);
+
+      await expect(getClubKudosStandings(request)).resolves.toEqual(response);
+
+      expect(apiFetch).toHaveBeenCalledWith('https://api.example.com', '/kudos/clubstandings', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      });
     });
   });
 });

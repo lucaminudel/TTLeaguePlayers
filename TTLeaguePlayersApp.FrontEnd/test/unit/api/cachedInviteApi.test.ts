@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
     getCachedTeamPlayersRegistrations,
     getCachedTeamRegistrations,
-    INVITE_CACHE_PREFIX
 } from '../../../src/api/cachedInviteApi';
 import type {
     TeamPlayersRegistrationsRequest,
@@ -11,6 +10,8 @@ import type {
     TeamRegistrationsResponse
 } from '../../../src/types/invite';
 import { setUnitFixedClockTime } from '../TestClockUtils';
+
+const INVITE_CACHE_PREFIX = 'invite_cache_';
 
 const inviteApiMocks = vi.hoisted(() => ({
     getTeamRegistrations: vi.fn(),
@@ -72,6 +73,101 @@ describe('cachedInviteApi', () => {
         expect(result).toEqual(response);
         expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledTimes(1);
         expect(localStorage.getItem(CACHE_KEY)).not.toBeNull();
+    });
+
+    it('should evict a fresh entry with a malformed team list and refetch', async () => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: {
+                league: request.league,
+                season: request.season,
+                club_name: request.club_name,
+                club_location: request.club_location,
+                teams: {},
+            },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it('should evict an array cache containing a malformed team row before projection', async () => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), teams: [...buildResponse().teams, null] },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it('should refetch when a cached team row has no team name', async () => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), teams: [...buildResponse().teams, { status: 'PENDING', accepted_at: null }] },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamRegistrations(request)).resolves.toEqual(refreshed);
+        expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it('should evict a cached team row missing its required accepted-at value', async () => {
+        const validTeams = buildResponse().teams;
+        const malformedTeams = [
+            { team_name: 'Morpeth 9', status: 'ACCEPTED' },
+            validTeams[1],
+        ];
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), teams: malformedTeams },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamRegistrations(request)).resolves.toEqual(refreshed);
+        expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it.each([
+        ['primitive row', 'invalid'],
+        ['non-string team name', { team_name: 42, status: 'PENDING', accepted_at: null }],
+    ])('should evict a cached team list with a %s and refetch', async (_shape, malformedTeam) => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), teams: [...buildResponse().teams, malformedTeam] },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamRegistrations(request)).resolves.toEqual(refreshed);
+        expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it.each([
+        ['invalid JSON', '{'],
+        ['null envelope', 'null'],
+        ['primitive envelope', '"not an envelope"'],
+        ['array envelope', '[]'],
+        ['missing data', JSON.stringify({ timestamp: Date.now() })],
+        ['null data', JSON.stringify({ timestamp: Date.now(), data: null })],
+        ['primitive data', JSON.stringify({ timestamp: Date.now(), data: 'not an object' })],
+        ['null team list', JSON.stringify({ timestamp: Date.now(), data: { teams: null } })],
+    ])('should evict a fresh entry with %s and refetch', async (_shape, raw) => {
+        localStorage.setItem(CACHE_KEY, raw);
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamRegistrations).toHaveBeenCalledWith(request);
     });
 
     it('should serve from cache without refetching while fresh', async () => {
@@ -342,6 +438,121 @@ describe('getCachedTeamPlayersRegistrations', () => {
         expect(localStorage.getItem(CACHE_KEY)).not.toBeNull();
     });
 
+    it('should evict a fresh entry with a malformed player list and refetch', async () => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: {
+                league: request.league,
+                season: request.season,
+                team_division: request.team_division,
+                team_name: request.team_name,
+                players: {},
+            },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it('should evict an array cache containing a malformed player row before projection', async () => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), players: [...buildResponse().players, null] },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it('should evict a player row with a non-string player name and refetch', async () => {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), players: [...buildResponse().players, { player_name: 42, status: 'PENDING', accepted_at: null }] },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(refreshed);
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it.each([
+        ['missing status', { player_name: 'Luca Minudel', accepted_at: null }],
+        ['missing accepted_at', { player_name: 'Luca Minudel', status: 'ACCEPTED' }],
+        ['invalid accepted_at', { player_name: 'Luca Minudel', status: 'ACCEPTED', accepted_at: 'yesterday' }],
+        ['invalid status', { player_name: 'Luca Minudel', status: 'UNKNOWN', accepted_at: null }],
+        ['extra without required fields', { invitee_name: 'Former player' }],
+    ])('should evict a player cache containing a row with %s and refetch', async (_issue, malformedRow) => {
+        const validPlayers = buildResponse().players;
+        const players = [malformedRow, validPlayers[1], validPlayers[2]];
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), players },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it.each([
+        ['invalid invitee role', { invitee_role: 'MANAGER' }],
+        ['invalid invite id', { nano_id: 42 }],
+        ['invalid invitee name', { invitee_name: 42 }],
+        ['invalid invitee email', { invitee_email_id: 42 }],
+        ['invalid created-at value', { created_at: 'yesterday' }],
+    ])('should evict a player cache with %s and refetch', async (_issue, malformedField) => {
+        const validPlayers = buildResponse().players;
+        const players = [{ ...validPlayers[0], ...malformedField }, validPlayers[1], validPlayers[2]];
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...buildResponse(), players },
+        }));
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it('returns a fresh backend response unchanged when a requested player is missing', async () => {
+        const incomplete = buildResponse({ players: [
+            { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234' },
+        ] });
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(incomplete);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(incomplete);
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
+    it.each([
+        ['invalid JSON', '{'],
+        ['null envelope', 'null'],
+        ['primitive envelope', '"not an envelope"'],
+        ['array envelope', '[]'],
+        ['missing data', JSON.stringify({ timestamp: Date.now() })],
+        ['null data', JSON.stringify({ timestamp: Date.now(), data: null })],
+        ['primitive data', JSON.stringify({ timestamp: Date.now(), data: 'not an object' })],
+        ['null player list', JSON.stringify({ timestamp: Date.now(), data: { players: null } })],
+    ])('should evict a fresh player entry with %s and refetch', async (_shape, raw) => {
+        localStorage.setItem(CACHE_KEY, raw);
+        const refreshed = buildResponse();
+        inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(refreshed);
+
+        await expect(getCachedTeamPlayersRegistrations(request)).resolves.toEqual(refreshed);
+
+        expect(inviteApiMocks.getTeamPlayersRegistrations).toHaveBeenCalledWith(request);
+    });
+
     it('should serve from cache without refetching while fresh', async () => {
         setUnitFixedClockTime('2026-08-07T10:00:00Z');
         inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse());
@@ -503,6 +714,21 @@ describe('getCachedTeamPlayersRegistrations', () => {
             expect(demoted.status).toBe('PENDING');
             expect(demoted.invitee_name).toBe('Michele De Giovanni');
             expect('player_name' in demoted).toBe(false);
+        });
+
+        it('sorts unsorted extras by created_at', async () => {
+            inviteApiMocks.getTeamPlayersRegistrations.mockResolvedValue(buildResponse({
+                players: [
+                    { player_name: 'Luca Minudel', status: 'ACCEPTED', invitee_role: 'CAPTAIN', accepted_at: 1786000000, nano_id: 'abcd1234' },
+                    { player_name: 'Michele De Giovanni', status: 'NOT_INVITED', accepted_at: null },
+                    { status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'earlier', invitee_name: 'Earlier', created_at: 1000 },
+                    { status: 'PENDING', invitee_role: 'PLAYER', accepted_at: null, nano_id: 'later', invitee_name: 'Later', created_at: 2000 },
+                ],
+            }));
+
+            const result = await getCachedTeamPlayersRegistrations(request);
+
+            expect(result.players.slice(2).map(({ nano_id }) => nano_id)).toEqual(['earlier', 'later']);
         });
 
         it('should discard the entry and refetch when a player was added', async () => {

@@ -16,7 +16,9 @@ import {
 import { invalidateCache, withSWR } from '../utils/CacheUtils';
 import { BACKEND_API_SHORT } from '../utils/CacheWindows';
 
-export const KUDOS_CACHE_PREFIX = 'kudos_cache_';
+export function getKudosCachePrefix(): string {
+    return 'kudos_cache_';
+}
 
 /**
  * Cached version of getKudos for player-awarded kudos (with giverPersonSub)
@@ -25,7 +27,7 @@ export async function getCachedPlayerKudos(
     request: GetKudosRequest,
     onDataUpdate?: (data: KudosResponse[]) => void
 ): Promise<KudosResponse[]> {
-    const cacheKey = `${KUDOS_CACHE_PREFIX}player_${request.league}_${request.season}_${request.teamDivision}_${request.teamName}_${request.giverPersonSub ?? 'all'}`;
+    const cacheKey = `${getKudosCachePrefix()}player_${request.league}_${request.season}_${request.teamDivision}_${request.teamName}_${request.giverPersonSub ?? 'all'}`;
 
     return withSWR(
         cacheKey,
@@ -43,7 +45,7 @@ export async function getCachedTeamKudos(
     request: GetTeamKudosRequest,
     onDataUpdate?: (data: KudosSummaryResponse[]) => void
 ): Promise<KudosSummaryResponse[]> {
-    const cacheKey = `${KUDOS_CACHE_PREFIX}team_${request.league}_${request.season}_${request.teamDivision}_${request.teamName}`;
+    const cacheKey = `${getKudosCachePrefix()}team_${request.league}_${request.season}_${request.teamDivision}_${request.teamName}`;
 
     return withSWR(
         cacheKey,
@@ -61,7 +63,7 @@ export async function getCachedKudosStandings(
     request: GetKudosStandingsRequest,
     onDataUpdate?: (data: KudosStandingsResponse) => void
 ): Promise<KudosStandingsResponse> {
-    const cacheKey = `${KUDOS_CACHE_PREFIX}standings_${request.league}_${request.season}_${request.teamDivision}`;
+    const cacheKey = `${getKudosCachePrefix()}standings_${request.league}_${request.season}_${request.teamDivision}`;
 
     return withSWR(
         cacheKey,
@@ -77,15 +79,14 @@ export async function getCachedKudosStandings(
  *
  * The cache key deliberately does NOT include the team list — it is keyed on the club
  *
- * The key sits under KUDOS_CACHE_PREFIX on purpose: awardKudos already calls
- * invalidateCacheByPrefix(KUDOS_CACHE_PREFIX), so a manager who rates a match immediately stops
- * seeing stale standings. 
+ * The key sits under the Kudos cache prefix on purpose: awardKudos invalidates that prefix, so a
+ * manager who rates a match immediately stops seeing stale standings.
  */
 export async function getCachedClubKudosStandings(
     request: ClubKudosStandingsRequest,
     onDataUpdate?: (data: ClubKudosStandingsResponse) => void
 ): Promise<ClubKudosStandingsResponse> {
-    const cacheKey = `${KUDOS_CACHE_PREFIX}clubstandings_${request.league}_${request.season}_${request.club_location}_${request.club_name}`;
+    const cacheKey = `${getKudosCachePrefix()}clubstandings_${request.league}_${request.season}_${request.club_location}_${request.club_name}`;
 
     discardCachedClubStandingsThatCannotAnswer(cacheKey, request);
 
@@ -105,12 +106,19 @@ export async function getCachedClubKudosStandings(
 function discardCachedClubStandingsThatCannotAnswer(cacheKey: string, request: ClubKudosStandingsRequest): void {
     const cachedTeamNames = readCachedClubStandingsTeamNames(cacheKey);
     if (cachedTeamNames === null) {
+        invalidateCacheEntryIfPresent(cacheKey);
         return;
     }
 
     const coversEveryRequestedTeam = request.teams.every((team) => cachedTeamNames.has(team.team_name));
 
     if (!coversEveryRequestedTeam) {
+        invalidateCache(cacheKey);
+    }
+}
+
+function invalidateCacheEntryIfPresent(cacheKey: string): void {
+    if (localStorage.getItem(cacheKey) !== null) {
         invalidateCache(cacheKey);
     }
 }
@@ -144,12 +152,16 @@ function readCachedClubStandingsTeamNames(cacheKey: string): Set<string> | null 
 
     const names = new Set<string>();
     for (const team of teams as unknown[]) {
-        if (typeof team === 'object' && team !== null && 'team_name' in team) {
-            const name: unknown = (team as { team_name: unknown }).team_name;
-            if (typeof name === 'string') {
-                names.add(name);
-            }
+        if (typeof team !== 'object' || team === null || Array.isArray(team) || !('team_name' in team)) {
+            return null;
         }
+        const row = team as Record<string, unknown>;
+        const name = row.team_name;
+        if (typeof name !== 'string'
+            || typeof row.positive_count !== 'number'
+            || typeof row.neutral_count !== 'number'
+            || typeof row.negative_count !== 'number') return null;
+        names.add(name);
     }
     return names;
 }

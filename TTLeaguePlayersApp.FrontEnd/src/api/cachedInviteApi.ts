@@ -11,7 +11,9 @@ import {
 import { invalidateCache, withSWR } from '../utils/CacheUtils';
 import { BACKEND_API_MEDIUM } from '../utils/CacheWindows';
 
-export const INVITE_CACHE_PREFIX = 'invite_cache_';
+export function getInviteCachePrefix(): string {
+    return 'invite_cache_';
+}
 
 /**
  * Cached version of getTeamRegistrations.
@@ -20,7 +22,7 @@ export async function getCachedTeamRegistrations(
     request: TeamRegistrationsRequest,
     onDataUpdate?: (data: TeamRegistrationsResponse) => void
 ): Promise<TeamRegistrationsResponse> {
-    const cacheKey = `${INVITE_CACHE_PREFIX}registrations_${request.league}_${request.season}_${request.club_location}_${request.club_name}`;
+    const cacheKey = `${getInviteCachePrefix()}registrations_${request.league}_${request.season}_${request.club_location}_${request.club_name}`;
 
     discardCachedEntryThatCannotAnswer(cacheKey, request);
 
@@ -38,6 +40,7 @@ export async function getCachedTeamRegistrations(
 function discardCachedEntryThatCannotAnswer(cacheKey: string, request: TeamRegistrationsRequest): void {
     const cachedTeamNames = readCachedNames(cacheKey, 'teams', 'team_name');
     if (cachedTeamNames === null) {
+        invalidateCacheEntryIfPresent(cacheKey);
         return;
     }
 
@@ -56,7 +59,7 @@ export async function getCachedTeamPlayersRegistrations(
     request: TeamPlayersRegistrationsRequest,
     onDataUpdate?: (data: TeamPlayersRegistrationsResponse) => void
 ): Promise<TeamPlayersRegistrationsResponse> {
-    const cacheKey = `${INVITE_CACHE_PREFIX}players_${request.league}_${request.season}_${request.team_division}_${request.team_name}`;
+    const cacheKey = `${getInviteCachePrefix()}players_${request.league}_${request.season}_${request.team_division}_${request.team_name}`;
 
     discardCachedPlayersEntryThatCannotAnswer(cacheKey, request);
 
@@ -75,12 +78,19 @@ function discardCachedPlayersEntryThatCannotAnswer(cacheKey: string, request: Te
     // Extras have no player_name and are skipped by the reader, so an extra never "covers" a name.
     const cachedPlayerNames = readCachedNames(cacheKey, 'players', 'player_name');
     if (cachedPlayerNames === null) {
+        invalidateCacheEntryIfPresent(cacheKey);
         return;
     }
 
     const coversEveryRequestedPlayer = request.player_names.every((name) => cachedPlayerNames.has(name));
 
     if (!coversEveryRequestedPlayer) {
+        invalidateCache(cacheKey);
+    }
+}
+
+function invalidateCacheEntryIfPresent(cacheKey: string): void {
+    if (localStorage.getItem(cacheKey) !== null) {
         invalidateCache(cacheKey);
     }
 }
@@ -116,11 +126,35 @@ function readCachedNames(cacheKey: string, listField: string, nameField: string)
 
     const names = new Set<string>();
     for (const element of list as unknown[]) {
-        if (typeof element === 'object' && element !== null && nameField in element) {
-            const name: unknown = (element as Record<string, unknown>)[nameField];
-            if (typeof name === 'string') {
-                names.add(name);
+        if (typeof element !== 'object' || element === null || Array.isArray(element)) {
+            return null;
+        }
+        const row = element as Record<string, unknown>;
+        const hasName = nameField in row;
+        const name: unknown = row[nameField];
+        if (hasName) {
+            if (typeof name !== 'string') return null;
+            names.add(name);
+        } else if (listField === 'teams') {
+            return null;
+        }
+
+        if (!Object.values(TeamRegistrationStatus).includes(row.status as TeamRegistrationStatus)) {
+            return null;
+        }
+        if (!('accepted_at' in row) || (row.accepted_at !== null && typeof row.accepted_at !== 'number')) {
+            return null;
+        }
+        if ('invitee_role' in row && row.invitee_role !== 'CAPTAIN' && row.invitee_role !== 'PLAYER') {
+            return null;
+        }
+        for (const optionalStringField of ['nano_id', 'invitee_name', 'invitee_email_id']) {
+            if (optionalStringField in row && typeof row[optionalStringField] !== 'string') {
+                return null;
             }
+        }
+        if ('created_at' in row && typeof row.created_at !== 'number') {
+            return null;
         }
     }
     return names;

@@ -9,7 +9,7 @@ import type {
 import { apiFetch } from './api';
 import { getConfig } from '../config/environment';
 import { invalidateCacheByPrefix } from '../utils/CacheUtils';
-import { INVITE_CACHE_PREFIX } from './cachedInviteApi';
+import { getInviteCachePrefix } from './cachedInviteApi';
 
 /**
  * Pure API functions for invite endpoints
@@ -36,7 +36,7 @@ export const inviteApi = {
             body: JSON.stringify(request),
         });
 
-        invalidateCacheByPrefix(INVITE_CACHE_PREFIX);
+        invalidateCacheByPrefix(getInviteCachePrefix());
 
         return invite;
     },
@@ -55,7 +55,7 @@ export const inviteApi = {
 
         // Accepting flips a team from PENDING to ACCEPTED, so the cached registrations are now wrong
         // in the same way a new invite makes them wrong.
-        invalidateCacheByPrefix(INVITE_CACHE_PREFIX);
+        invalidateCacheByPrefix(getInviteCachePrefix());
 
         return invite;
     },

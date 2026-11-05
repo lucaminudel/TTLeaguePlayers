@@ -1,48 +1,29 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { getAppVersion, getConfig, loadConfig } from '../../../src/config/environment';
 
-// For build-time config we test the contract by mocking getConfig.
+describe('build-time environment config', () => {
+    it('rejects a bundle that has no APP_CONFIG', () => {
+        expect(() => getConfig()).toThrow(
+            'APP_CONFIG is not set. Please ensure vite.config.ts defines import.meta.env.APP_CONFIG'
+        );
+    });
 
-describe('Environment Config (build-time)', () => {
-  it('getConfig returns injected config (mocked)', async () => {
-    vi.resetModules();
+    it('returns the object injected at build time', () => {
+        const appConfig = { active_seasons_data_source: [] };
 
-    const mockConfig = {
-      FrontEnd: { WebsiteBaseUrl: 'http://localhost:3000' },
-      ApiGateWay: { ApiBaseUrl: 'http://api.localhost', CreateInviteAutomaticallySendInviteEmail: true },
-      DynamoDB: { ServiceLocalUrl: 'http://dynamo', "AWS.Profile": "test", "AWS.Region": "us-east-1" },
-      Cognito: { UserPoolId: 'pool', ClientId: 'client', Domain: 'domain' },
-      EmailForwarder: { InviteEmailAddress: 'invite@test.com', ContactUsEmailAddress: 'contact@test.com', ForwardToEmailAddress: 'forward@test.com' },
-      active_seasons_data_source: [
-        {
-          league: "TestLeague",
-          season: "2025-2026",
-          custom_processor: "Processor",
-          registrations_start_date: 1234567890,
-          ratings_end_date: 1234567890,
-          division_fixtures: [{ "Div1": "url2" }],
-          all_players: [{ "Div1": "url3" }]
-        }
-      ]
-    };
+        expect(getConfig({ APP_CONFIG: appConfig })).toBe(appConfig);
+    });
 
-    vi.doMock('../../../src/config/environment', () => ({
-      getConfig: () => mockConfig,
-      loadConfig: () => Promise.resolve(mockConfig),
-    }));
+    it('reports a missing config when the environment object is null', () => {
+        expect(() => getConfig(null)).toThrow(/APP_CONFIG is not set/);
+    });
 
-    const { getConfig, loadConfig } = await import('../../../src/config/environment');
+    it('fails loadConfig when the build did not inject APP_CONFIG', () => {
+        expect(() => loadConfig()).toThrow(/APP_CONFIG is not set/);
+    });
 
-    expect(getConfig()).toEqual(mockConfig);
-    await expect(loadConfig()).resolves.toEqual(mockConfig);
-  });
-
-  it('getConfig throws when APP_CONFIG is not set (real implementation)', async () => {
-    vi.resetModules();
-    vi.doUnmock('../../../src/config/environment');
-
-    const { getConfig } = await import('../../../src/config/environment');
-
-    // In unit tests, APP_CONFIG is not injected by Vite's define step.
-    expect(() => getConfig()).toThrow(/APP_CONFIG is not set/);
-  });
+    it('uses local defaults when build metadata is absent', () => {
+        expect(getAppVersion()).toEqual({ version: 'dev', buildDate: 'local', buildSeconds: '0' });
+        expect(getAppVersion(null)).toEqual({ version: 'dev', buildDate: 'local', buildSeconds: '0' });
+    });
 });

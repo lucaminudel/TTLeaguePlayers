@@ -13,11 +13,13 @@ import { toUserFriendlyApiError } from '../utils/apiErrorUtils';
 type KudosType = 'Positive' | 'Neutral' | 'Negative';
 
 // The stored kudos values keep their original names; the UI names them after the buttons the player picked.
-const KUDOS_LABEL: Record<KudosType, string> = {
-    'Positive': 'Extra',
-    'Neutral': 'Standard',
-    'Negative': 'Fewer',
-};
+function labelForKudos(type: KudosType): string {
+    switch (type) {
+        case 'Positive': return 'Extra';
+        case 'Neutral': return 'Standard';
+        case 'Negative': return 'Fewer';
+    }
+}
 
 interface AwardKudosLocationState {
     league: string;
@@ -251,7 +253,7 @@ export const AwardKudos: React.FC = () => {
                                         You are awarding <span className={`font-bold ${selectedKudos === 'Positive' ? 'text-[#48bb78]' :
                                             selectedKudos === 'Neutral' ? 'text-[#85a3c2]' :
                                                 'text-white'
-                                            }`}>{KUDOS_LABEL[selectedKudos]} Kudos</span>
+                                            }`}>{labelForKudos(selectedKudos)} Kudos</span>
                                     </p>
                                     <p className="text-base">
                                         for the {state.isHome ? 'Home game' : 'Away game'} on {dateStr}

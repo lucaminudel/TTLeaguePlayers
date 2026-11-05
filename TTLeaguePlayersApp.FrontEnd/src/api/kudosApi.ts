@@ -1,7 +1,7 @@
 import { apiFetch } from './api';
 import { getConfig } from '../config/environment';
 import { invalidateCacheByPrefix } from '../utils/CacheUtils';
-import { KUDOS_CACHE_PREFIX } from './cachedKudosApi';
+import { getKudosCachePrefix } from './cachedKudosApi';
 import type { ClubTeamWithDivision } from '../types/clubTeam';
 
 export interface KudosRequest {
@@ -46,7 +46,7 @@ export async function awardKudos(request: KudosRequest): Promise<{ message: stri
     });
 
     // Invalidate local cache on success
-    invalidateCacheByPrefix(KUDOS_CACHE_PREFIX);
+    invalidateCacheByPrefix(getKudosCachePrefix());
 
     return response;
 }

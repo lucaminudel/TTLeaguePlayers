@@ -26,10 +26,10 @@ vi.mock('../../../src/service/league-season-processors/ActiveSeasonProcessorFact
 
 const teamPlayersCardMocks = vi.hoisted(() => ({ render: vi.fn() }));
 vi.mock('../../../src/components/ui/TeamPlayersCard', () => ({
-    TeamPlayersCard: (props: { season: { team_name: string; league: string; season: string; team_division: string }; isExpanded: boolean; onToggle: () => void }) => {
+    TeamPlayersCard: (props: { season: { team_name: string; league: string; season: string; team_division: string }; processor: { teamName: string }; isExpanded: boolean; onToggle: () => void }) => {
         teamPlayersCardMocks.render(props);
         return (
-            <div data-testid="team-players-card" data-expanded={String(props.isExpanded)}>
+            <div data-testid="team-players-card" data-expanded={String(props.isExpanded)} data-processor-team={props.processor.teamName}>
                 {props.season.league} {props.season.season} {props.season.team_name}, {props.season.team_division}
                 <button type="button" data-testid={`toggle-${props.season.team_name}`} onClick={props.onToggle}>toggle</button>
             </div>
@@ -96,10 +96,7 @@ describe('InviteTeamMembers', () => {
         setUnitFixedClockTime(FIXED_CLOCK);
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
         mockGetConfig.mockReturnValue({ active_seasons_data_source: [clttlDataSource] });
-        processorFactoryMocks.createActiveSeasonProcessor.mockReturnValue({
-            getTeamFixtures: vi.fn(),
-            getTeamPlayers: vi.fn(),
-        });
+        processorFactoryMocks.createActiveSeasonProcessor.mockImplementation((_processor, _source, _division, teamName: string) => ({ teamName }));
         setAuth([morpeth10]);
     });
 
@@ -202,6 +199,7 @@ describe('InviteTeamMembers', () => {
             );
 
             expect(cardFor('Morpeth B')).toHaveAttribute('data-expanded', 'true');
+            expect(cardFor('Morpeth B')).toHaveAttribute('data-processor-team', 'Morpeth B');
             expect(cardFor('Morpeth 9')).toHaveAttribute('data-expanded', 'false');
         });
 

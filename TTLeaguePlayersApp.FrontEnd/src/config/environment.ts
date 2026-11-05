@@ -42,8 +42,10 @@ export interface ActiveSeasonDataSource {
  * vite.config.ts injects the selected config JSON into the bundle as import.meta.env.APP_CONFIG.
  * This means config is available immediately at runtime without a network fetch.
  */
-export function getConfig(): EnvironmentConfig {
-    const config = (import.meta as unknown as { env?: { APP_CONFIG?: unknown } }).env?.APP_CONFIG;
+export function getConfig(
+    env: { APP_CONFIG?: unknown } | null | undefined = (import.meta as unknown as { env?: { APP_CONFIG?: unknown } }).env
+): EnvironmentConfig {
+    const config = env?.APP_CONFIG;
 
     if (!config) {
         throw new Error(
@@ -59,10 +61,13 @@ export function getConfig(): EnvironmentConfig {
  * seconds elapsed since that day's midnight UTC.
  * All are injected by vite.config.ts at build time.
  */
-export function getAppVersion(): { version: string; buildDate: string; buildSeconds: string } {
-    const env = (import.meta as unknown as {
-        env?: { APP_VERSION?: string; APP_BUILD_DATE?: string; APP_BUILD_SECONDS?: string }
-    }).env;
+export function getAppVersion(env: {
+    APP_VERSION?: string;
+    APP_BUILD_DATE?: string;
+    APP_BUILD_SECONDS?: string;
+} | null | undefined = (import.meta as unknown as {
+    env?: { APP_VERSION?: string; APP_BUILD_DATE?: string; APP_BUILD_SECONDS?: string }
+}).env): { version: string; buildDate: string; buildSeconds: string } {
 
     return {
         version: env?.APP_VERSION ?? 'dev',
