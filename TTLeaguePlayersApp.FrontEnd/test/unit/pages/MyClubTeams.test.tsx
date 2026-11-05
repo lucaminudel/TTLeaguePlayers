@@ -101,7 +101,7 @@ describe('MyClubTeams', () => {
     };
 
     const renderPage = () => {
-        render(
+        return render(
             <MemoryRouter initialEntries={['/my-club-teams']}>
                 <MyClubTeams />
             </MemoryRouter>
@@ -116,6 +116,22 @@ describe('MyClubTeams', () => {
         renderPage();
 
         expect(screen.getByTestId('no-managed-clubs')).toBeInTheDocument();
+        expect(screen.queryByTestId('no-active-season')).not.toBeInTheDocument();
+    });
+
+    it('updates the active-club list when authentication supplies managed clubs after mount', () => {
+        setAuth([]);
+        const { rerender } = renderPage();
+        expect(screen.getByTestId('no-managed-clubs')).toBeInTheDocument();
+
+        setAuth([walworth]);
+        rerender(
+            <MemoryRouter initialEntries={['/my-club-teams']}>
+                <MyClubTeams />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByTestId('club-teams-list')).toBeInTheDocument();
         expect(screen.queryByTestId('no-active-season')).not.toBeInTheDocument();
     });
 

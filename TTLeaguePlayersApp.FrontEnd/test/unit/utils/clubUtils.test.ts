@@ -55,6 +55,14 @@ describe('clubUtils.selectActiveManagedClubs', () => {
         expect(result.excluded).toEqual([{ club: club(), reason: 'SEASON_NOT_ACTIVE' }]);
     });
 
+    it('includes a club at the exact registration start second', () => {
+        const source = dataSource();
+        const result = selectActiveManagedClubs([club()], [source], source.registrations_start_date);
+
+        expect(result.active).toEqual([{ club: club(), dataSource: source }]);
+        expect(result.excluded).toHaveLength(0);
+    });
+
     // The window deliberately runs to the END OF THE CALENDAR YEAR containing ratings_end_date,
     // not to ratings_end_date itself.
     it('keeps a club after the ratings end date but within that calendar year', () => {
@@ -68,6 +76,14 @@ describe('clubUtils.selectActiveManagedClubs', () => {
 
         expect(result.active).toHaveLength(0);
         expect(result.excluded[0].reason).toBe('SEASON_NOT_ACTIVE');
+    });
+
+    it('includes a club through the final second of the calendar year', () => {
+        const lastSecondOfYear = epochOf('2026-12-31T23:59:59Z');
+        const result = selectActiveManagedClubs([club()], [dataSource()], lastSecondOfYear);
+
+        expect(result.active).toHaveLength(1);
+        expect(result.excluded).toHaveLength(0);
     });
 
     it('excludes and logs a club whose league-season is not configured', () => {

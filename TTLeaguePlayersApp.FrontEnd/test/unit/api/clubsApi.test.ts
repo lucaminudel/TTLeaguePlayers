@@ -149,8 +149,8 @@ describe('clubsApi', () => {
     await clubsApi.upsertClub('London', 'London TTC', {
       homepage: 'https://london.example.com',
       instagram: '', // empty string should be excluded (falsy)
-      facebook: undefined, // undefined should be excluded
-      youtube: undefined, // undefined should be excluded
+      facebook: '', // empty string should be excluded (falsy)
+      youtube: '', // empty string should be excluded (falsy)
     });
 
     const calledBody = JSON.parse(capturedOptions?.body as string) as Record<string, unknown>;
@@ -677,7 +677,7 @@ describe('clubsApi', () => {
       await clubsApi.upsertTournament('London', 'London TTC', 'Spring Open', {
         tournament_info: 'https://tournament.example.com',
         instagram: '', // empty string should be excluded (falsy)
-        facebook: undefined, // undefined should be excluded
+        facebook: '', // empty string should be excluded (falsy)
         start_date: 1234567890,
         end_date: 1234567900,
       });

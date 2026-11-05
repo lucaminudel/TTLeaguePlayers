@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { ClubsAndTournaments } from '../../../src/pages/ClubsAndTournaments';
 import { GeneralApiError } from '../../../src/api/api';
@@ -115,6 +116,16 @@ describe('ClubsAndTournaments', () => {
     });
 
     describe('page states', () => {
+        it('renders the loading state in its initial markup before the effect starts fetching', () => {
+            const markup = renderToString(
+                <MemoryRouter initialEntries={['/clubs-and-tournaments']}>
+                    <ClubsAndTournaments />
+                </MemoryRouter>
+            );
+
+            expect(markup).toContain('Loading clubs and tournaments');
+        });
+
         it('shows the loading state while fetching', () => {
             cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockImplementation(() => new Promise(() => { /* never resolves */ }));
 
@@ -155,8 +166,39 @@ describe('ClubsAndTournaments', () => {
             renderPage();
 
             await waitFor(() => {
-                expect(screen.getByTestId('main-error')).toHaveTextContent('location is required');
+                expect(screen.getByTestId('main-error').textContent).toBe('Validation failed ( location is required )');
             });
+        });
+
+        it('separates multiple validation details with a comma and space', async () => {
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockRejectedValue(
+                new GeneralApiError('Validation failed', 400, undefined, ['location is required', 'club name is required'])
+            );
+
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByTestId('main-error').textContent)
+                    .toBe('Validation failed ( location is required, club name is required )');
+            });
+        });
+
+        it.each([
+            ['null rejection', null],
+            ['string rejection', 'unexpected API rejection'],
+            ['empty validation errors', { errors: [] }],
+            ['non-array validation errors', { errors: 'invalid' }],
+        ])('handles %s without throwing or appending invalid details', async (_label, rejection) => {
+            cachedClubsApiMocks.getCachedAllClubsWithTournaments.mockRejectedValue(rejection);
+
+            renderPage();
+
+            await waitFor(() => {
+                expect(screen.getByTestId('main-error')).toBeInTheDocument();
+            });
+            const errorText = screen.getByTestId('main-error').textContent;
+            expect(errorText).not.toContain('(  )');
+            expect(errorText).not.toContain('invalid');
         });
 
         it('shows empty-state messages in both sections when there is no data', async () => {
@@ -167,6 +209,8 @@ describe('ClubsAndTournaments', () => {
             await waitFor(() => {
                 expect(screen.getByText('No upcoming tournaments found.')).toBeInTheDocument();
             });
+            expect(screen.getByTestId('tournaments-header')).toHaveTextContent('Tournaments');
+            expect(screen.getByTestId('clubs-header')).toHaveTextContent('Clubs');
             expect(screen.getByText('No clubs found.')).toBeInTheDocument();
         });
     });

@@ -1,10 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Input } from '../../../../src/components/common/Input';
 
 const LOCKED_CLASSES = ['!bg-gray-400', '!text-gray-800', 'cursor-not-allowed', '!opacity-100'];
 
 describe('Input', () => {
+    describe('password visibility', () => {
+        it('toggles a password input between masked and visible and back', () => {
+            render(<Input aria-label="Password" type="password" showPasswordToggle />);
+
+            const input = screen.getByLabelText('Password');
+            expect(input).toHaveAttribute('type', 'password');
+            fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+            expect(input).toHaveAttribute('type', 'text');
+            fireEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+            expect(input).toHaveAttribute('type', 'password');
+        });
+
+        it('does not render a toggle for a non-password input', () => {
+            render(<Input aria-label="Email" type="email" showPasswordToggle />);
+
+            expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
+            expect(screen.queryByRole('button', { name: /password/i })).not.toBeInTheDocument();
+        });
+    });
+
     describe('locked', () => {
         it('disables a text input and greys it out', () => {
             render(<Input aria-label="Email" type="email" value="a@b.com" onChange={() => undefined} locked />);

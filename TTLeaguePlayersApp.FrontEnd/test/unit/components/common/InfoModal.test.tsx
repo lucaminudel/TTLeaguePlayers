@@ -174,6 +174,42 @@ describe('InfoModal', () => {
             expect(preventDefaultSpy).toHaveBeenCalled();
             expect(ok).toHaveFocus();
         });
+
+        it('leaves ordinary Tab navigation alone from the first focusable element', async () => {
+            await openModal();
+            const checkbox = screen.getByTestId('test-info-modal-dont-show-again');
+            checkbox.focus();
+            const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+
+            checkbox.dispatchEvent(event);
+
+            expect(event.defaultPrevented).toBe(false);
+            expect(checkbox).toHaveFocus();
+        });
+
+        it('leaves Shift+Tab navigation alone from the last focusable element', async () => {
+            await openModal();
+            const ok = screen.getByTestId('test-info-modal-ok');
+            ok.focus();
+            const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+
+            ok.dispatchEvent(event);
+
+            expect(event.defaultPrevented).toBe(false);
+            expect(ok).toHaveFocus();
+        });
+
+        it('does not intercept Enter on the OK button', async () => {
+            await openModal();
+            const ok = screen.getByTestId('test-info-modal-ok');
+            ok.focus();
+            const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+
+            ok.dispatchEvent(event);
+
+            expect(event.defaultPrevented).toBe(false);
+            expect(ok).toHaveFocus();
+        });
     });
 
     // Sub-task 9: the (d) requirement that the Kudos page checkbox does not affect the standings
