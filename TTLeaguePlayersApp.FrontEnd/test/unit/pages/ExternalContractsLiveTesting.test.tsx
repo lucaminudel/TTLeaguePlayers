@@ -132,6 +132,13 @@ describe('ExternalContractsLiveTesting', () => {
         expect(requestedTargets()).toHaveLength(2);
     });
 
+    it('reports a valid selector that contains no team options', async () => {
+        queueActiveResponses('<select id="teamSelect"><option value="">All Teams</option></select>');
+        renderDiagnostic();
+        await expectError('did not contain any numeric team options');
+        expect(requestedTargets()).toHaveLength(2);
+    });
+
     it.each([['zero ID', teamSelector('0')], ['unsafe ID', teamSelector('9007199254740992')]])('rejects %s before requesting a roster', async (_label, selector) => {
         queueActiveResponses(selector);
         renderDiagnostic();
