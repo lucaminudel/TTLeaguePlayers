@@ -718,11 +718,15 @@ describe('PromoteMyTournaments', () => {
 
         it('prefills trimmed existing social values and saves the normalized Facebook handle', async () => {
             clubsApiMocks.getTournamentsForClub.mockResolvedValue([{
-                ...sampleTournament, instagram: '  https://www.instagram.com/p/example  ', facebook: '  @club  ',
+                ...sampleTournament,
+                tournament_info: '  https://example.com/tournament  ',
+                instagram: '  https://www.instagram.com/p/example  ',
+                facebook: '  @club  ',
             }]);
             renderPage();
             await screen.findByText(/London Open 2025/);
             fireEvent.click(screen.getByTitle('Edit'));
+            expect(screen.getAllByRole('link', { name: 'Test' })[0]).toHaveAttribute('href', 'https://example.com/tournament');
             expect(screen.getByLabelText('Instagram Post')).toHaveValue('https://www.instagram.com/p/example');
             expect(screen.getByLabelText('Facebook Post')).toHaveValue('https://www.facebook.com/club');
             const year = new Date().getFullYear() + 1;
@@ -828,6 +832,15 @@ describe('PromoteMyTournaments', () => {
             await waitFor(() => {
                 expect(screen.getByLabelText('Tournament Info URL')).toHaveFocus();
             });
+        });
+
+        it('starts an edit form with actions enabled before any save is in flight', async () => {
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Edit'));
+
+            expect(screen.getByRole('button', { name: 'UPDATE' })).toBeEnabled();
+            expect(screen.getByText('Cancel')).toBeEnabled();
         });
 
         it('does not pull focus back to Tournament Info URL while typing in another field', async () => {
@@ -1056,6 +1069,17 @@ describe('PromoteMyTournaments', () => {
             expect(screen.getByTestId('tournament-link')).toBeInTheDocument();
         });
 
+        it('shows a fallback and keeps the tournament when deletion rejects with a string', async () => {
+            clubsApiMocks.deleteTournament.mockRejectedValue('offline');
+            renderPage();
+            await screen.findByText(/London Open 2025/);
+            fireEvent.click(screen.getByTitle('Delete'));
+            fireEvent.click(screen.getByText('Confirm Remove'));
+
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('The tournament could not be deleted. Please try again.');
+            expect(screen.getByTestId('tournament-link')).toBeInTheDocument();
+        });
+
         it('does not call deleteTournament when cancel is clicked', async () => {
             renderPage();
 
@@ -1147,6 +1171,11 @@ describe('PromoteMyTournaments', () => {
             const url = 'https://192.168.10.22.example.com/info';
             await openAddModal();
             const year = new Date().getFullYear() + 1;
+            clubsApiMocks.upsertTournament.mockResolvedValue({
+                ...sampleTournament,
+                tournament_name: 'Numeric label tournament',
+                tournament_info: url,
+            });
             fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'Numeric label tournament' } });
             fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: url } });
             fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(year)}-07-01` } });
@@ -1167,6 +1196,11 @@ describe('PromoteMyTournaments', () => {
             await openAddModal();
             const year = new Date().getFullYear() + 1;
             const date = `${String(year)}-07-05`;
+            clubsApiMocks.upsertTournament.mockResolvedValue({
+                ...sampleTournament,
+                tournament_name: 'One Day',
+                tournament_info: 'https://example.com',
+            });
             fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'One Day' } });
             fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com' } });
             fireEvent.change(screen.getByLabelText('Facebook Post'), { target: { value: 'club-page' } });
@@ -1679,6 +1713,19 @@ describe('PromoteMyTournaments', () => {
             fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(year)}-07-01` } });
             fireEvent.change(screen.getByLabelText('End Date'), { target: { value: `${String(year)}-07-05` } });
             fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+            expect(await screen.findByTestId('delete-error')).toHaveTextContent('The tournament could not be saved. Please try again.');
+        });
+
+        it('shows a fallback when saving rejects with a string', async () => {
+            await openAddModal();
+            clubsApiMocks.upsertTournament.mockRejectedValue('offline');
+            const year = new Date().getFullYear() + 1;
+            fireEvent.change(screen.getByLabelText('Tournament Name'), { target: { value: 'New Tournament' } });
+            fireEvent.change(screen.getByLabelText('Tournament Info URL'), { target: { value: 'https://example.com/info' } });
+            fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: `${String(year)}-07-01` } });
+            fireEvent.change(screen.getByLabelText('End Date'), { target: { value: `${String(year)}-07-05` } });
+            fireEvent.click(screen.getByRole('button', { name: 'ADD' }));
+
             expect(await screen.findByTestId('delete-error')).toHaveTextContent('The tournament could not be saved. Please try again.');
         });
 

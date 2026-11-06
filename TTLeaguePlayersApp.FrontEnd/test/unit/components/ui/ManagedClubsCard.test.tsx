@@ -100,6 +100,33 @@ describe('ManagedClubsCard – default mode', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
+    it('rechecks duplicate labels when managed clubs change on the same mounted card', () => {
+        const { rerender } = render(
+            <ManagedClubsCard
+                managedClubs={[club('London', 'London TTC', 'League A')]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+            />
+        );
+
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+        rerender(
+            <ManagedClubsCard
+                managedClubs={[
+                    club('London', 'London TTC', 'League A', '2025'),
+                    club('London', 'Battersea TTC', 'League A', '2026'),
+                ]}
+                selectedClubKey={null}
+                onSelectClub={onSelectClub}
+            />
+        );
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            '❌ Page event log processing managed club:',
+            new Error('Managed clubs produce the duplicate button label "London / League A": club_location "London" and league "League A" appear more than once.')
+        );
+    });
+
     it('applies the selected style to the button matching selectedClubKey', () => {
         const selectedKey = key('League A', '2025', 'London TTC');
 
@@ -115,6 +142,7 @@ describe('ManagedClubsCard – default mode', () => {
         );
 
         expect(screen.getByRole('button', { name: 'London / League A' })).toHaveClass('bg-action-accent');
+        expect(screen.getByRole('button', { name: 'Berlin / League B' })).toHaveClass('border-gray-600', 'text-main-text');
         expect(screen.getByRole('button', { name: 'Berlin / League B' })).not.toHaveClass('bg-action-accent');
     });
 
@@ -547,5 +575,6 @@ describe('ManagedClubsCard – display', () => {
         );
 
         expect(screen.queryAllByRole('button')).toHaveLength(0);
+        expect(document.querySelector('.flex.flex-wrap')).not.toBeInTheDocument();
     });
 });

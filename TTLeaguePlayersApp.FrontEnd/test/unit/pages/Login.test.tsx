@@ -167,19 +167,35 @@ describe('Login page', () => {
         });
 
         it('updates when the email query parameter changes', () => {
-            render(
-                <MemoryRouter initialEntries={['/login']}>
-                    <Link to="/login?email=changed%40b.com">Load invite email</Link>
-                    <Routes>
-                        <Route path="/login" element={<Login />} />
-                    </Routes>
-                </MemoryRouter>
-            );
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            try {
+                render(
+                    <MemoryRouter initialEntries={['/login']}>
+                        <Link to="/login?email=changed%40b.com">Load invite email</Link>
+                        <Link to="/login">Remove invite email query</Link>
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
+                        </Routes>
+                    </MemoryRouter>
+                );
 
-            fireEvent.click(screen.getByText('Load invite email'));
+                fireEvent.click(screen.getByText('Load invite email'));
 
-            expect(emailInput()).toHaveValue('changed@b.com');
-            expect(emailInput()).toBeDisabled();
+                expect(emailInput()).toHaveValue('changed@b.com');
+                expect(emailInput()).toBeDisabled();
+
+                fireEvent.click(screen.getByText('Remove invite email query'));
+
+                expect(emailInput()).toHaveValue('changed@b.com');
+                expect(emailInput()).toBeEnabled();
+                expect(forgotPasswordLink()).toHaveAttribute(
+                    'href',
+                    '/forgot-password?prefillEmail=changed%40b.com'
+                );
+                expect(consoleError.mock.calls.flat().join(' ')).not.toContain('value prop on input should not be null');
+            } finally {
+                consoleError.mockRestore();
+            }
         });
     });
 

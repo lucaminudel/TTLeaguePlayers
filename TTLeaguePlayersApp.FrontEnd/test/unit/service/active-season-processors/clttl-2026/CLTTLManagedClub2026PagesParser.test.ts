@@ -48,6 +48,21 @@ describe('CLTTLManagedClub2026PagesParser', () => {
             .toEqual(divisionWords.map((_word, index) => `Division ${String(index + 1)}`));
     });
 
+    it('normalizes only a complete division label while allowing repeated whitespace', () => {
+        const parser = new CLTTLManagedClub2026PagesParser();
+        const html = `<table class="tt-contact-table"><tbody>
+            <tr><td>Winter</td><td>Division   Four</td><td>Repeated spaces</td></tr>
+            <tr><td>Winter</td><td>North Division Four</td><td>Prefixed label</td></tr>
+            <tr><td>Winter</td><td>Division Four Reserve</td><td>Suffixed label</td></tr>
+        </tbody></table>`;
+
+        expect(parser.getClubTeams(html).map((team) => team.team_division)).toEqual([
+            'Division 4',
+            'North Division Four',
+            'Division Four Reserve'
+        ]);
+    });
+
     describe('getClubTeams', () => {
         it('should extract every team with its division from a club html page', () => {
             const parser = new CLTTLManagedClub2026PagesParser();

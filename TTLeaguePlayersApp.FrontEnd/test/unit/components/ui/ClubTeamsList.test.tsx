@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { Component, type ReactNode } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { ClubTeamsList } from '../../../../src/components/ui/ClubTeamsList';
 import type { ManagedClubProcessor } from '../../../../src/service/league-season-processors/ManagedClubProcessor';
 import type { TeamRegistrationEntry, TeamRegistrationsResponse } from '../../../../src/types/invite';
@@ -294,10 +295,12 @@ describe('ClubTeamsList', () => {
 
         await waitFor(() => { expect(screen.getAllByTestId('club-team-name')).toHaveLength(3); });
 
-        // The separator '·' sits between the two data-testid spans — check it in the parent text.
-        expect(screen.getByTestId('club-team-row-Both').textContent).toContain('·');
-        expect(screen.getByTestId('club-team-row-DateOnly').textContent).not.toContain('·');
-        expect(screen.getByTestId('club-team-row-Neither').textContent).not.toContain('·');
+        const bothDetails = within(screen.getByTestId('club-team-row-Both')).getByTestId('club-team-date').parentElement;
+        const dateOnlyDetails = within(screen.getByTestId('club-team-row-DateOnly')).getByTestId('club-team-date').parentElement;
+        const neitherDetails = within(screen.getByTestId('club-team-row-Neither')).getByTestId('club-team-date').parentElement;
+        expect(bothDetails).toHaveTextContent(/^9 Apr · Ada Lovelace$/);
+        expect(dateOnlyDetails).toHaveTextContent(/^9 Apr$/);
+        expect(neitherDetails).toHaveTextContent(/^$/);
     });
 
     it('shows no separator on a PENDING row that has an invitee but no date', async () => {
@@ -379,11 +382,13 @@ describe('ClubTeamsList', () => {
         await waitFor(() => { expect(screen.getAllByTestId('club-team-name')).toHaveLength(2); });
 
         // The club switch: a new processor instance, plus the newly selected club's name and location.
-        rerender(listFor(
-            stubProcessor(new Error('Club "Flick M" not found in data source.')),
-            'Flick M',
-            'Hackney'
-        ));
+        rerender(
+            <TestErrorBoundary>{listFor(
+                stubProcessor(new Error('Club "Flick M" not found in data source.')),
+                'Flick M',
+                'Hackney'
+            )}</TestErrorBoundary>
+        );
 
         // The logged error is the signal that the SECOND load has settled — the first one succeeds,
         // so nothing else in this test writes to console.error.
@@ -407,6 +412,21 @@ describe('ClubTeamsList', () => {
         await waitFor(() => {
             expect(screen.queryByTestId('club-teams-loading')).not.toBeInTheDocument();
         });
+    });
+
+    it('renders the loading indicator in the initial server-rendered markup', () => {
+        const markup = renderToStaticMarkup(
+            <ClubTeamsList
+                processor={stubProcessor(['Walworth 1'])}
+                league={LEAGUE}
+                season={SEASON}
+                clubName={CLUB_NAME}
+                clubLocation={CLUB_LOCATION}
+            />
+        );
+
+        expect(markup).toContain('data-testid="club-teams-loading"');
+        expect(markup).toContain('Loading teams…');
     });
     it('uses a distinct status colour for registered, pending, and not-invited rows', async () => {
         respondWith([
@@ -490,7 +510,9 @@ describe('ClubTeamsList', () => {
         const { rerender } = render(<TestErrorBoundary>{listFor(slowEmptyProcessor)}</TestErrorBoundary>);
 
         // Switch to a new club before the first club's empty result arrives.
-        rerender(listFor(stubProcessor(['New Club Team']), 'New Club', 'Hackney'));
+        rerender(
+            <TestErrorBoundary>{listFor(stubProcessor(['New Club Team']), 'New Club', 'Hackney')}</TestErrorBoundary>
+        );
 
         // Now resolve the first club's getClubTeams with an empty list.
         await act(async () => {
@@ -533,7 +555,9 @@ describe('ClubTeamsList', () => {
         expect(screen.queryByTestId('club-team-row-Walworth 1')).toBeNull();
         const lastUpdate = inviteApiMocks.getCachedTeamRegistrations.mock.calls.at(-1)?.[1] as typeof oldStatusUpdate;
         respondWith([entry({ team_name: 'Other club team' })]);
-        view.rerender(listFor(stubProcessor(['Other club team']), 'Other club'));
+        view.rerender(
+            <TestErrorBoundary>{listFor(stubProcessor(['Other club team']), 'Other club')}</TestErrorBoundary>
+        );
         await waitFor(() => { expect(screen.getByTestId('club-team-row-Other club team')).toBeTruthy(); });
         act(() => { lastUpdate(result('Walworth 2')); refreshTeams([]); });
         expect(screen.getByTestId('club-team-row-Other club team')).toBeTruthy();

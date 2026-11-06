@@ -222,7 +222,7 @@ export const ActiveSeasonCard: React.FC<ActiveSeasonCardProps> = ({ season, proc
                 <div className="text-center" data-testid="active-season-details">
                     <div className="border-t border-gray-600 my-1"></div>
 
-                    {isLoadingData ? (
+                    {isLoadingData || fixtureLoadStatus === 'idle' ? (
                         <div className="p-4" data-testid="active-season-loading">Loading match data...</div>
                     ) : (
                         <>

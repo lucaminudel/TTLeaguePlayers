@@ -1361,10 +1361,16 @@ describe('PromoteMyClub', () => {
             ['Homepage Link', 'https://localhost'],
             ['Instagram Handle', 'not a handle!'],
             ['Instagram Handle', '!club'],
+            ['Instagram Handle', 'https://facebook.com/morpeth'],
+            ['Instagram Handle', 'https://instagram.com\\morpeth'],
             ['Facebook Link', 'not a facebook link!'],
             ['Facebook Link', '!club'],
+            ['Facebook Link', 'https://instagram.com/morpeth'],
+            ['Facebook Link', 'https://facebook.com\\morpeth'],
             ['YouTube', 'youtube channel!'],
             ['YouTube', '!club'],
+            ['YouTube', 'https://facebook.com/morpeth'],
+            ['YouTube', 'https://youtube.com\\morpethttc'],
         ])('renders a disabled Test control for invalid %s input', async (label, value) => {
             await renderPage();
 

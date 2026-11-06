@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Register } from '../../../src/pages/Register';
+import { GeneralApiError } from '../../../src/api/api';
 import type { Invite } from '../../../src/types/invite';
 
 const mockNavigate = vi.fn();
@@ -28,7 +29,7 @@ vi.mock('../../../src/api/inviteApi', () => ({
 const PASSWORD = 'aA1!56789012';
 const AUTH_INIT_FAILURE = new Error('AuthProvider.initAuth() has failed. authInitialisationError: boom');
 const USER_INIT_ERROR_MESSAGE = 'Unexpected authentication initialisation error: reload the page and try again.';
-const NON_RETRYABLE_API_ERROR = { status: 400, message: 'Bad Request' };
+const NON_RETRYABLE_API_ERROR = new GeneralApiError('Bad Request', 400);
 
 const invite: Invite = {
     nano_id: 'invite-nano-id',
@@ -227,6 +228,29 @@ describe('Register page', () => {
 
             expect(screen.queryByText('Waiting to confirm the invite ...')).not.toBeInTheDocument();
             expect(screen.getByRole('heading', { name: 'Verify Email' })).toBeInTheDocument();
+        });
+
+        it('keeps the verification continuation enabled if passwords change while acceptance is pending', async () => {
+            let rejectAcceptance!: (error: Error) => void;
+            acceptInviteApi.mockImplementation(() => new Promise<Invite>((_resolve, reject) => {
+                rejectAcceptance = reject;
+            }));
+            renderRegisterPage('', invite);
+            register();
+
+            expect(await screen.findByText('Waiting to confirm the invite ...')).toBeInTheDocument();
+            fireEvent.change(confirmPasswordInput(), { target: { value: 'different-password' } });
+            expect(screen.getByTestId('register-submit-button')).toBeDisabled();
+
+            await act(async () => {
+                rejectAcceptance(NON_RETRYABLE_API_ERROR);
+                await Promise.resolve();
+            });
+
+            const continueButton = await screen.findByRole('button', { name: 'Continue to Email Verification' });
+            expect(continueButton).toBeEnabled();
+            fireEvent.click(continueButton);
+            expect(await screen.findByRole('heading', { name: 'Verify Email' })).toBeInTheDocument();
         });
 
         it('keeps the loading submit action visible while accepting an existing user invite', async () => {

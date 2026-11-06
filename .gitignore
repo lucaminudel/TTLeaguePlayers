@@ -92,3 +92,4 @@ test-results
 TTLeaguePlayersApp.FrontEnd/dist
 TTLeaguePlayersApp.FrontEnd/reports
 TTLeaguePlayersApp.FrontEnd/.stryker-tmp
+mutation-evidence

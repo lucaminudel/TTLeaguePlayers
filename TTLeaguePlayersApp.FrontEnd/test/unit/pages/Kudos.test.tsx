@@ -113,11 +113,19 @@ describe('Kudos registration state', () => {
 
     it.each([undefined, []])('shows the registration warning when active-season configuration is %s', (sources) => {
         mockGetConfig.mockReturnValue({ active_seasons_data_source: sources });
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-        renderPage();
+        try {
+            renderPage();
 
-        expect(screen.getByText('⚠️ You are not currently registered to a league, a season, and a team.')).toBeInTheDocument();
-        expect(screen.queryByTestId('active-season-card')).not.toBeInTheDocument();
+            expect(screen.getByText('⚠️ You are not currently registered to a league, a season, and a team.')).toBeInTheDocument();
+            expect(screen.queryByTestId('active-season-card')).not.toBeInTheDocument();
+            expect(errorSpy).toHaveBeenCalledWith(
+                'Configuration error: active_seasons_data_source is missing from the environment config.'
+            );
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 
     it('renders a card for a registration inside its inclusive rating window', () => {
@@ -147,11 +155,19 @@ describe('Kudos registration state', () => {
                 { ...dataSource, league: 'Other League' },
             ],
         });
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-        renderPage();
+        try {
+            renderPage();
 
-        expect(screen.getByText('⚠️ You are not currently registered to a league, a season, and a team.')).toBeInTheDocument();
-        expect(screen.queryByTestId('active-season-card')).not.toBeInTheDocument();
+            expect(screen.getByText('⚠️ You are not currently registered to a league, a season, and a team.')).toBeInTheDocument();
+            expect(screen.queryByTestId('active-season-card')).not.toBeInTheDocument();
+            expect(errorSpy).toHaveBeenCalledWith(
+                'Data source not found for league "CLTTL" and season "2025-2026".'
+            );
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 
     it('keeps multiple registrations collapsed until the player opens one', () => {
@@ -195,11 +211,15 @@ describe('Kudos registration state', () => {
         mockCreateActiveSeasonProcessor.mockImplementationOnce(() => { throw new Error('unsupported processor'); });
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-        renderPage();
+        try {
+            renderPage();
 
-        expect(screen.getAllByTestId('active-season-card')).toHaveLength(1);
-        expect(screen.getByTestId('active-season-header')).toHaveTextContent('Walworth Lions');
-        expect(errorSpy).toHaveBeenCalledWith('❌ Error rendering active season card:', expect.any(Error));
+            expect(screen.getAllByTestId('active-season-card')).toHaveLength(1);
+            expect(screen.getByTestId('active-season-header')).toHaveTextContent('Walworth Lions');
+            expect(errorSpy).toHaveBeenCalledWith('❌ Error rendering active season card:', expect.any(Error));
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 
     it('allows a single active-season card to be collapsed', async () => {

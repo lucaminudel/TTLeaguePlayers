@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Component, type ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { MainMenu } from '../../../../src/components/navigation/MainMenu';
 import { drainFrontendEvents } from '../../../../src/service/frontend-diagnostics/FrontendEventQueue';
 
@@ -33,14 +33,14 @@ describe('MainMenu', () => {
 
     const setAuth = (
         flags: { isAuthenticated: boolean; isPlayerOrCaptain?: boolean; isClubManager?: boolean; isCaptain?: boolean },
-        details: { activeSeasons?: unknown[]; managedClubs?: unknown[]; userAttributesLoadFailed?: boolean; signOut?: ReturnType<typeof vi.fn> } = {}
+        details: { activeSeasons?: unknown[]; managedClubs?: unknown[]; userAttributesLoadFailed?: boolean; signOut?: ReturnType<typeof vi.fn>; username?: string | null } = {}
     ) => {
         mockUseAuth.mockReturnValue({
             isAuthenticated: flags.isAuthenticated,
             isPlayerOrCaptain: flags.isPlayerOrCaptain ?? false,
             isClubManager: flags.isClubManager ?? false,
             isCaptain: flags.isCaptain ?? false,
-            username: 'Luca',
+            username: details.username === undefined ? 'Luca' : details.username,
             activeSeasons: details.activeSeasons ?? [],
             managedClubs: details.managedClubs ?? [],
             userAttributesLoadFailed: details.userAttributesLoadFailed ?? false,
@@ -291,7 +291,10 @@ describe('MainMenu', () => {
 
         render(
             <MemoryRouter initialEntries={['/kudos']}>
-                <MainMenu />
+                <Routes>
+                    <Route path="/kudos" element={<MainMenu />} />
+                    <Route path="/" element={<MainMenu />} />
+                </Routes>
                 <CurrentLocation />
             </MemoryRouter>
         );
@@ -355,7 +358,7 @@ describe('MainMenu', () => {
 
         render(
             <MemoryRouter initialEntries={['/kudos']}>
-                <MainMenu />
+                <Routes><Route path="/kudos" element={<MainMenu />} /></Routes>
                 <CurrentLocation />
             </MemoryRouter>
         );
@@ -406,6 +409,41 @@ describe('MainMenu', () => {
 
         expect(screen.getByTestId('main-menu-welcome-message')).toHaveTextContent('Welcome, Luca');
         expect(screen.queryByTestId('main-menu-unexpected-error')).toBeNull();
+    });
+
+    it('keeps the welcome prefix when every display-name source is absent', () => {
+        setAuth({ isAuthenticated: true }, { username: null });
+
+        renderAndOpenMenu();
+
+        expect(screen.getByTestId('main-menu-welcome-message').textContent).toBe('Welcome, ');
+    });
+
+    it('keeps managed-club and additional-season list keys unique', () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            setAuth(
+                { isAuthenticated: true, isPlayerOrCaptain: true, isClubManager: true },
+                {
+                    activeSeasons: [
+                        { league: 'CLTTL', season: '2026-2027', team_name: 'Morpeth 9', team_division: 'Division 4', person_name: 'Luca' },
+                        { league: 'BCS', season: '2026-2027', team_name: 'Brighton 1', team_division: 'Division 2', person_name: 'Luca' },
+                        { league: 'BCS', season: '2025-2026', team_name: 'Brighton 2', team_division: 'Division 3', person_name: 'Luca' },
+                    ],
+                    managedClubs: [
+                        { league: 'CLTTL', season: '2026-2027', club_name: 'Morpeth', club_location: 'London', manager_name: 'Luca' },
+                        { league: 'BCS', season: '2026-2027', club_name: 'Brighton', club_location: 'Brighton', manager_name: 'Luca' },
+                    ],
+                }
+            );
+
+            renderAndOpenMenu();
+
+            const errors = consoleError.mock.calls.flat().join(' ');
+            expect(errors).not.toContain('same key');
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 
     it('uses the first managed club manager name when no active season supplies a display name', () => {

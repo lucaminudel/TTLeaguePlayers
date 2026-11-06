@@ -86,6 +86,25 @@ describe('InfoModal', () => {
         await waitFor(() => { expect(opener).toHaveFocus(); });
     });
 
+    it('does not try to restore focus to an opener that has been detached', async () => {
+        const opener = await openModal();
+        const focusSpy = vi.spyOn(opener, 'focus');
+        opener.remove();
+
+        fireEvent.click(screen.getByTestId('test-info-modal-ok'));
+
+        await waitFor(() => { expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); });
+        expect(opener.isConnected).toBe(false);
+        expect(focusSpy).not.toHaveBeenCalled();
+    });
+
+    it('associates the suppression checkbox with its visible label', async () => {
+        await openModal();
+
+        const checkbox = screen.getByRole('checkbox', { name: "Don't show this message again" });
+        expect(checkbox).toBe(screen.getByTestId('test-info-modal-dont-show-again'));
+    });
+
     it('resolves aria-describedby to the body content', async () => {
         await openModal();
 

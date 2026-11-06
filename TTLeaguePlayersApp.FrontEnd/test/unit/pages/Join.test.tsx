@@ -350,6 +350,12 @@ describe('Join Page Logic', () => {
             retry: true,
         },
         {
+            description: 'network failure after a retryable HTTP response',
+            error: { status: 429, message: 'Connection error' },
+            message: 'Network connection error. Make sure you are online and retry later.',
+            retry: true,
+        },
+        {
             description: 'network failures reported by Cognito-style API errors',
             error: { status: 400, message: 'NetworkError: request failed' },
             message: 'Network connection error. Make sure you are online and retry later.',

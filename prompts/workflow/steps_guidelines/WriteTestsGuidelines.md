@@ -23,6 +23,29 @@ Use data-testid to quickly identify the html elements.
 *  **Contract Verification:** For every mocked interface/API, there must be a corresponding integration test to ensure the mock's behaviour aligns with the real-world system.
 *  **Dependency Injection:** Prefer injecting mocks and stubs via the **Constructor**. Avoid framework-specific "magic" or reflection-based overrides unless the SUT architecture strictly requires it.
 
+### Expected console output in unit tests
+
+When a unit test deliberately exercises code that writes to `console.error`, `console.warn`, `console.info` or another console method, capture only that method with a spy so expected diagnostics do not clutter the test output. Assert the expected message or arguments as part of the test; do not silence the output without checking it, since that can hide a changed or unexpected diagnostic.
+
+Keep the spy scoped to the test that triggers the message and restore it even when rendering, an async action or an assertion fails. For a single test, use `try/finally`:
+
+```typescript
+const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+try {
+    renderPage();
+
+    expect(consoleError).toHaveBeenCalledWith(
+        'Configuration error: active_seasons_data_source is missing from the environment config.'
+    );
+} finally {
+    consoleError.mockRestore();
+}
+```
+
+For a suite that intentionally expects the same console method across several tests, install the spy in `beforeEach` and restore it in `afterEach`. Do not leave a console spy active across unrelated tests or rely on `vi.clearAllMocks()` to restore the original console method. Await the operation that emits the message before asserting and restoring the spy.
+
+Console warnings that reveal a defect, such as React's duplicate-child-key warning, should normally be fixed at their source (for example, by correcting duplicate fixture data or the rendered keys), not hidden with a console spy. Spy on such a warning only when the warning itself is the behavior under test.
+
 ## React async-effect testing
 
 When changing async effect lifecycles, check how the app mounts the affected component. If the app

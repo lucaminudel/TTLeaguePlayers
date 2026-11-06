@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { ActiveSeasonCard } from '../../../../src/components/ui/ActiveSeasonCard';
 import type { ActiveSeason } from '../../../../src/contexts/AuthContextDefinition';
 import type { ActiveSeasonProcessor } from '../../../../src/service/league-season-processors/ActiveSeasonProcessor';
@@ -13,7 +14,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 const mockUseAuth = vi.fn();
-const mockIsSameDay = vi.fn<(date1: Date, date2: Date) => boolean>(() => false);
+const mockIsSameDay = vi.fn<(date1: Date, date2: Date) => boolean>();
 
 // Mock useAuth hook
 vi.mock('../../../../src/hooks/useAuth', () => ({
@@ -27,7 +28,12 @@ vi.mock('../../../../src/utils/DateUtils', () => ({
     getClockTime: () => new Date('2025-01-15T12:00:00Z'),
     formatFixtureDate: (date: Date) => date.toLocaleDateString(),
     formatFixtureDateTime: (date: Date) => date.toISOString(),
-    isSameDay: (...args: [Date, Date]) => mockIsSameDay(...args)
+    isSameDay: (date1: Date, date2: Date) => {
+        if (!(date1 instanceof Date) || !(date2 instanceof Date)) {
+            throw new TypeError('isSameDay must receive valid Date values');
+        }
+        return mockIsSameDay(date1, date2);
+    }
 }));
 
 const createFixture = (overrides: Partial<Fixture> = {}): Fixture => ({
@@ -90,6 +96,22 @@ describe('ActiveSeasonCard Error Handling', () => {
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     });
 
+    it('shows loading instead of a fixture error before the initial expanded request effect starts', () => {
+        const processor = {
+            getTeamFixtures: vi.fn().mockResolvedValue([]),
+            getTeamPlayers: vi.fn().mockResolvedValue([]),
+        } satisfies ActiveSeasonProcessor;
+
+        const markup = renderToStaticMarkup(
+            <ActiveSeasonCard season={mockSeason} processor={processor} isExpanded onToggle={mockOnToggle} />
+        );
+
+        expect(markup).toContain('data-testid="active-season-loading"');
+        expect(markup).toContain('Loading match data...');
+        expect(markup).not.toContain('fixtures could not be loaded');
+        expect(processor.getTeamFixtures.mock.calls).toHaveLength(0);
+    });
+
     it('should display "No fixture found" when processor throws error', async () => {
         const mockProcessor: ActiveSeasonProcessor = {
             getTeamFixtures: vi.fn().mockRejectedValue(new Error('Network error')),
@@ -141,6 +163,8 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Upcoming Opponent');
+        expect(screen.queryByTestId('rate-button')).not.toBeInTheDocument();
+        expect(screen.getByTestId('active-season-prev-match').parentElement?.querySelectorAll('div.h-4')).toHaveLength(4);
     });
 
     it('replaces previously displayed fixtures with an error when a later load fails', async () => {
@@ -223,6 +247,10 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('Latest Opponent');
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+        expect(screen.getByTestId('rate-button')).toBeInTheDocument();
+        expect(screen.getByTestId('active-season-prev-match-header')).toHaveTextContent('Previous Match');
+        expect(screen.getByTestId('active-season-next-match-header')).toHaveTextContent('Next Match');
+        expect(screen.getByTestId('active-season-prev-match').parentElement?.querySelectorAll('div.h-4')).toHaveLength(2);
     });
 
     it('keeps a fixture exactly two hours ago as the next match', async () => {
@@ -241,6 +269,7 @@ describe('ActiveSeasonCard Error Handling', () => {
 
         expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Boundary Opponent');
         expect(screen.getByTestId('active-season-prev-match')).toHaveTextContent('No previous match');
+        expect(screen.getByTestId('active-season-next-match-header')).toHaveTextContent('Next Match');
     });
 
     it('should make an away venue clickable when a Google Maps URL is available', async () => {
@@ -707,6 +736,116 @@ describe('ActiveSeasonCard Rate info modal', () => {
         view.rerender(card(false));
         act(() => { refresh([createFixture({ homeTeam: 'Late opponent' })]); });
         expect(screen.queryByTestId('active-season-details')).toBeNull();
+    });
+
+    it('keeps the active request loading when an older fixture request resolves after collapse and reopen', async () => {
+        let resolveOld!: (fixtures: Fixture[]) => void;
+        let resolveCurrent!: (fixtures: Fixture[]) => void;
+        const oldRequest = new Promise<Fixture[]>(resolve => { resolveOld = resolve; });
+        const currentRequest = new Promise<Fixture[]>(resolve => { resolveCurrent = resolve; });
+        const processor = {
+            getTeamFixtures: vi.fn()
+                .mockReturnValueOnce(oldRequest)
+                .mockReturnValueOnce(currentRequest),
+            getTeamPlayers: vi.fn(),
+        } satisfies ActiveSeasonProcessor;
+        const card = (expanded: boolean) => <ActiveSeasonCard season={mockSeason} processor={processor} isExpanded={expanded} onToggle={mockOnToggle} />;
+        const view = render(card(true));
+        await waitFor(() => { expect(processor.getTeamFixtures.mock.calls).toHaveLength(1); });
+
+        view.rerender(card(false));
+        view.rerender(card(true));
+        await waitFor(() => { expect(processor.getTeamFixtures.mock.calls).toHaveLength(2); });
+
+        await act(async () => {
+            resolveOld([createFixture({ homeTeam: 'Stale opponent', awayTeam: 'Test Team' })]);
+            await oldRequest;
+        });
+
+        expect(screen.getByTestId('active-season-loading')).toBeInTheDocument();
+        expect(screen.queryByText(/Stale opponent/)).not.toBeInTheDocument();
+
+        await act(async () => {
+            resolveCurrent([createFixture({ homeTeam: 'Current opponent', awayTeam: 'Test Team' })]);
+            await currentRequest;
+        });
+
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Current opponent');
+        expect(screen.queryByText(/Stale opponent/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the active request loading when an older fixture request fails after collapse and reopen', async () => {
+        let rejectOld!: (error: Error) => void;
+        let resolveCurrent!: (fixtures: Fixture[]) => void;
+        const oldRequest = new Promise<Fixture[]>((_, reject) => { rejectOld = reject; });
+        const currentRequest = new Promise<Fixture[]>(resolve => { resolveCurrent = resolve; });
+        const processor = {
+            getTeamFixtures: vi.fn()
+                .mockReturnValueOnce(oldRequest)
+                .mockReturnValueOnce(currentRequest),
+            getTeamPlayers: vi.fn(),
+        } satisfies ActiveSeasonProcessor;
+        const card = (expanded: boolean) => <ActiveSeasonCard season={mockSeason} processor={processor} isExpanded={expanded} onToggle={mockOnToggle} />;
+        const view = render(card(true));
+        await waitFor(() => { expect(processor.getTeamFixtures.mock.calls).toHaveLength(1); });
+
+        view.rerender(card(false));
+        view.rerender(card(true));
+        await waitFor(() => { expect(processor.getTeamFixtures.mock.calls).toHaveLength(2); });
+
+        await act(async () => {
+            rejectOld(new Error('Stale request failed'));
+            await oldRequest.catch(() => undefined);
+        });
+
+        expect(screen.getByTestId('active-season-loading')).toBeInTheDocument();
+        expect(screen.queryByText(/fixtures could not be loaded/)).not.toBeInTheDocument();
+
+        await act(async () => {
+            resolveCurrent([]);
+            await currentRequest;
+        });
+
+        expect(screen.queryByTestId('active-season-loading')).not.toBeInTheDocument();
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('None');
+    });
+
+    it('keeps newer refresh data when an older fixture request fails after collapse and reopen', async () => {
+        let rejectOld!: (error: Error) => void;
+        let resolveCurrent!: (fixtures: Fixture[]) => void;
+        let currentRefresh!: (fixtures: Fixture[]) => void;
+        let requestCount = 0;
+        const oldRequest = new Promise<Fixture[]>((_, reject) => { rejectOld = reject; });
+        const currentRequest = new Promise<Fixture[]>(resolve => { resolveCurrent = resolve; });
+        const processor = {
+            getTeamFixtures: vi.fn((onUpdate?: (fixtures: Fixture[]) => void) => {
+                if (!onUpdate) throw new Error('Missing refresh callback');
+                requestCount++;
+                if (requestCount === 2) currentRefresh = onUpdate;
+                return requestCount === 1 ? oldRequest : currentRequest;
+            }),
+            getTeamPlayers: vi.fn(),
+        } satisfies ActiveSeasonProcessor;
+        const card = (expanded: boolean) => <ActiveSeasonCard season={mockSeason} processor={processor} isExpanded={expanded} onToggle={mockOnToggle} />;
+        const view = render(card(true));
+        await waitFor(() => { expect(processor.getTeamFixtures.mock.calls).toHaveLength(1); });
+
+        view.rerender(card(false));
+        view.rerender(card(true));
+        await waitFor(() => { expect(processor.getTeamFixtures.mock.calls).toHaveLength(2); });
+        currentRefresh([createFixture({ homeTeam: 'Current refresh opponent', awayTeam: 'Test Team' })]);
+
+        await act(async () => {
+            rejectOld(new Error('Stale request failed'));
+            await oldRequest.catch(() => undefined);
+        });
+        await act(async () => {
+            resolveCurrent([]);
+            await currentRequest;
+        });
+
+        expect(screen.getByTestId('active-season-next-match')).toHaveTextContent('Current refresh opponent');
+        expect(screen.queryByText(/fixtures could not be loaded/)).not.toBeInTheDocument();
     });
 
 });

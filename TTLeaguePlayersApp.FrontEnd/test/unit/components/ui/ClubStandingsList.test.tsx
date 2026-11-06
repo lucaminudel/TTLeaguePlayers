@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { ClubStandingsList } from '../../../../src/components/ui/ClubStandingsList';
 import type { ManagedClubProcessor } from '../../../../src/service/league-season-processors/ManagedClubProcessor';
 import type { ClubKudosStandingsEntry, ClubKudosStandingsResponse } from '../../../../src/api/kudosApi';
@@ -79,6 +80,12 @@ describe('ClubStandingsList', () => {
 
     // ---------------------------------------------------------------- tests
 
+    it('shows the loading message on the first render before effects start', () => {
+        const initialMarkup = renderToStaticMarkup(listFor(stubProcessor([])));
+
+        expect(initialMarkup).toContain('Loading teams…');
+    });
+
     it('shows a loading message before the standings arrive', () => {
         respondWith([]);
 
@@ -103,6 +110,12 @@ describe('ClubStandingsList', () => {
         // A zero count renders as an empty slot, not a pill showing '0'.
         expect(screen.getAllByTestId('club-standing-neutral').map((n) => n.textContent)).toEqual(['1', '']);
         expect(screen.getAllByTestId('club-standing-negative').map((n) => n.textContent)).toEqual(['', '3']);
+
+        expect(screen.getAllByTestId('club-standing-positive')[0]).toHaveClass('w-10', 'shrink-0', 'rounded', 'text-xs', 'font-bold', 'text-center', 'px-2', 'py-1', 'bg-[#004d27]', 'text-white');
+        expect(screen.getAllByTestId('club-standing-neutral')[0]).toHaveClass('w-10', 'shrink-0', 'rounded', 'text-xs', 'font-bold', 'text-center', 'px-2', 'py-1', 'bg-[#85a3c2]', 'text-white');
+        expect(screen.getAllByTestId('club-standing-negative')[1]).toHaveClass('w-10', 'shrink-0', 'rounded', 'text-xs', 'font-bold', 'text-center', 'px-1.5', 'py-0.5', 'bg-transparent', 'border-2', 'border-[#85a3c2]', 'text-white');
+        expect(screen.getAllByTestId('club-standing-negative')[0]).toHaveClass('w-10', 'shrink-0');
+        expect(screen.getAllByTestId('club-standing-negative')[0]).not.toHaveClass('rounded', 'border-2');
     });
 
     // NOT sorted by count, deliberately unlike the Kudos Standings page: this one mirrors the club
@@ -269,6 +282,42 @@ describe('ClubStandingsList', () => {
         await waitFor(() => { expect(screen.getAllByTestId('club-standing-name')).toHaveLength(1); });
 
         expect(onStandingsLoaded).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the latest onStandingsLoaded callback without refetching when the callback changes', async () => {
+        let publishStandings!: (response: ClubKudosStandingsResponse) => void;
+        let resolveInitialRead!: (response: ClubKudosStandingsResponse) => void;
+        kudosApiMocks.getCachedClubKudosStandings.mockImplementation(
+            (_request: unknown, onUpdate: (response: ClubKudosStandingsResponse) => void) => {
+                publishStandings = onUpdate;
+                return new Promise<ClubKudosStandingsResponse>((resolve) => { resolveInitialRead = resolve; });
+            }
+        );
+        const firstCallback = vi.fn();
+        const latestCallback = vi.fn();
+        const processor = stubProcessor([{ team_name: 'Highbury 2', team_division: 'Division 4' }]);
+        const { rerender } = render(listFor(processor, CLUB_NAME, CLUB_LOCATION, firstCallback));
+
+        await waitFor(() => { expect(kudosApiMocks.getCachedClubKudosStandings).toHaveBeenCalledTimes(1); });
+        rerender(listFor(processor, CLUB_NAME, CLUB_LOCATION, latestCallback));
+
+        const latestStandings = {
+            league: LEAGUE,
+            season: SEASON,
+            club_name: CLUB_NAME,
+            club_location: CLUB_LOCATION,
+            teams: [entry('Highbury 2', 3)],
+        };
+        await act(async () => {
+            publishStandings(latestStandings);
+            resolveInitialRead(latestStandings);
+            await Promise.resolve();
+        });
+
+        expect(screen.getByTestId('club-standing-positive')).toHaveTextContent('3');
+        expect(firstCallback).not.toHaveBeenCalled();
+        expect(latestCallback).toHaveBeenCalledTimes(1);
+        expect(kudosApiMocks.getCachedClubKudosStandings).toHaveBeenCalledTimes(1);
     });
 
     it('does NOT fire onStandingsLoaded when every team lacks a division', async () => {
