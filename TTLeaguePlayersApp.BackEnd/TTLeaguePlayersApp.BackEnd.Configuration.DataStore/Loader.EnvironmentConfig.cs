@@ -9,10 +9,12 @@ public partial class Loader
         public DynamoDBConfig DynamoDB { get; internal set; } = new();
         public CognitoConfig Cognito { get; internal set; } = new();
         public EmailForwarderConfig EmailForwarder { get; internal set; } = new();
+        public IReadOnlyList<ActiveSeasonStrategyConfig> ActiveSeasonsDataSource { get; internal set; } = Array.Empty<ActiveSeasonStrategyConfig>();
 
         internal EnvironmentConfig(EnvironmentConfigDeserialisation cfg, string environment)
         {
             ValidateConfigFileInfo(cfg);
+            ActiveSeasonsDataSource = cfg.ActiveSeasonsDataSource.Select(ParseAndValidateStrategy).ToArray();
 
             FrontEnd.WebsiteBaseUrl = new Uri(cfg.FrontEnd.WebsiteBaseUrl);
             ApiGateWay.ApiBaseUrl = new Uri(cfg.ApiGateWay.ApiBaseUrl);
@@ -37,6 +39,64 @@ public partial class Loader
             EmailForwarder.InviteEmailAddress = cfg.EmailForwarder.InviteEmailAddress;
             EmailForwarder.ContactUsEmailAddress = cfg.EmailForwarder.ContactUsEmailAddress;
             EmailForwarder.ForwardToEmailAddress = cfg.EmailForwarder.ForwardToEmailAddress;
+        }
+
+        private static readonly string[] RequiredStrategySourceNames =
+        [
+            // These are the required sources for the TT365 CLTTL season strategy processor. 
+            // For other leagues and source websites, to be considered in the future, the required sources may differ.
+            "Divisions Teams List",
+            "Divisions Teams Players List",
+            "League Tables",
+            "Ranking",
+            "Fixtures"
+        ];
+
+        private static ActiveSeasonStrategyConfig ParseAndValidateStrategy(ActiveSeasonDataSourceDeserialisation season)
+        {
+            var strategySources = season.StrategySources;
+            if (season.CustomStrategyProcessor is null || strategySources is null)
+                throw new ArgumentException($"Strategy settings are required for {season.League} {season.Season}.");
+
+            if (season.CustomStrategyProcessor.Length == 0 && strategySources.Count == 0)
+                return new(season.League, season.Season, "", new Dictionary<string, Uri>());
+
+            if (string.IsNullOrWhiteSpace(season.CustomStrategyProcessor) || strategySources.Count == 0)
+                throw new ArgumentException($"Strategy settings must both be empty or configured for {season.League} {season.Season}.");
+
+            var processorTypeName = $"TTLeaguePlayersApp.BackEnd.Strategy.{season.CustomStrategyProcessor}";
+            var processorType = typeof(EnvironmentConfig).Assembly.GetType(processorTypeName);
+            if (processorType is null || !processorType.IsClass)
+                throw new ArgumentException($"Unknown strategy processor '{processorTypeName}' for {season.League} {season.Season}.");
+
+            var strategySourceUrls = ParseStrategySourceUrls(season);
+            var missingSourceNames = RequiredStrategySourceNames.Where(name => !strategySourceUrls.ContainsKey(name)).ToArray();
+            if (missingSourceNames.Length != 0)
+                throw new ArgumentException($"Missing strategy sources for {season.League} {season.Season}: {string.Join(", ", missingSourceNames)}.");
+
+            return new(season.League, season.Season, season.CustomStrategyProcessor, strategySourceUrls);
+        }
+
+        private static Dictionary<string, Uri> ParseStrategySourceUrls(ActiveSeasonDataSourceDeserialisation season)
+        {
+            var urlsBySourceName = new Dictionary<string, Uri>(StringComparer.Ordinal);
+            foreach (var (sourceName, sourceAddress) in season.StrategySources!)
+            {
+                if (string.IsNullOrWhiteSpace(sourceName))
+                    throw new ArgumentException($"Strategy source names cannot be empty for {season.League} {season.Season}.");
+
+                if (sourceAddress is null ||
+                    !Uri.IsWellFormedUriString(sourceAddress, UriKind.Absolute) ||
+                    !Uri.TryCreate(sourceAddress, UriKind.Absolute, out var sourceUrl) ||
+                    (sourceUrl.Scheme != Uri.UriSchemeHttp && sourceUrl.Scheme != Uri.UriSchemeHttps))
+                {
+                    throw new ArgumentException($"Invalid HTTP(S) URL for strategy source '{sourceName}' in {season.League} {season.Season}.");
+                }
+
+                urlsBySourceName.Add(sourceName, sourceUrl);
+            }
+
+            return urlsBySourceName;
         }
 
         private static void ValidateConfigFileInfo(EnvironmentConfigDeserialisation cfg)

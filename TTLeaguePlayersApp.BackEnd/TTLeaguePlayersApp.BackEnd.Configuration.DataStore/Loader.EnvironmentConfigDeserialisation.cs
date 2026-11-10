@@ -13,5 +13,8 @@ public partial class Loader
         public CognitoConfigDeserialisation Cognito { get; set; } = new();
 
         public EmailForwarderConfigDeserialisation EmailForwarder { get; set; } = new();
+
+        [System.Text.Json.Serialization.JsonPropertyName("active_seasons_data_source")]
+        public List<ActiveSeasonDataSourceDeserialisation> ActiveSeasonsDataSource { get; set; } = new();
     }
 }

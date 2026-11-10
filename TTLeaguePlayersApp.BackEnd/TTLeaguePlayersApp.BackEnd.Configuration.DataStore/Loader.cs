@@ -4,7 +4,15 @@ namespace TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 
 public partial class Loader
 {
-    private EnvironmentConfig? _cachedConfig;
+    private EnvironmentConfig? _cachedConfig  = null;
+    private string? _jsongContent;
+
+    public Loader() : this(string.Empty) { }
+
+    public Loader(string jsonConfingContent)
+    {
+        _jsongContent = jsonConfingContent;
+    }
 
     public EnvironmentConfig GetEnvironmentVariables()
     {
@@ -24,13 +32,18 @@ public partial class Loader
 #endif
         }
 
-        var configPath = Path.Combine(GetConfigDirectory(), $"{runtimeEnvironment}.env.json");
+        string configPath = "<constructor provided JSON content>";
+        if (string.IsNullOrEmpty(_jsongContent))
+        {
+            configPath = Path.Combine(GetConfigDirectory(), $"{runtimeEnvironment}.env.json");
 
-        if (!File.Exists(configPath))
-            throw new FileNotFoundException($"Configuration file not found: {configPath}");
+            if (!File.Exists(configPath))
+                throw new FileNotFoundException($"Configuration file not found: {configPath}");
 
-        var jsonContent = File.ReadAllText(configPath);
-        var deserialisedConfigFile = JsonSerializer.Deserialize<EnvironmentConfigDeserialisation>(jsonContent)
+            _jsongContent = File.ReadAllText(configPath);
+        } 
+
+        var deserialisedConfigFile = JsonSerializer.Deserialize<EnvironmentConfigDeserialisation>(_jsongContent)
             ?? throw new InvalidOperationException($"Failed to deserialize configuration from {configPath}");
 
         return _cachedConfig = new EnvironmentConfig(deserialisedConfigFile, runtimeEnvironment);
