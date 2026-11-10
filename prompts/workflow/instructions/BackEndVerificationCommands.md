@@ -85,3 +85,20 @@ Via a batch file that ensures all the prerequisites, but excludes the live Cogni
 This is defined as VS Code Terminal task: api-tests test-env
 
 All these commands are defined here: TTLeaguePlayers/.vscode/tasks.json
+
+## On running the build and the tests from a sandbox
+
+When the sandbox limited this environment, these failures can came from the sandbox boundary:
+
+- SAM tries to install/update Amazon Lambda Tools through NuGet. Network access is blocked, so the normal command failed. With network access enabled (outbound DNS and HTTPS (TCP 443) to api.nuget.org, so SAM’s Lambda Tools install/update check can reach NuGet.), the same command found the already-installed 7.0.0 tool and built successfully.
+- The .NET test runner is denied permission to bind its local communication socket. The same tests passed when run with local socket access (permission to bind a local TCP socket on an ephemeral port for VSTest’s testhost communication).
+- The sandboxed AWS CLI can see DynamoDB’s port listening but cannot connect to localhost:8001; the access works with network access enabled (permission to connect over loopback TCP to localhost:8001, the Docker-published DynamoDB port).
+
+Run the documented build and test commands unchanged first; if they fail as described above, treat that as an environment restriction and retry with the required access and with the sandbox restrictions removed as described below:
+
+- Solution for the build: dotnet build TTLeaguePlayersApp.sln --no-restore --verbosity:minimal -m:1 /p:UseSharedCompilation=false completed in 1.02 seconds with 0 warnings and 0 errors.
+- SAM build: sam build --config-env dev passed with network access. SAM used the already-installed Amazon Lambda Tools 7.0.0; nothing needed installing.
+- C# tests: The same filtered dotnet test command passed outside the sandbox: 30/30.
+- DynamoDB check: The read-only table listing succeeded outside the sandbox and showed the three expected test tables.
+
+When a solution build stalls, stop it after 45 seconds, then try one bounded serial/single-node build.
