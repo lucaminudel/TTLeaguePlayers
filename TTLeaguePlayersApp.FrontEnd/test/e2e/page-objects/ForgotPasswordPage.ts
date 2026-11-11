@@ -2,6 +2,7 @@ import { type Page, expect } from '@playwright/test';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
 import { AboutAndContactUsPage } from './AboutAndContactUsPage';
+import { NO_VERIFIED_RECOVERY_CONTACT_MESSAGE } from '../../../src/utils/cognitoErrorUtils';
 
 export class ForgotPasswordPage {
     private page: Page;
@@ -19,7 +20,7 @@ export class ForgotPasswordPage {
         await this.page.getByTestId('forgot-password-send-code-button').click();
     }
 
-    async requestCode(email?: string, timeoutMs = 5_000): Promise<void> {
+    async requestCode(email?: string, timeoutMs = 5_000, allowMissingRecoveryContact = false): Promise<boolean> {
         const requestedEmail = email ?? await this.page.locator('#email').inputValue();
         await this.tentativelyRequestCode(email);
 
@@ -34,11 +35,15 @@ export class ForgotPasswordPage {
         }, undefined, { timeout: timeoutMs });
         const outcome = await requestOutcome.jsonValue();
 
+        if (allowMissingRecoveryContact && outcome === `error: ${NO_VERIFIED_RECOVERY_CONTACT_MESSAGE}`) {
+            return false;
+        }
         if (outcome !== 'success') {
             throw new Error(`Requesting password reset code failed: ${String(outcome)}`);
         }
 
         await expect(this.page.getByTestId('forgot-password-code-sent-message')).toContainText(requestedEmail);
+        return true;
     }
 
     async setNewPasswordNoClick(code: string, newPassword: string, confirmNewPassword?: string): Promise<void> {

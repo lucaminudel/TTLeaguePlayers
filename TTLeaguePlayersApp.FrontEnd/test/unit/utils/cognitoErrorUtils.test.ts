@@ -43,6 +43,11 @@ describe('cognitoErrorUtils.getUserFriendlyCognitoError', () => {
     });
 
     describe('InvalidParameterException', () => {
+        it('distinguishes a missing verified recovery contact from an invalid email', () => {
+            expect(getUserFriendlyCognitoError({ code: 'InvalidParameterException', message: 'Cannot reset password for the user as there is no registered/verified email or phone_number' }))
+                .toBe('Cannot reset the password because there is no registered or verified email.');
+        });
+
         it('about the email asks for a valid email address', () => {
             expect(getUserFriendlyCognitoError({ code: 'InvalidParameterException', message: 'Invalid email address format.' }))
                 .toBe('Please enter a valid email address.');

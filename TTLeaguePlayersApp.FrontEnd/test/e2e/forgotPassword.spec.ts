@@ -6,8 +6,8 @@ import { uniqueTestEmail } from './helpers/testEmails';
  * Forgotten-password acceptance tests.
  *
  * The mocked journeys intercept both reset operations, so they need no guard.
- * The live tests use a never-registered address: Cognito (PreventUserExistenceErrors ENABLED)
- * answers with a simulated code delivery, so nothing is emailed and no user is created.
+ * The live tests use a never-registered address. With PreventUserExistenceErrors enabled,
+ * Cognito may simulate code delivery or reject the request for lack of a recovery contact.
  */
 
 const EXECUTE_LIVE_COGNITO_TESTS = process.env.EXECUTE_LIVE_COGNITO_TESTS === 'true';
@@ -68,6 +68,17 @@ const expectLoginAfterReset = async (page: Page, email: string) => {
     await expect(emailInput).toBeDisabled();
     await expect(page.getByTestId('login-success-message')).toHaveText('Your password has been reset. Log in with your new password.');
 };
+
+async function requestCodeForNeverRegisteredAddress(page: Page) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const email = uniqueTestEmail();
+        const forgotPasswordPage = await new User(page).navigateToForgotPassword();
+        if (await forgotPasswordPage.requestCode(email, 30_000, true)) {
+            return { email, forgotPasswordPage };
+        }
+    }
+    return null;
+}
 
 test.describe('Forgot Password Flow', () => {
 
@@ -185,12 +196,14 @@ test.describe('Forgot Password Flow', () => {
 
     test('live - real code request for a never-registered address, simulated confirmation', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
-        test.setTimeout(60_000);
+        test.setTimeout(120_000);
         await mockPasswordResetCalls(page, { forgotPassword: 'real' });
-        const email = uniqueTestEmail();
-
-        const forgotPasswordPage = await new User(page).navigateToForgotPassword();
-        await forgotPasswordPage.requestCode(email, 30_000);
+        const result = await requestCodeForNeverRegisteredAddress(page);
+        if (!result) {
+            test.skip(true, 'Cognito rejected three requests for a never-registered address');
+            return;
+        }
+        const { email, forgotPasswordPage } = result;
         await forgotPasswordPage.setNewPassword('123456', validPassword);
 
         await expectLoginAfterReset(page, email);
@@ -198,9 +211,14 @@ test.describe('Forgot Password Flow', () => {
 
     test('live - real wrong code for a never-registered address is rejected as incorrect', async ({ page }) => {
         test.skip(!EXECUTE_LIVE_COGNITO_TESTS, 'Skipping Cognito integration test');
+        test.setTimeout(120_000);
 
-        const forgotPasswordPage = await new User(page).navigateToForgotPassword();
-        await forgotPasswordPage.requestCode(uniqueTestEmail());
+        const result = await requestCodeForNeverRegisteredAddress(page);
+        if (!result) {
+            test.skip(true, 'Cognito rejected three requests for a never-registered address');
+            return;
+        }
+        const { forgotPasswordPage } = result;
         await forgotPasswordPage.tentativelySetNewPassword('123456', validPassword);
 
         await expect(page.getByTestId('forgot-password-error-message')).toHaveText('The verification code is incorrect. Please try again.');

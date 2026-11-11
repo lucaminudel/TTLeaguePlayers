@@ -17,6 +17,8 @@ const isReadableMessage = (message: string): boolean => {
     return trimmed !== '' && trimmed !== 'null' && !/^\d+$/.test(trimmed);
 };
 
+export const NO_VERIFIED_RECOVERY_CONTACT_MESSAGE = 'Cannot reset the password because there is no registered or verified email.';
+
 export function getUserFriendlyCognitoError(error: unknown): string {
     const errorRecord = getCognitoErrorRecord(error);
     const errorType = errorRecord.__type ?? errorRecord.code ?? errorRecord.name;
@@ -30,6 +32,9 @@ export function getUserFriendlyCognitoError(error: unknown): string {
         case 'UsernameExistsException':
             return 'An account with this email already exists. Try logging in instead.';
         case 'InvalidParameterException':
+            if (message.includes('Cannot reset password for the user')) {
+                return NO_VERIFIED_RECOVERY_CONTACT_MESSAGE;
+            }
             if (message.includes('email')) {
                 return 'Please enter a valid email address.';
             }
