@@ -358,6 +358,16 @@ Before closing, check that `plan.md` contains the distinct Inception retrospecti
 Phase 8, including the user's Inception-specific answer or explicit skip. Complete Phase 8 if it
 is missing; another phase's retrospective cannot fill this gate.
 
+**Fresh-context execution hand-off check.** Before closure, read the persisted plan as if the next
+execution agent has an empty context window and no access to this conversation. Check that it
+contains all useful task context from the brief, Discovery and Inception: the confirmed outcome,
+scope and exclusions, relevant domain and technical facts, exact inputs and paths, decisions and
+rationale, current state and evidence, executable tasks and dependencies, verification, risks,
+permissions and unresolved questions. Include the essential context in the plan itself; link to
+supporting evidence and the authoritative continuation record without relying on the transcript or
+temporary files. Identify and correct missing or contradictory information, reconcile any material
+change with the confirmed scope, and record the check and remaining uncertainties in `plan.md`.
+
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
 > The plan is persisted at `<path>`. Before starting the Execution you may want to compact this

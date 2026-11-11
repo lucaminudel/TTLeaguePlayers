@@ -208,11 +208,16 @@ Then:
    the real source, not against your notes. Cited file:line still says what you claimed; the URL
    still returns what you parsed; the config key still exists. Findings written early in a long
    session are the ones that rot. Correct what is wrong and say what you corrected.
-2. **Add a summary at the top** — short: what was explored, and the headline findings. A reader
+2. **Check the hand-off is self-contained.** Read the report as if the next agent has a fresh,
+   empty context and only this report. Include the relevant task brief, user clarifications,
+   confirmed requirements and constraints, evidence and its limits, current state, open questions,
+   and references needed to start Inception without the conversation. Record the check and fill
+   any gaps; distinguish unknowns from established facts.
+3. **Add a summary at the top** — short: what was explored, and the headline findings. A reader
    should get the shape of it in under a minute without scrolling. Include in this summary the
    framing that came from the Phase 1 answers — the bigger picture, what the task contributes to,
    and the high-level description.
-3. **Present the final document** and ask whether it is complete or whether there is more to
+4. **Present the final document** and ask whether it is complete or whether there is more to
    explore. Wait. Expect rounds; fold each one in and re-present.
 
 After the retrospective, tell the user the report is ready and where it is. Do not start
@@ -229,8 +234,11 @@ that none were identified.
 
 Ask the user specifically whether they want to add or change anything about the **Coding Task
 Discovery workflow**, and wait for their answer. An answer to another phase's retrospective, or a
-generic earlier answer, does not count. Address the answer before closing; an explicit decision to
-skip the Discovery retrospective also permits closure.
+generic earlier answer, does not count. Consider the retrospective suggestions, including the
+user's, for improvements to this skill; evaluate which are useful and applicable, make changes when
+explicitly authorized, and record the changes made or the reason for leaving suggestions unapplied.
+Address the answer before closing; an explicit decision to skip the Discovery retrospective also
+permits closure.
 
 Record a distinct `Discovery retrospective` outcome in this task's `discovery.md`: workflow
 lessons, skill changes made (or none), and the user's Discovery-specific answer or explicit skip.

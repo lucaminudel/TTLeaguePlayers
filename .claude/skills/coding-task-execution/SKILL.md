@@ -149,8 +149,16 @@ Phase 4, including before dispatching implementation subagents.
 
 Read the whole plan and look ahead through implementation, checkpoints and final verification.
 Identify every unresolved clarification, decision, missing fact, precondition or permission that
-would otherwise cause a later ask. Reuse answers and authorizations already given; ask for
-what remains unresolved, then wait for the answers before starting dependent work.
+would otherwise cause a later ask. Reuse answers and authorizations already given.
+
+Complete this review as one consolidated upfront pass: gather all foreseeable questions and
+permissions across the whole execution, explain their consequences and dependencies, and ask them
+together in a single, organized message. Do not ask one foreseeable question, wait, then discover
+and ask another that could have been identified in the same pass. Persist answers and authorization
+limits, resolve conflicts, and confirm the resulting sequence before starting dependent work. If no
+unresolved items remain, state that the gate is satisfied and proceed without an extra confirmation
+turn. During execution, interrupt again only for a genuinely new finding, an unmet precondition, a
+retained stop, an exceeded limit, or authority outside the recorded scope.
 
 - **For plans with two or more independently deployable units, settle the unit-boundary mode.**
   Present the units and ask **`EXECUTION_UNIT_BOUNDARY_MODE`: How should execution proceed at each unit boundary?**
@@ -227,6 +235,25 @@ recorded answers and choices and proceed without asking again.
 During execution, honour these recorded decisions. Report progress without handing back for an
 already-approved action. Ask again only for a new finding, an unmet precondition, a retained stop,
 an exceeded limit, or an action outside the recorded authorization.
+
+**Keep executing until a real gate or completion.** A progress update, a completed tool call, an
+implementation sub-task report, or a request to "go ahead" is not a handover. Do not end the turn
+after reporting intermediate progress while authorized work remains. Continue with the next
+unblocked task, verification, recorded automatic review, and approved final pipeline. If a tool
+returns a running session/process, retain its identifier and poll it; do not treat yielded output
+as completion. If the platform ends a turn or the user sends a message, treat it as steering or
+continuation of the same execution: answer briefly when useful, then resume at the first incomplete
+step without re-asking settled questions or repeating completed work. End execution only at a
+recorded user handover, a genuinely unresolved authorization/precondition, or the completed Phase
+10 handoff. When reporting a blocker, keep progressing on independent authorized work.
+
+**No unrecorded stops.** The effective `no-stop-policy.md` is the sole source for planned user
+handover points. Do not invent an additional stop, checkpoint, approval request, or turn-ending
+handoff when the action is already covered by the plan and recorded authority. A checkpoint whose
+recorded choice is to continue is not a stop. Pause only at an explicitly recorded handover, or
+when a genuinely new finding creates an unmet precondition, exceeds an approved limit, materially
+changes scope, or requires authority not already granted. Record the reason and affected action;
+continue all independent authorized work.
 
 ## Phase 4 — Execute
 

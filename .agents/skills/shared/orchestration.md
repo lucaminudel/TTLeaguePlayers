@@ -23,6 +23,14 @@ work completes instead of filling every available slot. After Execution's Phase 
 implementation requires dependency-ready work, disjoint file ownership and respect for deployable-unit
 boundaries and retained checkpoints. The main agent may work inline, including on a ready group.
 
+For each considered opportunity to spawn a sub-agent, record the decision in the shared
+`prompts/workflow/orchestration-summary.md` file used for all tasks, creating it if needed. Record
+both positive and negative decisions. Identify the task, date, candidate work and its scope, the
+applicable criteria, the concrete evidence used to assess benefits, costs and constraints, and the
+resulting decision and rationale. Record any relevant tool or authorization limitation; do not
+present an assumption as evidence. Revisit and record the decision when dependencies, available work
+or other material circumstances change. A brief entry is sufficient for a simple opportunity.
+
 Record the assignment, agent identifier, scope/file boundary and returned evidence in the current
 task artifact. If tools are unavailable or a spawn fails, record the concrete limitation and
 report it without handing over to the user; do not claim delegation occurred. Queue work when
