@@ -74,19 +74,22 @@ public class LoaderTest : IDisposable
         Assert.NotEmpty(config.EmailForwarder.ContactUsEmailAddress);
         Assert.NotEmpty(config.EmailForwarder.ForwardToEmailAddress);
 
-        Assert.NotEmpty(config.ActiveSeasonsDataSource);
-        Assert.All(config.ActiveSeasonsDataSource, season => Assert.NotNull(season.StrategySources));
-        if (environment == "dev")
+        if (environment is "dev" or "test")
         {
-            var clttl = Assert.Single(config.ActiveSeasonsDataSource, season => season.League == "CLTTL");
+            var clttl = Assert.Single(config.ActiveSeasonsDataSource, season =>
+                season.League == "CLTTL" && season.Season == "2026-2027");
             Assert.Equal("TT365.CLTTLStrategy2026Processor", clttl.CustomStrategyProcessor);
             Assert.Equal(5, clttl.StrategySources.Count);
-            Assert.EndsWith("teamId=", clttl.StrategySources["Divisions Teams Players List"].OriginalString);
-        }
-        else
-        {
-            Assert.All(config.ActiveSeasonsDataSource, season => Assert.Equal("", season.CustomStrategyProcessor));
-            Assert.All(config.ActiveSeasonsDataSource, season => Assert.Empty(season.StrategySources));
+            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Team/Eligibility"),
+                clttl.StrategySources["Divisions Teams List"]);
+            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Team/Eligibility?handler=Players&leagueId=4760&teamId="),
+                clttl.StrategySources["Divisions Teams Players List"]);
+            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Tables"),
+                clttl.StrategySources["League Tables"]);
+            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Ranking"),
+                clttl.StrategySources["Ranking"]);
+            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Fixtures"),
+                clttl.StrategySources["Fixtures"]);
         }
     }
 
