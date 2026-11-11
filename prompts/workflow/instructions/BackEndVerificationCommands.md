@@ -16,7 +16,7 @@ export ENVIRONMENT=dev
 dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
 ```
 
-**The `sam build` refresh is mandatory before the C# tests, not optional.** A local SAM still serving pre-change lambda code produces acceptance-test failures that are indistinguishable from real regressions — typically HTTP 500s where a 2xx or 4xx was expected. Note that `sam build` alone only rewrites `.aws-sam/build`: if `sam local start-api` has been running since before the build, **restart it too**, or it keeps serving warm containers created from the replaced artifacts.
+**Run `sam-refresh-build dev-env` before the C# tests.** In the dev environment this refresh is sufficient for the running SAM server to use the newly built code. Do not check the SAM process ID or stop and restart the server routinely after a successful refresh. Only restart it as a recovery step if, after `sam-refresh-build dev-env`, the new code still appears not to be running—for example, a focused acceptance check returns behavior from before the change. The `sam-start dev-env` task is for starting SAM when no dev server is running; it also runs the build.
 
 **Tier 2 — the authoritative final check, on the test environment.** Run once, when the work is otherwise complete: `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`. It is long-running and touches the shared test environment, so agents should confirm before launching it.
 
