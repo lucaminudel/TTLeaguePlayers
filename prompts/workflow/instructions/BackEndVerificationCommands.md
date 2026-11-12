@@ -20,6 +20,8 @@ dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.c
 
 **Tier 2 — the authoritative final check, on the test environment.** Run once, when the work is otherwise complete: `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`. It is long-running and touches the shared test environment, so agents should confirm before launching it.
 
+The pipeline runs eight stages: backend and frontend builds, a test-environment SAM build, local Docker/SAM API and tests, then frontend unit and Playwright tests. With `COGNITO`, it registers standard Cognito users before tests and its `EXIT` cleanup always tries to remove dynamic test users. Confirm the final `ALL TESTS PASSED SUCCESSFULLY!` message; a cleanup error or an earlier failed stage means the run is not green, even if some build or test stages passed.
+
 ---
 
 ## Instructions to check for build, unit/integration and acceptance tests failures in TTLeaguePlayersApp.BackEnd
@@ -94,11 +96,19 @@ When the sandbox limited this environment, these failures can came from the sand
 - The .NET test runner is denied permission to bind its local communication socket. The same tests passed when run with local socket access (permission to bind a local TCP socket on an ephemeral port for VSTest’s testhost communication).
 - The sandboxed AWS CLI can see DynamoDB’s port listening but cannot connect to localhost:8001; the access works with network access enabled (permission to connect over loopback TCP to localhost:8001, the Docker-published DynamoDB port).
 
+The Tier 2 pipeline adds these sandbox dependencies:
+
+- Its test-environment SAM build may need outbound DNS and HTTPS access to `api.nuget.org` even when the dev SAM build succeeded. Grant the same NuGet network access and retry the pipeline command if that stage fails because the sandbox cannot resolve or reach NuGet.
+- With `COGNITO`, user setup and unconditional cleanup call `aws cloudformation describe-stacks` to read the test User Pool ID, then call Cognito IDP APIs. A sandbox network error at `cloudformation.<region>.amazonaws.com` can make cleanup fail and appear after an earlier build failure; distinguish the original stage error from the cleanup error. For a sandboxed run, allow outbound DNS/HTTPS to the configured AWS CloudFormation and Cognito IDP endpoints for the selected region (the test environment here uses `eu-west-2`), then rerun only within the approved Tier 2 run count. The pipeline mutates shared test resources and registers/deletes test users; network access does not create additional run authorization.
+- Later pipeline stages also need the local testhost socket, the script's loopback API at `127.0.0.1:3003`, and Docker filesystem/container access. If they fail at those steps, use the corresponding loopback and Docker sandbox access above; do not diagnose those as NuGet or AWS endpoint failures.
+
 Run the documented build and test commands unchanged first; if they fail as described above, treat that as an environment restriction and retry with the required access and with the sandbox restrictions removed as described below:
 
 - Solution for the build: dotnet build TTLeaguePlayersApp.sln --no-restore --verbosity:minimal -m:1 /p:UseSharedCompilation=false completed in 1.02 seconds with 0 warnings and 0 errors.
 - SAM build: sam build --config-env dev passed with network access. SAM used the already-installed Amazon Lambda Tools 7.0.0; nothing needed installing.
 - C# tests: The same filtered dotnet test command passed outside the sandbox: 30/30.
 - DynamoDB check: The read-only table listing succeeded outside the sandbox and showed the three expected test tables.
+
+For a Tier 2 sandbox failure, preserve both the failed-stage output and any cleanup output. A run that exits before the final success message is failed. If an authorized run has already been used, ask for explicit approval before starting another full pipeline invocation, even when the cause was sandbox network access.
 
 When a solution build stalls, stop it after 45 seconds, then try one bounded serial/single-node build.
