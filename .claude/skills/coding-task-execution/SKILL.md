@@ -123,7 +123,13 @@ completions unblock new tasks.
 For plans with multiple deployable units, treat each unit's completion and recorded stop or
 automatic-review decision as a barrier: do not dispatch later-unit work across that boundary.
 
-**Parallelism is for writing code, never for verifying it.** The fast dev loop depends on a local
+**Delegate substantial investigation, implementation or independent review when it helps.**
+Look within ready plan rows for work with a clear scope and, for edits, disjoint file ownership.
+Use the shared guidance to assess elapsed time, main-session context and review independence.
+Read-only work can overlap with main-agent work within the applicable checkpoints and review rules.
+Record material delegation decisions and outcomes in `orchestration-summary.md`.
+
+**Keep verification commands serial.** The fast dev loop depends on a local
 SAM and web server bound to the main working tree and a single local DynamoDB. Two agents running
 `sam build` or the C# suite at once race on shared state and produce failures that look like
 regressions. So:
@@ -135,7 +141,8 @@ regressions. So:
   are made by the main agent only after review and verification, never as a subagent hand-off.
 - Partition by file. Two agents must never hold the same file open for writing.
 
-Where the graph is a chain, say so and run it serially rather than manufacturing parallelism.
+Run genuine dependency chains serially. A dependency between plan rows can still leave independent
+work within the currently ready row.
 
 ## Phase 3 — Resolve upfront asks before execution
 

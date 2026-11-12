@@ -105,6 +105,12 @@ new topic on the spot. Do not batch the whole exploration and present it at the 
 A topic is done when the answers are **detailed enough to act on** — concrete values, exact paths,
 named identifiers, real examples — not when they are merely plausible.
 
+When a topic or decision is settled, immediately reconcile `discovery.md`: mark its topic and
+section explored, update the requirements index and summary as applicable, and replace or clearly
+label superseded proposals, assumptions and findings. Propagate corrections across the report; do
+not leave earlier “open” or “in progress” labels next to confirmed decisions. Distinguish a completed
+discovery discussion from implementation, deployment or verification that remains to be done.
+
 ### Where to look
 
 **What the user gave you** — first, and in full.
@@ -208,16 +214,22 @@ Then:
    the real source, not against your notes. Cited file:line still says what you claimed; the URL
    still returns what you parsed; the config key still exists. Findings written early in a long
    session are the ones that rot. Correct what is wrong and say what you corrected.
-2. **Check the hand-off is self-contained.** Read the report as if the next agent has a fresh,
+2. **Add a summary at the top** — short: what was explored, and the headline findings. A reader
+   should get the shape of it in under a minute without scrolling. Include in this summary the
+   framing that came from the Phase 1 answers — the bigger picture, what the task contributes to,
+   and the high-level description.
+3. **Reconcile the whole report.** Read it end to end and compare its summary, topic statuses,
+   requirements index, detailed findings, contradictions and gaps, and inception hand-off with one
+   another and with the user's final decisions. Fix stale labels, contradicted assumptions, obsolete
+   alternatives, broken section links and claims of completed work that was only planned. Preserve
+   genuinely unknown facts and future verification as such; they do not make a settled topic open.
+   Record the corrections made and do not claim verification before this check is complete.
+4. **Check the hand-off is self-contained.** Read the report as if the next agent has a fresh,
    empty context and only this report. Include the relevant task brief, user clarifications,
    confirmed requirements and constraints, evidence and its limits, current state, open questions,
    and references needed to start Inception without the conversation. Record the check and fill
    any gaps; distinguish unknowns from established facts.
-3. **Add a summary at the top** — short: what was explored, and the headline findings. A reader
-   should get the shape of it in under a minute without scrolling. Include in this summary the
-   framing that came from the Phase 1 answers — the bigger picture, what the task contributes to,
-   and the high-level description.
-4. **Present the final document** and ask whether it is complete or whether there is more to
+5. **Present the final document** and ask whether it is complete or whether there is more to
    explore. Wait. Expect rounds; fold each one in and re-present.
 
 After the retrospective, tell the user the report is ready and where it is. Do not start

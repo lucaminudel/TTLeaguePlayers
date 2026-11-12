@@ -10,9 +10,10 @@ options and questions are synthesised and presented by the main agent, one point
 out for *reading*; never for *presenting* — a sub-agent per topic that reports back in parallel
 produces exactly the batch the interaction protocol exists to prevent.
 
-**Choose delegation for its expected benefit.** Delegate a bounded investigation or implementation
-package when independent work can shorten the critical path, parallel work can complete faster,
-or when it can provide a useful independent perspective. Consider context setup, overlapping reads,
+**Choose delegation for its expected benefit.** Where the session permits spawning, start a
+sub-agent for substantial, ready work when it can shorten elapsed time, spare the main session a
+substantial body of reading, or provide an independent check. Look for separable packages within
+a plan row as well as across rows. Consider context setup, overlapping reads,
 coordination, integration and serial verification as well as the work itself. Handle short lookups
 and small related edits inline; group related reads or edits instead of creating an agent per file
 or plan row. The main agent scopes delegated work, checks its evidence and owns decisions.
@@ -23,16 +24,23 @@ work completes instead of filling every available slot. After Execution's Phase 
 implementation requires dependency-ready work, disjoint file ownership and respect for deployable-unit
 boundaries and retained checkpoints. The main agent may work inline, including on a ready group.
 
-For each considered opportunity to spawn a sub-agent, record the decision in the shared
-`prompts/workflow/orchestration-summary.md` file used for all tasks, creating it if needed. Record
-both positive and negative decisions. Identify the task, date, candidate work and its scope, the
-applicable criteria, the concrete evidence used to assess benefits, costs and constraints, and the
-resulting decision and rationale. Record any relevant tool or authorization limitation; do not
-present an assumption as evidence. Revisit and record the decision when dependencies, available work
-or other material circumstances change. A brief entry is sufficient for a simple opportunity.
+For each material decision to delegate or keep work inline, record the decision in the
+task-specific `orchestration-summary.md` beside the current task artifacts, creating it if needed. In
+Codex use `.codex/coding-tasks/<task-slug>/orchestration-summary.md`; in Claude Code use
+`~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<task-slug>/orchestration-summary.md`. Record
+both positive and negative decisions, including independent review passes. Use one short entry per
+decision and update it when the work finishes or circumstances change:
 
-Record the assignment, agent identifier, scope/file boundary and returned evidence in the current
-task artifact. If tools are unavailable or a spawn fails, record the concrete limitation and
+- At decision time, record the date, phase or task, candidate scope, decision, expected benefit,
+  and the specific cost or constraint that influenced it. Distinguish actual dependencies from
+  tool or authorization limits.
+- At dispatch, record the agent ID, assigned scope and file ownership, if applicable.
+- At completion, record what the main agent did concurrently, if anything, and what the agent
+  returned or resolved. Link to the evidence in the relevant task artifact. Distinguish observed
+  overlap, avoided reading and independent findings from expected benefits. Keep raw outputs in
+  their evidence artifacts and report time or context savings only if measured.
+
+If tools are unavailable or a spawn fails, record the concrete limitation and
 report it without handing over to the user; do not claim delegation occurred. Queue work when
 slots are occupied when waiting is worthwhile. If delegation is unavailable or fails, retry when useful
 or continue permitted work inline; record the limitation and any transfer of ownership, preserving
