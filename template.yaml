@@ -340,6 +340,22 @@ Resources:
             Method: OPTIONS
             Auth:
               Authorizer: NONE
+        StrategyTeamComparisonsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /strategy/team-comparisons
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+        StrategyTableProjectionsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /strategy/table-projections
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         KudosClubStandingsOptions:
           Type: Api
           Properties:

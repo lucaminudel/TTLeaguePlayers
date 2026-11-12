@@ -8,14 +8,16 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.CognitoIdentityProvider;
 using Amazon.CognitoIdentityProvider.Model;
+using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Kudos.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Kudos.DataStore;
-using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.DataStore;
 using TTLeaguePlayersApp.BackEnd.ClubsAndTournaments.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -44,6 +46,8 @@ public partial class ApiGatewayProxyHandler
     private readonly RetrieveTournamentLambda _retrieveTournamentLambda;
     private readonly RetrieveTournamentsForClubLambda _retrieveTournamentsForClubLambda;
     private readonly DeleteTournamentLambda _deleteTournamentLambda;
+    private readonly TeamComparisonsLambda _teamComparisonsLambda;
+    private readonly TableProjectionsLambda _tableProjectionsLambda;
     private readonly string _allowedOrigin;
     private readonly HashSet<string> _allowedOriginsWhitelist;
     private readonly ILoggerObserver _observer;
@@ -54,6 +58,12 @@ public partial class ApiGatewayProxyHandler
 
         var loader = new Loader();
         var config = loader.GetEnvironmentVariables();
+
+        _teamComparisonsLambda = new TeamComparisonsLambda(_observer, config.ActiveSeasonsDataSource);
+        _tableProjectionsLambda = new TableProjectionsLambda(
+            _observer,
+            config.ActiveSeasonsDataSource,
+            new ScraperProxy().FetchAsync);
 
         Amazon.RegionEndpoint? region = null;
         if (!string.IsNullOrEmpty(config.DynamoDB.AWSRegion))
@@ -97,7 +107,7 @@ public partial class ApiGatewayProxyHandler
         _allowedOriginsWhitelist = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, DeleteKudosLambda deleteKudosLambda, RetrieveKudosGivenByPlayerLambda retrieveKudosGivenByPlayerLambda, RetrieveKudosAwardedToTeamLambda retrieveKudosAwardedToTeamLambda, RetrieveKudosStandingsLambda retrieveKudosStandingsLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, IEnumerable<string>? allowedOriginsWhitelist = null)
+    public ApiGatewayProxyHandler(GetInviteLambda getInviteLambda, CreateInviteLambda createInviteLambda, AccepteInviteLambda markInviteAcceptedLambda, DeleteInviteLambda deleteInviteLambda, CreateKudosLambda createKudosLambda, DeleteKudosLambda deleteKudosLambda, RetrieveKudosGivenByPlayerLambda retrieveKudosGivenByPlayerLambda, RetrieveKudosAwardedToTeamLambda retrieveKudosAwardedToTeamLambda, RetrieveKudosStandingsLambda retrieveKudosStandingsLambda, InvitesDataTable invitesDataTable, KudosDataTable kudosDataTable, string allowedOrigin, TeamComparisonsLambda teamComparisonsLambda, TableProjectionsLambda tableProjectionsLambda, ILoggerObserver observer, IEnumerable<string>? allowedOriginsWhitelist = null)
     {
         _getInviteLambda = getInviteLambda;
         _createInviteLambda = createInviteLambda;
@@ -122,7 +132,9 @@ public partial class ApiGatewayProxyHandler
         _deleteTournamentLambda = new DeleteTournamentLambda(new LoggerObserver(), new ClubsAndTournamentsDataTable(null, null, string.Empty));
         _allowedOrigin = allowedOrigin; 
         _allowedOriginsWhitelist = new HashSet<string>(allowedOriginsWhitelist ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-        _observer = new LoggerObserver();
+        _observer = observer;
+        _teamComparisonsLambda = teamComparisonsLambda;
+        _tableProjectionsLambda = tableProjectionsLambda;
     }
 
     public async Task<APIGatewayProxyResponse> Dispatch(APIGatewayProxyRequest request, ILambdaContext context)
@@ -270,11 +282,39 @@ public partial class ApiGatewayProxyHandler
 
 
                 //
+                // STRATETGY ENDPOINTS
+                //
+
+                // Preflight for /strategy/team-comparisons
+                ("OPTIONS", "/strategy/team-comparisons") => CreatePreflightResponse("OPTIONS,GET", request),
+
+                // GET two teams comparison for a given league, season, team division
+                ("GET", "/strategy/team-comparisons") => await HandleTeamComparisons(request, context),
+                
+                // Method not allowed for /strategy/team-comparisons
+                (var m, "/strategy/team-comparisons") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+                // Preflight for /strategy/table-projections
+                ("OPTIONS", "/strategy/table-projections") => CreatePreflightResponse("OPTIONS,GET", request),
+
+                // GET table projections for a given league, season, division
+                ("GET", "/strategy/table-projections") => await HandleTableProjections(request, context),
+
+                // Method not allowed for /strategy/table-projections
+                (var m, "/strategy/table-projections") when m != "GET" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
+
+
+                //
                 // FRONTEND-EVENTS ENDPOINTS
                 //
 
+                // Preflight for /frontend-events
                 ("OPTIONS", "/frontend-events") => CreatePreflightResponse("OPTIONS,POST", request),
+
+                // POST a frontend event, log for observability and diagnostics
                 ("POST", "/frontend-events") => await HandleFrontendEvent(request, context),
+
+                // Method not allowed for /frontend-events
                 (var m, "/frontend-events") when m != "POST" && m != "OPTIONS" => CreateResponse(HttpStatusCode.MethodNotAllowed, new { message = "Method Not Allowed" }),
 
 
@@ -347,6 +387,144 @@ public partial class ApiGatewayProxyHandler
 
             _observer.OnRuntimeCriticalError(ex, context, requestParameters.With(responseStatusCode));
             return CreateResponse(responseStatusCode, new { message = $"Internal Server Error: {{Additional info: Error type:{ex.GetType()}; Error message:{ex.Message}}}" });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleTeamComparisons(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var source = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleTeamComparisons));
+        var parameters = GetInputParameters(request);
+        parameters["QueryString"] = JsonSerializer.Serialize(request.QueryStringParameters);
+        
+        _observer.OnBusinessEvent("GET TEAM COMPARISONS", context, parameters);
+
+        var query = request.QueryStringParameters ?? new Dictionary<string, string>();
+        var comparisonRequest = new TeamComparisonsRequest(
+            SafeUrlDecode(GetParam(query, "league")),
+            SafeUrlDecode(GetParam(query, "season")),
+            SafeUrlDecode(GetParam(query, "team_division")),
+            SafeUrlDecode(GetParam(query, "team_name")),
+            SafeUrlDecode(GetParam(query, "opponent_team_name")));
+
+        var validationErrors = GetMissingStrategyQueryParameters(
+            (comparisonRequest.League, "league"),
+            (comparisonRequest.Season, "season"),
+            (comparisonRequest.TeamDivision, "team_division"),
+            (comparisonRequest.TeamName, "team_name"),
+            (comparisonRequest.OpponentTeamName, "opponent_team_name"));
+
+        if (validationErrors.Count > 0)
+        {
+            const string message = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(HttpStatusCode.BadRequest, message));
+            
+            return CreateResponse(HttpStatusCode.BadRequest, new { message, errors = validationErrors });
+        }
+
+        try
+        {
+            await _teamComparisonsLambda.HandleAsync(comparisonRequest, context);
+
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(HttpStatusCode.Accepted));
+
+            return CreateResponse(HttpStatusCode.Accepted, new { message = "Strategy preparation is pending." }, new() { ["Retry-After"] = "16" });
+        }
+        catch (ArgumentException ex)
+        {
+            var status = HttpStatusCode.BadRequest;
+            
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(status, ex.Message));
+            
+            return CreateResponse(status, new { message = ex.Message, errors = new[] { ex.Message } });
+        }
+        catch (ValidationException ex)
+        {
+            var status = HttpStatusCode.BadRequest;
+            
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(status, ex.Message));
+            
+            return CreateResponse(status, new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            
+            var status = HttpStatusCode.NotFound;
+            
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(status, ex.Message));
+            
+            return CreateResponse(status, new { message = ex.Message });
+        }
+    }
+
+    private async Task<APIGatewayProxyResponse> HandleTableProjections(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        var source = GetSource(nameof(ApiGatewayProxyHandler), nameof(HandleTableProjections));
+        var parameters = GetInputParameters(request);
+        parameters["QueryString"] = JsonSerializer.Serialize(request.QueryStringParameters);
+
+        _observer.OnBusinessEvent("GET TABLE PROJECTIONS", context, parameters);
+
+        var query = request.QueryStringParameters ?? new Dictionary<string, string>();
+        var projectionRequest = new TableProjectionsRequest(
+            SafeUrlDecode(GetParam(query, "league")),
+            SafeUrlDecode(GetParam(query, "season")),
+            SafeUrlDecode(GetParam(query, "team_division")));
+
+        var validationErrors = GetMissingStrategyQueryParameters(
+            (projectionRequest.League, "league"),
+            (projectionRequest.Season, "season"),
+            (projectionRequest.TeamDivision, "team_division"));
+        if (validationErrors.Count > 0)
+        {
+            var status = HttpStatusCode.BadRequest;
+            const string message = "Validation failed";
+
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, message));
+
+            return CreateResponse(status, new { message, errors = validationErrors });
+        }
+
+        try
+        {
+            await _tableProjectionsLambda.HandleAsync(projectionRequest, context);
+
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(HttpStatusCode.OK));
+            
+            return CreateResponse(HttpStatusCode.OK, new { });
+        }
+        catch (ArgumentException ex)
+        {
+            var status = HttpStatusCode.BadRequest;
+            
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.Message));
+            
+            return CreateResponse(status, new { message = ex.Message, errors = new[] { ex.Message } });
+        }
+        catch (ValidationException ex)
+        {
+            var status = HttpStatusCode.BadRequest;
+
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.Message));
+            
+            return CreateResponse(status, new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            var status = HttpStatusCode.NotFound;
+
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.Message));
+            
+            return CreateResponse(status, new { message = ex.Message });
+        }
+        catch (StrategySourceCheckException ex)
+        {
+            var status = HttpStatusCode.ServiceUnavailable;
+            var message = $"Data source '{ex.SourceName}' is temporarily unavailable. Please try again later.";
+            
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.SourceName));
+            
+            return CreateResponse(status, new { message, errors = new[] { ex.SourceName } });
         }
     }
 
@@ -917,6 +1095,12 @@ public partial class ApiGatewayProxyHandler
         return dict.TryGetValue(key, out var val) ? val : string.Empty;
     }
 
+    private static List<string> GetMissingStrategyQueryParameters(params (string? Value, string Name)[] values)
+        => values
+            .Where(value => string.IsNullOrWhiteSpace(value.Value))
+            .Select(value => $"{value.Name} is required")
+            .ToList();
+
     private void ExtractNanoIdOrCreateResponseAndNotifyObserver(string eventName, ILambdaContext context, string path, Dictionary<string, string> inParameters,  Dictionary<string, string> here, 
                                                 out string? nanoId, out APIGatewayProxyResponse? createdResponse)
     {
@@ -1023,6 +1207,7 @@ public partial class ApiGatewayProxyHandler
             { "Access-Control-Allow-Origin", allowOrigin },
             { "Access-Control-Allow-Headers", "Content-Type,Authorization" },
             { "Access-Control-Allow-Credentials", "true" },
+            { "Access-Control-Expose-Headers", "Retry-After" },
             { "Content-Type", "application/json; charset=utf-8" },
             { "Vary", "Origin" }
         };

@@ -22,7 +22,9 @@ public sealed class SpyLoggerObserver : ILoggerObserver
 
     public void OnRuntimeIrregularEvent(string eventName, Dictionary<string, string> source, ILambdaContext context, Dictionary<string, string>? parameters = null, object? userClaims = null)
         => RuntimeIrregularEvents.Add((eventName, parameters));
-    public void OnRuntimeRegularEvent(string eventName, Dictionary<string, string> source, ILambdaContext context, Dictionary<string, string>? parameters = null, object? userClaims = null) { }
+    public List<(string EventName, Dictionary<string, string>? Parameters)> RuntimeRegularEvents { get; } = new();
+    public void OnRuntimeRegularEvent(string eventName, Dictionary<string, string> source, ILambdaContext context, Dictionary<string, string>? parameters = null, object? userClaims = null)
+        => RuntimeRegularEvents.Add((eventName, parameters));
 
     public List<IFrontendApiCallDiagnostic> FrontendApiCallErrors { get; } = new();
     public List<IFrontendApiCallDiagnostic> FrontendApiCallIrregularEvents { get; } = new();

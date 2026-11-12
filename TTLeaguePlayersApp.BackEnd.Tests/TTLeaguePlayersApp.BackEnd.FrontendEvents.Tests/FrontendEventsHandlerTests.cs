@@ -9,7 +9,7 @@ namespace TTLeaguePlayersApp.BackEnd.FrontendEvents.Tests;
 
 public class FrontendEventsHandlerTests
 {
-    private static ApiGatewayProxyHandler Handler() => new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, "*");
+    private static ApiGatewayProxyHandler Handler() => new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, "*", null!, null!, new LoggerObserver());
     private static APIGatewayProxyRequest Request(string method, string body = "") => new()
     {
         Path = "/frontend-events", HttpMethod = method, Body = body,
