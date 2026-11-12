@@ -15,10 +15,8 @@ public sealed class ScraperProxy : IDisposable
     private readonly HttpClient _httpClient;
     private readonly HttpMessageHandler _handler;
     private readonly bool _disposeHandler;
-    private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly Func<TimeSpan, Task> _delay;
     private readonly Func<DateTimeOffset> _getUtcNow;
-    private readonly SemaphoreSlim _requestGate = new(1, 1);
-    private DateTimeOffset? _lastRequestStartedAt;
     private bool _disposed;
 
     public ScraperProxy()
@@ -33,7 +31,7 @@ public sealed class ScraperProxy : IDisposable
     public ScraperProxy(
         HttpMessageHandler handler,
         bool disposeHandler,
-        Func<TimeSpan, CancellationToken, Task> delay,
+        Func<TimeSpan, Task> delay,
         Func<DateTimeOffset> getUtcNow)
     {
         _handler = handler;
@@ -46,7 +44,7 @@ public sealed class ScraperProxy : IDisposable
         };
     }
 
-    public async Task<string> FetchAsync(Uri source, CancellationToken cancellationToken = default)
+    public async Task<string> FetchAsync(Uri source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -58,27 +56,25 @@ public sealed class ScraperProxy : IDisposable
         Exception? lastTransientFailure = null;
         for (var attempt = 0; attempt < 3; attempt++)
         {
-            await _requestGate.WaitAsync(cancellationToken);
+            var attemptStartedAt = _getUtcNow();
             try
             {
-                await WaitForRequestStartSlotAsync(cancellationToken);
-                _lastRequestStartedAt = _getUtcNow();
-
-                using var response = await _httpClient.GetAsync(source, cancellationToken);
+                using var response = await _httpClient.GetAsync(source);
                 response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStringAsync(cancellationToken);
+                return await response.Content.ReadAsStringAsync();
             }
-            catch (Exception exception) when (IsTransientFailure(exception, cancellationToken))
+            catch (Exception exception) when (IsTransientFailure(exception))
             {
                 lastTransientFailure = exception;
             }
-            finally
-            {
-                _requestGate.Release();
-            }
 
             if (attempt < RetryDelays.Length)
-                await _delay(RetryDelays[attempt], cancellationToken);
+            {
+                var elapsed = _getUtcNow() - attemptStartedAt;
+                var remainingRequestInterval = MinimumRequestInterval - elapsed;
+                var retryDelay = RetryDelays[attempt];
+                await _delay(remainingRequestInterval > retryDelay ? remainingRequestInterval : retryDelay);
+            }
         }
 
         System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(lastTransientFailure!).Throw();
@@ -86,22 +82,8 @@ public sealed class ScraperProxy : IDisposable
         throw new InvalidOperationException("The retry loop ended without a result or exception.");
     }
 
-    private async Task WaitForRequestStartSlotAsync(CancellationToken cancellationToken)
+    private static bool IsTransientFailure(Exception exception)
     {
-        if (_lastRequestStartedAt is not { } lastStartedAt)
-            return;
-
-        var elapsed = _getUtcNow() - lastStartedAt;
-        var remaining = MinimumRequestInterval - elapsed;
-        if (remaining > TimeSpan.Zero)
-            await _delay(remaining, cancellationToken);
-    }
-
-    private static bool IsTransientFailure(Exception exception, CancellationToken cancellationToken)
-    {
-        if (cancellationToken.IsCancellationRequested)
-            return false;
-
         if (exception is TaskCanceledException)
             return true;
 
@@ -128,6 +110,5 @@ public sealed class ScraperProxy : IDisposable
         _httpClient.Dispose();
         if (_disposeHandler)
             _handler.Dispose();
-        _requestGate.Dispose();
     }
 }
