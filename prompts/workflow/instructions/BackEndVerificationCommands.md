@@ -22,6 +22,24 @@ dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.c
 
 The pipeline runs eight stages: backend and frontend builds, a test-environment SAM build, local Docker/SAM API and tests, then frontend unit and Playwright tests. With `COGNITO`, it registers standard Cognito users before tests and its `EXIT` cleanup always tries to remove dynamic test users. Confirm the final `ALL TESTS PASSED SUCCESSFULLY!` message; a cleanup error or an earlier failed stage means the run is not green, even if some build or test stages passed.
 
+Before starting, the pipeline removes the previous SAM and Vite logs plus the frontend `playwright-report` and `test-results` directories. The report and results left after a run therefore belong to that run; if it fails before Playwright starts, those directories may not be recreated.
+
+When the e2e tests fail, browse the HTML report from the repository root (or from `TTLeaguePlayersApp.FrontEnd`):
+
+```
+cd TTLeaguePlayersApp.FrontEnd
+npx playwright show-report playwright-report
+```
+
+For raw per-test output, screenshots, videos, traces, and the JSON results, inspect `TTLeaguePlayersApp.FrontEnd/test-results`. `playwright show-report` reads the HTML report from `playwright-report`; it should not be run from inside `test-results`.
+
+To open a trace, run `npx playwright show-trace <path-to-trace.zip>` from the frontend directory.
+
+In case of any failures, you may also want to look into:
+
+- scripts/ci_tasks/sam_local_fullstack.log
+- scripts/ci_tasks/web_test_env.log
+
 ---
 
 ## Instructions to check for build, unit/integration and acceptance tests failures in TTLeaguePlayersApp.BackEnd

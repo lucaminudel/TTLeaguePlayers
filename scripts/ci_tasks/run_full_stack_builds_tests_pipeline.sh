@@ -27,7 +27,15 @@ echo "🚀 Starting Full Stack Test Pipeline (Environment: $ENVIRONMENT)"
 echo "   API Port: $API_PORT"
 echo "   Web Port: $WEB_PORT"
 echo "   Execute Cognito Tests: $EXECUTE_LIVE_COGNITO_TESTS"
+echo "   Removing old SAM/Vite logs and Playwright report/test results"
 echo ""
+
+rm -f "$PROJECT_ROOT/scripts/ci_tasks/sam_local_fullstack.log"
+rm -f "$PROJECT_ROOT/scripts/ci_tasks/web_test_env.log"
+rm -rf "$PROJECT_ROOT/TTLeaguePlayersApp.FrontEnd/test-results"
+rm -rf "$PROJECT_ROOT/TTLeaguePlayersApp.FrontEnd/playwright-report"
+
+
 
 # ==============================================================================
 # CLEANUP TRAP
