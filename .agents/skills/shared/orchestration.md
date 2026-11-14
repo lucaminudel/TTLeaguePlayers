@@ -10,19 +10,23 @@ options and questions are synthesised and presented by the main agent, one point
 out for *reading*; never for *presenting* — a sub-agent per topic that reports back in parallel
 produces exactly the batch the interaction protocol exists to prevent.
 
-**Choose delegation for its expected benefit.** Where the session permits spawning, start a
-sub-agent for substantial, ready work when it can shorten elapsed time, spare the main session a
-substantial body of reading, or provide an independent check. Look for separable packages within
-a plan row as well as across rows. Consider context setup, overlapping reads,
-coordination, integration and serial verification as well as the work itself. Handle short lookups
-and small related edits inline; group related reads or edits instead of creating an agent per file
-or plan row. The main agent scopes delegated work, checks its evidence and owns decisions.
+**Decide whether to delegate.**
 
-Start with one or two sub-agents when useful; use more for several substantial independent packages
-whose expected benefit warrants the overhead. This is guidance, not a minimum or cap. Reassess as
-work completes instead of filling every available slot. After Execution's Phase 3 gate, parallel
-implementation requires dependency-ready work, disjoint file ownership and respect for deployable-unit
-boundaries and retained checkpoints. The main agent may work inline, including on a ready group.
+1. Identify substantial, separable work within the current phase, including work within a single
+   plan row. Check dependencies and checkpoints. In Execution, parallel implementation requires
+   the Phase 3 gate, disjoint file ownership, and respect for deployable-unit boundaries.
+2. Compare the expected benefits with the overhead. Identify what can run concurrently, what
+   reading the main session could avoid, or what an independent check would add. Account for
+   preparing the assignment and its context, overlapping reads, coordination, integration, and
+   serial verification. Group related work and keep short lookups and small related edits inline.
+3. Check dispatch feasibility separately. Apply the session's actual spawning rule and all its
+   relevant exceptions. If the host allows an applicable skill to explicitly request delegation,
+   the phase directives below are such a request for worthwhile work in that phase. Check tool
+   availability and any limits on the assigned work separately from permission to spawn.
+4. Start a sub-agent for substantial, ready work whose expected benefit justifies the overhead
+   when dispatch is permitted and available. Start with one or two when useful and add more if
+   separate packages warrant it. The main agent scopes the work, checks its evidence and owns
+   decisions. Reassess as work completes or becomes ready.
 
 For each material decision to delegate or keep work inline, record the decision in the
 task-specific `orchestration-summary.md` beside the current task artifacts, creating it if needed. In
@@ -31,9 +35,11 @@ Codex use `.codex/coding-tasks/<task-slug>/orchestration-summary.md`; in Claude 
 both positive and negative decisions, including independent review passes. Use one short entry per
 decision and update it when the work finishes or circumstances change:
 
-- At decision time, record the date, phase or task, candidate scope, decision, expected benefit,
-  and the specific cost or constraint that influenced it. Distinguish actual dependencies from
-  tool or authorization limits.
+- At decision time, record the date, phase or task, candidate scope, readiness, expected benefit
+  versus overhead, and decision. Record the tradeoff even when the tool or session prevents
+  dispatch. Distinguish work that is not worthwhile, work that is not ready, unavailable tools or
+  slots, and work prohibited by a specific instruction. For a prohibition, describe the relevant
+  restriction and explain why its applicable exceptions do not permit dispatch.
 - At dispatch, record the agent ID, assigned scope and file ownership, if applicable.
 - At completion, record what the main agent did concurrently, if anything, and what the agent
   returned or resolved. Link to the evidence in the relevant task artifact. Distinguish observed

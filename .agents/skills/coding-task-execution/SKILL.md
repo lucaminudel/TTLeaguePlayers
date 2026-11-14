@@ -118,16 +118,13 @@ purpose of asking.
 
 Derive the execution order from the plan's *Blocked by* column. Never start a sub-task whose
 blockers are not all `done`. Name the tasks that are unblocked right now before starting.
-After the Phase 3 gate is satisfied, follow the shared orchestration guidance and reassess when
-completions unblock new tasks.
 For plans with multiple deployable units, treat each unit's completion and recorded stop or
 automatic-review decision as a barrier: do not dispatch later-unit work across that boundary.
 
-**Delegate substantial investigation, implementation or independent review when it helps.**
-Look within ready plan rows for work with a clear scope and, for edits, disjoint file ownership.
-Use the shared guidance to assess elapsed time, main-session context and review independence.
-Read-only work can overlap with main-agent work within the applicable checkpoints and review rules.
-Record material delegation decisions and outcomes in `orchestration-summary.md`.
+**Delegate substantial investigation, implementation or independent review when it helps.** After
+the Phase 3 gate, apply the [shared delegation decision and reporting rules](../shared/orchestration.md)
+to work within and across ready plan rows. Reassess as completions unblock new work. Read-only
+work can overlap with main-agent work within the applicable checkpoints and review rules.
 
 **Keep verification commands serial.** The fast dev loop depends on a local
 SAM and web server bound to the main working tree and a single local DynamoDB. Two agents running
