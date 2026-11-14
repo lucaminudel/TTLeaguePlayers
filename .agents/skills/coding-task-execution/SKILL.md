@@ -101,18 +101,15 @@ Reconcile it against reality before doing anything:
 Mirror the plan into the in-session task list if it helps you work, but the persisted file is what
 you update.
 
-**Establish where the e2e tests may run — by asking.** Every e2e test, Cognito-free or live, needs a
-clean DB, and the local dev DynamoDB is where manual use leaves data behind. Ask the user whether the
-local dev DB is clean enough to run e2e tests on dev. The answer fixes the **e2e environment** for the
-whole execution (see *Where the e2e tests run* in Phase 6): **test** unless the user confirms the dev
-DB is clean.
+**Establish where applicable e2e tests may run.** Use the planned changes to assess e2e applicability
+under Phase 6. If e2e applies, ask whether the local dev DB is clean enough for it. The e2e environment
+is **test** unless the user confirms that dev is clean. If e2e becomes applicable later, resolve the
+environment before running it.
 
 **Establish the baseline before changing any code — by asking, not by running.** Ask the user to
-confirm that all three suites are currently passing: C# and Vitest unit on the local dev environment,
-Playwright e2e on the e2e environment. Do **not** run them yourself to find out: the e2e suite spends live Cognito, which is the
-scarce resource this skill exists to protect (see *The Cognito budget*). Without a confirmed baseline
-you cannot tell your own regressions from failures that were already there — which is the whole
-purpose of asking.
+confirm a green baseline for the suites applicable to the planned changes. Use dev for C# and
+Vitest and the selected e2e environment for Playwright if applicable. Reuse confirmations already
+given. Do **not** run suites to establish the baseline yourself.
 
 ## Phase 2 — Order the work
 
@@ -198,8 +195,9 @@ retained stop, an exceeded limit, or authority outside the recorded scope.
 - Present Tier 1-D localized mutation testing for each applicable deployable unit separately
   from final Tier 2 verification and its live Cognito effects. Tier 1-D runs automatically and
   requires no separate approval; record its unit scope and automatic continuation in
-  `no-stop-policy.md`. Resolve remaining Tier 2 permission questions upfront and record each
-  permission and its limits; approval for one run type does not authorize another.
+  `no-stop-policy.md`. Assess which Tier 2 checks apply under Phase 6 before discussing permission.
+  Resolve applicable permission questions upfront and record each permission and its limits.
+  Approval establishes permission for a run. Recheck applicability before using it.
   Forced whole-codebase mutation testing is a rare,
   optional post-commit follow-up, not a prerequisite for completing the plan.
 - Resolve other foreseeable asks, including any outstanding baseline/environment questions from
@@ -297,10 +295,10 @@ Stop only the stalled attempt, then diagnose, repair, retry, or use another auth
 Continue independent unblocked work where available. Ask the user only when further progress
 requires missing information, additional authority, or an external change you cannot make.
 
-After all Phase 4 implementation work and its Tier 1 checks are complete, perform the final Tier 2
-stage defined in Phase 6, then complete the work summary and retrospective before hand-off. If the plan includes a final
-verification sub-task, leave it pending until this stage passes; do not mark the overall execution
-complete before required Tier 2 checks and approved deterministic mutation testing are complete.
+After implementation and the applicable Tier 1 checks, assess and run the applicable final Tier 2
+checks under Phase 6, then complete the work summary and retrospective before hand-off. Leave final
+verification pending while an applicable required check remains unrun or failing. Record checks
+skipped as inapplicable and why.
 If final verification requires repairs, verify and record them as remaining task changes for
 final Review; automatic unit commits do not implicitly authorize amending earlier commits or
 committing these later repairs. Resolve any desired additional commit authorization explicitly.
@@ -356,40 +354,50 @@ test-environment verification. These checks have different scope, cost and prere
 only as far as the change requires. Tier 1-D spends time on localized mutation analysis but no
 live Cognito, so the tier order is not a ranking of Cognito usage.
 
+**Select checks from the actual diff.** At each sub-task, checkpoint and final verification, trace
+the current in-scope changes to affected entry points and test assertions. Run the smallest set of
+checks that covers those paths and their plausible regressions. Apply this to C#, Vitest, Playwright
+and any bundled pipeline stages. Reassess the plan's proposed checks against what actually changed.
+Record the affected paths, selected checks and reasons for material skips in the work summary.
+
+**Playwright e2e requires a backend change that affects a flow the selected specs exercise.** Trace
+the change through the API, Lambda or other backend entry point used by the browser scenario. For
+example, a new C# parser with no route or handler calling it is covered by focused C# tests. A
+frontend-only change uses relevant frontend checks. A changed backend response used by a browser
+flow warrants the corresponding Playwright specs. A checkpoint, clean dev DB, or pipeline approval
+does not make an unrelated suite applicable. Apply the same gate to Cognito-free and live runs,
+including Playwright triggered by Tier 2. Include live Cognito only when the changed path requires
+live coverage.
+
 | Tier | Build, lint, Vitest, C# | e2e | Cognito | Gate |
 |---|---|---|---|---|
-| **1-A** | dev | the **e2e environment** | **none** — excluded by filter / flag | run freely, constantly |
-| **1-B** | dev | the **e2e environment** | scoped — only the individual tests relevant to the changed files | counts against the budget |
-| **1-C** | dev | dev — **exists only if the user confirmed the dev DB is clean** | **full** — whole backend suite + whole e2e suite with live Cognito | counts against the budget; no separate ask |
+| **1-A** | applicable checks on dev | affected specs on the **e2e environment** | **none** — excluded by filter / flag | fast feedback after relevant changes |
+| **1-B** | relevant live C# tests on dev | affected live specs on the **e2e environment** | scoped to affected Cognito paths | counts against the budget |
+| **1-C** | whole affected suite on dev | whole e2e suite only for broad e2e impact and confirmed clean dev DB | live where warranted | counts against the budget |
 | **1-D** | localized deterministic mutation testing of the deployable unit's source and covering Vitest specs | none | none | automatic after relevant build/unit checks pass; no approval required |
-| **2** | test (clean-room) | test | **full**, plus Cognito user cleanup | after Phase 4; ask unless already preapproved |
+| **2** | applicable checks on test (clean-room) | applicable specs on test | live where warranted, with cleanup for the full live pipeline | after Phase 4; ask unless already preapproved |
 
 **Where the e2e tests run.** Every e2e test — Cognito-free or live — needs a clean DB; on a dev DB with
 leftover data they fail for reasons unrelated to the change. So the **e2e environment** is the **test**
 environment (web on 4173, SAM on 3003, DynamoDB on 8001) unless the user confirmed in Phase 1 that the
 local dev DB is clean, in which case it is dev. Build, lint, Vitest and the C# suite always run on
-**dev**, whatever the DB state: the Lambda unit tests use fakes, and the acceptance tests create
+**dev** for Tier 1, whatever the DB state: the Lambda unit tests use fakes, and the acceptance tests create
 GUID-unique rows and tear them down. If the test-env services are not running, start them yourself —
 see *Starting the services* — and stop what you started.
 
-**Tier 1-A — the fast feedback loop, Cognito-free.** Build, lint, Vitest and the filtered C# suite on
-**dev**; Cognito-free e2e on the e2e environment. Seconds to a couple of minutes. **This is the loop you
-live in.** Run it after every change, and get it green before climbing any higher.
+**Tier 1-A — the fast feedback loop, Cognito-free.** Run the applicable build, lint, Vitest or filtered
+C# checks on **dev**, and any applicable Cognito-free e2e specs on the e2e environment. Get the
+relevant checks green before climbing any higher.
 
-**Tier 1-B — scoped Cognito, after 1-A is green.** Only the *individual* tests that cover the files the
-sub-task touched, run without the Cognito exclusion so the Cognito-dependent ones actually execute:
-C# test classes on dev, e2e specs on the e2e environment.
+**Tier 1-B — scoped Cognito, after 1-A is green.** Select only the individual tests that exercise
+an affected path requiring live Cognito. Run C# tests on dev and applicable e2e specs on the
+e2e environment.
 
-**Tier 1-C — the fast local full run, only with a clean dev DB.** Everything, on dev, with live
-Cognito. It exists **only if the user confirmed the dev DB is clean**: on the test environment the same
-run would be Tier 2 without the clean-room build, so it adds a Cognito-heavy run and tells you almost
-nothing new. Like Tier 1-B, count each invocation against the Cognito budget; no separate
-permission is required within that budget. When it exists, run it at relevant checkpoints or
-after long changes that also affect the frontend, before the final Tier 2 — it runs faster locally,
-and Playwright screenshots, traces and videos land locally.
-
-Without a clean dev DB there is no 1-C: checkpoints and "application code finished" gates use 1-B, and
-the whole e2e suite runs only in Tier 2.
+**Tier 1-C — whole-suite local verification.** Run an affected whole suite on dev only when the
+change has broad impact and the focused checks leave a concrete coverage gap. Adding the whole
+Playwright suite also requires broad browser-flow impact from a backend change and a confirmed clean
+dev DB. A whole backend run never automatically selects Playwright. If no broader local run is
+warranted, finish the checkpoint with the applicable focused checks.
 
 **Tier 1-D — localized deterministic mutation testing.** Limit Stryker to the current deployable
 unit's relevant source files and covering Vitest specs after its build and relevant unit tests
@@ -405,8 +413,12 @@ weaken assertions or change application behaviour merely to kill a mutant. Recor
 in `no-stop-policy.md`. Run serially on the main agent and automatically update the triage
 register after each completed run using its evidence and acceptance rules.
 
-**Tier 2 — the complete verification.** On the **test** environment, with live Cognito and a clean-room
-build. Minutes. **Run only after Phase 4 implementation and its Tier 1 checks are complete.**
+**Tier 2 — final shared-environment verification where applicable.** Run only after Phase 4 and
+applicable Tier 1 checks. Select the standalone checks that close a concrete verification gap on
+**test**. Use the full-stack pipeline only if its bundled checks are warranted, including its
+Playwright stage. If it would run out-of-scope suites and there is a narrower supported check, use
+that check with the applicable authorization. If Tier 1 already covers the affected paths and no
+shared-environment check is warranted, record Tier 2 as inapplicable.
 Ask the user before launching unless the applicable Tier 2 run was explicitly preapproved, for
 example in Phase 3. Honour that approval without asking again, within its recorded scope and the
 Cognito budget. Localized mutation testing is automatic Tier 1-D and requires no separate
@@ -415,9 +427,8 @@ approval; it is not coupled to this pipeline.
 Before Tier 2 starts, stop any test-env services you started yourself: the pipeline reuses a SAM
 already listening on 3003 instead of its own clean-room build.
 
-Never substitute a higher tier for the 1-A loop (too slow, and it burns Cognito to tell you something
-a lint error would have). Never let 1-A stand in for Tier 2 (no live Cognito, no
-clean-room build, not the whole suite in one run).
+Start with the relevant 1-A checks. Complete any applicable checks at higher tiers that cover a
+different requirement, such as a clean-room build or an affected live service path.
 
 ### The Cognito budget
 
@@ -489,8 +500,8 @@ than reaching for a second mutation that flatters the original guess.
 | `config/*.env.json` | **1-A backend** — `LoaderTest` is a Theory over dev/test/staging/prod and parses all four |
 | Test or fixture only | just that suite, at the lowest tier that runs it |
 | Either, once 1-A is green **and** the change touches a Cognito-dependent path | **1-B**, narrowed to the relevant tests — counts against the budget |
-| Gate: plan verification sub-tasks, and **every checkpoint** | **1-C** front and back if the dev DB is clean; otherwise **1-B** — both count against the budget |
-| Final verification stage, after Phase 4 implementation and Tier 1 checks | **Tier 2** — ask unless explicitly preapproved |
+| Plan verification sub-task or checkpoint | Reassess affected paths and reuse current evidence. Run additional applicable checks only for gaps. |
+| Final verification stage, after Phase 4 implementation and Tier 1 checks | Select applicable **Tier 2** checks and reuse approval when it covers the selected run. |
 
 ---
 
@@ -629,11 +640,11 @@ Each invocation is one unit of the budget. At 10, stop and ask.
 
 ---
 
-### Tier 1-C — full local verification with live Cognito (dev, clean dev DB only) · counts against the budget
+### Tier 1-C — whole-suite local verification (dev)
 
-Only if the user confirmed the dev DB is clean. This local full run provides local artefacts;
-it does not replace Tier 2. Like Tier 1-B, each invocation counts against the Cognito budget,
-with no separate ask within that budget.
+These commands include live Cognito. Use them only for applicable whole suites when live coverage
+is warranted, and count each invocation. A whole Playwright run also requires a confirmed clean dev
+DB. For Cognito-free verification, use the exclusions shown in Tier 1-A.
 
 Backend, whole suite, no filter:
 
@@ -695,10 +706,12 @@ exercise boundary conditions, special input values, each relevant execution path
 
 ---
 
-### Tier 2 — complete verification (test env, live Cognito)
+### Tier 2 — applicable shared-environment verification (test env)
 
-Run after Phase 4 implementation and Tier 1 checks. Ask before launching unless this run is
-explicitly preapproved; record and reuse that approval.
+Run after Phase 4 implementation and Tier 1 checks. Use the full-stack command only when each
+bundled suite is applicable. Omit `COGNITO` for a Cognito-free pipeline. Use it only when the
+affected paths warrant the bundled live coverage. Ask before launching unless the selected run is
+explicitly preapproved. Record and reuse that approval.
 
 ```bash
 ./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO
@@ -720,21 +733,26 @@ on the output file filtering for step results and failure signatures — not raw
 tail -f <task-output-file> | grep -E --line-buffered "Build Succeeded|Build Failed|Test Run Successful|Test Run Failed|passed \(|failed|error TS|ALL TESTS PASSED|FAILURE"
 ```
 
-When the whole pipeline is more than you need, either half can be run alone — **ask unless that run is already explicitly preapproved**:
+For applicable standalone checks, **ask unless the selected Tier 2 run is already explicitly
+preapproved**:
 
-Backend only, on the test environment, no filter:
+Backend only, on the test environment. Omit `COGNITO` to exclude live tests and their setup and
+cleanup when the affected backend paths do not require them:
 
 ```bash
 ./scripts/ci_tasks/run_backend_acceptance_tests.sh 3003 test COGNITO
 ```
 
-Frontend e2e only, whole suite with live Cognito:
+Playwright only, when the backend impact gate is met. Use the Tier 1-A or 1-B command for affected
+specs on `test-env` with the appropriate Cognito flag. For broad impact requiring the whole suite
+with live Cognito:
 
 ```bash
 npm run "C+ e2e-tests-web:run test-env"
 ```
 
-All three of these mutate Cognito: their cleanup deletes the dynamically created `test_*` users.
+The full-stack and backend scripts with `COGNITO` run user cleanup. Standalone live Playwright can
+create users and counts against the same budget.
 
 ### Tier 1-D — localized deterministic mutation testing commands
 
@@ -1142,6 +1160,8 @@ passing, and do not narrow it because a step looks awkward.
 - Running a mutating Cognito command — the provisioning scripts, an `aws cognito-idp` write, applying a
   pending change to either — without asking first.
 - Climbing to Tier 1-C or Tier 2 or reaching for them when 1-A would have answered the question.
+- Running Playwright without tracing a changed backend path to an affected browser flow, or running
+  unrelated suites because they are listed in the plan or bundled into a pipeline.
 - Running localized mutation testing outside its authorized unit scope or before relevant build/unit checks pass.
 - Starting a forced whole-codebase mutation run without applicable authorization or before its intended commit.
 - Re-running a Cognito-touching test to diagnose something unrelated to Cognito, instead of reading the
@@ -1150,7 +1170,7 @@ passing, and do not narrow it because a step looks awkward.
 - Re-running anything after the "Too many attempts" lockout message, which extends the wait.
 - Running e2e tests on dev without the user's confirmation that the dev DB is clean.
 - Leaving test-env services you started running, or stopping ones the user started.
-- Starting work without a confirmed green baseline — or establishing one by running the suites yourself
+- Starting work without a confirmed green baseline for applicable suites — or establishing one by running the suites yourself
   rather than asking the user.
 - Creating or reconfiguring a shared test record — a Cognito user above all — from a test or by hand,
   instead of declaring it in the provisioning scripts.
