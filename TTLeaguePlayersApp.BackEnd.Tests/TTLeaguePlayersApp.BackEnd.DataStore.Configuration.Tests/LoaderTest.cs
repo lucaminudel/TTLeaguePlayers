@@ -74,8 +74,11 @@ public class LoaderTest : IDisposable
         Assert.NotEmpty(config.EmailForwarder.ContactUsEmailAddress);
         Assert.NotEmpty(config.EmailForwarder.ForwardToEmailAddress);
 
-        if (environment is "dev" or "test")
+        if (environment is "dev" or "test" or "staging")
         {
+            Assert.NotNull(config.ActiveSeasonsDataSource);
+            Assert.NotEmpty(config.ActiveSeasonsDataSource);
+
             var clttl = Assert.Single(config.ActiveSeasonsDataSource, season =>
                 season.League == "CLTTL" && season.Season == "2026-2027");
             Assert.Equal("TT365.CLTTLStrategy2026Processor", clttl.CustomStrategyProcessor);
@@ -86,7 +89,7 @@ public class LoaderTest : IDisposable
                 clttl.StrategySources["Divisions Teams Players List"]);
             Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Tables"),
                 clttl.StrategySources["League Tables"]);
-            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Ranking"),
+            Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Ranking?p="),
                 clttl.StrategySources["Ranking"]);
             Assert.Equal(new Uri("https://www.tabletennis365.com/CentralLondon/Fixtures"),
                 clttl.StrategySources["Fixtures"]);

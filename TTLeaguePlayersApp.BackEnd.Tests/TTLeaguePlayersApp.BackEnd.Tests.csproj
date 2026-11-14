@@ -23,4 +23,10 @@
   <ItemGroup>
     <Folder Include="TTLeaguePlayersApp.BackEnd.Invites.Lambdas.Tests/" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="TTLeaguePlayersApp.BackEnd.Strategy.TT365.Tests/Fixtures/Ranking/*.html">
+      <TargetPath>Fixtures/Ranking/%(Filename)%(Extension)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

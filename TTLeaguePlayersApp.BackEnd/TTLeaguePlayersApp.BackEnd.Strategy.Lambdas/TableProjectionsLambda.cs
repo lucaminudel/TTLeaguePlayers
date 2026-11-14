@@ -9,6 +9,7 @@ namespace TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 public sealed class TableProjectionsLambda
 {
     private const string PlayersSourceName = "Divisions Teams Players List";
+    private const string Ranking = "Ranking";
     private const string TeamId = "75774";
     private const int MinimumHtmlBytes = 10_000;
 
@@ -17,7 +18,7 @@ public sealed class TableProjectionsLambda
         "Divisions Teams List",
         PlayersSourceName,
         "League Tables",
-        "Ranking",
+        Ranking,
         "Fixtures"
     ];
 
@@ -49,6 +50,10 @@ public sealed class TableProjectionsLambda
 
             if (sourceName == PlayersSourceName)
                 sourceUri = AppendTeamId(sourceUri, TeamId);
+
+            if (sourceName == Ranking)
+                sourceUri = AppendTeamId(sourceUri, "1");
+
 
             string content;
             try

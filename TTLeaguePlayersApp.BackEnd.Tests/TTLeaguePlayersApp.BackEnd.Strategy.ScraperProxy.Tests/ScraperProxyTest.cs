@@ -1,6 +1,7 @@
 using System.Net;
 using CurlImpersonate.Enums;
 using CurlImpersonate.Http;
+using TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy;
 using ScraperProxyClient = TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy.ScraperProxy;
 using Xunit;
 
@@ -16,7 +17,8 @@ public class ScraperProxyTest
         {
             Content = new StringContent("<html>content</html>")
         }));
-        using var proxy = CreateProxy(handler, clock);
+        using var ownedProxy = CreateProxy(handler, clock);
+        IScraperProxy proxy = ownedProxy;
 
         var responseText = await proxy.FetchAsync(new Uri("https://example.test/source"));
 

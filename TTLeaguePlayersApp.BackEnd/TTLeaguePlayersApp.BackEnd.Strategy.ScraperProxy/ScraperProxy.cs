@@ -3,7 +3,7 @@ using CurlImpersonate.Http;
 
 namespace TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy;
 
-public sealed class ScraperProxy : IDisposable
+public sealed class ScraperProxy : IScraperProxy, IDisposable
 {
     private static readonly TimeSpan MinimumRequestInterval = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan[] RetryDelays =

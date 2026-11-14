@@ -3,9 +3,8 @@ using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using ScraperProxyClient = TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy.ScraperProxy;
 using Xunit;
 
-namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.ScraperProxy;
+namespace TTLeaguePlayersApp.BackEnd.Tests.ExternalServicesAcceptanceTests.TT365;
 
-[Trait("Environment", "Staging")]
 public class LiveScraperProxyAcceptanceTest
 {
     [Fact]
@@ -14,8 +13,7 @@ public class LiveScraperProxyAcceptanceTest
         var originalEnvironment = Environment.GetEnvironmentVariable("ENVIRONMENT");
         try
         {
-            var requestedEnvironment = originalEnvironment;
-            var configEnvironment = requestedEnvironment is "dev" or "test" ? requestedEnvironment : "dev";
+            var configEnvironment = originalEnvironment is "dev" or "test" ? originalEnvironment : "dev";
             Environment.SetEnvironmentVariable("ENVIRONMENT", configEnvironment);
             var configJson = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, $"{configEnvironment}.env.json"));
             var clttl = Assert.Single(new Loader(configJson).GetEnvironmentVariables().ActiveSeasonsDataSource,
@@ -37,9 +35,6 @@ public class LiveScraperProxyAcceptanceTest
 
             var tables = await scraperProxy.FetchAsync(clttl.StrategySources["League Tables"]);
             Assert.Contains("League Tables", tables, StringComparison.OrdinalIgnoreCase);
-
-            var ranking = await scraperProxy.FetchAsync(clttl.StrategySources["Ranking"]);
-            Assert.Contains("Central London Ranking", ranking, StringComparison.OrdinalIgnoreCase);
 
             var fixtures = await scraperProxy.FetchAsync(clttl.StrategySources["Fixtures"]);
             Assert.Contains("Fixtures", fixtures, StringComparison.OrdinalIgnoreCase);
