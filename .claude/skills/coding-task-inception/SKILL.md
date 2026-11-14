@@ -109,6 +109,20 @@ A gap you find between the user's brief and the Discovery findings report is a t
 The most valuable phase. Budget real effort here — every plan defect in practice traced back to
 research skipped, not to poor planning.
 
+**Scale the depth to impact and risk.** When researching, designing or questioning an Inception
+subject, assess:
+
+- **Impact:** medium-to-large blast radius; decisions about code, design, architecture or
+  infrastructure that are hard to change or reverse; and the volume of related work.
+- **Risk:** potential costs and consequences for quality, security, reliability or functional
+  correctness.
+
+Spend more research, design analysis and questions on high-impact or high-risk subjects. Give
+medium-impact or medium-risk subjects moderate attention. For subjects with low or no impact and
+low or no risk, ask fewer questions and investigate less; use reasonable, evidence-based judgment
+for routine decisions. Reassess when new evidence or a scope change alters the impact or risk. This
+proportionality does not remove the need for reliable evidence or override an explicit user request.
+
 **Verify external data sources live.** If the task scrapes or calls an external site, fetch the
 actual pages with `curl` into the scratchpad and parse them before planning. Confirm the user's
 expected test data against reality. This routinely surfaces things absent from the brief — relative
@@ -284,7 +298,10 @@ invent answers or make a skipped answer a requirement:
 4. How can these be quantified and measured?
 
 
-Present the full plan as a table: number, sub-task, blocked-by. Include the parallel execution
+Present the full plan as a table: number, sub-task, Files likely added or changed, blocked-by.
+In the files column, list likely filenames without paths and distinguish additions from changes when
+known; keep full paths in the sub-task details. Mark uncertain filenames as likely, not promises.
+Include the parallel execution
 groups, file ownership, and synchronization barriers. Add files created vs modified,
 decisions locked in, assumptions, and anything you would flag as accepted risk.
 For large or cross-component plans, present the suggested sequence of deployable units and its rationale, or explain
@@ -318,7 +335,8 @@ task artifacts are found by path, not by recall. The file must carry:
 - a concise simplicity assessment for consequential choices: required outcomes versus proposed
   mechanisms, actual change surface, viable smaller alternatives and reasons for the selected design
 - research findings, with file:line citations
-- the sub-task table with a **Status** column (`to be done` / `in progress` / `done`)
+- the sub-task table with a **Files likely added or changed** column (filenames without paths)
+  and a **Status** column (`to be done` / `in progress` / `done`)
 - an execution schedule covering initial and later parallel groups, their prerequisites and file
   ownership, serial groups with reasons, and review/verification synchronization barriers
 - for large or cross-component plans, the agreed deployable units and their sequence, outcomes, sub-task membership,

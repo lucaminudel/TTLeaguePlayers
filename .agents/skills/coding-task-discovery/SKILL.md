@@ -105,6 +105,19 @@ new topic on the spot. Do not batch the whole exploration and present it at the 
 A topic is done when the answers are **detailed enough to act on** — concrete values, exact paths,
 named identifiers, real examples — not when they are merely plausible.
 
+**Scale the depth to impact and risk.** When drilling into a domain or technical subject, assess:
+
+- **Impact:** medium-to-large blast radius; decisions about code, design, architecture or
+  infrastructure that are hard to change or reverse; and the volume of related work.
+- **Risk:** potential costs and consequences for quality, security, reliability or functional
+  correctness.
+
+Spend more investigation and questions on high-impact or high-risk subjects. Give medium-impact or
+medium-risk subjects moderate attention. For subjects with low or no impact and low or no risk,
+ask fewer questions and investigate less; use reasonable, evidence-based judgment for routine
+details. Reassess when new evidence changes the impact or risk. This proportionality does not
+remove the need for reliable evidence or override an explicit user request.
+
 When a topic or decision is settled, immediately reconcile `discovery.md`: mark its topic and
 section explored, update the requirements index and summary as applicable, and replace or clearly
 label superseded proposals, assumptions and findings. Propagate corrections across the report; do
