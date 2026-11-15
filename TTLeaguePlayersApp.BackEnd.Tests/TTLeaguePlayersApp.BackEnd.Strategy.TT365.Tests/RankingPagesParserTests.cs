@@ -13,15 +13,25 @@ public class RankingPagesParserTests
 
         var allPlayers = parser.ParseRankingPlayers(pages);
 
-        Assert.Equal(3, allPlayers.Players.Count);
-        Assert.Equal("Casey O'Brien", allPlayers.Players["casey o'brien"].Name);
-        Assert.Equal(2050, allPlayers.Players["CASEY O'BRIEN"].CurrentRanking);
-        Assert.Equal("Riley & Morgan", allPlayers.Players["Riley & Morgan"].Name);
-        Assert.Equal(0, allPlayers.Players["Riley & Morgan"].CurrentRanking);
-        Assert.Equal("Jordan Smith", allPlayers.Players["Jordan Smith"].Name);
-        Assert.False(allPlayers.Players.ContainsKey("Hidden"));
+        Assert.Equal(3, allPlayers.AllPlayers.Count);
+        Assert.Equal("Casey O'Brien", allPlayers.AllPlayers["casey o'brien"].Name);
+        Assert.Equal(2050, allPlayers.AllPlayers["CASEY O'BRIEN"].CurrentRanking);
+        Assert.Equal("Riley & Morgan", allPlayers.AllPlayers["Riley & Morgan"].Name);
+        Assert.Equal(0, allPlayers.AllPlayers["Riley & Morgan"].CurrentRanking);
+        Assert.Equal("Jordan Smith", allPlayers.AllPlayers["Jordan Smith"].Name);
+        Assert.False(allPlayers.AllPlayers.ContainsKey("Hidden"));
         Assert.Contains(allPlayers.Anomalies, anomaly => anomaly.Contains("Duplicate player name", StringComparison.Ordinal));
         Assert.Contains(allPlayers.Anomalies, anomaly => anomaly.Contains("page 1, row 4", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Player_AllowsAnUnknownRosterRankingAndPreservesAnExplicitZero()
+    {
+        var unrankedRosterPlayer = new Player("Roster Player", null);
+        var explicitlyUnrankedPlayer = new Player("Zero Ranked Player", 0);
+
+        Assert.Null(unrankedRosterPlayer.CurrentRanking);
+        Assert.Equal(0, explicitlyUnrankedPlayer.CurrentRanking);
     }
 
     [Theory]
@@ -39,7 +49,7 @@ public class RankingPagesParserTests
 
         var players = parser.ParseRankingPlayers([html]);
 
-        var selected = Assert.Single(players.Players);
+        var selected = Assert.Single(players.AllPlayers);
         Assert.Equal(retainedName, selected.Key);
         Assert.Equal(retainedName, selected.Value.Name);
         Assert.Equal(retainedCurrent, selected.Value.CurrentRanking);
@@ -54,8 +64,8 @@ public class RankingPagesParserTests
 
         var players = parser.ParseRankingPlayers([html]);
 
-        Assert.Equal("Alex Example", players.Players["alex example"].Name);
-        Assert.Equal(100, players.Players["Alex Example"].CurrentRanking);
+        Assert.Equal("Alex Example", players.AllPlayers["alex example"].Name);
+        Assert.Equal(100, players.AllPlayers["Alex Example"].CurrentRanking);
         Assert.Contains(players.Anomalies, anomaly => anomaly.Contains("Duplicate player name", StringComparison.Ordinal));
     }
 
@@ -67,7 +77,7 @@ public class RankingPagesParserTests
 
         var players = parser.ParseRankingPlayers([html]);
 
-        Assert.Equal(2, players.Players.Count);
+        Assert.Equal(2, players.AllPlayers.Count);
         Assert.Equal(2, players.Anomalies.Count);
         Assert.All(players.Anomalies, anomaly => Assert.Contains("using 0", anomaly, StringComparison.Ordinal));
     }
@@ -80,7 +90,7 @@ public class RankingPagesParserTests
 
         var players = parser.ParseRankingPlayers([html]);
 
-        Assert.Single(players.Players);
+        Assert.Single(players.AllPlayers);
         Assert.Equal(2, players.Anomalies.Count);
         Assert.Contains(players.Anomalies, anomaly => anomaly.Contains("missing name", StringComparison.Ordinal));
         Assert.Contains(players.Anomalies, anomaly => anomaly.Contains("numeric Current ranking", StringComparison.Ordinal));
@@ -95,9 +105,9 @@ public class RankingPagesParserTests
 
         var players = parser.ParseRankingPlayers([html]);
 
-        Assert.Contains("First Second Fourth Fifth", players.Players.Keys);
-        Assert.Contains("First Second Normal Third", players.Players.Keys);
-        Assert.Equal(2, players.Players.Count);
+        Assert.Contains("First Second Fourth Fifth", players.AllPlayers.Keys);
+        Assert.Contains("First Second Normal Third", players.AllPlayers.Keys);
+        Assert.Equal(2, players.AllPlayers.Count);
     }
 
     [Fact]

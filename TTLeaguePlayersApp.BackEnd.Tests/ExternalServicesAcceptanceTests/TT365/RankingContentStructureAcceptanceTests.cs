@@ -25,13 +25,14 @@ public sealed class RankingContentStructureAcceptanceTests
             using (scraperProxy)
             {
                 var parser = new CLTTLStrategy2026Parser();
-                var fetcher = new CLTTLStrategy2026Fetcher(scraperProxy, clttl.StrategySources["Ranking"]);
-                var pages = await fetcher.FetchRankingPagesAsync();
+                var processor = new CLTTLStrategy2026Processor(scraperProxy, clttl.StrategySources);
+                var (players, _) = await processor.GetAllRankingPlayers();
+                var pages = scraperProxy.ResponseBodies;
 
                 Assert.NotEmpty(pages);
                 Assert.NotEmpty(scraperProxy.RequestedUrls);
                 Assert.Equal(scraperProxy.RequestedUrls.Count, scraperProxy.RequestedUrls.Distinct().Count());
-                Assert.NotEmpty(parser.ParseRankingPlayers(pages).Players);
+                Assert.NotEmpty(players);
 
                 foreach (var pageHtml in pages)
                 {
@@ -91,10 +92,14 @@ public sealed class RankingContentStructureAcceptanceTests
 
         public List<Uri> RequestedUrls { get; } = [];
 
-        public Task<string> FetchAsync(Uri uri)
+        public List<string> ResponseBodies { get; } = [];
+
+        public async Task<string> FetchAsync(Uri uri)
         {
             RequestedUrls.Add(uri);
-            return _inner.FetchAsync(uri);
+            var response = await _inner.FetchAsync(uri);
+            ResponseBodies.Add(response);
+            return response;
         }
 
         public void Dispose() => _inner.Dispose();

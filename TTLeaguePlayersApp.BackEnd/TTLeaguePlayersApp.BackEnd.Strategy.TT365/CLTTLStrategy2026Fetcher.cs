@@ -5,82 +5,58 @@ namespace TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 
 public sealed class CLTTLStrategy2026Fetcher
 {
-    private const int MaximumCoveragePasses = 2;
+    private const string RankingSourceName = "Ranking";
+    private const string DivisionsTeamsListSourceName = "Divisions Teams List";
+    private const string DivisionsTeamsPlayersListSourceName = "Divisions Teams Players List";
 
     private readonly IScraperProxy _scraperProxy;
     private readonly Uri _rankingPageUriPrefix;
-    private readonly CLTTLStrategy2026Parser _parser;
+    private readonly Uri _divisionsTeamsListUri;
+    private readonly Uri _divisionsTeamsPlayersListUriPrefix;
 
-    public CLTTLStrategy2026Fetcher(IScraperProxy scraperProxy, Uri rankingPageUriPrefix)
+    public CLTTLStrategy2026Fetcher(IScraperProxy scraperProxy, IReadOnlyDictionary<string, Uri> strategySources)
     {
         ArgumentNullException.ThrowIfNull(scraperProxy);
-        ArgumentNullException.ThrowIfNull(rankingPageUriPrefix);
-        if (!rankingPageUriPrefix.IsAbsoluteUri)
-            throw new ArgumentException("The ranking page URI prefix must be absolute.", nameof(rankingPageUriPrefix));
-        if (!rankingPageUriPrefix.OriginalString.EndsWith("p=", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("The ranking page URI prefix must end with the page query parameter 'p='.", nameof(rankingPageUriPrefix));
+        ArgumentNullException.ThrowIfNull(strategySources);
+
+        _rankingPageUriPrefix = GetRequiredSource(strategySources, RankingSourceName, "p=");
+        _divisionsTeamsListUri = GetRequiredSource(strategySources, DivisionsTeamsListSourceName);
+        _divisionsTeamsPlayersListUriPrefix = GetRequiredSource(strategySources, DivisionsTeamsPlayersListSourceName, "teamId=");
 
         _scraperProxy = scraperProxy;
-        _rankingPageUriPrefix = rankingPageUriPrefix;
-        _parser = new CLTTLStrategy2026Parser();
     }
-
-    public async Task<IReadOnlyList<string>> FetchRankingPagesAsync()
+    
+    public Task<string> FetchRankingPageAsync(int pageNumber)
     {
-        for (var pass = 1; pass <= MaximumCoveragePasses; pass++)
-        {
-            var completePass = await TryFetchCompletePassAsync();
-            if (completePass is not null)
-                return completePass;
-        }
-
-        throw new InvalidOperationException("Ranking page coverage remained inconsistent after restarting once from page 1.");
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
+        return _scraperProxy.FetchAsync(new Uri(
+            _rankingPageUriPrefix.OriginalString + pageNumber.ToString(CultureInfo.InvariantCulture)));
     }
 
-    private async Task<IReadOnlyList<string>?> TryFetchCompletePassAsync()
+    public Task<string> FetchDivisionsAndTeamsAsync() => _scraperProxy.FetchAsync(_divisionsTeamsListUri);
+
+    public Task<string> FetchTeamPlayersAsync(string teamId)
     {
-        var fetchedPages = new List<string>();
-        RankingPageMetadata? firstPageMetadata = null;
-        var requestedPage = 1;
-        var expectedRangeStart = 1;
-
-        while (true)
-        {
-            var pageHtml = await _scraperProxy.FetchAsync(BuildPageUri(requestedPage));
-            fetchedPages.Add(pageHtml);
-
-            if (!_parser.TryParseRankingPageMetadata(pageHtml, out var pageMetadata) || pageMetadata is null)
-                return null;
-            if (pageMetadata.CurrentPage != requestedPage || pageMetadata.RangeStart != expectedRangeStart)
-                return null;
-
-            if (firstPageMetadata is null)
-            {
-                firstPageMetadata = pageMetadata;
-            }
-            else if (!HasSameRankingSnapshot(firstPageMetadata, pageMetadata))
-            {
-                return null;
-            }
-
-            expectedRangeStart = pageMetadata.RangeEnd + 1;
-
-            if (pageMetadata.IsNextDisabled)
-                return pageMetadata.RangeEnd == pageMetadata.TotalPlayers ? fetchedPages : null;
-
-            if (pageMetadata.RangeEnd >= pageMetadata.TotalPlayers)
-                return null;
-
-            requestedPage = pageMetadata.NextPage;
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(teamId);
+        return _scraperProxy.FetchAsync(new Uri(
+            _divisionsTeamsPlayersListUriPrefix.OriginalString + Uri.EscapeDataString(teamId)));
     }
 
-    private Uri BuildPageUri(int pageNumber) =>
-        new(_rankingPageUriPrefix.OriginalString + pageNumber.ToString(CultureInfo.InvariantCulture));
+    private static Uri GetRequiredSource(
+        IReadOnlyDictionary<string, Uri> strategySources,
+        string sourceName,
+        string? requiredSuffix = null)
+    {
+        if (!strategySources.TryGetValue(sourceName, out var sourceUri) || sourceUri is null)
+            throw new ArgumentException($"The strategy source '{sourceName}' is required.", nameof(strategySources));
+        if (!sourceUri.IsAbsoluteUri)
+            throw new ArgumentException($"The strategy source '{sourceName}' must be absolute.", nameof(strategySources));
+        if (requiredSuffix is not null
+            && !sourceUri.OriginalString.EndsWith(requiredSuffix, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException(
+                $"The strategy source '{sourceName}' must end with '{requiredSuffix}'.",
+                nameof(strategySources));
 
-    private static bool HasSameRankingSnapshot(RankingPageMetadata firstPage, RankingPageMetadata currentPage) =>
-        firstPage.LastUpdated == currentPage.LastUpdated
-        && firstPage.PeriodEnding == currentPage.PeriodEnding
-        && firstPage.TotalPlayers == currentPage.TotalPlayers
-        && firstPage.LastPage == currentPage.LastPage;
+        return sourceUri;
+    }
 }

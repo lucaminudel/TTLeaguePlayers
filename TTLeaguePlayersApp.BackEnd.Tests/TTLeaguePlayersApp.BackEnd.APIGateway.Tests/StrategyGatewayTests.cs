@@ -5,32 +5,14 @@ using FluentAssertions;
 using TTLeaguePlayersApp.BackEnd.APIGateway;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.APIGateway;
 
 public sealed class StrategyGatewayTests
 {
-    private static readonly string[] SourceNames =
-    [
-        "Divisions Teams List",
-        "Divisions Teams Players List",
-        "League Tables",
-        "Ranking",
-        "Fixtures"
-    ];
-
-    private static ActiveSeasonStrategyConfig SeasonConfig()
-        => new(
-            "CLTTL",
-            "2026-2027",
-            "TT365.CLTTLStrategy2026Processor",
-            SourceNames.ToDictionary(
-                name => name,
-                name => new Uri(name == "Divisions Teams Players List"
-                    ? "https://example.test/players?teamId="
-                    : $"https://example.test/{Uri.EscapeDataString(name)}"),
-                StringComparer.Ordinal));
+    private static ActiveSeasonStrategyConfig SeasonConfig() => Clttl2026TestConfig.Load();
 
     private static ApiGatewayProxyHandler Handler(
         SpyLoggerObserver observer,
@@ -150,7 +132,7 @@ public sealed class StrategyGatewayTests
         var fetch = (Uri uri) =>
         {
             requested.Add(uri);
-            return Task.FromResult(uri.Query.Length > 0 ? "{\"players\":[1]}" : $"<html><head><title>League</title></head><body>{new string('x', 10_001)}</body></html>");
+            return Task.FromResult(uri.OriginalString.StartsWith(SeasonConfig().StrategySources["Divisions Teams Players List"].OriginalString, StringComparison.Ordinal) ? "{\"players\":[1]}" : $"<html><head><title>League</title></head><body>{new string('x', 10_001)}</body></html>");
         };
 
         var response = await Handler(observer, fetch).Dispatch(Request("GET", "/strategy/table-projections", ProjectionQuery()), new TestLambdaContext());

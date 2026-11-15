@@ -4,31 +4,17 @@ using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.Lambdas;
 
 public sealed class StrategyLambdasTests
 {
-    private static readonly string[] SourceNames =
-    [
-        "Divisions Teams List",
-        "Divisions Teams Players List",
-        "League Tables",
-        "Ranking",
-        "Fixtures"
-    ];
+    private static ActiveSeasonStrategyConfig Config() => Clttl2026TestConfig.Load();
 
-    private static ActiveSeasonStrategyConfig Config()
-    {
-        var sources = SourceNames.ToDictionary(
-            name => name,
-            name => new Uri(name == "Divisions Teams Players List"
-                ? "https://example.test/players?teamId="
-                : $"https://example.test/{Uri.EscapeDataString(name)}"),
-            StringComparer.Ordinal);
-        return new("CLTTL", "2026-2027", "TT365.CLTTLStrategy2026Processor", sources);
-    }
+    private static bool IsPlayersUri(Uri uri) =>
+        uri.OriginalString.StartsWith(Config().StrategySources["Divisions Teams Players List"].OriginalString, StringComparison.Ordinal);
 
     private static string ValidHtml(string? title = "League")
         => $"<html><head><title>{title}</title></head><body>{new string('x', 10_001)}</body></html>";
@@ -76,7 +62,7 @@ public sealed class StrategyLambdasTests
         await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
 
         requested.Should().HaveCount(5);
-        requested[1].Query.Should().Be("?teamId=75774");
+        requested[1].OriginalString.Should().Be(Config().StrategySources["Divisions Teams Players List"].OriginalString + "75774");
         observer.RuntimeRegularEvents.Should().ContainSingle()
             .Which.EventName.Should().Be("TABLE PROJECTIONS SOURCES VALIDATED");
     }
@@ -114,7 +100,7 @@ public sealed class StrategyLambdasTests
     [InlineData("not json")]
     public async Task TableProjections_RequiresNonEmptyObjectOrArrayForPlayersJson(string playerJson)
     {
-        var lambda = Projection(uri => Task.FromResult(uri.Query.Length > 0 ? playerJson : ValidHtml()));
+        var lambda = Projection(uri => Task.FromResult(IsPlayersUri(uri) ? playerJson : ValidHtml()));
 
         var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
 

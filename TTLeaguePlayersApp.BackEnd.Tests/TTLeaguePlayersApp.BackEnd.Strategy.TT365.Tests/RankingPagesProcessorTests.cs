@@ -3,36 +3,40 @@ using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
-public class RankingPagesFetcherTests
+public class RankingPagesProcessorTests
 {
-    private static readonly Uri RankingUriPrefix = new("https://www.tabletennis365.com/CentralLondon/Ranking?p=");
-    private static readonly Uri Page1Url = new("https://www.tabletennis365.com/CentralLondon/Ranking?p=1");
-    private static readonly Uri Page2Url = new("https://www.tabletennis365.com/CentralLondon/Ranking?p=2");
+    private static readonly IReadOnlyDictionary<string, Uri> StrategySources = Clttl2026TestConfig.Load().StrategySources;
+    private static readonly Uri Page1Url = new(StrategySources["Ranking"].OriginalString + "1");
+    private static readonly Uri Page2Url = new(StrategySources["Ranking"].OriginalString + "2");
 
     [Fact]
-    public async Task FetchRankingPagesAsync_FollowsConsecutivePagesAndStopsAtDisabledNext()
+    public async Task GetAllRankingPlayers_FollowsConsecutivePagesAndStopsAtDisabledNext()
     {
         var page1 = ReadFixture("RankingPage1.html");
         var page2 = ReadFixture("RankingPage2.html");
         var proxy = CreateProxy((Page1Url, page1), (Page2Url, page2));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var pages = await fetcher.FetchRankingPagesAsync();
+        var (players, anomalies) = await processor.GetAllRankingPlayers();
 
-        Assert.Equal([page1, page2], pages);
+        Assert.Equal(2050, players["Casey O'Brien"].CurrentRanking);
+        Assert.Equal(0, players["Riley & Morgan"].CurrentRanking);
+        Assert.Equal(1250, players["Jordan Smith"].CurrentRanking);
+        Assert.Contains(anomalies, anomaly => anomaly.Contains("Duplicate player", StringComparison.Ordinal));
         Assert.Equal([Page1Url, Page2Url], proxy.RequestedUrls);
     }
 
     [Fact]
-    public async Task FetchRankingPagesAsync_AcceptsAValidSinglePageRanking()
+    public async Task GetAllRankingPlayers_AcceptsAValidSinglePageRanking()
     {
         var onlyPage = CreatePage(currentPage: 1, lastPage: 1, rangeStart: 1, rangeEnd: 4, totalPlayers: 4, nextDisabled: true);
         var proxy = CreateProxy((Page1Url, onlyPage));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var pages = await fetcher.FetchRankingPagesAsync();
+        var (players, anomalies) = await processor.GetAllRankingPlayers();
 
-        Assert.Equal([onlyPage], pages);
+        Assert.Equal(1200, players["Player 1"].CurrentRanking);
+        Assert.Empty(anomalies);
         Assert.Equal([Page1Url], proxy.RequestedUrls);
     }
 
@@ -87,9 +91,9 @@ public class RankingPagesFetcherTests
     [InlineData("last-updated")]
     [InlineData("period-ending")]
     [InlineData("total")]
-    public async Task FetchRankingPagesAsync_RestartsWhenPageSnapshotChanges(string changedValue)
+    public async Task GetAllRankingPlayers_RestartsWhenPageSnapshotChanges(string changedValue)
     {
-        var firstSnapshotPage1 = CreatePage(1, 2, 1, 2, 4, lastUpdated: "12 Nov 2026", periodEnding: "31 Oct 2026");
+        var firstSnapshotPage1 = CreatePage(1, 2, 1, 2, 4, lastUpdated: "12 Nov 2026", periodEnding: "31 Oct 2026", playerName: "Old Snapshot");
         var secondSnapshotPage1 = CreatePage(1, 2, 1, 2, 5, lastUpdated: "13 Nov 2026", periodEnding: "30 Nov 2026");
         var inconsistentPage2 = changedValue switch
         {
@@ -102,81 +106,84 @@ public class RankingPagesFetcherTests
         var proxy = CreateProxy(
             (Page1Url, firstSnapshotPage1, secondSnapshotPage1),
             (Page2Url, inconsistentPage2, consistentPage2));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var acceptedPages = await fetcher.FetchRankingPagesAsync();
+        var (players, anomalies) = await processor.GetAllRankingPlayers();
 
-        Assert.Equal([secondSnapshotPage1, consistentPage2], acceptedPages);
+        Assert.Equal(1200, players["Player 1"].CurrentRanking);
+        Assert.Equal(1200, players["Player 2"].CurrentRanking);
+        Assert.DoesNotContain("Old Snapshot", players.Keys);
+        Assert.Empty(anomalies);
         Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
     }
 
     [Theory]
     [InlineData(4, 4)]
     [InlineData(2, 4)]
-    public async Task FetchRankingPagesAsync_RestartsAndThenFailsForGapsOrOverlaps(int secondPageRangeStart, int secondPageRangeEnd)
+    public async Task GetAllRankingPlayers_RestartsAndThenFailsForGapsOrOverlaps(int secondPageRangeStart, int secondPageRangeEnd)
     {
         var firstPage = CreatePage(1, 2, 1, 2, 4);
         var inconsistentSecondPage = CreatePage(2, 2, secondPageRangeStart, secondPageRangeEnd, 4, nextDisabled: true);
         var proxy = CreateRetryingProxy((Page1Url, firstPage), (Page2Url, inconsistentSecondPage));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => fetcher.FetchRankingPagesAsync());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
 
-        Assert.Contains("inconsistent after restarting once", exception.Message, StringComparison.Ordinal);
-        Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
+        Assert.Contains("inconsistent after three attempts", exception.Message, StringComparison.Ordinal);
+        Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
     }
 
     [Fact]
-    public async Task FetchRankingPagesAsync_RestartsWhenARepeatedPageBreaksTheRequestedPageSequence()
+    public async Task GetAllRankingPlayers_RestartsWhenARepeatedPageBreaksTheRequestedPageSequence()
     {
         var firstPage = CreatePage(1, 2, 1, 2, 4);
         var repeatedPage = CreatePage(1, 2, 1, 2, 4);
         var proxy = CreateRetryingProxy((Page1Url, firstPage), (Page2Url, repeatedPage));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fetcher.FetchRankingPagesAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
 
-        Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
+        Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
     }
 
     [Theory]
     [InlineData("Last updated:")]
     [InlineData("Showing 1–2 of 4 ranked players")]
-    public async Task FetchRankingPagesAsync_RestartsWhenRequiredMetadataIsMissing(string requiredMetadata)
+    public async Task GetAllRankingPlayers_RestartsWhenRequiredMetadataIsMissing(string requiredMetadata)
     {
         var malformedPage = CreatePage(1, 2, 1, 2, 4).Replace(requiredMetadata, "Missing metadata", StringComparison.Ordinal);
         var proxy = CreateRetryingProxy((Page1Url, malformedPage));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => fetcher.FetchRankingPagesAsync());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
 
-        Assert.Contains("inconsistent after restarting once", exception.Message, StringComparison.Ordinal);
-        Assert.Equal([Page1Url, Page1Url], proxy.RequestedUrls);
+        Assert.Contains("inconsistent after three attempts", exception.Message, StringComparison.Ordinal);
+        Assert.Equal([Page1Url, Page1Url, Page1Url], proxy.RequestedUrls);
     }
 
     [Fact]
-    public async Task FetchRankingPagesAsync_RestartsWhenDisabledNextConflictsWithTheLastPageAndCoverage()
+    public async Task GetAllRankingPlayers_RestartsWhenDisabledNextConflictsWithTheLastPageAndCoverage()
     {
         var pageWithConflictingSignals = CreatePage(1, 2, 1, 2, 4, nextDisabled: true);
         var proxy = CreateRetryingProxy((Page1Url, pageWithConflictingSignals));
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fetcher.FetchRankingPagesAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
 
-        Assert.Equal([Page1Url, Page1Url], proxy.RequestedUrls);
+        Assert.Equal([Page1Url, Page1Url, Page1Url], proxy.RequestedUrls);
     }
 
     [Fact]
-    public async Task FetchRankingPagesAsync_PropagatesProxyFailureWithoutRestartingCoverage()
+    public async Task GetAllRankingPlayers_PropagatesProxyFailureWithoutRestartingCoverage()
     {
         var fetchFailure = new HttpRequestException("configured network failure");
         var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
         {
             [Page1Url] = [ScraperProxyImpersonatorResponse.FromException(fetchFailure)]
         });
-        var fetcher = new CLTTLStrategy2026Fetcher(proxy, RankingUriPrefix);
+        var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var thrownException = await Assert.ThrowsAsync<HttpRequestException>(() => fetcher.FetchRankingPagesAsync());
+        var thrownException = await Assert.ThrowsAsync<HttpRequestException>(() => processor.GetAllRankingPlayers());
 
         Assert.Same(fetchFailure, thrownException);
         Assert.Equal([Page1Url], proxy.RequestedUrls);
@@ -191,6 +198,7 @@ public class RankingPagesFetcherTests
         new(responses.ToDictionary(
             response => response.Url,
             response => (IReadOnlyList<ScraperProxyImpersonatorResponse>)[
+                ScraperProxyImpersonatorResponse.FromContent(response.Content),
                 ScraperProxyImpersonatorResponse.FromContent(response.Content),
                 ScraperProxyImpersonatorResponse.FromContent(response.Content)]));
 
@@ -211,7 +219,8 @@ public class RankingPagesFetcherTests
         int totalPlayers,
         string lastUpdated = "12 Nov 2026",
         string periodEnding = "31 Oct 2026",
-        bool nextDisabled = false)
+        bool nextDisabled = false,
+        string? playerName = null)
     {
         var pageLinks = string.Join("", Enumerable.Range(1, lastPage).Select(pageNumber =>
             $"<li class=\"page-item {(pageNumber == currentPage ? "active" : string.Empty)}\"><a href=\"?p={pageNumber}\">{pageNumber}</a></li>"));
@@ -221,6 +230,10 @@ public class RankingPagesFetcherTests
             <!doctype html>
             <html><body>
               <div>Last updated:: {lastUpdated} · Period ending:: {periodEnding}</div>
+              <table class="tt-ranking-table"><tr>
+                <td class="tt-ranking-col-name"><a href="?id={currentPage}">{playerName ?? $"Player {currentPage}"}</a></td>
+                <td class="tt-ranking-col-current">1200</td>
+              </tr></table>
               <p>Showing {rangeStart}–{rangeEnd} of {totalPlayers} ranked players</p>
               <ul class="pagination">{pageLinks}<li class="page-item{disabledClass}"><a href="?p={currentPage + 1}">›</a></li></ul>
             </body></html>

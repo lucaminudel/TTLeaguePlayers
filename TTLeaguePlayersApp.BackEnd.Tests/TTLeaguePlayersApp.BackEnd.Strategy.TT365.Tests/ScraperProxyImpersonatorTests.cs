@@ -4,8 +4,9 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
 public class ScraperProxyImpersonatorTests
 {
-    private static readonly Uri RankingPage1Url = new("https://www.tabletennis365.com/CentralLondon/Ranking?p=1");
-    private static readonly Uri RankingPage2Url = new("https://www.tabletennis365.com/CentralLondon/Ranking?p=2");
+    private static readonly string RankingUriPrefix = Clttl2026TestConfig.Load().StrategySources["Ranking"].OriginalString;
+    private static readonly Uri RankingPage1Url = new(RankingUriPrefix + "1");
+    private static readonly Uri RankingPage2Url = new(RankingUriPrefix + "2");
 
     [Fact]
     public async Task FetchAsync_ReturnsTheFixtureConfiguredForTheExactUrl()
