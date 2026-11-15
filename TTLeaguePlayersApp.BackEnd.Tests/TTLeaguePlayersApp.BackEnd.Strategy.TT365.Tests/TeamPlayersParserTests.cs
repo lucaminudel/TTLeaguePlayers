@@ -114,10 +114,10 @@ public sealed class TeamPlayersParserTests
     [Fact]
     public void ParseTeamPlayers_GroupsOtherPlayersByCaseInsensitiveTeamNameInApiOrderAcrossDivisions()
     {
-        var requestedTeam = CreateTeam("Requested Team", "Division 1", 101);
-        var premierTeam = CreateTeam("Premier Team", "Premier", 1);
-        var sameDivisionTeam = CreateTeam("Same Division Team", "Division 1", 102);
-        var lowerDivisionTeam = CreateTeam("Lower Division Team", "Division 2", 201);
+        var requestedTeam = CreateTeam("Requested Team", 101);
+        var premierTeam = CreateTeam("Premier Team", 1);
+        var sameDivisionTeam = CreateTeam("Same Division Team", 102);
+        var lowerDivisionTeam = CreateTeam("Lower Division Team", 201);
         var allTeams = CreateTeams(requestedTeam, premierTeam, sameDivisionTeam, lowerDivisionTeam);
         var parser = new CLTTLStrategy2026Parser();
 
@@ -238,8 +238,8 @@ public sealed class TeamPlayersParserTests
         Assert.Contains(anomalies, anomaly => anomaly.Contains("team name", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static Team CreateTeam(string name, string divisionName = "Division 1", int teamId = 1) =>
-        new(new Division(divisionName), name, teamId);
+    private static Team CreateTeam(string name, int teamId = 1) =>
+        new(name, teamId);
 
     private static OrderedDictionary<string, Team> CreateTeams(params Team[] teams)
     {

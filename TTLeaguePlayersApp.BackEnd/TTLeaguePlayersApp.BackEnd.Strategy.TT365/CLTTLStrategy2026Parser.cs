@@ -182,12 +182,12 @@ public sealed class CLTTLStrategy2026Parser
         return true;
     }
     
-    public (OrderedDictionary<string, Division> AllDivisions, OrderedDictionary<string, Team> AllTeams) ParseDivisionsAndTeams(string html)
+    public (OrderedDictionary<string, Division> AllDivisions, OrderedDictionary<string, Team> AllTeams) ParseDivisionsAndTeams(string eligibilityPageHtml)
     {
-        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(eligibilityPageHtml);
 
         var document = new HtmlDocument();
-        document.LoadHtml(html);
+        document.LoadHtml(eligibilityPageHtml);
         var selector = document.DocumentNode.SelectSingleNode("//select[@id='teamSelect']");
         if (selector is null)
             throw new InvalidOperationException("The divisions and teams page has no team selector.");
@@ -231,13 +231,84 @@ public sealed class CLTTLStrategy2026Parser
                 if (allTeams.ContainsKey(teamName))
                     throw new InvalidOperationException($"The team selector contains duplicate team '{teamName}'.");
 
-                var team = new Team(division, teamName, teamId);
+                var team = new Team(teamName, teamId);
                 division.Teams.Add(teamName, team);
                 allTeams.Add(teamName, team);
             }
         }
 
         return (allDivisions, allTeams);
+    }
+
+    public OrderedDictionary<string, DivisionTable> ParseDivisionTables(string TablesPageHtml)
+    {
+        ArgumentNullException.ThrowIfNull(TablesPageHtml);
+
+        var document = new HtmlDocument();
+        document.LoadHtml(TablesPageHtml);
+        var sections = document.DocumentNode.SelectNodes(
+            "//div[contains(concat(' ', normalize-space(@class), ' '), ' tt-table-section ')]");
+        if (sections is null || sections.Count == 0)
+            throw new InvalidOperationException("The league tables page has no division table sections.");
+
+        var divisionTables = new OrderedDictionary<string, DivisionTable>(StringComparer.OrdinalIgnoreCase);
+        foreach (var section in sections)
+        {
+            var rawDivisionName = NormalizeHtmlName(section.SelectSingleNode(
+                ".//h3[contains(concat(' ', normalize-space(@class), ' '), ' tt-table-division-title ')]")?.InnerText ?? string.Empty);
+            if (rawDivisionName.Length == 0)
+                throw new InvalidOperationException("A league table division has no usable name.");
+
+            var divisionName = NormalizeDivisionName(rawDivisionName);
+            if (divisionTables.ContainsKey(divisionName))
+                throw new InvalidOperationException($"The league tables page contains duplicate division '{divisionName}'.");
+
+            var table = section.SelectSingleNode(
+                ".//table[contains(concat(' ', normalize-space(@class), ' '), ' tt-league-table ')]");
+            if (table is null)
+                throw new InvalidOperationException($"Division '{divisionName}' has no league table.");
+
+            var headerCells = table.SelectNodes("./thead/tr/th");
+            if (headerCells is null || headerCells.Count == 0)
+                throw new InvalidOperationException($"Division '{divisionName}' has no table headers.");
+
+            var headers = headerCells.Select(cell => NormalizeHtmlName(cell.InnerText)).ToArray();
+            if (headers.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException($"Division '{divisionName}' has an empty table header.");
+            if (headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length)
+                throw new InvalidOperationException($"Division '{divisionName}' has duplicate table headers.");
+
+            var columnIndexes = GetRequiredTableColumnIndexes(divisionName, headers);
+            var bodyRows = table.SelectNodes("./tbody/tr");
+            if (bodyRows is null || bodyRows.Count == 0)
+                throw new InvalidOperationException($"Division '{divisionName}' has no team rows.");
+
+            var divisionTable = new DivisionTable(divisionName);
+            var rowNumber = 0;
+            foreach (var row in bodyRows)
+            {
+                rowNumber++;
+                var cells = row.SelectNodes("./td");
+                if (cells is null || cells.Count != headers.Length)
+                    throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} does not match its table headers.");
+
+                var teamName = NormalizeHtmlName(cells[columnIndexes["Team"]].InnerText);
+                if (teamName.Length == 0)
+                    throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} has no team name.");
+                if (divisionTable.TeamsStanding.ContainsKey(teamName))
+                    throw new InvalidOperationException($"Division '{divisionName}' contains duplicate team '{teamName}'.");
+
+                divisionTable.TeamsStanding.Add(teamName, new TeamStanding(
+                    ParseTableInteger(cells[columnIndexes["P"]], divisionName, rowNumber, "played"),
+                    ParseTableInteger(cells[columnIndexes["SF"]], divisionName, rowNumber, "sets for"),
+                    ParseTableInteger(cells[columnIndexes["SA"]], divisionName, rowNumber, "sets against"),
+                    ParseTableInteger(cells[columnIndexes["Pts"]], divisionName, rowNumber, "points")));
+            }
+
+            divisionTables.Add(divisionName, divisionTable);
+        }
+
+        return divisionTables;
     }
 
     public IReadOnlyList<string> ParseTeamPlayers(string teamPlayersjson, Team requestedTeam, IReadOnlyDictionary<string, Team> allTeams)
@@ -306,6 +377,30 @@ public sealed class CLTTLStrategy2026Parser
 
         AddPlayerGroups(pendingGroups);
         return anomalies;
+    }
+    private static Dictionary<string, int> GetRequiredTableColumnIndexes(string divisionName, IReadOnlyList<string> headers)
+    {
+        var requiredColumns = new[] { "Team", "P", "SF", "SA", "Pts" };
+        var indexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < headers.Count; index++)
+            indexes.Add(headers[index], index);
+
+        foreach (var requiredColumn in requiredColumns)
+        {
+            if (!indexes.ContainsKey(requiredColumn))
+                throw new InvalidOperationException($"Division '{divisionName}' is missing the '{requiredColumn}' table header.");
+        }
+
+        return indexes;
+    }
+
+    private static int ParseTableInteger(HtmlNode cell, string divisionName, int rowNumber, string valueName)
+    {
+        var value = NormalizeHtmlName(cell.InnerText);
+        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsedValue))
+            throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} has an invalid {valueName} value.");
+
+        return parsedValue;
     }
 
     private static bool TryParseDate(string text, out DateOnly date)

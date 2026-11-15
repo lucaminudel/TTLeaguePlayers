@@ -33,7 +33,6 @@ public sealed class DivisionsTeamsParserTests
         Assert.Equal(75410, allTeams["north & south"].TeamId);
         Assert.Same(allTeams["NORTH & SOUTH"], allDivisions["division 1"].Teams["North & South"]);
         Assert.Same(allTeams["NORTH & SOUTH"], allDivisions["DIVISION 1"].Teams["north & south"]);
-        Assert.Same(allDivisions["Division 1"], allTeams["North & South"].Division);
         Assert.Empty(allTeams["North & South"].Players);
     }
 

@@ -14,4 +14,8 @@ public sealed class Division
     public string Name { get; }
 
     public OrderedDictionary<string, Team> Teams { get; }
+
+    public int? TeamsLookbackPeriod { get; set; }
+
+    public int? PlayersLookbackPeriod { get; set; }
 }

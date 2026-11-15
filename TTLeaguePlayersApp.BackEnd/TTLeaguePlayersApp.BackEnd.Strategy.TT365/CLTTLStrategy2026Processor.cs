@@ -38,6 +38,12 @@ public sealed class CLTTLStrategy2026Processor
         return (allDivisions, anomalies);
     }
 
+    public async Task<OrderedDictionary<string, DivisionTable>> GetAllDivisionTables()
+    {
+        var html = await _fetcher.FetchLeagueTablesAsync();
+        return _parser.ParseDivisionTables(html);
+    }
+
     public async Task<(IReadOnlyDictionary<string, Player> AllPlayers, IReadOnlyList<string> Anomalies)> GetAllRankingPlayers()
     {
         var rankingPages = await FetchRankingPagesAsync();

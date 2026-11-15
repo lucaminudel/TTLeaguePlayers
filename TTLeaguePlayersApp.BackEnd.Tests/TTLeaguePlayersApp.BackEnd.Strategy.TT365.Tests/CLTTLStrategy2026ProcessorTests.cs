@@ -31,8 +31,6 @@ public sealed class CLTTLStrategy2026ProcessorTests
         Assert.Equal(["Division 1", "Premier"], allDivisions.Keys);
         Assert.Equal(["Alpha", "Beta"], allDivisions["division 1"].Teams.Keys);
         Assert.Equal(["Alpha", "Beta", "Gamma"], allDivisions.Values.SelectMany(division => division.Teams.Keys));
-        Assert.Same(allDivisions["Division 1"], allDivisions["Division 1"].Teams["Alpha"].Division);
-        Assert.Same(allDivisions["Premier"], allDivisions["Premier"].Teams["Gamma"].Division);
         Assert.Equal(["Alpha One", "Alpha Two"], allDivisions["Division 1"].Teams["Alpha"].Players.Keys);
         Assert.Equal(["Beta One"], allDivisions["Division 1"].Teams["Beta"].Players.Keys);
         Assert.Equal(["Gamma One"], allDivisions["Premier"].Teams["Gamma"].Players.Keys);

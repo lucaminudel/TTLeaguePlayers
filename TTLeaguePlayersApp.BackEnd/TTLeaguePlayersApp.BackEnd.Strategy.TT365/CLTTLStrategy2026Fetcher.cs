@@ -8,11 +8,13 @@ public sealed class CLTTLStrategy2026Fetcher
     private const string RankingSourceName = "Ranking";
     private const string DivisionsTeamsListSourceName = "Divisions Teams List";
     private const string DivisionsTeamsPlayersListSourceName = "Divisions Teams Players List";
+    private const string LeagueTablesSourceName = "League Tables";
 
     private readonly IScraperProxy _scraperProxy;
     private readonly Uri _rankingPageUriPrefix;
     private readonly Uri _divisionsTeamsListUri;
     private readonly Uri _divisionsTeamsPlayersListUriPrefix;
+    private readonly Uri _leagueTablesUri;
 
     public CLTTLStrategy2026Fetcher(IScraperProxy scraperProxy, IReadOnlyDictionary<string, Uri> strategySources)
     {
@@ -22,6 +24,7 @@ public sealed class CLTTLStrategy2026Fetcher
         _rankingPageUriPrefix = GetRequiredSource(strategySources, RankingSourceName, "p=");
         _divisionsTeamsListUri = GetRequiredSource(strategySources, DivisionsTeamsListSourceName);
         _divisionsTeamsPlayersListUriPrefix = GetRequiredSource(strategySources, DivisionsTeamsPlayersListSourceName, "teamId=");
+        _leagueTablesUri = GetRequiredSource(strategySources, LeagueTablesSourceName);
 
         _scraperProxy = scraperProxy;
     }
@@ -34,6 +37,8 @@ public sealed class CLTTLStrategy2026Fetcher
     }
 
     public Task<string> FetchDivisionsAndTeamsAsync() => _scraperProxy.FetchAsync(_divisionsTeamsListUri);
+
+    public Task<string> FetchLeagueTablesAsync() => _scraperProxy.FetchAsync(_leagueTablesUri);
 
     public Task<string> FetchTeamPlayersAsync(string teamId)
     {
