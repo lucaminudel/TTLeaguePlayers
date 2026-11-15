@@ -12,7 +12,7 @@ public sealed class DivisionsTeamsFetcherTests
     [Fact]
     public async Task FetchDivisionsAndTeamsAsync_FetchesTheConfiguredSourceAndReturnsItsContent()
     {
-        const string html = "<select id=\"teamSelect\"></select>";
+        var html = ReadFixture("Eligibility.html");
         var proxy = CreateProxy((DivisionsTeamsListUri, html));
         var fetcher = new CLTTLStrategy2026Fetcher(proxy, StrategySources);
 
@@ -25,7 +25,7 @@ public sealed class DivisionsTeamsFetcherTests
     [Fact]
     public async Task FetchTeamPlayersAsync_AppendsTheEscapedTeamIdToTheConfiguredPrefix()
     {
-        const string json = "{\"teamPlayers\":[],\"otherPlayers\":[]}";
+        var json = ReadFixture("Morpeth10.json");
         var teamId = "team 75697";
         var expectedUri = new Uri(TeamPlayersUriPrefix.OriginalString + Uri.EscapeDataString(teamId));
         var proxy = CreateProxy((expectedUri, json));
@@ -60,4 +60,7 @@ public sealed class DivisionsTeamsFetcherTests
         {
             [response.Url] = [ScraperProxyImpersonatorResponse.FromContent(response.Content)]
         });
+
+    private static string ReadFixture(string name) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", name));
 }

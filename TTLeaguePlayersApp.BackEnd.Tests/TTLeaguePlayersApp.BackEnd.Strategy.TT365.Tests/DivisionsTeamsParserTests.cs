@@ -6,6 +6,15 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 public sealed class DivisionsTeamsParserTests
 {
     [Fact]
+    public void ParseDivisionsAndTeams_ReadsCapturedEligibilitySelector()
+    {
+        var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "Eligibility.html"));
+        var (_, teams) = new CLTTLStrategy2026Parser().ParseDivisionsAndTeams(html);
+
+        Assert.Equal(75706, teams["Morpeth 10"].TeamId);
+    }
+
+    [Fact]
     public void ParseDivisionsAndTeams_PreservesSelectorOrderAndSharesCaseInsensitiveTeamReferences()
     {
         const string html = """

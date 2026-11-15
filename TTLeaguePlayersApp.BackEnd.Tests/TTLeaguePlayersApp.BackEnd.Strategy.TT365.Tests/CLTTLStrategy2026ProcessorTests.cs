@@ -12,17 +12,12 @@ public sealed class CLTTLStrategy2026ProcessorTests
     [Fact]
     public async Task ProcessAsync_PreservesOrderAndSharedTeamsWhileReusingCompleteGroups()
     {
-        var divisionsHtml = """
-            <select id="teamSelect">
-              <optgroup label="Division One"><option value="11">Alpha</option><option value="12">Beta</option></optgroup>
-              <optgroup label="Premier"><option value="13">Gamma</option></optgroup>
-            </select>
-            """;
+        var divisionsHtml = ReadFixture("ProcessorTeams.html");
         var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "11");
         var proxy = CreateProxy(
             (DivisionsUri, ScraperProxyImpersonatorResponse.FromContent(divisionsHtml)),
             (alphaUri, ScraperProxyImpersonatorResponse.FromContent(
-                """{"teamPlayers":[{"name":"Alpha One"},{"name":"Alpha Two"}],"otherPlayers":[{"teamName":"Beta","name":"Beta One"},{"teamName":"Gamma","name":"Gamma One"}]}""")));
+                ReadFixture("GroupedRosters.json"))));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
         var (allDivisions, anomalies) = await processor.GetAllDivisionsWithTeamsAndPlayers();
@@ -40,17 +35,15 @@ public sealed class CLTTLStrategy2026ProcessorTests
     [Fact]
     public async Task ProcessAsync_FetchesEachStillEmptyTeamOnceAndContinuesAfterEmptyDirectRoster()
     {
-        var divisionsHtml = """
-            <select id="teamSelect"><optgroup label="Division One">
-              <option value="21">Alpha</option><option value="22">Beta</option>
-            </optgroup></select>
-            """;
-        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "21");
-        var betaUri = new Uri(PlayersUriPrefix.OriginalString + "22");
+        var divisionsHtml = ReadFixture("ProcessorTeams.html");
+        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "11");
+        var betaUri = new Uri(PlayersUriPrefix.OriginalString + "12");
+        var gammaUri = new Uri(PlayersUriPrefix.OriginalString + "13");
         var proxy = CreateProxy(
             (DivisionsUri, ScraperProxyImpersonatorResponse.FromContent(divisionsHtml)),
-            (alphaUri, ScraperProxyImpersonatorResponse.FromContent("""{"teamPlayers":[],"otherPlayers":[]}""")),
-            (betaUri, ScraperProxyImpersonatorResponse.FromContent("""{"teamPlayers":[{"name":"Beta Player"}],"otherPlayers":[]}""")));
+            (alphaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("EmptyRoster.json"))),
+            (betaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("SinglePlayerRoster.json"))),
+            (gammaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("EmptyRoster.json"))));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
         var (allDivisions, anomalies) = await processor.GetAllDivisionsWithTeamsAndPlayers();
@@ -58,25 +51,23 @@ public sealed class CLTTLStrategy2026ProcessorTests
         Assert.Empty(anomalies);
         Assert.Empty(allDivisions["Division 1"].Teams["Alpha"].Players);
         Assert.Equal(["Beta Player"], allDivisions["Division 1"].Teams["Beta"].Players.Keys);
-        Assert.Equal([DivisionsUri, alphaUri, betaUri], proxy.RequestedUrls);
+        Assert.Equal([DivisionsUri, alphaUri, betaUri, gammaUri], proxy.RequestedUrls);
     }
 
     [Fact]
     public async Task ProcessAsync_AccumulatesRecoverableAnomaliesAcrossFallbackRequests()
     {
-        var divisionsHtml = """
-            <select id="teamSelect"><optgroup label="Division One">
-              <option value="31">Alpha</option><option value="32">Beta</option>
-            </optgroup></select>
-            """;
-        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "31");
-        var betaUri = new Uri(PlayersUriPrefix.OriginalString + "32");
+        var divisionsHtml = ReadFixture("ProcessorTeams.html");
+        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "11");
+        var betaUri = new Uri(PlayersUriPrefix.OriginalString + "12");
+        var gammaUri = new Uri(PlayersUriPrefix.OriginalString + "13");
         var proxy = CreateProxy(
             (DivisionsUri, ScraperProxyImpersonatorResponse.FromContent(divisionsHtml)),
             (alphaUri, ScraperProxyImpersonatorResponse.FromContent(
-                """{"teamPlayers":[null,{"name":"Alpha Player"}]}""")),
+                ReadFixture("MalformedRoster.json"))),
             (betaUri, ScraperProxyImpersonatorResponse.FromContent(
-                """{"teamPlayers":[{"name":"Beta Player"}],"otherPlayers":[{"teamName":"Unknown Club","name":"Unknown Player"}]}""")));
+                ReadFixture("UnknownTeamRoster.json"))),
+            (gammaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("EmptyRoster.json"))));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
         var (allDivisions, anomalies) = await processor.GetAllDivisionsWithTeamsAndPlayers();
@@ -87,16 +78,14 @@ public sealed class CLTTLStrategy2026ProcessorTests
         Assert.Contains(anomalies, anomaly => anomaly.Contains("Unknown Club", StringComparison.Ordinal));
         Assert.Equal(["Alpha Player"], allDivisions["Division 1"].Teams["Alpha"].Players.Keys);
         Assert.Equal(["Beta Player"], allDivisions["Division 1"].Teams["Beta"].Players.Keys);
-        Assert.Equal([DivisionsUri, alphaUri, betaUri], proxy.RequestedUrls);
+        Assert.Equal([DivisionsUri, alphaUri, betaUri, gammaUri], proxy.RequestedUrls);
     }
 
     [Fact]
     public async Task ProcessAsync_PropagatesRequiredFetchFailureWithoutReturningPartialResult()
     {
-        var divisionsHtml = """
-            <select id="teamSelect"><optgroup label="Division One"><option value="41">Alpha</option></optgroup></select>
-            """;
-        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "41");
+        var divisionsHtml = ReadFixture("ProcessorTeams.html");
+        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "11");
         var expectedException = new InvalidOperationException("upstream unavailable");
         var proxy = CreateProxy(
             (DivisionsUri, ScraperProxyImpersonatorResponse.FromContent(divisionsHtml)),
@@ -108,6 +97,9 @@ public sealed class CLTTLStrategy2026ProcessorTests
         Assert.Same(expectedException, actualException);
         Assert.Equal([DivisionsUri, alphaUri], proxy.RequestedUrls);
     }
+
+    private static string ReadFixture(string name) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", name));
 
     private static ScraperProxyImpersonator CreateProxy(
         params (Uri Url, ScraperProxyImpersonatorResponse Response)[] responses) =>
