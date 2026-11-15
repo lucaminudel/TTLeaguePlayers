@@ -28,6 +28,31 @@ public class ScraperProxyTest
     }
 
     [Fact]
+    public async Task FetchAsync_RequestsCacheRevalidationOnEveryAttemptAndRepeatedFetch()
+    {
+        var noCacheHeaders = new List<bool>();
+        Task<HttpResponseMessage> Capture(HttpRequestMessage request, bool fail)
+        {
+            noCacheHeaders.Add(request.Headers.CacheControl?.NoCache == true);
+            return fail
+                ? Task.FromException<HttpResponseMessage>(new CurlException(CurlCode.CouldntConnect))
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        }
+
+        var handler = new SequenceHandler(
+            (request, _) => Capture(request, true),
+            (request, _) => Capture(request, false),
+            (request, _) => Capture(request, false));
+        using var proxy = CreateProxy(handler);
+        var source = new Uri("https://example.test/source");
+
+        await proxy.FetchAsync(source);
+        await proxy.FetchAsync(source);
+
+        Assert.Equal([true, true, true], noCacheHeaders);
+    }
+
+    [Fact]
     public async Task FetchAsync_UsesRetryBackoffWhenFailedAttemptAlreadyTookLongerThanRequestInterval()
     {
         var clock = new FakeClock();

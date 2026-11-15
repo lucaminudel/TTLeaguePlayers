@@ -1,5 +1,6 @@
 using CurlImpersonate.Enums;
 using CurlImpersonate.Http;
+using System.Net.Http.Headers;
 
 namespace TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy;
 
@@ -59,7 +60,9 @@ public sealed class ScraperProxy : IScraperProxy, IDisposable
             var attemptStartedAt = _getUtcNow();
             try
             {
-                using var response = await _httpClient.GetAsync(source);
+                using var request = new HttpRequestMessage(HttpMethod.Get, source);
+                request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+                using var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsStringAsync();
             }
