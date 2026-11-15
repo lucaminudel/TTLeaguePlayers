@@ -35,6 +35,12 @@ Codex use `.codex/coding-tasks/<task-slug>/orchestration-summary.md`; in Claude 
 both positive and negative decisions, including independent review passes. Use one short entry per
 decision and update it when the work finishes or circumstances change:
 
+**Decision-time gate:** write the decision entry before starting the corresponding inline work or
+dispatching an agent, including when the decision is to keep the work inline. Before starting each
+newly ready material work package, check that its entry exists. If a decision was missed, record it
+as a late correction with the actual timing; do not present a retrospective entry as decision-time
+evidence. After completion, append the observed outcome and link the supporting task evidence.
+
 - At decision time, record the date, phase or task, candidate scope, readiness, expected benefit
   versus overhead, and decision. Record the tradeoff even when the tool or session prevents
   dispatch. Distinguish work that is not worthwhile, work that is not ready, unavailable tools or

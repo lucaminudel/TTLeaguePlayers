@@ -562,12 +562,20 @@ Fastest compile check of production code *and* tests, before anything else:
 dotnet build TTLeaguePlayersApp.sln
 ```
 
-Then refresh the local SAM so it serves the new code. **Mandatory before the C# tests**, and if
-`sam local start-api` predates the build, restart it too (see *Triage*):
+Before C# tests, read and follow `prompts/workflow/instructions/BackEndVerificationCommands.md`
+and inspect `.vscode/tasks.json` for the `sam-refresh-build dev-env` task. Run that task when a
+task runner is available. In a shell-only environment, execute the task's configured command from
+the repository root and record that the command, rather than the task runner, was used. Currently it is:
 
 ```bash
 sam build --config-env dev
 ```
+
+The task and its configured shell command perform the same build; report which was invoked, without
+claiming a different build occurred. A successful refresh is sufficient for the running dev SAM server:
+do not check its process ID or restart it routinely. Restart only as the documented recovery step if
+an acceptance check shows that the refreshed code is not being served. On the documented sandbox
+network or local-socket failures, follow the retry instructions in `BackEndVerificationCommands.md`.
 
 Then the suite with the Cognito tests **excluded**:
 
@@ -888,7 +896,8 @@ until curl -s -o /dev/null http://127.0.0.1:3003/; do sleep 1; done; curl -s -o 
 - **Stop what you started, and only that** — when no more e2e runs are needed, and always before Tier 2
   (the pipeline would reuse your SAM instead of its clean-room build). Never stop a process the user started.
 - `sam build --config-env test` rewrites the shared `.aws-sam/build`, which a running dev SAM on 3000
-  also serves. Tell the user; their dev SAM may need restarting after a `sam build --config-env dev`.
+  also serves. Tell the user and refresh the dev build before dev checks; follow the stale-code recovery
+  guidance below if the refreshed code is not being served.
 - If DynamoDB on 8001 (`ttlp-dynamodb-test`, `scripts/local_dynamodb_setup/docker-compose.yml`) is not
   listening, stop and ask the user.
 
@@ -918,25 +927,17 @@ Codex environment instead of `run_in_background` or `Monitor`.
 
 ### Triage before blaming the change
 
-**Stale SAM is the most common false failure.** `sam build` only rewrites `.aws-sam/build`; a
-`sam local start-api` started *before* that build keeps serving warm containers from the replaced
-artifacts, producing HTTP 500s where a 2xx or 4xx was expected. Check whether the server predates
-the build, and restart it if so:
-
-```bash
-ps -eo pid,lstart,command | grep "sam local" | grep -v grep
-```
-
-```bash
-lsof -nP -iTCP:3000 -sTCP:LISTEN
-```
+**Suspected stale SAM:** follow `BackEndVerificationCommands.md`. After a successful dev refresh,
+do not inspect process age or routinely restart SAM. Investigate stale code only if an acceptance
+check shows behavior from before the refresh. For example, the following can help diagnose an API
+failure; an HTTP status alone does not prove that code is stale:
 
 ```bash
 curl -s -o /dev/null -w "http=%{http_code}\n" --max-time 8 http://localhost:3000/invites/does-not-exist
 ```
 
-A healthy dev API answers `400` there, not `500`. Restarting `sam local start-api` is the user's
-process — ask before killing it.
+A healthy dev API answers `400` there, not `500`. If stale code is established after refresh, restart
+as a recovery step. Do not stop a user-started process without permission.
 
 **The Cognito lockout — recognise it and STOP.** When a Cognito-touching test fails, look at the page
 snapshot or the error before re-running anything. This message is the lockout:
