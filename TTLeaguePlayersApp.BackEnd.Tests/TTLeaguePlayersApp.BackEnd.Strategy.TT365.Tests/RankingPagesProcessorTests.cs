@@ -44,8 +44,8 @@ public class RankingPagesProcessorTests
     public void TryParseRankingPageMetadata_ExtractsDatesRangeAndPaginationSignals()
     {
         var parser = new CLTTLStrategy2026Parser();
-        var page1 = CreatePage(1, 2, 1, 2, 4);
-        var page2 = CreatePage(2, 2, 3, 4, 4, nextDisabled: true);
+        var page1 = ParserPageImpersonator.Fetch("Ranking", CreatePage(1, 2, 1, 2, 4));
+        var page2 = ParserPageImpersonator.Fetch("Ranking", CreatePage(2, 2, 3, 4, 4, nextDisabled: true));
 
         Assert.True(parser.TryParseRankingPageMetadata(page1, out var firstPageMetadata));
         Assert.NotNull(firstPageMetadata);
@@ -69,8 +69,8 @@ public class RankingPagesProcessorTests
             finalPageMetadata.NextPage,
             finalPageMetadata.IsNextDisabled));
 
-        Assert.True(parser.TryParseRankingPageMetadata(ReadFixture("RankingPage1.html"), out var fixturePage1Metadata));
-        Assert.True(parser.TryParseRankingPageMetadata(ReadFixture("RankingPage2.html"), out var fixturePage2Metadata));
+        Assert.True(parser.TryParseRankingPageMetadata(ParserPageImpersonator.Fetch("Ranking", ReadFixture("RankingPage1.html")), out var fixturePage1Metadata));
+        Assert.True(parser.TryParseRankingPageMetadata(ParserPageImpersonator.Fetch("Ranking", ReadFixture("RankingPage2.html")), out var fixturePage2Metadata));
         Assert.Equal((1, 4, 6, 1, 2, false), (
             fixturePage1Metadata!.RangeStart,
             fixturePage1Metadata.RangeEnd,
@@ -223,21 +223,21 @@ public class RankingPagesProcessorTests
         string? playerName = null)
     {
         var pageLinks = string.Join("", Enumerable.Range(1, lastPage).Select(pageNumber =>
-            $"<li class=\"page-item {(pageNumber == currentPage ? "active" : string.Empty)}\"><a href=\"?p={pageNumber}\">{pageNumber}</a></li>"));
-        var disabledClass = nextDisabled ? " disabled" : string.Empty;
+            ReadFixture("PaginationLink.html")
+                .Replace("{{ACTIVE}}", pageNumber == currentPage ? "active" : string.Empty, StringComparison.Ordinal)
+                .Replace("{{PAGE}}", pageNumber.ToString(), StringComparison.Ordinal)));
 
-        return $"""
-            <!doctype html>
-            <html><body>
-              <div>Last updated:: {lastUpdated} · Period ending:: {periodEnding}</div>
-              <table class="tt-ranking-table"><tr>
-                <td class="tt-ranking-col-name"><a href="?id={currentPage}">{playerName ?? $"Player {currentPage}"}</a></td>
-                <td class="tt-ranking-col-current">1200</td>
-              </tr></table>
-              <p>Showing {rangeStart}–{rangeEnd} of {totalPlayers} ranked players</p>
-              <ul class="pagination">{pageLinks}<li class="page-item{disabledClass}"><a href="?p={currentPage + 1}">›</a></li></ul>
-            </body></html>
-            """;
+        return ReadFixture("RankingScenario.html")
+            .Replace("{{LAST_UPDATED}}", lastUpdated, StringComparison.Ordinal)
+            .Replace("{{PERIOD_ENDING}}", periodEnding, StringComparison.Ordinal)
+            .Replace("{{CURRENT_PAGE}}", currentPage.ToString(), StringComparison.Ordinal)
+            .Replace("{{PLAYER_NAME}}", playerName ?? $"Player {currentPage}", StringComparison.Ordinal)
+            .Replace("{{RANGE_START}}", rangeStart.ToString(), StringComparison.Ordinal)
+            .Replace("{{RANGE_END}}", rangeEnd.ToString(), StringComparison.Ordinal)
+            .Replace("{{TOTAL}}", totalPlayers.ToString(), StringComparison.Ordinal)
+            .Replace("{{PAGE_LINKS}}", pageLinks, StringComparison.Ordinal)
+            .Replace("{{DISABLED}}", nextDisabled ? " disabled" : string.Empty, StringComparison.Ordinal)
+            .Replace("{{NEXT_PAGE}}", (currentPage + 1).ToString(), StringComparison.Ordinal);
     }
 
     private static string ReadFixture(string fixtureName) =>

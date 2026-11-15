@@ -28,6 +28,10 @@
       <TargetPath>Fixtures/Eligibility/%(Filename)%(Extension)</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="TTLeaguePlayersApp.BackEnd.Strategy.TT365.Tests/Fixtures/Eligibility/TeamPlayers/*.json">
+      <TargetPath>Fixtures/Eligibility/TeamPlayers/%(Filename)%(Extension)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="TTLeaguePlayersApp.BackEnd.Strategy.TT365.Tests/Fixtures/LeagueTables/*.html">
       <TargetPath>Fixtures/LeagueTables/%(Filename)%(Extension)</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

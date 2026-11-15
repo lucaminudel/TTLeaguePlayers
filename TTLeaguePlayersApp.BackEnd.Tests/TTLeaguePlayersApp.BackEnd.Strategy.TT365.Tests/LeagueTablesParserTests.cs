@@ -10,7 +10,7 @@ public sealed class LeagueTablesParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        var tables = parser.ParseDivisionTables(ReadFixture());
+        var tables = parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", ReadFixture()));
 
         Assert.Equal(
             ["Premier", "Division 1", "Division 2", "Division 3", "Division 4", "Division 5", "Division 6", "Division 7"],
@@ -37,15 +37,9 @@ public sealed class LeagueTablesParserTests
     [Fact]
     public void ParseDivisionTables_PreservesZeroValuesAndNormalizesHtmlNames()
     {
-        const string html = """
-            <div class="tt-table-section"><h3 class="tt-table-division-title">Division One</h3>
-              <table class="tt-league-table"><thead><tr><th>#</th><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead>
-                <tbody><tr><td>1</td><td><a>North &amp; South&nbsp;1</a></td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody>
-              </table>
-            </div>
-            """;
+        var html = ReadScenario("PreservesZeroValuesAndNormalizesHtmlNames.html");
 
-        var tables = new CLTTLStrategy2026Parser().ParseDivisionTables(html);
+        var tables = new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", html));
 
         Assert.Equal(["Division 1"], tables.Keys);
         Assert.Equal(["North & South 1"], tables["Division 1"].TeamsStanding.Keys);
@@ -59,28 +53,21 @@ public sealed class LeagueTablesParserTests
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("<div class='tt-table-section'><h3 class='tt-table-division-title'>Premier</h3></div>")]
-    [InlineData("<div class='tt-table-section'><h3 class='tt-table-division-title'>Premier</h3><table class='tt-league-table'><thead><tr><th>#</th><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead><tbody></tbody></table></div>")]
-    [InlineData("<div class='tt-table-section'><h3 class='tt-table-division-title'>Premier</h3><table class='tt-league-table'><thead><tr><th>#</th><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead><tbody><tr><td>1</td><td>Team</td><td>x</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>")]
-    public void ParseDivisionTables_ThrowsForMissingOrMalformedRequiredStructure(string html)
+    [InlineData("Empty.html")]
+    [InlineData("MalformedStructure1.html")]
+    [InlineData("MalformedStructure2.html")]
+    [InlineData("MalformedStructure3.html")]
+    public void ParseDivisionTables_ThrowsForMissingOrMalformedRequiredStructure(string fixtureName)
     {
-        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(html));
+        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", ReadScenario(fixtureName))));
     }
 
     [Fact]
     public void ParseDivisionTables_PreservesRowOrderWithoutPositionColumn()
     {
-        const string html = """
-            <div class="tt-table-section"><h3 class="tt-table-division-title">Premier</h3>
-              <table class="tt-league-table"><thead><tr><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead>
-                <tbody><tr><td>Second alphabetically</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-                <tr><td>First alphabetically</td><td>1</td><td>2</td><td>3</td><td>4</td></tr></tbody>
-              </table>
-            </div>
-            """;
+        var html = ReadScenario("PreservesRowOrderWithoutPositionColumn.html");
 
-        var tables = new CLTTLStrategy2026Parser().ParseDivisionTables(html);
+        var tables = new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", html));
 
         Assert.Equal(["Second alphabetically", "First alphabetically"], tables["Premier"].TeamsStanding.Keys);
         Assert.Equal(1, tables["Premier"].TeamsStanding["First alphabetically"].Played);
@@ -89,36 +76,21 @@ public sealed class LeagueTablesParserTests
     [Fact]
     public void ParseDivisionTables_ThrowsWhenMalformedRowFollowsValidTeam()
     {
-        const string html = """
-            <div class="tt-table-section"><h3 class="tt-table-division-title">Premier</h3>
-              <table class="tt-league-table"><thead><tr><th>#</th><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead>
-                <tbody><tr><td>1</td><td>Team</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr></tr></tbody>
-              </table>
-            </div>
-            """;
+        var html = ReadScenario("ThrowsWhenMalformedRowFollowsValidTeam.html");
 
-        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(html));
+        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", html)));
     }
 
     [Fact]
     public void ParseDivisionTables_ThrowsForDuplicateHeadersAndTeamNames()
     {
-        const string duplicateHeaders = """
-            <div class="tt-table-section"><h3 class="tt-table-division-title">Premier</h3>
-              <table class="tt-league-table"><thead><tr><th>#</th><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th><th>Pts</th></tr></thead>
-                <tbody><tr><td>1</td><td>Team</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>
-            """;
-        const string duplicateTeams = """
-            <div class="tt-table-section"><h3 class="tt-table-division-title">Premier</h3>
-              <table class="tt-league-table"><thead><tr><th>#</th><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead>
-                <tbody><tr><td>1</td><td>Team</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-                <tr><td>2</td><td>team</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>
-            """;
+        var duplicateHeaders = ReadScenario("DuplicateHeaders.html");
+        var duplicateTeams = ReadScenario("DuplicateTeams.html");
 
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(duplicateHeaders));
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(duplicateTeams));
+        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateHeaders)));
+        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateTeams)));
     }
 
     [Fact]
@@ -137,4 +109,5 @@ public sealed class LeagueTablesParserTests
 
     private static string ReadFixture() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "LeagueTables.html"));
+    private static string ReadScenario(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", name));
 }

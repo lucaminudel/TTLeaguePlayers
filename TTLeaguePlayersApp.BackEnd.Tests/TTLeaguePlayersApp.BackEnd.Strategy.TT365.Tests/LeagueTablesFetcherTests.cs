@@ -9,7 +9,7 @@ public sealed class LeagueTablesFetcherTests
     public async Task FetchLeagueTablesAsync_FetchesTheConfiguredSourceOnce()
     {
         var source = Clttl2026TestConfig.Load().StrategySources["League Tables"];
-        const string html = "<div class='tt-table-section'></div>";
+        var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "LeagueTables.html"));
         var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
         {
             [source] = [ScraperProxyImpersonatorResponse.FromContent(html)]

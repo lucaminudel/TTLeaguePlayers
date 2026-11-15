@@ -9,7 +9,7 @@ public class RankingPagesParserTests
     public void ParseRankingPlayers_DecodesEntitiesKeepsZeroSkipsHiddenAndChoosesHigherDuplicateIdAcrossPages()
     {
         var parser = new CLTTLStrategy2026Parser();
-        var pages = new[] { ReadFixture("RankingPage1.html"), ReadFixture("RankingPage2.html") };
+        var pages = new[] { ParserPageImpersonator.Fetch("Ranking", ReadFixture("RankingPage1.html")), ParserPageImpersonator.Fetch("Ranking", ReadFixture("RankingPage2.html")) };
 
         var allPlayers = parser.ParseRankingPlayers(pages);
 
@@ -115,7 +115,7 @@ public class RankingPagesParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseRankingPlayers(["<html><body>no ranking table</body></html>"]));
+        Assert.Throws<InvalidOperationException>(() => parser.ParseRankingPlayers([ParserPageImpersonator.Fetch("Ranking", ReadFixture("MissingTable.html"))]));
     }
 
     private static string ReadFixture(string fixtureName) =>
@@ -125,13 +125,12 @@ public class RankingPagesParserTests
     {
         var memberLink = id is null
             ? name
-            : $"<a href=\"/CentralLondon/Ranking/Member?id={id}\">{name}</a>";
-        return $"<tr><td class=\"tt-ranking-col-name\">{memberLink}</td><td class=\"tt-ranking-col-current\">{current}</td></tr>";
+            : ReadFixture("MemberLink.html").Replace("{{ID}}", id.ToString(), StringComparison.Ordinal)
+                .Replace("{{NAME}}", name, StringComparison.Ordinal);
+        return ReadFixture("ParserRow.html").Replace("{{NAME}}", memberLink, StringComparison.Ordinal)
+            .Replace("{{CURRENT}}", current.ToString(), StringComparison.Ordinal);
     }
 
-    private static string RankingPage(string rows) => $"""
-        <!doctype html><html><body>
-        <table class="tt-ranking-table"><tbody>{rows}</tbody></table>
-        </body></html>
-        """;
+    private static string RankingPage(string rows) => ParserPageImpersonator.Fetch("Ranking",
+        ReadFixture("ParserPage.html").Replace("{{ROWS}}", rows, StringComparison.Ordinal));
 }

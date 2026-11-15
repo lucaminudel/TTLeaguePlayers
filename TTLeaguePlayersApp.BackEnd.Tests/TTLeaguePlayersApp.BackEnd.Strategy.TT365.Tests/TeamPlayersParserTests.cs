@@ -13,7 +13,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[{"name":"Zulu"},{"id":null,"name":"Alpha"},{"id":"invalid","name":"Middle"}],"otherPlayers":[]}""",
+            FetchFixture("PreservesRequestedRosterOrderAndDoesNotRequirePlayerIds.json"),
             requestedTeam,
             CreateTeams(requestedTeam));
 
@@ -29,7 +29,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[{}, {"name":"Valid Before"}, {"name":"  "}, {"name":"Valid After"}],"otherPlayers":[]}""",
+            FetchFixture("KeepsValidPlayersAroundMalformedEntriesAndReturnsAnomalies.json"),
             requestedTeam,
             CreateTeams(requestedTeam));
 
@@ -45,7 +45,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[],"otherPlayers":[]}""",
+            FetchFixture("AcceptsAnEmptyRequestedRoster.json"),
             requestedTeam,
             CreateTeams(requestedTeam));
 
@@ -54,58 +54,58 @@ public sealed class TeamPlayersParserTests
     }
 
     [Theory]
-    [InlineData("""{"teamPlayers":[{}],"otherPlayers":[]}""")]
-    [InlineData("""{"teamPlayers":[{"name":" "}],"otherPlayers":[]}""")]
-    [InlineData("""{"teamPlayers":[null],"otherPlayers":[]}""")]
-    public void ParseTeamPlayers_ThrowsWhenANonemptyRequestedRosterHasNoUsablePlayers(string json)
+    [InlineData("ThrowsWhenANonemptyRequestedRosterHasNoUsablePlayers.json") ]
+    [InlineData("ThrowsWhenANonemptyRequestedRosterHasNoUsablePlayers2.json") ]
+    [InlineData("ThrowsWhenANonemptyRequestedRosterHasNoUsablePlayers3.json") ]
+    public void ParseTeamPlayers_ThrowsWhenANonemptyRequestedRosterHasNoUsablePlayers(string fixtureName)
     {
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseTeamPlayers(
-            json,
+            FetchFixture(fixtureName),
             CreateTeam("Requested Team"),
             CreateTeams(CreateTeam("Requested Team"))));
     }
 
     [Theory]
-    [InlineData("not json")]
-    [InlineData("{" )]
-    public void ParseTeamPlayers_ThrowsWhenJsonIsInvalid(string json)
+    [InlineData("ThrowsWhenJsonIsInvalid.json") ]
+    [InlineData("ThrowsWhenJsonIsInvalid2.json") ]
+    public void ParseTeamPlayers_ThrowsWhenJsonIsInvalid(string fixtureName)
     {
         var requestedTeam = CreateTeam("Requested Team");
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.ThrowsAny<System.Text.Json.JsonException>(() => parser.ParseTeamPlayers(
-            json,
+            FetchFixture(fixtureName),
             requestedTeam,
             CreateTeams(requestedTeam)));
     }
 
     [Theory]
-    [InlineData("{}")]
-    [InlineData("""{"teamPlayers":null}""")]
-    [InlineData("""{"teamPlayers":{}}""")]
-    public void ParseTeamPlayers_ThrowsWhenRequestedRosterIsMissingOrNotAnArray(string json)
+    [InlineData("ThrowsWhenRequestedRosterIsMissingOrNotAnArray3.json") ]
+    [InlineData("ThrowsWhenRequestedRosterIsMissingOrNotAnArray.json") ]
+    [InlineData("ThrowsWhenRequestedRosterIsMissingOrNotAnArray2.json") ]
+    public void ParseTeamPlayers_ThrowsWhenRequestedRosterIsMissingOrNotAnArray(string fixtureName)
     {
         var requestedTeam = CreateTeam("Requested Team");
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseTeamPlayers(
-            json,
+            FetchFixture(fixtureName),
             requestedTeam,
             CreateTeams(requestedTeam)));
     }
 
     [Theory]
-    [InlineData("""{"teamPlayers":[{"name":"Direct"}]}""")]
-    [InlineData("""{"teamPlayers":[{"name":"Direct"}],"otherPlayers":null}""")]
-    [InlineData("""{"teamPlayers":[{"name":"Direct"}],"otherPlayers":{}}""")]
-    public void ParseTeamPlayers_ReportsUnavailableReusableRostersAndKeepsRequestedPlayers(string json)
+    [InlineData("ReportsUnavailableReusableRostersAndKeepsRequestedPlayers.json") ]
+    [InlineData("ReportsUnavailableReusableRostersAndKeepsRequestedPlayers2.json") ]
+    [InlineData("ReportsUnavailableReusableRostersAndKeepsRequestedPlayers3.json") ]
+    public void ParseTeamPlayers_ReportsUnavailableReusableRostersAndKeepsRequestedPlayers(string fixtureName)
     {
         var requestedTeam = CreateTeam("Requested Team");
         var parser = new CLTTLStrategy2026Parser();
 
-        var anomalies = parser.ParseTeamPlayers(json, requestedTeam, CreateTeams(requestedTeam));
+        var anomalies = parser.ParseTeamPlayers(FetchFixture(fixtureName), requestedTeam, CreateTeams(requestedTeam));
 
         Assert.Equal(["Direct"], requestedTeam.Players.Keys);
         Assert.Contains(anomalies, anomaly => anomaly.Contains("otherPlayers", StringComparison.Ordinal));
@@ -122,7 +122,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[],"otherPlayers":[{"teamName":"lower division team","name":"Lower Player"},{"teamName":"Premier Team","name":"Premier Player"},{"teamName":"SAME DIVISION TEAM","name":"Same One"},{"teamName":"Same Division Team","name":"Same Two"}]}""",
+            FetchFixture("GroupsOtherPlayersByCaseInsensitiveTeamNameInApiOrderAcrossDivisions.json"),
             requestedTeam,
             allTeams);
 
@@ -139,7 +139,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[],"otherPlayers":[{"teamName":"Not In Selector","name":"Unknown Player"}]}""",
+            FetchFixture("SkipsUnknownOtherPlayerTeamsAndRecordsAnAnomaly.json"),
             requestedTeam,
             CreateTeams(requestedTeam));
 
@@ -155,7 +155,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[],"otherPlayers":[{"teamName":"North\u00a0South","name":"Player"}]}""",
+            FetchFixture("MatchesNonbreakingSpaceInOtherTeamName.json"),
             requestedTeam, CreateTeams(requestedTeam, otherTeam));
 
         Assert.Empty(anomalies);
@@ -170,7 +170,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[],"otherPlayers":[{"teamName":"Reusable Team"},{"teamName":"Reusable Team","name":"Valid Player"}]}""",
+            FetchFixture("KeepsValidPlayersInAPartiallyMalformedReusableGroup.json"),
             requestedTeam,
             CreateTeams(requestedTeam, reusableTeam));
 
@@ -186,7 +186,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseTeamPlayers(
-            """{"teamPlayers":[],"otherPlayers":[{"teamName":"Reusable Team"}]}""",
+            FetchFixture("ThrowsWhenAReusableGroupContainsNoUsablePlayers.json"),
             requestedTeam,
             CreateTeams(requestedTeam, reusableTeam)));
     }
@@ -200,11 +200,11 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseTeamPlayers(
-            """{"teamPlayers":[{"name":"Old Player"}],"otherPlayers":[{"teamName":"Reusable Team"}]}""",
+            FetchFixture("DoesNotMutateTeamsWhenALaterGroupIsInvalid.json"),
             requestedTeam, teams));
         Assert.Empty(requestedTeam.Players);
 
-        parser.ParseTeamPlayers("""{"teamPlayers":[{"name":"Corrected Player"}],"otherPlayers":[]}""", requestedTeam, teams);
+        parser.ParseTeamPlayers(FetchFixture("DoesNotMutateTeamsWhenALaterGroupIsInvalid2.json"), requestedTeam, teams);
         Assert.Equal(["Corrected Player"], requestedTeam.Players.Keys);
     }
 
@@ -216,7 +216,7 @@ public sealed class TeamPlayersParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var anomalies = parser.ParseTeamPlayers(
-            """{"teamPlayers":[{"name":"Direct Player"}],"otherPlayers":[{"teamName":"Requested Team","name":"Grouped Player"}]}""",
+            FetchFixture("DoesNotReplaceOrMergeIntoAPopulatedTeam.json"),
             requestedTeam,
             CreateTeams(requestedTeam));
 
@@ -226,16 +226,22 @@ public sealed class TeamPlayersParserTests
     }
 
     [Theory]
-    [InlineData("""{"teamPlayers":[],"otherPlayers":[{}]}""")]
-    [InlineData("""{"teamPlayers":[],"otherPlayers":[{"teamName":" "}]}""")]
-    public void ParseTeamPlayers_ReportsOtherPlayerEntriesWithoutATeamName(string json)
+    [InlineData("ReportsOtherPlayerEntriesWithoutATeamName.json") ]
+    [InlineData("ReportsOtherPlayerEntriesWithoutATeamName2.json") ]
+    public void ParseTeamPlayers_ReportsOtherPlayerEntriesWithoutATeamName(string fixtureName)
     {
         var requestedTeam = CreateTeam("Requested Team");
         var parser = new CLTTLStrategy2026Parser();
 
-        var anomalies = parser.ParseTeamPlayers(json, requestedTeam, CreateTeams(requestedTeam));
+        var anomalies = parser.ParseTeamPlayers(FetchFixture(fixtureName), requestedTeam, CreateTeams(requestedTeam));
 
         Assert.Contains(anomalies, anomaly => anomaly.Contains("team name", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string FetchFixture(string name)
+    {
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "TeamPlayers", name));
+        return ParserPageImpersonator.FetchTeamPlayers(json, "1");
     }
 
     private static Team CreateTeam(string name, int teamId = 1) =>

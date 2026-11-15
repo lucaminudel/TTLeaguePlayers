@@ -9,7 +9,7 @@ public sealed class DivisionsTeamsParserTests
     public void ParseDivisionsAndTeams_ReadsCapturedEligibilitySelector()
     {
         var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "Eligibility.html"));
-        var (_, teams) = new CLTTLStrategy2026Parser().ParseDivisionsAndTeams(html);
+        var (_, teams) = new CLTTLStrategy2026Parser().ParseDivisionsAndTeams(ParserPageImpersonator.Fetch("Divisions Teams List", html));
 
         Assert.Equal(75706, teams["Morpeth 10"].TeamId);
     }
@@ -17,24 +17,10 @@ public sealed class DivisionsTeamsParserTests
     [Fact]
     public void ParseDivisionsAndTeams_PreservesSelectorOrderAndSharesCaseInsensitiveTeamReferences()
     {
-        const string html = """
-            <select id="teamSelect">
-              <option value="">Select a team</option>
-              <optgroup label=" Premier ">
-                <option value="75301">  Kings &amp; Queens  </option>
-                <option value="75302">Wimbledon</option>
-              </optgroup>
-              <optgroup label="Division One">
-                <option value="75410">North &amp; South</option>
-              </optgroup>
-              <optgroup label="County Cup">
-                <option value="75600">Old Town</option>
-              </optgroup>
-            </select>
-            """;
+        var html = ReadScenario("PreservesSelectorOrderAndSharesCaseInsensitiveTeamReferences.html");
         var parser = new CLTTLStrategy2026Parser();
 
-        var (allDivisions, allTeams) = parser.ParseDivisionsAndTeams(html);
+        var (allDivisions, allTeams) = parser.ParseDivisionsAndTeams(ParserPageImpersonator.Fetch("Divisions Teams List", html));
 
         Assert.Equal(["Premier", "Division 1", "County Cup"], allDivisions.Select(entry => entry.Key));
         Assert.Equal(["Kings & Queens", "Wimbledon", "North & South", "Old Town"], allTeams.Select(entry => entry.Key));
@@ -58,7 +44,7 @@ public sealed class DivisionsTeamsParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var (allDivisions, _) = parser.ParseDivisionsAndTeams(
-            Page($"<optgroup label=\"Division {wordNumber}\"><option value=\"1\">Team</option></optgroup>"));
+            Page(Group($"Division {wordNumber}", "1", "Team")));
 
         Assert.Contains($"Division {numericNumber}", allDivisions.Keys);
     }
@@ -74,7 +60,7 @@ public sealed class DivisionsTeamsParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(
-            Page($"<optgroup label=\"Premier\"><option value=\"{teamId}\">Team</option></optgroup>")));
+            Page(Group("Premier", teamId, "Team"))));
     }
 
     [Fact]
@@ -83,22 +69,22 @@ public sealed class DivisionsTeamsParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         var (_, allTeams) = parser.ParseDivisionsAndTeams(
-            Page("<option value=\"\">Select a team</option><optgroup label=\"Premier\"><option value=\"1\">Team</option></optgroup>"));
+            Page(ReadScenario("PlaceholderOption.html") + Group("Premier", "1", "Team")));
 
         Assert.Equal(["Team"], allTeams.Keys);
     }
 
     [Theory]
-    [InlineData("<div>missing selector</div>")]
-    [InlineData("<select id=\"teamSelect\"></select>")]
-    [InlineData("<select id=\"teamSelect\"><optgroup><option value=\"1\">Team</option></optgroup></select>")]
-    [InlineData("<select id=\"teamSelect\"><optgroup label=\"Premier\"><option value=\"1\"></option></optgroup></select>")]
-    [InlineData("<select id=\"teamSelect\"><optgroup label=\"Premier\"></optgroup></select>")]
-    public void ParseDivisionsAndTeams_ThrowsWhenRequiredSelectorStructureIsMissing(string html)
+    [InlineData("MalformedStructure1.html")]
+    [InlineData("MalformedStructure2.html")]
+    [InlineData("MalformedStructure3.html")]
+    [InlineData("MalformedStructure4.html")]
+    [InlineData("MalformedStructure5.html")]
+    public void ParseDivisionsAndTeams_ThrowsWhenRequiredSelectorStructureIsMissing(string fixtureName)
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(html));
+        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(ParserPageImpersonator.Fetch("Divisions Teams List", ReadScenario(fixtureName))));
     }
 
     [Fact]
@@ -107,8 +93,7 @@ public sealed class DivisionsTeamsParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(Page(
-            "<optgroup label=\"Division One\"><option value=\"1\">First</option></optgroup>"
-            + "<optgroup label=\"division 1\"><option value=\"2\">Second</option></optgroup>")));
+            Group("Division One", "1", "First") + Group("division 1", "2", "Second"))));
     }
 
     [Theory]
@@ -119,9 +104,14 @@ public sealed class DivisionsTeamsParserTests
         var parser = new CLTTLStrategy2026Parser();
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(Page(
-            $"<optgroup label=\"{firstDivision}\"><option value=\"1\">Same Team</option></optgroup>"
-            + $"<optgroup label=\"{secondDivision}\"><option value=\"2\">same team</option></optgroup>")));
+            Group(firstDivision, "1", "Same Team") + Group(secondDivision, "2", "same team"))));
     }
 
-    private static string Page(string groups) => $"<select id=\"teamSelect\">{groups}</select>";
+    private static string Page(string groups) => ParserPageImpersonator.Fetch("Divisions Teams List", ReadScenario("SelectorTemplate.html").Replace("{{GROUPS}}", groups, StringComparison.Ordinal));
+    private static string Group(string label, string id, string name) => ReadScenario("GroupTemplate.html")
+        .Replace("{{LABEL}}", label, StringComparison.Ordinal)
+        .Replace("{{ID}}", id, StringComparison.Ordinal)
+        .Replace("{{NAME}}", name, StringComparison.Ordinal);
+
+    private static string ReadScenario(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", name));
 }
