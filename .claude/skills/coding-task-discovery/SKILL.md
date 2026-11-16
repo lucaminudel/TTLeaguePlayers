@@ -81,8 +81,7 @@ question does not belong in the report.
 
 ## Phase 2 — Agree the topic list
 
-Turn what they gave you into an explicit, numbered list of topics and questions, and present it
-before exploring. Separate:
+Turn what they gave you into an explicit, numbered list of topics and questions in the report. Separate:
 
 - **Domain topics** — concepts, rules, actors, lifecycles, vocabulary. What the app means.
 - **Technical topics** — structure, call chains, data sources, contracts, environments, testing.
@@ -91,16 +90,18 @@ before exploring. Separate:
 Add topics and questions of your own that the framing implies but the user did not name, and mark
 them as yours so they can drop them. Note the ones you judge highest-risk — the ones where being
 wrong would cost the most later — and propose starting there.
-Apply the scope-impact rule in *Standing rules* when presenting this list.
+Apply the scope-impact rule in *Standing rules* to this list.
 
-Get agreement on the list before phase 3. The list is not frozen (see *Standing rules*), only
-agreed.
+Proceed with the scope supplied by the user. Ask about the topic list only when a material scope question requires the user’s input. The list remains open (see *Standing rules*).
 
 ## Phase 3 — Explore and discuss
 
-For each topic in turn: explore it, write up the findings, **present them, and wait** for the user
-to react before moving to the next. They may accept it, correct it, ask for more depth, or open a
-new topic on the spot. Do not batch the whole exploration and present it at the end.
+Explore each topic and write findings to the report as you go. Present findings during exploration
+when asking the user a question or answering a question they raised. Continue to the next topic
+without waiting for a routine acknowledgement. If a material decision requires the user’s answer,
+ask and continue independent work while waiting. The user may add topics or correct findings at any time.
+This phase-specific interaction rule takes precedence over the shared orchestration guidance that
+says to present and wait after each Discovery topic.
 
 A topic is done when the answers are **detailed enough to act on** — concrete values, exact paths,
 named identifiers, real examples — not when they are merely plausible.
@@ -177,7 +178,7 @@ durable facts only; task artifacts are found by path, not by recall. The `<slug>
 in Phase 1, from the task framing — state it to the user, and record it in the report's frontmatter
 so the later skills resolve the same directory.
 
-Write it **as you go**, appending each topic's findings when you present them — not once at the end.
+Write it **as you go**, appending each topic’s findings as they are established — not once at the end.
 If the session is interrupted, what is on disk is what survives.
 
 The file carries:
@@ -217,11 +218,7 @@ repository. Resolve `<task-slug>` by inspecting `.codex/coding-tasks/` and reusi
 
 ## Phase 5 — Exhaust and verify
 
-Only when the topic list is exhausted. Before declaring that, **ask explicitly** whether there are
-more topics, sub-topics, questions or follow-ups — the user often has one more once they see the
-shape of what you found.
-
-Then:
+When the topic list is exhausted, verify and reconcile the report without an additional pause:
 
 1. **Verify and double-check the findings.** Go back over the report and re-confirm each one against
    the real source, not against your notes. Cited file:line still says what you claimed; the URL
@@ -242,8 +239,8 @@ Then:
    confirmed requirements and constraints, evidence and its limits, current state, open questions,
    and references needed to start Inception without the conversation. Record the check and fill
    any gaps; distinguish unknowns from established facts.
-5. **Present the final document** and ask whether it is complete or whether there is more to
-   explore. Wait. Expect rounds; fold each one in and re-present.
+5. **Present the final document** after verification, noting outstanding questions and limitations.
+   Incorporate any follow-up the user supplies.
 
 After the retrospective, tell the user the report is ready and where it is. Do not start
 `coding-task-inception` yourself; starting inception is their call.
@@ -254,25 +251,18 @@ Retrospect (reflect on the work just completed with this coding-task-discovery S
 list what worked well, what did not work well, what challenges were met, and suggest improvements 
 to the skill) on the **Discovery workflow itself** after the findings report is settled. Assess how
 the framing, evidence gathering, scope decisions and hand-off worked. Technical findings alone do
-not satisfy this retrospective. Present supported improvements to this skill, or say explicitly
-that none were identified.
+not satisfy this retrospective. Record supported improvements to this skill, or record that none
+were identified, and include them with the final report.
 
-Ask the user specifically whether they want to add or change anything about the **Coding Task
-Discovery workflow**, and wait for their answer. An answer to another phase's retrospective, or a
-generic earlier answer, does not count. Consider the retrospective suggestions, including the
-user's, for improvements to this skill; evaluate which are useful and applicable, make changes when
-explicitly authorized, and record the changes made or the reason for leaving suggestions unapplied.
-Address the answer before closing; an explicit decision to skip the Discovery retrospective also
-permits closure.
-
-Record a distinct `Discovery retrospective` outcome in this task's `discovery.md`: workflow
-lessons, skill changes made (or none), and the user's Discovery-specific answer or explicit skip.
+Record a distinct `Discovery retrospective` outcome in this task's `discovery.md`, including
+workflow lessons and any skill changes made or suggested. Include the user's Discovery-specific
+feedback when supplied. Ask a question only when their input is needed to resolve a material issue.
+Evaluate and apply skill changes only when authorized.
 
 ## Phase 7 — Close
 
 Before closing, check that `discovery.md` contains the distinct Discovery retrospective outcome
-from Phase 6, including the user's Discovery-specific answer or explicit skip. Complete Phase 6 if
-it is missing; another phase's retrospective cannot fill this gate.
+from Phase 6 and any feedback the user supplied.
 
 **Tell the user** — you cannot run this yourself; `/compact` is a command they type:
 
@@ -292,9 +282,8 @@ considered for the task, explicitly flag to the user any item whose implementati
 blast radius, requires significant time or effort, or carries high risk or impact. Call out which
 of these applies, why, and the affected users, systems or dependencies, using the available
 evidence. Distinguish confirmed consequences from estimates and unknowns; do not invent precise
-effort estimates. Highlight these items when first presenting the topic list and whenever later
-findings reveal or materially change their significance, and preserve the callouts in the findings
-report. This informs scope decisions; it does not authorize implementation or turn discovery into
+effort estimates. Record these items in the findings report when identified and update them as evidence changes.
+Surface significant callouts when presenting the final report or asking a related user question. This informs scope decisions; it does not authorize implementation or turn discovery into
 a plan.
 
 **The topic list is open, always.** At any point the user may add a topic, add a sub-topic, ask a
@@ -323,7 +312,7 @@ ends as the user left it, except for this workflow's report, task metadata and s
 - Describing an external data source without fetching it.
 - Recording a finding without a file:line, URL or command backing it.
 - Declaring a topic done at "plausible" rather than at "detailed enough to act on".
-- Closing out without asking whether more topics or follow-ups remain.
+- Stopping for routine acknowledgement after each topic or before final verification.
 - Skipping the double-check of findings written earlier in the session.
 - Keeping the report only in the conversation, where the next session cannot read it.
 - Running builds or tests against the shared local services without asking.
