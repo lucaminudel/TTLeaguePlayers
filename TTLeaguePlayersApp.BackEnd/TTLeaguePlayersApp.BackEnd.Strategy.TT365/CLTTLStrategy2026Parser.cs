@@ -240,77 +240,6 @@ public sealed class CLTTLStrategy2026Parser
         return (allDivisions, allTeams);
     }
 
-    public OrderedDictionary<string, DivisionTable> ParseDivisionTables(string TablesPageHtml)
-    {
-        ArgumentNullException.ThrowIfNull(TablesPageHtml);
-
-        var document = new HtmlDocument();
-        document.LoadHtml(TablesPageHtml);
-        var sections = document.DocumentNode.SelectNodes(
-            "//div[contains(concat(' ', normalize-space(@class), ' '), ' tt-table-section ')]");
-        if (sections is null || sections.Count == 0)
-            throw new InvalidOperationException("The league tables page has no division table sections.");
-
-        var divisionTables = new OrderedDictionary<string, DivisionTable>(StringComparer.OrdinalIgnoreCase);
-        foreach (var section in sections)
-        {
-            var rawDivisionName = NormalizeHtmlName(section.SelectSingleNode(
-                ".//h3[contains(concat(' ', normalize-space(@class), ' '), ' tt-table-division-title ')]")?.InnerText ?? string.Empty);
-            if (rawDivisionName.Length == 0)
-                throw new InvalidOperationException("A league table division has no usable name.");
-
-            var divisionName = NormalizeDivisionName(rawDivisionName);
-            if (divisionTables.ContainsKey(divisionName))
-                throw new InvalidOperationException($"The league tables page contains duplicate division '{divisionName}'.");
-
-            var table = section.SelectSingleNode(
-                ".//table[contains(concat(' ', normalize-space(@class), ' '), ' tt-league-table ')]");
-            if (table is null)
-                throw new InvalidOperationException($"Division '{divisionName}' has no league table.");
-
-            var headerCells = table.SelectNodes("./thead/tr/th");
-            if (headerCells is null || headerCells.Count == 0)
-                throw new InvalidOperationException($"Division '{divisionName}' has no table headers.");
-
-            var headers = headerCells.Select(cell => NormalizeHtmlName(cell.InnerText)).ToArray();
-            if (headers.Any(string.IsNullOrWhiteSpace))
-                throw new InvalidOperationException($"Division '{divisionName}' has an empty table header.");
-            if (headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length)
-                throw new InvalidOperationException($"Division '{divisionName}' has duplicate table headers.");
-
-            var columnIndexes = GetRequiredTableColumnIndexes(divisionName, headers);
-            var bodyRows = table.SelectNodes("./tbody/tr");
-            if (bodyRows is null || bodyRows.Count == 0)
-                throw new InvalidOperationException($"Division '{divisionName}' has no team rows.");
-
-            var divisionTable = new DivisionTable(divisionName);
-            var rowNumber = 0;
-            foreach (var row in bodyRows)
-            {
-                rowNumber++;
-                var cells = row.SelectNodes("./td");
-                if (cells is null || cells.Count != headers.Length)
-                    throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} does not match its table headers.");
-
-                var teamName = NormalizeHtmlName(cells[columnIndexes["Team"]].InnerText);
-                if (teamName.Length == 0)
-                    throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} has no team name.");
-                if (divisionTable.TeamsStanding.ContainsKey(teamName))
-                    throw new InvalidOperationException($"Division '{divisionName}' contains duplicate team '{teamName}'.");
-
-                divisionTable.TeamsStanding.Add(teamName, new TeamStanding(
-                    ParseTableInteger(cells[columnIndexes["P"]], divisionName, rowNumber, "played"),
-                    ParseTableInteger(cells[columnIndexes["SF"]], divisionName, rowNumber, "sets for"),
-                    ParseTableInteger(cells[columnIndexes["SA"]], divisionName, rowNumber, "sets against"),
-                    ParseTableInteger(cells[columnIndexes["Pts"]], divisionName, rowNumber, "points")));
-            }
-
-            divisionTables.Add(divisionName, divisionTable);
-        }
-
-        return divisionTables;
-    }
-
     public IReadOnlyList<string> ParseTeamPlayers(string teamPlayersjson, Team requestedTeam, IReadOnlyDictionary<string, Team> allTeams)
     {
         ArgumentNullException.ThrowIfNull(teamPlayersjson);
@@ -378,6 +307,167 @@ public sealed class CLTTLStrategy2026Parser
         AddPlayerGroups(pendingGroups);
         return anomalies;
     }
+
+    public OrderedDictionary<string, DivisionTable> ParseDivisionTables(string tablesPageHtml)
+    {
+        ArgumentNullException.ThrowIfNull(tablesPageHtml);
+
+        var document = new HtmlDocument();
+        document.LoadHtml(tablesPageHtml);
+        var sections = document.DocumentNode.SelectNodes(
+            "//div[contains(concat(' ', normalize-space(@class), ' '), ' tt-table-section ')]");
+        if (sections is null || sections.Count == 0)
+            throw new InvalidOperationException("The league tables page has no division table sections.");
+
+        var divisionTables = new OrderedDictionary<string, DivisionTable>(StringComparer.OrdinalIgnoreCase);
+        foreach (var section in sections)
+        {
+            var rawDivisionName = NormalizeHtmlName(section.SelectSingleNode(
+                ".//h3[contains(concat(' ', normalize-space(@class), ' '), ' tt-table-division-title ')]")?.InnerText ?? string.Empty);
+            if (rawDivisionName.Length == 0)
+                throw new InvalidOperationException("A league table division has no usable name.");
+
+            var divisionName = NormalizeDivisionName(rawDivisionName);
+            if (divisionTables.ContainsKey(divisionName))
+                throw new InvalidOperationException($"The league tables page contains duplicate division '{divisionName}'.");
+
+            var table = section.SelectSingleNode(
+                ".//table[contains(concat(' ', normalize-space(@class), ' '), ' tt-league-table ')]");
+            if (table is null)
+                throw new InvalidOperationException($"Division '{divisionName}' has no league table.");
+
+            var headerCells = table.SelectNodes("./thead/tr/th");
+            if (headerCells is null || headerCells.Count == 0)
+                throw new InvalidOperationException($"Division '{divisionName}' has no table headers.");
+
+            var headers = headerCells.Select(cell => NormalizeHtmlName(cell.InnerText)).ToArray();
+            if (headers.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException($"Division '{divisionName}' has an empty table header.");
+            if (headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length)
+                throw new InvalidOperationException($"Division '{divisionName}' has duplicate table headers.");
+
+            var columnIndexes = GetRequiredTableColumnIndexes(divisionName, headers);
+            var bodyRows = table.SelectNodes("./tbody/tr");
+            if (bodyRows is null || bodyRows.Count == 0)
+                throw new InvalidOperationException($"Division '{divisionName}' has no team rows.");
+
+            var divisionTable = new DivisionTable(divisionName);
+            var rowNumber = 0;
+            foreach (var row in bodyRows)
+            {
+                rowNumber++;
+                var cells = row.SelectNodes("./td");
+                if (cells is null || cells.Count != headers.Length)
+                    throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} does not match its table headers.");
+
+                var teamName = NormalizeHtmlName(cells[columnIndexes["Team"]].InnerText);
+                if (teamName.Length == 0)
+                    throw new InvalidOperationException($"Division '{divisionName}' row {rowNumber} has no team name.");
+                if (divisionTable.TeamsStanding.ContainsKey(teamName))
+                    throw new InvalidOperationException($"Division '{divisionName}' contains duplicate team '{teamName}'.");
+
+                divisionTable.TeamsStanding.Add(teamName, new TeamStanding(
+                    ParseTableInteger(cells[columnIndexes["P"]], divisionName, rowNumber, "played"),
+                    ParseTableInteger(cells[columnIndexes["SF"]], divisionName, rowNumber, "sets for"),
+                    ParseTableInteger(cells[columnIndexes["SA"]], divisionName, rowNumber, "sets against"),
+                    ParseTableInteger(cells[columnIndexes["Pts"]], divisionName, rowNumber, "points")));
+            }
+
+            divisionTables.Add(divisionName, divisionTable);
+        }
+
+        return divisionTables;
+    }
+
+    public OrderedDictionary<string, List<Fixture>> ParseDivisionFixtures(string fixturesPageHtml)
+    {
+        ArgumentNullException.ThrowIfNull(fixturesPageHtml);
+        var document = new HtmlDocument();
+        document.LoadHtml(fixturesPageHtml);
+        var elements = document.DocumentNode.SelectNodes(
+            "//h3[contains(concat(' ', normalize-space(@class), ' '), ' tt-potm-division-title ')] | " +
+            "//div[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-week-header ')] | " +
+            "//table[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-table ')]");
+        if (elements is null)
+            throw new InvalidOperationException("The fixtures page has no division fixtures.");
+
+        var divisions = new OrderedDictionary<string, List<Fixture>>(StringComparer.OrdinalIgnoreCase);
+        List<Fixture>? currentDivision = null;
+        string? currentDivisionName = null;
+        (DateOnly Start, DateOnly End)? currentWeek = null;
+        var divisionHasTable = false;
+        var scoredCount = 0;
+        var scoredWithPlayers = 0;
+        var walkovers = 0;
+
+        foreach (var element in elements)
+        {
+            if (HasClass(element, "tt-potm-division-title"))
+            {
+                if (currentWeek is not null)
+                    throw new InvalidOperationException("A fixtures week is missing its fixture table.");
+                if (currentDivision is not null && !divisionHasTable)
+                    throw new InvalidOperationException($"Division '{currentDivisionName}' has no fixture table.");
+                var name = NormalizeDivisionName(NormalizeHtmlName(element.InnerText));
+                if (string.IsNullOrWhiteSpace(name) || divisions.ContainsKey(name))
+                    throw new InvalidOperationException($"Fixtures page contains an empty or duplicate division name '{name}'.");
+                currentDivisionName = name;
+                currentDivision = [];
+                divisions.Add(name, currentDivision);
+                currentWeek = null;
+                divisionHasTable = false;
+                walkovers = 0;
+            }
+            else if (HasClass(element, "tt-fixture-week-header"))
+            {
+                if (currentDivision is null || currentWeek is not null)
+                    throw new InvalidOperationException("A fixtures week is missing its division or fixture table.");
+                var nextElement = element.NextSibling;
+                while (nextElement is not null && nextElement.NodeType != HtmlNodeType.Element)
+                    nextElement = nextElement.NextSibling;
+                if (nextElement is not null && HasClass(nextElement, "tt-fixture-skipped"))
+                    continue;
+                currentWeek = ParseFixtureWeek(element);
+            }
+            else
+            {
+                if (currentDivision is null || currentWeek is null)
+                    throw new InvalidOperationException("A fixture table is missing its division or week.");
+                var rows = element.SelectNodes("./tbody/tr");
+                if (rows is null || rows.Count == 0)
+                    throw new InvalidOperationException($"Division '{currentDivisionName}' has an empty fixture table.");
+                foreach (var row in rows)
+                {
+                    if (row.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-badge-void ')]") is not null)
+                        continue;
+                    var fixture = ParseFixture(row, currentWeek.Value);
+                    currentDivision.Add(fixture);
+                    if (!fixture.Played)
+                        continue;
+                    scoredCount++;
+                    if (fixture.HomeTeamPlayersScore.Count == 0 && fixture.AwayTeamPlayersScore.Count == 0)
+                    {
+                        if (++walkovers > 5)
+                            throw new InvalidOperationException($"Division '{currentDivisionName}' has more than five scored fixtures without player wins.");
+                    }
+                    else
+                        scoredWithPlayers++;
+                }
+                divisionHasTable = true;
+                currentWeek = null;
+            }
+        }
+        if (currentDivision is null || !divisionHasTable || currentWeek is not null)
+            throw new InvalidOperationException("The fixtures page has an incomplete division or week.");
+        if (scoredCount > 0 && scoredWithPlayers == 0)
+            throw new InvalidOperationException("All scored fixtures on the page are missing player wins.");
+        return divisions;
+    }
+
+    //
+    // Private members
+    //
+
     private static Dictionary<string, int> GetRequiredTableColumnIndexes(string divisionName, IReadOnlyList<string> headers)
     {
         var requiredColumns = new[] { "Team", "P", "SF", "SA", "Pts" };
@@ -392,6 +482,111 @@ public sealed class CLTTLStrategy2026Parser
         }
 
         return indexes;
+    }
+
+    private static (DateOnly Start, DateOnly End) ParseFixtureWeek(HtmlNode header)
+    {
+        var period = header.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-week-period ')]");
+        var dates = Regex.Matches(NormalizeHtmlName(period?.InnerText ?? string.Empty), @"\d{1,2}\s+[A-Za-z]+\s+\d{4}");
+        if (dates.Count != 2 || !TryParseDate(dates[0].Value, out var start) || !TryParseDate(dates[1].Value, out var end) || end < start)
+            throw new InvalidOperationException("A fixture week has an invalid date range.");
+        return (start, end);
+    }
+
+    private static Fixture ParseFixture(HtmlNode row, (DateOnly Start, DateOnly End) week)
+    {
+        var dateText = NormalizeText(NormalizeHtmlName(row.SelectSingleNode("./td[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-date ')]")?.InnerText ?? string.Empty));
+        var dates = new List<DateOnly>();
+        foreach (var year in new[] { week.Start.Year, week.End.Year }.Distinct())
+        {
+            if (DateTime.TryParseExact($"{dateText} {year}", ["ddd d MMM yyyy", "ddd dd MMM yyyy", "ddd d MMMM yyyy", "ddd dd MMMM yyyy"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var value))
+            {
+                var date = DateOnly.FromDateTime(value);
+                if (date >= week.Start && date <= week.End)
+                    dates.Add(date);
+            }
+        }
+        if (dates.Count != 1)
+            throw new InvalidOperationException($"Fixture date '{dateText}' cannot be unambiguously resolved within its week.");
+
+        var teams = row.SelectNodes("./td[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-teamcell ')]");
+        if (teams is null || teams.Count != 2)
+            throw new InvalidOperationException("A fixture must contain exactly two team cells.");
+        var homeName = FixtureTeamName(teams[0]);
+        var awayName = FixtureTeamName(teams[1]);
+        var scoreCell = row.SelectSingleNode("./td[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-score ')]")
+            ?? throw new InvalidOperationException("A fixture is missing its score cell.");
+        var scoreNode = scoreCell.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-result-score-text ')]");
+        var homePlayers = ParseFixturePlayers(teams[0], "tt-fixture-scorecard-home");
+        var awayPlayers = ParseFixturePlayers(teams[1], "tt-fixture-scorecard-away");
+        if (scoreNode is null)
+        {
+            var scoreText = NormalizeHtmlName(scoreCell.InnerText);
+            if (!string.Equals(scoreText, "vs", StringComparison.OrdinalIgnoreCase) &&
+                scoreCell.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-badge-postponed ') or contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-badge-rearranged ')]") is null)
+                throw new InvalidOperationException($"Fixture '{homeName}' versus '{awayName}' has an unrecognized score '{scoreText}'.");
+            if (homePlayers.Present || awayPlayers.Present)
+                throw new InvalidOperationException("An unplayed fixture has player scores.");
+            return new Fixture(dates[0], false, homeName, awayName, null, null, [], []);
+        }
+        var match = Regex.Match(NormalizeHtmlName(scoreNode.InnerText), @"^(\d+)\s*[-–]\s*(\d+)$");
+        if (!match.Success || !int.TryParse(match.Groups[1].Value, out var homeScore) || !int.TryParse(match.Groups[2].Value, out var awayScore) || homeScore + awayScore != 10)
+            throw new InvalidOperationException($"Fixture '{homeName}' versus '{awayName}' has an invalid match score.");
+        if (homePlayers.Present != awayPlayers.Present)
+            throw new InvalidOperationException("A scored fixture has a player list for only one team.");
+        if (homePlayers.Forfeits > 1 || awayPlayers.Forfeits > 1 || homePlayers.Forfeits + awayPlayers.Forfeits > 1)
+            throw new InvalidOperationException("A fixture with multiple forfeits cannot be interpreted unambiguously.");
+        if (homePlayers.Present && homePlayers.Players.Sum(player => player.Won) + awayPlayers.Players.Sum(player => player.Won) != 9)
+            throw new InvalidOperationException("A scored fixture must account for nine singles wins.");
+        var home = AdjustFixturePlayers(homePlayers.Players, awayPlayers.Forfeits);
+        var away = AdjustFixturePlayers(awayPlayers.Players, homePlayers.Forfeits);
+        return new Fixture(dates[0], true, homeName, awayName, homeScore, awayScore, home, away);
+    }
+
+    private static string FixtureTeamName(HtmlNode cell)
+    {
+        var name = NormalizeHtmlName(cell.SelectSingleNode(".//a[contains(concat(' ', normalize-space(@class), ' '), ' tt-team-link ')]")?.InnerText ?? string.Empty);
+        return name.Length > 0 ? name : throw new InvalidOperationException("A fixture has an empty team name.");
+    }
+
+    private static (bool Present, int Forfeits, List<PlayerScore> Players) ParseFixturePlayers(HtmlNode cell, string className)
+    {
+        var list = cell.SelectSingleNode($".//ul[contains(concat(' ', normalize-space(@class), ' '), ' {className} ')]");
+        if (list is null)
+            return (false, 0, []);
+        var rows = list.SelectNodes("./li[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-scorecard-player ')]");
+        if (rows is null || rows.Count == 0)
+            throw new InvalidOperationException("A fixture player list is empty.");
+        var players = new List<PlayerScore>();
+        var forfeits = 0;
+        foreach (var player in rows)
+        {
+            var rawScore = NormalizeHtmlName(player.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-scorecard-score ')]")?.InnerText ?? string.Empty);
+            if (!int.TryParse(rawScore, NumberStyles.None, CultureInfo.InvariantCulture, out var won) || won is < 0 or > 3)
+                throw new InvalidOperationException("A fixture player has an invalid win count.");
+            var forfeit = player.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-scorecard-forfeit ')]");
+            var name = NormalizeHtmlName(player.SelectSingleNode(".//a[contains(concat(' ', normalize-space(@class), ' '), ' tt-player-link ')]")?.InnerText ?? string.Empty);
+            if (forfeit is not null || string.Equals(name, "Forfeit", StringComparison.OrdinalIgnoreCase))
+            {
+                if (won != 0)
+                    throw new InvalidOperationException("A forfeiting player has nonzero wins.");
+                forfeits++;
+            }
+            else if (name.Length == 0)
+                throw new InvalidOperationException("A fixture player has no name.");
+            else
+                players.Add(new PlayerScore(name, won));
+        }
+        return (true, forfeits, players);
+    }
+
+    private static IReadOnlyList<PlayerScore> AdjustFixturePlayers(List<PlayerScore> players, int opposingForfeits)
+    {
+        if (opposingForfeits == 0)
+            return players;
+        if (players.Any(player => player.Won < opposingForfeits))
+            throw new InvalidOperationException("A forfeit adjustment would produce negative player wins.");
+        return players.Select(player => new PlayerScore(player.Name, player.Won - opposingForfeits)).ToArray();
     }
 
     private static int ParseTableInteger(HtmlNode cell, string divisionName, int rowNumber, string valueName)
@@ -448,9 +643,7 @@ public sealed class CLTTLStrategy2026Parser
 
     private static bool IsNextPageLabel(string text) => text is "›" or "»" || text.Equals("Next", StringComparison.OrdinalIgnoreCase);
 
-    private static OrderedDictionary<string, Player> ParsePlayerGroup(
-        IEnumerable<JsonElement> entries,
-        string teamContext,
+    private static OrderedDictionary<string, Player> ParsePlayerGroup(IEnumerable<JsonElement> entries, string teamContext,
         ICollection<string> anomalies)
     {
         var players = new OrderedDictionary<string, Player>(StringComparer.OrdinalIgnoreCase);

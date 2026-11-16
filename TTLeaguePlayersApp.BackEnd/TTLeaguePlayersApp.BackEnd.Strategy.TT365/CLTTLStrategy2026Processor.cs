@@ -44,12 +44,22 @@ public sealed class CLTTLStrategy2026Processor
         return _parser.ParseDivisionTables(html);
     }
 
+    public async Task<OrderedDictionary<string, List<Fixture>>> GetAllDivisionFixtures()
+    {
+        var html = await _fetcher.FetchFixturesAsync();
+        return _parser.ParseDivisionFixtures(html);
+    }
+
     public async Task<(IReadOnlyDictionary<string, Player> AllPlayers, IReadOnlyList<string> Anomalies)> GetAllRankingPlayers()
     {
         var rankingPages = await FetchRankingPagesAsync();
         
         return _parser.ParseRankingPlayers(rankingPages);
     }
+    
+    //
+    // Private methods
+    //
     
     private async Task<IReadOnlyList<string>> FetchRankingPagesAsync()
     {
