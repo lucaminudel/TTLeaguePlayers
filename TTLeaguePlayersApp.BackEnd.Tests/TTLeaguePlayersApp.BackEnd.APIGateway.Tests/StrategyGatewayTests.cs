@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using FluentAssertions;
@@ -19,7 +20,7 @@ public sealed class StrategyGatewayTests
         Func<Uri, Task<string>>? fetch = null)
     {
         var season = SeasonConfig();
-        var teams = new TeamComparisonsLambda(observer, [season]);
+        var teams = new TeamComparisonsLambda(observer, [season], _ => new StrategyProcessorFake());
         var projections = new TableProjectionsLambda(
             observer,
             [season],
@@ -52,6 +53,31 @@ public sealed class StrategyGatewayTests
             ["season"] = "2026-2027",
             ["team_division"] = "Division 4"
         };
+
+    [Fact]
+    public async Task StrategyRoutes_PassAuthorizerClaimsToLambdaLogs()
+    {
+        foreach (var (path, query, eventName) in new[]
+        {
+            ("/strategy/team-comparisons", ComparisonQuery(), "GET TEAM COMPARISONS COMPLETED"),
+            ("/strategy/table-projections", ProjectionQuery(), "TABLE PROJECTIONS SOURCES VALIDATED")
+        })
+        {
+            var observer = new SpyLoggerObserver();
+            var request = JsonSerializer.Deserialize<APIGatewayProxyRequest>("""{"requestContext":{"authorizer":{"claims":{"sub":"claim-user"}}}}""", new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            request.HttpMethod = "GET";
+            request.Path = path;
+            request.QueryStringParameters = query;
+            await Handler(observer, uri => Task.FromResult(uri.OriginalString.Contains("teamId=") ? "{\"players\":[1]}" : $"<html><head><title>League</title></head><body>{new string('x', 10_001)}</body></html>"))
+                .Dispatch(request, new TestLambdaContext());
+
+            var lambdaClaims = observer.RuntimeRegularEvents.Zip(observer.RuntimeRegularClaims)
+                .Where(entry => entry.First.EventName == eventName)
+                .Select(entry => entry.Second)
+                .OfType<Dictionary<string, string>>();
+            lambdaClaims.Should().ContainSingle().Which.Should().Contain("sub", "claim-user");
+        }
+    }
 
     [Fact]
     public async Task TeamComparisons_ReturnsPendingWithRetryAfterAndExposedCorsHeader()

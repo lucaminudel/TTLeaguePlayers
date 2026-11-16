@@ -5,12 +5,15 @@ using FluentAssertions;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
+using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.Lambdas;
 
 public sealed class StrategyLambdasTests
 {
+    private static Dictionary<string, string> Claims() => new() { ["sub"] = "test-user" };
+
     private static ActiveSeasonStrategyConfig Config() => Clttl2026TestConfig.Load();
 
     private static bool IsPlayersUri(Uri uri) =>
@@ -35,15 +38,57 @@ public sealed class StrategyLambdasTests
     public async Task TeamComparisons_ValidatesInputsAndLogsPendingCompletion()
     {
         var observer = new SpyLoggerObserver();
-        var lambda = new TeamComparisonsLambda(observer, [Config()]);
+        var processor = new StrategyProcessorFake();
+        var division = new Division("Division 4");
+        var team = new Team("Home", 1);
+        team.Players.Add("One", new Player("One", null));
+        team.Players.Add("Two", new Player("Two", null));
+        division.Teams.Add(team.Name, team);
+        processor.Divisions.Add(division.Name, division);
+        processor.Rankings = new Dictionary<string, Player> { ["One"] = new("One", 100), ["Two"] = new("Two", 200) };
+        var lambda = new TeamComparisonsLambda(observer, [Config()], _ => processor);
         var context = new TestLambdaContext();
 
-        await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), context);
+        await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), context);
+        processor.Calls.Should().Equal("divisions", "rankings", "tables", "fixtures");
+        team.Players["One"].NormalisedCurrentRanking.Should().Be(0m);
+        team.Players["Two"].NormalisedCurrentRanking.Should().Be(100m);
 
         observer.RuntimeRegularEvents.Should().ContainSingle()
-            .Which.EventName.Should().Be("TEAM COMPARISONS PENDING");
-        var unknown = () => lambda.HandleAsync(new("CLTTL", "1900-1901", "Division 4", "Home", "Away"), context);
+            .Which.EventName.Should().Be("GET TEAM COMPARISONS COMPLETED");
+        observer.RuntimeRegularClaims.Should().ContainSingle().Which.Should().BeEquivalentTo(Claims());
+        var unknown = () => lambda.HandleAsync(new("CLTTL", "1900-1901", "Division 4", "Home", "Away"), Claims(), context);
         await unknown.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task TeamComparisons_LogsSourceAnomaliesWithTheOperationEventName()
+    {
+        var observer = new SpyLoggerObserver();
+        var processor = new StrategyProcessorFake { RosterAnomalies = ["incomplete roster", "duplicate player"], RankingAnomalies = ["missing ranking"] };
+        var lambda = new TeamComparisonsLambda(observer, [Config()], _ => processor);
+
+        await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), new TestLambdaContext());
+
+        var anomaly = observer.RuntimeIrregularEvents.Should().ContainSingle().Subject;
+        anomaly.EventName.Should().Be("GET TEAM COMPARISONS COMPLETED WITH ANOMALIES");
+        anomaly.Parameters.Should().Contain("Detail", "incomplete roster\nduplicate player\nmissing ranking");
+        anomaly.Parameters.Should().Contain("League", "CLTTL").And.Contain("Season", "2026-2027").And.Contain("Division", "Division 4");
+        observer.RuntimeIrregularClaims.Should().ContainSingle().Which.Should().BeEquivalentTo(Claims());
+        observer.RuntimeRegularEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task TeamComparisons_PropagatesSourceFailureWithoutLoggingCompletion()
+    {
+        var observer = new SpyLoggerObserver();
+        var processor = new StrategyProcessorFake { FixtureFailure = new InvalidOperationException("fixture failure") };
+        var lambda = new TeamComparisonsLambda(observer, [Config()], _ => processor);
+
+        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), new TestLambdaContext());
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("fixture failure");
+        observer.RuntimeRegularEvents.Should().BeEmpty();
     }
 
     [Fact]
@@ -59,12 +104,13 @@ public sealed class StrategyLambdasTests
                 : ValidHtml());
         }, observer);
 
-        await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
+        await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), Claims(), new TestLambdaContext());
 
         requested.Should().HaveCount(5);
         requested[1].OriginalString.Should().Be(Config().StrategySources["Divisions Teams Players List"].OriginalString + "75774");
         observer.RuntimeRegularEvents.Should().ContainSingle()
             .Which.EventName.Should().Be("TABLE PROJECTIONS SOURCES VALIDATED");
+        observer.RuntimeRegularClaims.Should().ContainSingle().Which.Should().BeEquivalentTo(Claims());
     }
 
     [Theory]
@@ -84,7 +130,7 @@ public sealed class StrategyLambdasTests
             _ => ValidHtml()
         }));
 
-        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
+        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), Claims(), new TestLambdaContext());
 
         var failure = await act.Should().ThrowAsync<StrategySourceCheckException>();
         failure.Which.SourceName.Should().Be("Divisions Teams List");
@@ -102,7 +148,7 @@ public sealed class StrategyLambdasTests
     {
         var lambda = Projection(uri => Task.FromResult(IsPlayersUri(uri) ? playerJson : ValidHtml()));
 
-        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
+        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), Claims(), new TestLambdaContext());
 
         if (playerJson is "{\"teamPlayers\":[]}" or "[1]")
             await act();
@@ -116,11 +162,12 @@ public sealed class StrategyLambdasTests
         var observer = new SpyLoggerObserver();
         var lambda = Projection(_ => Task.FromResult("<html><body>short</body></html>"), observer);
 
-        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
+        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), Claims(), new TestLambdaContext());
 
         var failure = await act.Should().ThrowAsync<StrategySourceCheckException>();
         failure.Which.SourceName.Should().Be("Divisions Teams List");
         observer.RuntimeErrors.Should().ContainSingle();
+        observer.RuntimeErrorClaims.Should().ContainSingle().Which.Should().BeEquivalentTo(Claims());
         observer.RuntimeErrors[0].Message.Should().Contain("Divisions Teams List");
         observer.RuntimeRegularEvents.Should().BeEmpty();
     }
@@ -131,7 +178,7 @@ public sealed class StrategyLambdasTests
         var observer = new SpyLoggerObserver();
         var lambda = Projection(_ => throw new HttpRequestException("upstream unavailable", null, HttpStatusCode.Forbidden), observer);
 
-        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), new TestLambdaContext());
+        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), Claims(), new TestLambdaContext());
 
         var failure = await act.Should().ThrowAsync<StrategySourceCheckException>();
         failure.Which.SourceName.Should().Be("Divisions Teams List");

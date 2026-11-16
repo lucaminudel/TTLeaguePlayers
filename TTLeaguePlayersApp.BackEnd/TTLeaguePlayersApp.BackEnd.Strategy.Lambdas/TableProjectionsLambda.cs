@@ -39,7 +39,7 @@ public sealed class TableProjectionsLambda
         _fetchAsync = fetchAsync;
     }
 
-    public async Task HandleAsync(TableProjectionsRequest request, ILambdaContext context)
+    public async Task HandleAsync(TableProjectionsRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
         var season = StrategyRequestValidation.GetConfiguredSeason(_activeSeasons, request.League, request.Season);
@@ -70,7 +70,7 @@ public sealed class TableProjectionsLambda
                     sourceName,
                     $"The configured strategy source '{sourceName}' could not be validated.",
                     exception);
-                _observer.OnRuntimeError(failure, context, new() { ["Source"] = sourceName });
+                _observer.OnRuntimeError(failure, context, new() { ["Source"] = sourceName }, userClaims);
                 throw failure;
             }
         }
@@ -79,7 +79,8 @@ public sealed class TableProjectionsLambda
             "TABLE PROJECTIONS SOURCES VALIDATED",
             Source(),
             context,
-            new() { ["League"] = request.League!, ["Season"] = request.Season! });
+            new() { ["League"] = request.League!, ["Season"] = request.Season! },
+            userClaims);
     }
 
     private static Uri AppendTeamId(Uri prefix, string teamId)

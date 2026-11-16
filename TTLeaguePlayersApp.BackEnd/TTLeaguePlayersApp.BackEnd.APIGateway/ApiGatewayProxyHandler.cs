@@ -59,7 +59,9 @@ public partial class ApiGatewayProxyHandler
         var loader = new Loader();
         var config = loader.GetEnvironmentVariables();
 
-        _teamComparisonsLambda = new TeamComparisonsLambda(_observer, config.ActiveSeasonsDataSource);
+        var strategyScraper = new ScraperProxy();
+        _teamComparisonsLambda = new TeamComparisonsLambda(_observer, config.ActiveSeasonsDataSource,
+            season => StrategyProcessorFactory.Create(season, strategyScraper));
         _tableProjectionsLambda = new TableProjectionsLambda(
             _observer,
             config.ActiveSeasonsDataSource,
@@ -424,7 +426,8 @@ public partial class ApiGatewayProxyHandler
 
         try
         {
-            await _teamComparisonsLambda.HandleAsync(comparisonRequest, context);
+            var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+            await _teamComparisonsLambda.HandleAsync(comparisonRequest, userClaims, context);
 
             _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(HttpStatusCode.Accepted));
 
@@ -487,7 +490,8 @@ public partial class ApiGatewayProxyHandler
 
         try
         {
-            await _tableProjectionsLambda.HandleAsync(projectionRequest, context);
+            var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+            await _tableProjectionsLambda.HandleAsync(projectionRequest, userClaims, context);
 
             _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(HttpStatusCode.OK));
             
