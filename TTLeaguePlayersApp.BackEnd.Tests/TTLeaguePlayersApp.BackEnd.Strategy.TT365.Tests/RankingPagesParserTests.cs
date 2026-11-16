@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -5,6 +6,28 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
 public class RankingPagesParserTests
 {
+    [Fact]
+    public void ParseRankingPlayers_ParsesEveryPlayerFromCapturedPages()
+    {
+        var pages = Enumerable.Range(1, 3).Select(i => ParserPageImpersonator.Fetch("Ranking", ReadFixture($"CapturedRankingPage{i}.html")));
+        var (players, anomalies) = new CLTTLStrategy2026Parser().ParseRankingPlayers(pages);
+        AssertCapturedPlayers(players, anomalies);
+    }
+
+    internal static void AssertCapturedPlayers(IReadOnlyDictionary<string, Player> players, IReadOnlyList<string> anomalies)
+    {
+        using var expected = JsonDocument.Parse(ReadFixture("ExpectedCapturedPlayers.json"));
+        Assert.Equal(expected.RootElement.GetArrayLength(), players.Count);
+        foreach (var player in expected.RootElement.EnumerateArray())
+        {
+            var name = player.GetProperty("name").GetString()!;
+            Assert.Equal(name, players[name].Name);
+            Assert.Equal(player.GetProperty("rating").GetInt32(), players[name].CurrentRanking);
+        }
+        Assert.Equal(4, anomalies.Count);
+        Assert.All(anomalies, anomaly => Assert.Contains("Duplicate player", anomaly, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void ParseRankingPlayers_DecodesEntitiesKeepsZeroSkipsHiddenAndChoosesHigherDuplicateIdAcrossPages()
     {

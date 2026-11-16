@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -5,6 +6,31 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
 public sealed class DivisionsTeamsParserTests
 {
+    [Fact]
+    public void Eligibility_ParserReturnsEveryExpectedDivisionAndTeam()
+    {
+        var html = ParserPageImpersonator.Fetch("Divisions Teams List", ReadScenario("CapturedEligibility.html"));
+        var (divisions, teams) = new CLTTLStrategy2026Parser().ParseDivisionsAndTeams(html);
+        using var expected = JsonDocument.Parse(ReadScenario("ExpectedTeams.json"));
+        Assert.Equal(expected.RootElement.GetArrayLength(), divisions.Count);
+        Assert.Equal(expected.RootElement.EnumerateArray().Select(d => DivisionName(d.GetProperty("name").GetString()!)), divisions.Keys);
+        var expectedTotal = 0;
+        foreach (var division in expected.RootElement.EnumerateArray())
+        {
+            var name = DivisionName(division.GetProperty("name").GetString()!);
+            var expectedTeams = division.GetProperty("teams");
+            expectedTotal += expectedTeams.GetArrayLength();
+            Assert.Equal(expectedTeams.EnumerateArray().Select(t => t.GetProperty("name").GetString()), divisions[name].Teams.Keys);
+            foreach (var team in expectedTeams.EnumerateArray())
+            {
+                var teamName = team.GetProperty("name").GetString()!;
+                Assert.Equal(team.GetProperty("id").GetInt32(), teams[teamName].TeamId);
+                Assert.Same(teams[teamName], divisions[name].Teams[teamName]);
+            }
+        }
+        Assert.Equal(expectedTotal, teams.Count);
+    }
+
     [Fact]
     public void ParseDivisionsAndTeams_ReadsCapturedEligibilitySelector()
     {
@@ -105,6 +131,14 @@ public sealed class DivisionsTeamsParserTests
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(Page(
             Group(firstDivision, "1", "Same Team") + Group(secondDivision, "2", "same team"))));
+    }
+
+    private static string DivisionName(string name)
+    {
+        var words = new[] { "One", "Two", "Three", "Four", "Five", "Six", "Seven" };
+        for (var i = 0; i < words.Length; i++)
+            if (name == $"Division {words[i]}") return $"Division {i + 1}";
+        return name;
     }
 
     private static string Page(string groups) => ParserPageImpersonator.Fetch("Divisions Teams List", ReadScenario("SelectorTemplate.html").Replace("{{GROUPS}}", groups, StringComparison.Ordinal));

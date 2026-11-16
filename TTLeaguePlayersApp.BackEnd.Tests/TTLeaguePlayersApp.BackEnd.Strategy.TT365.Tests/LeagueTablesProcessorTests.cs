@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -19,9 +20,8 @@ public sealed class LeagueTablesProcessorTests
 
         var tables = await processor.GetAllDivisionTables();
 
-        Assert.Equal(8, tables.Count);
-        Assert.Equal(12, tables["Premier"].TeamsStanding.Count);
-        Assert.Equal(6, tables["Premier"].TeamsStanding["St Katharines Trust 1"].Played);
+        using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "ExpectedStandings.json")));
+        LeagueTablesParserTests.CheckTables(expected.RootElement, tables);
         Assert.Equal([source], proxy.RequestedUrls);
     }
 }

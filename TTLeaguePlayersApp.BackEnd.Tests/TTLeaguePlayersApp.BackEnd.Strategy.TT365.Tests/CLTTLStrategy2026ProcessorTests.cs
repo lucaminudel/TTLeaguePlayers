@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -8,6 +9,52 @@ public sealed class CLTTLStrategy2026ProcessorTests
     private static readonly IReadOnlyDictionary<string, Uri> StrategySources = Clttl2026TestConfig.Load().StrategySources;
     private static readonly Uri DivisionsUri = StrategySources["Divisions Teams List"];
     private static readonly Uri PlayersUriPrefix = StrategySources["Divisions Teams Players List"];
+
+    [Fact]
+    public async Task GetAllDivisionsWithTeamsAndPlayers_ParsesAllCapturedTeamsAndRosters()
+    {
+        var fixtureDir = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility");
+        using var expectedDivisions = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureDir, "ExpectedTeams.json")));
+        using var expectedRosters = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureDir, "ExpectedCapturedMorpethPlayers.json")));
+        var roster = File.ReadAllText(Path.Combine(fixtureDir, "CapturedMorpeth10.json"));
+        var emptyRoster = File.ReadAllText(Path.Combine(fixtureDir, "EmptyRoster.json"));
+        var responses = new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
+        {
+            [DivisionsUri] = [ScraperProxyImpersonatorResponse.FromContent(File.ReadAllText(Path.Combine(fixtureDir, "CapturedEligibility.html")))]
+        };
+        foreach (var division in expectedDivisions.RootElement.EnumerateArray())
+            foreach (var team in division.GetProperty("teams").EnumerateArray())
+            {
+                var id = team.GetProperty("id").GetInt32();
+                var uri = new Uri(PlayersUriPrefix.OriginalString + id);
+                responses[uri] = [ScraperProxyImpersonatorResponse.FromContent(id == 75706 ? roster : emptyRoster)];
+            }
+        var proxy = new ScraperProxyImpersonator(responses);
+        var (divisions, anomalies) = await new CLTTLStrategy2026Processor(proxy, StrategySources).GetAllDivisionsWithTeamsAndPlayers();
+        Assert.Empty(anomalies);
+        var names = new[] { "Premier", "Division 1", "Division 2", "Division 3", "Division 4", "Division 5", "Division 6", "Division 7" };
+        Assert.Equal(names, divisions.Keys);
+        var index = 0;
+        foreach (var division in expectedDivisions.RootElement.EnumerateArray())
+        {
+            var expectedTeams = division.GetProperty("teams");
+            var actualTeams = divisions[names[index++]].Teams;
+            Assert.Equal(expectedTeams.EnumerateArray().Select(t => t.GetProperty("name").GetString()), actualTeams.Keys);
+            foreach (var expectedTeam in expectedTeams.EnumerateArray())
+            {
+                var name = expectedTeam.GetProperty("name").GetString()!;
+                var team = actualTeams[name];
+                Assert.Equal(expectedTeam.GetProperty("id").GetInt32(), team.TeamId);
+                if (expectedRosters.RootElement.TryGetProperty(name, out var expectedPlayers))
+                    Assert.Equal(expectedPlayers.EnumerateArray().Select(player => player.GetString()), team.Players.Keys);
+                else
+                    Assert.Empty(team.Players);
+            }
+        }
+        Assert.Equal(DivisionsUri, proxy.RequestedUrls[0]);
+        Assert.Contains(new Uri(PlayersUriPrefix.OriginalString + "75706"), proxy.RequestedUrls);
+        Assert.Equal(proxy.RequestedUrls.Count, proxy.RequestedUrls.Distinct().Count());
+    }
 
     [Fact]
     public async Task ProcessAsync_PreservesOrderAndSharedTeamsWhileReusingCompleteGroups()

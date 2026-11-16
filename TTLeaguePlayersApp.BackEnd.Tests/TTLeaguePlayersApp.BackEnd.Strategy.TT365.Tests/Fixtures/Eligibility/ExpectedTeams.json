@@ -1,0 +1,406 @@
+[
+  {
+    "name": "Premier",
+    "teams": [
+      {
+        "id": 75774,
+        "name": "AA Academy 1"
+      },
+      {
+        "id": 75757,
+        "name": "Apex 1"
+      },
+      {
+        "id": 75728,
+        "name": "Flick TTC 1"
+      },
+      {
+        "id": 75743,
+        "name": "Fulham Brunswick 1"
+      },
+      {
+        "id": 75710,
+        "name": "Fusion 1"
+      },
+      {
+        "id": 75778,
+        "name": "Moberly 1"
+      },
+      {
+        "id": 75697,
+        "name": "Morpeth 1"
+      },
+      {
+        "id": 75736,
+        "name": "St Katharines Trust 1"
+      },
+      {
+        "id": 75770,
+        "name": "Table Tennis Fight Club 1"
+      },
+      {
+        "id": 75698,
+        "name": "Morpeth 2"
+      },
+      {
+        "id": 75737,
+        "name": "St Katharines Trust 2"
+      },
+      {
+        "id": 75699,
+        "name": "Morpeth 3"
+      }
+    ]
+  },
+  {
+    "name": "Division One",
+    "teams": [
+      {
+        "id": 75781,
+        "name": "TJ TTC 1"
+      },
+      {
+        "id": 75758,
+        "name": "Apex 2"
+      },
+      {
+        "id": 75729,
+        "name": "Flick TTC 2"
+      },
+      {
+        "id": 75711,
+        "name": "Fusion 2 Jr"
+      },
+      {
+        "id": 75779,
+        "name": "Moberly 2"
+      },
+      {
+        "id": 75712,
+        "name": "Fusion 3"
+      },
+      {
+        "id": 75738,
+        "name": "St Katharines Trust 3"
+      },
+      {
+        "id": 75713,
+        "name": "Fusion 4"
+      },
+      {
+        "id": 75701,
+        "name": "Morpeth 4"
+      },
+      {
+        "id": 75702,
+        "name": "Morpeth 5"
+      },
+      {
+        "id": 75703,
+        "name": "Morpeth 6"
+      },
+      {
+        "id": 76026,
+        "name": "Morpeth 7"
+      }
+    ]
+  },
+  {
+    "name": "Division Two",
+    "teams": [
+      {
+        "id": 75750,
+        "name": "Clissold 1"
+      },
+      {
+        "id": 75784,
+        "name": "Exiles 1"
+      },
+      {
+        "id": 75786,
+        "name": "Greenhouse 1"
+      },
+      {
+        "id": 75766,
+        "name": "Irving 1"
+      },
+      {
+        "id": 75762,
+        "name": "Walworth Gainsford"
+      },
+      {
+        "id": 75775,
+        "name": "AA Academy 2"
+      },
+      {
+        "id": 75785,
+        "name": "Exiles 2"
+      },
+      {
+        "id": 75744,
+        "name": "Fulham Brunswick 2"
+      },
+      {
+        "id": 75787,
+        "name": "Greenhouse 2 Jr"
+      },
+      {
+        "id": 75730,
+        "name": "Flick TTC 3"
+      },
+      {
+        "id": 75739,
+        "name": "St Katharines Trust 4"
+      },
+      {
+        "id": 75704,
+        "name": "Morpeth 8"
+      }
+    ]
+  },
+  {
+    "name": "Division Three",
+    "teams": [
+      {
+        "id": 75720,
+        "name": "Highbury 1"
+      },
+      {
+        "id": 75721,
+        "name": "Highbury 2"
+      },
+      {
+        "id": 75767,
+        "name": "Irving 2"
+      },
+      {
+        "id": 75771,
+        "name": "Table Tennis Fight Club 2"
+      },
+      {
+        "id": 75763,
+        "name": "Walworth Enigma"
+      },
+      {
+        "id": 75776,
+        "name": "AA Academy 3"
+      },
+      {
+        "id": 75759,
+        "name": "Apex 3"
+      },
+      {
+        "id": 75780,
+        "name": "Moberly 3"
+      },
+      {
+        "id": 75764,
+        "name": "Walworth Tigers"
+      },
+      {
+        "id": 75731,
+        "name": "Flick TTC 4"
+      },
+      {
+        "id": 75714,
+        "name": "Fusion 5"
+      },
+      {
+        "id": 75715,
+        "name": "Fusion 6 Jr"
+      }
+    ]
+  },
+  {
+    "name": "Division Four",
+    "teams": [
+      {
+        "id": 75722,
+        "name": "Highbury 3"
+      },
+      {
+        "id": 75768,
+        "name": "Irving 3"
+      },
+      {
+        "id": 75760,
+        "name": "Apex 4"
+      },
+      {
+        "id": 75732,
+        "name": "Flick TTC 5"
+      },
+      {
+        "id": 75740,
+        "name": "St Katharines Trust 5"
+      },
+      {
+        "id": 75741,
+        "name": "St Katharines Trust 6"
+      },
+      {
+        "id": 75716,
+        "name": "Fusion 7"
+      },
+      {
+        "id": 75717,
+        "name": "Fusion 8 Jr"
+      },
+      {
+        "id": 75705,
+        "name": "Morpeth 9"
+      },
+      {
+        "id": 75706,
+        "name": "Morpeth 10"
+      },
+      {
+        "id": 75707,
+        "name": "Morpeth 11 Jr"
+      }
+    ]
+  },
+  {
+    "name": "Division Five",
+    "teams": [
+      {
+        "id": 75782,
+        "name": "TJ TTC 2"
+      },
+      {
+        "id": 75751,
+        "name": "Clissold 2"
+      },
+      {
+        "id": 75745,
+        "name": "Fulham Brunswick 3"
+      },
+      {
+        "id": 75772,
+        "name": "Table Tennis Fight Club 3"
+      },
+      {
+        "id": 75777,
+        "name": "AA Academy 4"
+      },
+      {
+        "id": 75753,
+        "name": "Clissold 4 Jr"
+      },
+      {
+        "id": 75746,
+        "name": "Fulham Brunswick 4 Jr"
+      },
+      {
+        "id": 75723,
+        "name": "Highbury 4"
+      },
+      {
+        "id": 75724,
+        "name": "Highbury 5"
+      },
+      {
+        "id": 75718,
+        "name": "Fusion 9 Jr"
+      },
+      {
+        "id": 75708,
+        "name": "Morpeth 12"
+      }
+    ]
+  },
+  {
+    "name": "Division Six",
+    "teams": [
+      {
+        "id": 75783,
+        "name": "TJ TTC 3"
+      },
+      {
+        "id": 75769,
+        "name": "Irving 4"
+      },
+      {
+        "id": 75773,
+        "name": "Table Tennis Fight Club 4"
+      },
+      {
+        "id": 75754,
+        "name": "Clissold 5"
+      },
+      {
+        "id": 75747,
+        "name": "Fulham Brunswick 5"
+      },
+      {
+        "id": 75733,
+        "name": "Flick TTC 6"
+      },
+      {
+        "id": 75725,
+        "name": "Highbury 6"
+      },
+      {
+        "id": 75734,
+        "name": "Flick TTC 7"
+      },
+      {
+        "id": 75742,
+        "name": "St Katharines Trust 7"
+      },
+      {
+        "id": 75709,
+        "name": "Morpeth 13 Jr"
+      }
+    ]
+  },
+  {
+    "name": "Division Seven",
+    "teams": [
+      {
+        "id": 75788,
+        "name": "Canonbury 1"
+      },
+      {
+        "id": 75789,
+        "name": "Wapping 1"
+      },
+      {
+        "id": 75765,
+        "name": "Walworth Wonderers"
+      },
+      {
+        "id": 75761,
+        "name": "Apex 5"
+      },
+      {
+        "id": 75748,
+        "name": "Fulham Brunswick 6 Jr"
+      },
+      {
+        "id": 75756,
+        "name": "Clissold 7 Jr"
+      },
+      {
+        "id": 75749,
+        "name": "Fulham Brunswick 7 Jr"
+      },
+      {
+        "id": 75726,
+        "name": "Highbury 7"
+      },
+      {
+        "id": 75735,
+        "name": "Flick TTC 8"
+      },
+      {
+        "id": 75727,
+        "name": "Highbury 8"
+      },
+      {
+        "id": 75719,
+        "name": "Fusion 10"
+      }
+    ]
+  }
+]

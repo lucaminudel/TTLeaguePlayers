@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Collections.Generic;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
@@ -6,6 +7,33 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
 public sealed class TeamPlayersParserTests
 {
+    [Fact]
+    public void ParseTeamPlayers_ParsesEveryPlayerInCapturedResponse()
+    {
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "CapturedMorpeth10.json"));
+        using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "ExpectedCapturedMorpethPlayers.json")));
+        var teams = new OrderedDictionary<string, Team>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in expected.RootElement.EnumerateObject())
+            teams.Add(group.Name, new Team(group.Name, 1));
+        var anomalies = new CLTTLStrategy2026Parser().ParseTeamPlayers(
+            ParserPageImpersonator.FetchTeamPlayers(json, "75706"), teams["Morpeth 10"], teams);
+        Assert.Empty(anomalies);
+        foreach (var group in expected.RootElement.EnumerateObject())
+            Assert.Equal(group.Value.EnumerateArray().Select(p => p.GetString()), teams[group.Name].Players.Keys);
+    }
+
+    [Fact]
+    public void TeamPlayers_ParsesEveryPlayerInCapturedRoster()
+    {
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "Morpeth10.json"));
+        var team = new Team("Morpeth 10", 75706);
+        var teams = new OrderedDictionary<string, Team>(StringComparer.OrdinalIgnoreCase) { [team.Name] = team };
+        var anomalies = new CLTTLStrategy2026Parser().ParseTeamPlayers(ParserPageImpersonator.FetchTeamPlayers(json, "75706"), team, teams);
+        Assert.Empty(anomalies);
+        Assert.Equal(Enumerable.Range(1, 6).Select(i => $"Fixture Player {i}"), team.Players.Keys);
+        Assert.All(team.Players.Values, player => Assert.Null(player.CurrentRanking));
+    }
+
     [Fact]
     public void ParseTeamPlayers_PreservesRequestedRosterOrderAndDoesNotRequirePlayerIds()
     {

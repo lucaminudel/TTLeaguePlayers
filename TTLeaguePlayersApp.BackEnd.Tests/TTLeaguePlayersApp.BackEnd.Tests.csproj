@@ -36,7 +36,15 @@
       <TargetPath>Fixtures/LeagueTables/%(Filename)%(Extension)</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="TTLeaguePlayersApp.BackEnd.Strategy.TT365.Tests/Fixtures/LeagueTables/*.json">
+      <TargetPath>Fixtures/LeagueTables/%(Filename)%(Extension)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="TTLeaguePlayersApp.BackEnd.Strategy.TT365.Tests/Fixtures/Ranking/*.html">
+      <TargetPath>Fixtures/Ranking/%(Filename)%(Extension)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TTLeaguePlayersApp.BackEnd.Strategy.TT365.Tests/Fixtures/Ranking/*.json">
       <TargetPath>Fixtures/Ranking/%(Filename)%(Extension)</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

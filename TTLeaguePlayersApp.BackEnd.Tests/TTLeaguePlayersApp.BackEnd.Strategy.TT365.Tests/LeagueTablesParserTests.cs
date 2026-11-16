@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -5,6 +7,15 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
 public sealed class LeagueTablesParserTests
 {
+    [Fact]
+    public void ParseDivisionTables_ReturnsEveryExpectedStanding()
+    {
+        using var expected = JsonDocument.Parse(ReadScenario("ExpectedStandings.json"));
+        var html = ParserPageImpersonator.Fetch("League Tables", ReadFixture());
+        var tables = new CLTTLStrategy2026Parser().ParseDivisionTables(html);
+        CheckTables(expected.RootElement, tables);
+    }
+
     [Fact]
     public void ParseDivisionTables_ExtractsAllSuppliedDivisionsInStandingsOrder()
     {
@@ -105,6 +116,35 @@ public sealed class LeagueTablesParserTests
         Assert.Null(team.SetsFor);
         Assert.Null(team.SetsAgainst);
         Assert.Null(team.TotalPoints);
+    }
+
+    internal static void CheckTables(JsonElement expected, OrderedDictionary<string, DivisionTable> tables)
+    {
+        Assert.Equal(expected.EnumerateArray().Select(d => DivisionName(d.GetProperty("name").GetString()!)), tables.Keys);
+        foreach (var division in expected.EnumerateArray())
+        {
+            var table = tables[DivisionName(division.GetProperty("name").GetString()!)];
+            var teams = division.GetProperty("teams");
+            Assert.Equal(teams.EnumerateArray().Select(t => t.GetProperty("name").GetString()), table.TeamsStanding.Keys);
+            Assert.Equal(teams.GetArrayLength() - 1, table.TeamsLookbackPeriod);
+            Assert.Equal((teams.GetArrayLength() - 1) / 2, table.PlayersLookbackPeriod);
+            foreach (var team in teams.EnumerateArray())
+            {
+                var standing = table.TeamsStanding[team.GetProperty("name").GetString()!];
+                Assert.Equal(team.GetProperty("played").GetInt32(), standing.Played);
+                Assert.Equal(team.GetProperty("setsFor").GetInt32(), standing.SetsFor);
+                Assert.Equal(team.GetProperty("setsAgainst").GetInt32(), standing.SetsAgainst);
+                Assert.Equal(team.GetProperty("totalPoints").GetInt32(), standing.TotalPoints);
+            }
+        }
+    }
+
+    private static string DivisionName(string name)
+    {
+        var words = new[] { "One", "Two", "Three", "Four", "Five", "Six", "Seven" };
+        for (var i = 0; i < words.Length; i++)
+            if (name == $"Division {words[i]}") return $"Division {i + 1}";
+        return name;
     }
 
     private static string ReadFixture() =>

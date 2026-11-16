@@ -1,0 +1,679 @@
+[
+  {
+    "name": "Premier",
+    "teams": [
+      {
+        "name": "St Katharines Trust 1",
+        "played": 6,
+        "setsFor": 55,
+        "setsAgainst": 5,
+        "totalPoints": 73
+      },
+      {
+        "name": "AA Academy 1",
+        "played": 6,
+        "setsFor": 37,
+        "setsAgainst": 23,
+        "totalPoints": 55
+      },
+      {
+        "name": "Fusion 1",
+        "played": 5,
+        "setsFor": 35,
+        "setsAgainst": 15,
+        "totalPoints": 50
+      },
+      {
+        "name": "Fulham Brunswick 1",
+        "played": 6,
+        "setsFor": 31,
+        "setsAgainst": 29,
+        "totalPoints": 49
+      },
+      {
+        "name": "Apex 1",
+        "played": 4,
+        "setsFor": 36,
+        "setsAgainst": 4,
+        "totalPoints": 48
+      },
+      {
+        "name": "Moberly 1",
+        "played": 6,
+        "setsFor": 30,
+        "setsAgainst": 30,
+        "totalPoints": 48
+      },
+      {
+        "name": "Morpeth 1",
+        "played": 5,
+        "setsFor": 28,
+        "setsAgainst": 22,
+        "totalPoints": 43
+      },
+      {
+        "name": "St Katharines Trust 2",
+        "played": 6,
+        "setsFor": 21,
+        "setsAgainst": 39,
+        "totalPoints": 39
+      },
+      {
+        "name": "Table Tennis Fight Club 1",
+        "played": 5,
+        "setsFor": 21,
+        "setsAgainst": 29,
+        "totalPoints": 36
+      },
+      {
+        "name": "Morpeth 2",
+        "played": 6,
+        "setsFor": 16,
+        "setsAgainst": 44,
+        "totalPoints": 34
+      },
+      {
+        "name": "Morpeth 3",
+        "played": 6,
+        "setsFor": 12,
+        "setsAgainst": 48,
+        "totalPoints": 30
+      },
+      {
+        "name": "Flick TTC 1",
+        "played": 5,
+        "setsFor": 8,
+        "setsAgainst": 42,
+        "totalPoints": 23
+      }
+    ]
+  },
+  {
+    "name": "Division One",
+    "teams": [
+      {
+        "name": "TJ TTC 1",
+        "played": 6,
+        "setsFor": 43,
+        "setsAgainst": 17,
+        "totalPoints": 61
+      },
+      {
+        "name": "Morpeth 6",
+        "played": 6,
+        "setsFor": 37,
+        "setsAgainst": 23,
+        "totalPoints": 55
+      },
+      {
+        "name": "St Katharines Trust 3",
+        "played": 6,
+        "setsFor": 37,
+        "setsAgainst": 23,
+        "totalPoints": 55
+      },
+      {
+        "name": "Apex 2",
+        "played": 6,
+        "setsFor": 33,
+        "setsAgainst": 27,
+        "totalPoints": 51
+      },
+      {
+        "name": "Moberly 2",
+        "played": 6,
+        "setsFor": 33,
+        "setsAgainst": 27,
+        "totalPoints": 51
+      },
+      {
+        "name": "Morpeth 4",
+        "played": 6,
+        "setsFor": 30,
+        "setsAgainst": 30,
+        "totalPoints": 48
+      },
+      {
+        "name": "Fusion 2 Jr",
+        "played": 5,
+        "setsFor": 29,
+        "setsAgainst": 21,
+        "totalPoints": 44
+      },
+      {
+        "name": "Flick TTC 2",
+        "played": 6,
+        "setsFor": 25,
+        "setsAgainst": 35,
+        "totalPoints": 43
+      },
+      {
+        "name": "Fusion 4",
+        "played": 6,
+        "setsFor": 24,
+        "setsAgainst": 36,
+        "totalPoints": 42
+      },
+      {
+        "name": "Fusion 3",
+        "played": 5,
+        "setsFor": 25,
+        "setsAgainst": 25,
+        "totalPoints": 40
+      },
+      {
+        "name": "Morpeth 5",
+        "played": 6,
+        "setsFor": 20,
+        "setsAgainst": 40,
+        "totalPoints": 38
+      },
+      {
+        "name": "Morpeth 7",
+        "played": 6,
+        "setsFor": 14,
+        "setsAgainst": 46,
+        "totalPoints": 32
+      }
+    ]
+  },
+  {
+    "name": "Division Two",
+    "teams": [
+      {
+        "name": "Fulham Brunswick 2",
+        "played": 6,
+        "setsFor": 41,
+        "setsAgainst": 19,
+        "totalPoints": 59
+      },
+      {
+        "name": "Walworth Gainsford",
+        "played": 6,
+        "setsFor": 40,
+        "setsAgainst": 20,
+        "totalPoints": 58
+      },
+      {
+        "name": "AA Academy 2",
+        "played": 6,
+        "setsFor": 37,
+        "setsAgainst": 23,
+        "totalPoints": 55
+      },
+      {
+        "name": "Flick TTC 3",
+        "played": 6,
+        "setsFor": 34,
+        "setsAgainst": 26,
+        "totalPoints": 52
+      },
+      {
+        "name": "Greenhouse 2 Jr",
+        "played": 5,
+        "setsFor": 36,
+        "setsAgainst": 14,
+        "totalPoints": 51
+      },
+      {
+        "name": "Exiles 1",
+        "played": 6,
+        "setsFor": 30,
+        "setsAgainst": 30,
+        "totalPoints": 48
+      },
+      {
+        "name": "Morpeth 8",
+        "played": 6,
+        "setsFor": 28,
+        "setsAgainst": 32,
+        "totalPoints": 46
+      },
+      {
+        "name": "Greenhouse 1",
+        "played": 5,
+        "setsFor": 25,
+        "setsAgainst": 25,
+        "totalPoints": 40
+      },
+      {
+        "name": "Irving 1",
+        "played": 6,
+        "setsFor": 21,
+        "setsAgainst": 39,
+        "totalPoints": 39
+      },
+      {
+        "name": "Clissold 1",
+        "played": 6,
+        "setsFor": 21,
+        "setsAgainst": 39,
+        "totalPoints": 39
+      },
+      {
+        "name": "Exiles 2",
+        "played": 6,
+        "setsFor": 20,
+        "setsAgainst": 40,
+        "totalPoints": 38
+      },
+      {
+        "name": "St Katharines Trust 4",
+        "played": 6,
+        "setsFor": 17,
+        "setsAgainst": 43,
+        "totalPoints": 35
+      }
+    ]
+  },
+  {
+    "name": "Division Three",
+    "teams": [
+      {
+        "name": "Table Tennis Fight Club 2",
+        "played": 6,
+        "setsFor": 47,
+        "setsAgainst": 13,
+        "totalPoints": 65
+      },
+      {
+        "name": "AA Academy 3",
+        "played": 6,
+        "setsFor": 44,
+        "setsAgainst": 16,
+        "totalPoints": 62
+      },
+      {
+        "name": "Walworth Enigma",
+        "played": 6,
+        "setsFor": 40,
+        "setsAgainst": 20,
+        "totalPoints": 58
+      },
+      {
+        "name": "Flick TTC 4",
+        "played": 6,
+        "setsFor": 37,
+        "setsAgainst": 23,
+        "totalPoints": 55
+      },
+      {
+        "name": "Fusion 5",
+        "played": 6,
+        "setsFor": 32,
+        "setsAgainst": 28,
+        "totalPoints": 50
+      },
+      {
+        "name": "Fusion 6 Jr",
+        "played": 5,
+        "setsFor": 31,
+        "setsAgainst": 19,
+        "totalPoints": 46
+      },
+      {
+        "name": "Irving 2",
+        "played": 6,
+        "setsFor": 28,
+        "setsAgainst": 32,
+        "totalPoints": 46
+      },
+      {
+        "name": "Apex 3",
+        "played": 5,
+        "setsFor": 29,
+        "setsAgainst": 21,
+        "totalPoints": 44
+      },
+      {
+        "name": "Walworth Tigers",
+        "played": 6,
+        "setsFor": 22,
+        "setsAgainst": 38,
+        "totalPoints": 40
+      },
+      {
+        "name": "Moberly 3",
+        "played": 6,
+        "setsFor": 19,
+        "setsAgainst": 41,
+        "totalPoints": 37
+      },
+      {
+        "name": "Highbury 1",
+        "played": 6,
+        "setsFor": 16,
+        "setsAgainst": 44,
+        "totalPoints": 34
+      },
+      {
+        "name": "Highbury 2",
+        "played": 6,
+        "setsFor": 5,
+        "setsAgainst": 55,
+        "totalPoints": 23
+      }
+    ]
+  },
+  {
+    "name": "Division Four",
+    "teams": [
+      {
+        "name": "St Katharines Trust 5",
+        "played": 6,
+        "setsFor": 44,
+        "setsAgainst": 16,
+        "totalPoints": 62
+      },
+      {
+        "name": "Flick TTC 5",
+        "played": 5,
+        "setsFor": 41,
+        "setsAgainst": 9,
+        "totalPoints": 56
+      },
+      {
+        "name": "Fusion 7",
+        "played": 5,
+        "setsFor": 38,
+        "setsAgainst": 12,
+        "totalPoints": 53
+      },
+      {
+        "name": "Morpeth 9",
+        "played": 5,
+        "setsFor": 32,
+        "setsAgainst": 18,
+        "totalPoints": 47
+      },
+      {
+        "name": "Morpeth 11 Jr",
+        "played": 4,
+        "setsFor": 22,
+        "setsAgainst": 18,
+        "totalPoints": 34
+      },
+      {
+        "name": "Irving 3",
+        "played": 5,
+        "setsFor": 19,
+        "setsAgainst": 31,
+        "totalPoints": 34
+      },
+      {
+        "name": "St Katharines Trust 6",
+        "played": 5,
+        "setsFor": 15,
+        "setsAgainst": 35,
+        "totalPoints": 30
+      },
+      {
+        "name": "Morpeth 10",
+        "played": 5,
+        "setsFor": 15,
+        "setsAgainst": 35,
+        "totalPoints": 30
+      },
+      {
+        "name": "Highbury 3",
+        "played": 4,
+        "setsFor": 16,
+        "setsAgainst": 24,
+        "totalPoints": 28
+      },
+      {
+        "name": "Fusion 8 Jr",
+        "played": 4,
+        "setsFor": 11,
+        "setsAgainst": 29,
+        "totalPoints": 23
+      },
+      {
+        "name": "Apex 4",
+        "played": 4,
+        "setsFor": 7,
+        "setsAgainst": 33,
+        "totalPoints": 19
+      }
+    ]
+  },
+  {
+    "name": "Division Five",
+    "teams": [
+      {
+        "name": "TJ TTC 2",
+        "played": 6,
+        "setsFor": 45,
+        "setsAgainst": 15,
+        "totalPoints": 63
+      },
+      {
+        "name": "AA Academy 4",
+        "played": 5,
+        "setsFor": 36,
+        "setsAgainst": 14,
+        "totalPoints": 51
+      },
+      {
+        "name": "Highbury 5",
+        "played": 6,
+        "setsFor": 28,
+        "setsAgainst": 32,
+        "totalPoints": 46
+      },
+      {
+        "name": "Table Tennis Fight Club 3",
+        "played": 5,
+        "setsFor": 30,
+        "setsAgainst": 20,
+        "totalPoints": 45
+      },
+      {
+        "name": "Fusion 9 Jr",
+        "played": 5,
+        "setsFor": 30,
+        "setsAgainst": 20,
+        "totalPoints": 45
+      },
+      {
+        "name": "Morpeth 12",
+        "played": 5,
+        "setsFor": 29,
+        "setsAgainst": 21,
+        "totalPoints": 44
+      },
+      {
+        "name": "Fulham Brunswick 4 Jr",
+        "played": 4,
+        "setsFor": 22,
+        "setsAgainst": 18,
+        "totalPoints": 34
+      },
+      {
+        "name": "Fulham Brunswick 3",
+        "played": 5,
+        "setsFor": 17,
+        "setsAgainst": 33,
+        "totalPoints": 32
+      },
+      {
+        "name": "Clissold 4 Jr",
+        "played": 5,
+        "setsFor": 16,
+        "setsAgainst": 34,
+        "totalPoints": 31
+      },
+      {
+        "name": "Clissold 2",
+        "played": 5,
+        "setsFor": 14,
+        "setsAgainst": 36,
+        "totalPoints": 29
+      },
+      {
+        "name": "Highbury 4",
+        "played": 5,
+        "setsFor": 13,
+        "setsAgainst": 37,
+        "totalPoints": 28
+      }
+    ]
+  },
+  {
+    "name": "Division Six",
+    "teams": [
+      {
+        "name": "Flick TTC 7",
+        "played": 5,
+        "setsFor": 37,
+        "setsAgainst": 13,
+        "totalPoints": 52
+      },
+      {
+        "name": "Flick TTC 6",
+        "played": 5,
+        "setsFor": 36,
+        "setsAgainst": 14,
+        "totalPoints": 51
+      },
+      {
+        "name": "TJ TTC 3",
+        "played": 5,
+        "setsFor": 33,
+        "setsAgainst": 17,
+        "totalPoints": 48
+      },
+      {
+        "name": "St Katharines Trust 7",
+        "played": 5,
+        "setsFor": 23,
+        "setsAgainst": 27,
+        "totalPoints": 38
+      },
+      {
+        "name": "Irving 4",
+        "played": 5,
+        "setsFor": 23,
+        "setsAgainst": 27,
+        "totalPoints": 38
+      },
+      {
+        "name": "Fulham Brunswick 5",
+        "played": 5,
+        "setsFor": 23,
+        "setsAgainst": 27,
+        "totalPoints": 38
+      },
+      {
+        "name": "Morpeth 13 Jr",
+        "played": 5,
+        "setsFor": 12,
+        "setsAgainst": 38,
+        "totalPoints": 27
+      },
+      {
+        "name": "Table Tennis Fight Club 4",
+        "played": 3,
+        "setsFor": 15,
+        "setsAgainst": 15,
+        "totalPoints": 24
+      },
+      {
+        "name": "Highbury 6",
+        "played": 3,
+        "setsFor": 10,
+        "setsAgainst": 20,
+        "totalPoints": 19
+      },
+      {
+        "name": "Clissold 5",
+        "played": 3,
+        "setsFor": 8,
+        "setsAgainst": 22,
+        "totalPoints": 17
+      }
+    ]
+  },
+  {
+    "name": "Division Seven",
+    "teams": [
+      {
+        "name": "Apex 5",
+        "played": 5,
+        "setsFor": 38,
+        "setsAgainst": 12,
+        "totalPoints": 53
+      },
+      {
+        "name": "Flick TTC 8",
+        "played": 5,
+        "setsFor": 35,
+        "setsAgainst": 15,
+        "totalPoints": 50
+      },
+      {
+        "name": "Fulham Brunswick 6 Jr",
+        "played": 4,
+        "setsFor": 34,
+        "setsAgainst": 6,
+        "totalPoints": 46
+      },
+      {
+        "name": "Clissold 7 Jr",
+        "played": 6,
+        "setsFor": 26,
+        "setsAgainst": 30,
+        "totalPoints": 44
+      },
+      {
+        "name": "Canonbury 1",
+        "played": 6,
+        "setsFor": 23,
+        "setsAgainst": 37,
+        "totalPoints": 41
+      },
+      {
+        "name": "Highbury 7",
+        "played": 5,
+        "setsFor": 26,
+        "setsAgainst": 24,
+        "totalPoints": 41
+      },
+      {
+        "name": "Fulham Brunswick 7 Jr",
+        "played": 5,
+        "setsFor": 23,
+        "setsAgainst": 27,
+        "totalPoints": 38
+      },
+      {
+        "name": "Walworth Wonderers",
+        "played": 5,
+        "setsFor": 19,
+        "setsAgainst": 31,
+        "totalPoints": 34
+      },
+      {
+        "name": "Highbury 8",
+        "played": 4,
+        "setsFor": 20,
+        "setsAgainst": 20,
+        "totalPoints": 32
+      },
+      {
+        "name": "Fusion 10",
+        "played": 6,
+        "setsFor": 17,
+        "setsAgainst": 39,
+        "totalPoints": 32
+      },
+      {
+        "name": "Wapping 1",
+        "played": 3,
+        "setsFor": 5,
+        "setsAgainst": 25,
+        "totalPoints": 14
+      }
+    ]
+  }
+]

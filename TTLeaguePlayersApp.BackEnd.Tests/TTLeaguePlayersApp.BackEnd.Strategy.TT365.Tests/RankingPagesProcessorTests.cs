@@ -10,6 +10,34 @@ public class RankingPagesProcessorTests
     private static readonly Uri Page2Url = new(StrategySources["Ranking"].OriginalString + "2");
 
     [Fact]
+    public async Task GetAllRankingPlayers_ParsesEveryPlayerFromCapturedPages()
+    {
+        var urls = Enumerable.Range(1, 3).Select(i => new Uri(StrategySources["Ranking"].OriginalString + i)).ToArray();
+        var proxy = CreateProxy(urls.Select((url, i) => (url, ReadFixture($"CapturedRankingPage{i + 1}.html"))).ToArray());
+        var (players, anomalies) = await new CLTTLStrategy2026Processor(proxy, StrategySources).GetAllRankingPlayers();
+        RankingPagesParserTests.AssertCapturedPlayers(players, anomalies);
+        Assert.Equal(urls, proxy.RequestedUrls);
+    }
+
+    [Fact]
+    public void TryParseRankingPageMetadata_ParsesEveryCapturedPage()
+    {
+        var parser = new CLTTLStrategy2026Parser();
+        var starts = new[] { 1, 501, 1001 };
+        var ends = new[] { 500, 1000, 1011 };
+        for (var i = 1; i <= 3; i++)
+        {
+            var page = ParserPageImpersonator.Fetch("Ranking", ReadFixture($"CapturedRankingPage{i}.html"));
+            Assert.True(parser.TryParseRankingPageMetadata(page, out var metadata));
+            Assert.NotNull(metadata);
+            Assert.Equal(new DateOnly(2026, 11, 12), metadata!.LastUpdated);
+            Assert.Equal(new DateOnly(2026, 10, 31), metadata.PeriodEnding);
+            Assert.Equal((starts[i - 1], ends[i - 1], 1011, i, i + 1, i == 3),
+                (metadata.RangeStart, metadata.RangeEnd, metadata.TotalPlayers, metadata.CurrentPage, metadata.NextPage, metadata.IsNextDisabled));
+        }
+    }
+
+    [Fact]
     public async Task GetAllRankingPlayers_FollowsConsecutivePagesAndStopsAtDisabledNext()
     {
         var page1 = ReadFixture("RankingPage1.html");
