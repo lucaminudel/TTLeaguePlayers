@@ -18,7 +18,7 @@ public sealed class LeagueTablesProcessorTests
         });
         var processor = new CLTTLStrategy2026Processor(proxy, sources);
 
-        var tables = await processor.GetAllDivisionTables();
+        var tables = await processor.GetAllTables();
 
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "ExpectedStandings.json")));
         LeagueTablesParserTests.CheckTables(expected.RootElement, tables);

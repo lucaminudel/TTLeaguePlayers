@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
+using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -19,7 +20,7 @@ public sealed class FixturesProcessorTests
             [source] = [ScraperProxyImpersonatorResponse.FromContent(html)]
         });
 
-        var divisions = await new CLTTLStrategy2026Processor(proxy, sources).GetAllDivisionFixtures();
+        var divisions = await new CLTTLStrategy2026Processor(proxy, sources).GetAllFixtures();
 
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "CLTTL-2026-fixtures.expected.json")));
         var expectedDivisions = expected.RootElement.EnumerateObject().ToArray();

@@ -1,4 +1,4 @@
-namespace TTLeaguePlayersApp.BackEnd.Strategy.TT365;
+namespace TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 public sealed class PlayerScore(string name, int won, int played)
 {

@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace TTLeaguePlayersApp.BackEnd.Strategy.TT365;
+namespace TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 public sealed class Team
 {

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Collections.Generic;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
+using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 

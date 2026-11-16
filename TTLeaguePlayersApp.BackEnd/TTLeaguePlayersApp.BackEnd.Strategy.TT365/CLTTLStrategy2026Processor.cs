@@ -1,17 +1,18 @@
 using System.Collections.Generic;
 using System.Globalization;
 using TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy;
+using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 
-public sealed class CLTTLStrategy2026Processor
+public sealed class CLTTLStrategy2026Processor : IStrategyProcessor
 {
     private const int MaximumCoveragePasses = 3;
 
     private readonly CLTTLStrategy2026Fetcher _fetcher;
     private readonly CLTTLStrategy2026Parser _parser;
 
-    public CLTTLStrategy2026Processor( IScraperProxy scraperProxy, IReadOnlyDictionary<string, Uri> strategySources)
+    public CLTTLStrategy2026Processor(IScraperProxy scraperProxy, IReadOnlyDictionary<string, Uri> strategySources)
     {
         ArgumentNullException.ThrowIfNull(scraperProxy);
         ArgumentNullException.ThrowIfNull(strategySources);
@@ -20,7 +21,7 @@ public sealed class CLTTLStrategy2026Processor
         _parser = new CLTTLStrategy2026Parser();
     }
 
-    public async Task<(OrderedDictionary<string, Division> AllDivisions, IReadOnlyList<string> Anomalies)> GetAllDivisionsWithTeamsAndPlayers()
+    public async Task<(OrderedDictionary<string, Division> AllDivisionsTeamsAndPlayers, IReadOnlyList<string> Anomalies)> GetAllDivisionsWithTeamsAndPlayers()
     {
         var html = await _fetcher.FetchDivisionsAndTeamsAsync();
         var (allDivisions, allTeams) = _parser.ParseDivisionsAndTeams(html);
@@ -38,29 +39,29 @@ public sealed class CLTTLStrategy2026Processor
         return (allDivisions, anomalies);
     }
 
-    public async Task<OrderedDictionary<string, DivisionTable>> GetAllDivisionTables()
+    public async Task<OrderedDictionary<string, DivisionTable>> GetAllTables()
     {
         var html = await _fetcher.FetchLeagueTablesAsync();
         return _parser.ParseDivisionTables(html);
     }
 
-    public async Task<OrderedDictionary<string, List<Fixture>>> GetAllDivisionFixtures()
+    public async Task<OrderedDictionary<string, List<Fixture>>> GetAllFixtures()
     {
         var html = await _fetcher.FetchFixturesAsync();
         return _parser.ParseDivisionFixtures(html);
     }
 
-    public async Task<(IReadOnlyDictionary<string, Player> AllPlayers, IReadOnlyList<string> Anomalies)> GetAllRankingPlayers()
+    public async Task<(IReadOnlyDictionary<string, Player> AllRankedPlayers, IReadOnlyList<string> Anomalies)> GetAllRankingPlayers()
     {
         var rankingPages = await FetchRankingPagesAsync();
-        
+
         return _parser.ParseRankingPlayers(rankingPages);
     }
-    
+
     //
     // Private methods
     //
-    
+
     private async Task<IReadOnlyList<string>> FetchRankingPagesAsync()
     {
         for (var pass = 1; pass <= MaximumCoveragePasses; pass++)
@@ -110,7 +111,7 @@ public sealed class CLTTLStrategy2026Processor
             requestedPage = pageMetadata.NextPage;
         }
     }
-    
+
     private static bool HasSameRankingSnapshot(RankingPageMetadata firstPage, RankingPageMetadata currentPage) =>
         firstPage.LastUpdated == currentPage.LastUpdated
         && firstPage.PeriodEnding == currentPage.PeriodEnding
