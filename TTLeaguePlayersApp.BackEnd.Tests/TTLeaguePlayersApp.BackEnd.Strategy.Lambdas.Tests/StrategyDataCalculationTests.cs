@@ -96,10 +96,9 @@ public sealed class StrategyDataCalculationTests
     private static Division Division(string name, params (string Team, string[] Players)[] teams)
     {
         var division = new Division(name);
-        var id = 0;
         foreach (var (teamName, names) in teams)
         {
-            var team = new Team(teamName, ++id);
+            var team = new Team(teamName);
             foreach (var player in names) team.Players.Add(player, new Player(player, null));
             division.Teams.Add(teamName, team);
         }

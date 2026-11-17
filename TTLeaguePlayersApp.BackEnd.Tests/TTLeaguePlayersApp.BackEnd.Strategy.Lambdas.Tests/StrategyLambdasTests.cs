@@ -40,7 +40,7 @@ public sealed class StrategyLambdasTests
         var observer = new SpyLoggerObserver();
         var processor = new StrategyProcessorFake();
         var division = new Division("Division 4");
-        var team = new Team("Home", 1);
+        var team = new Team("Home");
         team.Players.Add("One", new Player("One", null));
         team.Players.Add("Two", new Player("Two", null));
         division.Teams.Add(team.Name, team);

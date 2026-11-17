@@ -15,7 +15,7 @@ public sealed class TeamPlayersParserTests
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "ExpectedCapturedMorpethPlayers.json")));
         var teams = new OrderedDictionary<string, Team>(StringComparer.OrdinalIgnoreCase);
         foreach (var group in expected.RootElement.EnumerateObject())
-            teams.Add(group.Name, new Team(group.Name, 1));
+            teams.Add(group.Name, new Team(group.Name));
         var anomalies = new CLTTLStrategy2026Parser().ParseTeamPlayers(
             ParserPageImpersonator.FetchTeamPlayers(json, "75706"), teams["Morpeth 10"], teams);
         Assert.Empty(anomalies);
@@ -27,7 +27,7 @@ public sealed class TeamPlayersParserTests
     public void TeamPlayers_ParsesEveryPlayerInCapturedRoster()
     {
         var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "Morpeth10.json"));
-        var team = new Team("Morpeth 10", 75706);
+        var team = new Team("Morpeth 10");
         var teams = new OrderedDictionary<string, Team>(StringComparer.OrdinalIgnoreCase) { [team.Name] = team };
         var anomalies = new CLTTLStrategy2026Parser().ParseTeamPlayers(ParserPageImpersonator.FetchTeamPlayers(json, "75706"), team, teams);
         Assert.Empty(anomalies);
@@ -143,10 +143,10 @@ public sealed class TeamPlayersParserTests
     [Fact]
     public void ParseTeamPlayers_GroupsOtherPlayersByCaseInsensitiveTeamNameInApiOrderAcrossDivisions()
     {
-        var requestedTeam = CreateTeam("Requested Team", 101);
-        var premierTeam = CreateTeam("Premier Team", 1);
-        var sameDivisionTeam = CreateTeam("Same Division Team", 102);
-        var lowerDivisionTeam = CreateTeam("Lower Division Team", 201);
+        var requestedTeam = CreateTeam("Requested Team");
+        var premierTeam = CreateTeam("Premier Team");
+        var sameDivisionTeam = CreateTeam("Same Division Team");
+        var lowerDivisionTeam = CreateTeam("Lower Division Team");
         var allTeams = CreateTeams(requestedTeam, premierTeam, sameDivisionTeam, lowerDivisionTeam);
         var parser = new CLTTLStrategy2026Parser();
 
@@ -273,8 +273,8 @@ public sealed class TeamPlayersParserTests
         return ParserPageImpersonator.FetchTeamPlayers(json, "1");
     }
 
-    private static Team CreateTeam(string name, int teamId = 1) =>
-        new(name, teamId);
+    private static Team CreateTeam(string name) =>
+        new(name);
 
     private static OrderedDictionary<string, Team> CreateTeams(params Team[] teams)
     {

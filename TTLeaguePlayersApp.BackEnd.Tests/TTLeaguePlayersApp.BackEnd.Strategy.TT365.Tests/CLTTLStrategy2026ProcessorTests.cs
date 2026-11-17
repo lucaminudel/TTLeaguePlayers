@@ -44,7 +44,6 @@ public sealed class CLTTLStrategy2026ProcessorTests
             {
                 var name = expectedTeam.GetProperty("name").GetString()!;
                 var team = actualTeams[name];
-                Assert.Equal(expectedTeam.GetProperty("id").GetInt32(), team.TeamId);
                 if (expectedRosters.RootElement.TryGetProperty(name, out var expectedPlayers))
                     Assert.Equal(expectedPlayers.EnumerateArray().Select(player => player.GetString()), team.Players.Keys);
                 else

@@ -24,8 +24,8 @@ public sealed class DivisionsTeamsParserTests
             foreach (var team in expectedTeams.EnumerateArray())
             {
                 var teamName = team.GetProperty("name").GetString()!;
-                Assert.Equal(team.GetProperty("id").GetInt32(), teams[teamName].TeamId);
-                Assert.Same(teams[teamName], divisions[name].Teams[teamName]);
+                Assert.Equal(team.GetProperty("id").GetInt32(), teams[teamName].Id);
+                Assert.Same(teams[teamName].Team, divisions[name].Teams[teamName]);
             }
         }
         Assert.Equal(expectedTotal, teams.Count);
@@ -37,7 +37,7 @@ public sealed class DivisionsTeamsParserTests
         var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "Eligibility.html"));
         var (_, teams) = new CLTTLStrategy2026Parser().ParseDivisionsAndTeams(ParserPageImpersonator.Fetch("Divisions Teams List", html));
 
-        Assert.Equal(75706, teams["Morpeth 10"].TeamId);
+        Assert.Equal(75706, teams["Morpeth 10"].Id);
     }
 
     [Fact]
@@ -51,10 +51,10 @@ public sealed class DivisionsTeamsParserTests
         Assert.Equal(["Premier", "Division 1", "County Cup"], allDivisions.Select(entry => entry.Key));
         Assert.Equal(["Kings & Queens", "Wimbledon", "North & South", "Old Town"], allTeams.Select(entry => entry.Key));
         Assert.Equal(["Kings & Queens", "Wimbledon"], allDivisions["PREMIER"].Teams.Select(entry => entry.Key));
-        Assert.Equal(75410, allTeams["north & south"].TeamId);
-        Assert.Same(allTeams["NORTH & SOUTH"], allDivisions["division 1"].Teams["North & South"]);
-        Assert.Same(allTeams["NORTH & SOUTH"], allDivisions["DIVISION 1"].Teams["north & south"]);
-        Assert.Empty(allTeams["North & South"].Players);
+        Assert.Equal(75410, allTeams["north & south"].Id);
+        Assert.Same(allTeams["NORTH & SOUTH"].Team, allDivisions["division 1"].Teams["North & South"]);
+        Assert.Same(allTeams["NORTH & SOUTH"].Team, allDivisions["DIVISION 1"].Teams["north & south"]);
+        Assert.Empty(allTeams["North & South"].Team.Players);
     }
 
     [Theory]

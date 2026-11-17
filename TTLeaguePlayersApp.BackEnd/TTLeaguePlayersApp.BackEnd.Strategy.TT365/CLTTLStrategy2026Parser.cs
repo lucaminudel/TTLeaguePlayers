@@ -183,7 +183,7 @@ public sealed class CLTTLStrategy2026Parser
         return true;
     }
     
-    public (OrderedDictionary<string, Division> AllDivisions, OrderedDictionary<string, Team> AllTeams) ParseDivisionsAndTeams(string eligibilityPageHtml)
+    public (OrderedDictionary<string, Division> AllDivisions, OrderedDictionary<string, (Team Team, int Id)> AllTeams) ParseDivisionsAndTeams(string eligibilityPageHtml)
     {
         ArgumentNullException.ThrowIfNull(eligibilityPageHtml);
 
@@ -194,7 +194,7 @@ public sealed class CLTTLStrategy2026Parser
             throw new InvalidOperationException("The divisions and teams page has no team selector.");
 
         var allDivisions = new OrderedDictionary<string, Division>(StringComparer.OrdinalIgnoreCase);
-        var allTeams = new OrderedDictionary<string, Team>(StringComparer.OrdinalIgnoreCase);
+        var allTeams = new OrderedDictionary<string, (Team Team, int Id)>(StringComparer.OrdinalIgnoreCase);
         var divisionGroups = selector.SelectNodes("./optgroup");
         if (divisionGroups is null || divisionGroups.Count == 0)
             throw new InvalidOperationException("The team selector has no division groups.");
@@ -232,9 +232,9 @@ public sealed class CLTTLStrategy2026Parser
                 if (allTeams.ContainsKey(teamName))
                     throw new InvalidOperationException($"The team selector contains duplicate team '{teamName}'.");
 
-                var team = new Team(teamName, teamId);
+                var team = new Team(teamName);
                 division.Teams.Add(teamName, team);
-                allTeams.Add(teamName, team);
+                allTeams.Add(teamName, (team, teamId));
             }
         }
 

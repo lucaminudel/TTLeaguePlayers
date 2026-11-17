@@ -109,13 +109,11 @@ public sealed class LeagueTablesParserTests
     public void DivisionAndTeam_LeaveStrategyFieldsUnsetUntilStrategyCalculation()
     {
         var division = new Division("Premier");
-        var team = new Team("Team", 1);
+        var team = new Team("Team");
 
         Assert.Null(division.TeamsLookbackPeriod);
         Assert.Null(division.PlayersLookbackPeriod);
         Assert.Null(team.Played);
-        Assert.Null(team.SetsFor);
-        Assert.Null(team.SetsAgainst);
         Assert.Null(team.TotalPoints);
     }
 

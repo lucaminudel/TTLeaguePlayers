@@ -23,17 +23,18 @@ public sealed class CLTTLStrategy2026Processor : IStrategyProcessor
 
     public async Task<(OrderedDictionary<string, Division> AllDivisionsTeamsAndPlayers, IReadOnlyList<string> Anomalies)> GetAllDivisionsWithTeamsAndPlayers()
     {
-        var html = await _fetcher.FetchDivisionsAndTeamsAsync();
-        var (allDivisions, allTeams) = _parser.ParseDivisionsAndTeams(html);
+        var eligibilityPageHtml = await _fetcher.FetchDivisionsAndTeamsAsync();
+        var (allDivisions, allTeams) = _parser.ParseDivisionsAndTeams(eligibilityPageHtml);
         var anomalies = new List<string>();
+        var teamsByName = allTeams.ToDictionary(entry => entry.Key, entry => entry.Value.Team, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var team in allTeams.Values)
+        foreach (var (team, id) in allTeams.Values)
         {
             if (team.Players.Count > 0)
                 continue;
 
-            var json = await _fetcher.FetchTeamPlayersAsync(team.TeamId.ToString(CultureInfo.InvariantCulture));
-            anomalies.AddRange(_parser.ParseTeamPlayers(json, team, allTeams));
+            var json = await _fetcher.FetchTeamPlayersAsync(id.ToString(CultureInfo.InvariantCulture));
+            anomalies.AddRange(_parser.ParseTeamPlayers(json, team, teamsByName));
         }
 
         return (allDivisions, anomalies);
