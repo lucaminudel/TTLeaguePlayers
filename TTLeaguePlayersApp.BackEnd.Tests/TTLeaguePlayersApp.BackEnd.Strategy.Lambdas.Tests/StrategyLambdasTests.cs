@@ -45,6 +45,9 @@ public sealed class StrategyLambdasTests
         team.Players.Add("Two", new Player("Two", null));
         division.Teams.Add(team.Name, team);
         processor.Divisions.Add(division.Name, division);
+        var table = new DivisionTable(division.Name);
+        table.TeamsStanding.Add("Home", new TeamStanding(4, 6, 2, 10));
+        processor.Tables.Add(division.Name, table);
         processor.Rankings = new Dictionary<string, Player> { ["One"] = new("One", 100), ["Two"] = new("Two", 200) };
         var lambda = new TeamComparisonsLambda(observer, [Config()], _ => processor);
         var context = new TestLambdaContext();
@@ -53,6 +56,11 @@ public sealed class StrategyLambdasTests
         processor.Calls.Should().Equal("divisions", "rankings", "tables", "fixtures");
         team.Players["One"].NormalisedCurrentRanking.Should().Be(0m);
         team.Players["Two"].NormalisedCurrentRanking.Should().Be(100m);
+        team.Played.Should().Be(4);
+        team.TotalPoints.Should().Be(10);
+        team.TeamWinPercentage.Should().Be(75m);
+        division.TeamsLookbackPeriod.Should().Be(0);
+        division.PlayersLookbackPeriod.Should().Be(0);
 
         observer.RuntimeRegularEvents.Should().ContainSingle()
             .Which.EventName.Should().Be("GET TEAM COMPARISONS COMPLETED");
