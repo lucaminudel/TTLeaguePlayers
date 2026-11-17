@@ -283,7 +283,7 @@ review or verification barrier blocks the appropriate successors. Check that the
 and that every task can eventually become ready. Explain any intentionally serial group. Resolve
 missing ownership or dependencies before presenting the plan.
 
-## Phase 7 — Present, amend, confirm, persist
+## Phase 7 — Persist, present, amend, confirm
 
 Before final plan confirmation, ask the user each of the following questions; they may answer or
 explicitly skip each one. In the `Requirements, Specifications, Constraints and Outcomes` chapter
@@ -298,7 +298,7 @@ invent answers or make a skipped answer a requirement:
 4. How can these be quantified and measured?
 
 
-Present the full plan as a table: number, sub-task, Files likely added or changed, blocked-by.
+First persist the complete plan as a clearly marked draft at the paths below. Then link the persisted draft and present the full plan as a table: number, sub-task, Files likely added or changed, blocked-by.
 In the files column, list likely filenames without paths and distinguish additions from changes when
 known; keep full paths in the sub-task details. Mark uncertain filenames as likely, not promises.
 Include the parallel execution
@@ -307,15 +307,14 @@ decisions locked in, assumptions, and anything you would flag as accepted risk.
 For large or cross-component plans, present the suggested sequence of deployable units and its rationale, or explain
 why a split is not feasible. Fold the user's choice into the plan before confirmation.
 
-Invite amendment and **wait**. Expect several rounds; fold each amendment into the tasks before
-re-presenting. Apply the scope-impact rule in *Standing rules* to each scope refinement or change,
+Invite the user to review the persisted draft, amend it, and **wait** for explicit confirmation. Expect several rounds; persist each amendment before re-presenting the updated plan. Mark the plan confirmed only after explicit user confirmation; a persisted draft does not authorize Execution. Apply the scope-impact rule in *Standing rules* to each scope refinement or change,
 and highlight any resulting changes to blast radius, implementation effort, risk or impact before
 asking for confirmation. Repeat the simplicity review whenever an amendment adds mechanisms,
 shared-interface changes or context propagation, materially changes the risk/effort, or changes
 delivery/test boundaries. Reconsider the design instead of automatically adding another layer of
 plumbing; update the rationale, affected tasks and dependencies before re-presenting.
 
-Persist only after explicit confirmation, to
+Persist the draft before requesting review, and maintain the confirmed version after explicit confirmation, at
 `~/.claude/projects/-Users-lucaminudel-Code-TTLeaguePlayers/coding-tasks/<slug>/plan.md` — the same
 `<slug>` directory the discovery report came from. That location is readable and writable by every
 session and agent, which the in-session task list is not. **Do not add a pointer to `MEMORY.md`**;
@@ -349,9 +348,7 @@ task artifacts are found by path, not by recall. The file must carry:
 
 ### Codex-specific persistence
 
-After explicit confirmation, also write the plan to `.codex/coding-tasks/<task-slug>/plan.md`, using
-the same Codex task directory that contains `discovery.md`. Keep the Codex path as the cross-session
-source of truth for later Execution and Review skills.
+Write the draft to `.codex/coding-tasks/<task-slug>/plan.md` before requesting review, using the same Codex task directory that contains `discovery.md`. Update it on every amendment and mark it confirmed only after explicit confirmation. Keep the Codex path as the cross-session source of truth for later Execution and Review skills; an unconfirmed draft is not an execution authorization.
 
 ## Phase 8 — Retrospect
 
