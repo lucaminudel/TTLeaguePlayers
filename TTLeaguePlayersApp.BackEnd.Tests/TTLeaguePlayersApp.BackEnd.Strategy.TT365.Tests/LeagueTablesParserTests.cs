@@ -115,7 +115,7 @@ public sealed class LeagueTablesParserTests
         Assert.Null(division.PlayersLookbackPeriod);
         Assert.Null(team.Played);
         Assert.Null(team.TotalPoints);
-        Assert.Null(team.TeamWinPercentage);
+        Assert.Null(team.WinPercentage);
     }
 
     internal static void CheckTables(JsonElement expected, OrderedDictionary<string, DivisionTable> tables)

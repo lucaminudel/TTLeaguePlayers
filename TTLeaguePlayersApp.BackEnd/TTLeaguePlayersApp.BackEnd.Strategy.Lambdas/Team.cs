@@ -18,5 +18,5 @@ public sealed class Team
 
     public int? TotalPoints { get; set; }
 
-    public decimal? TeamWinPercentage { get; set; }
+    public decimal? WinPercentage { get; set; }
 }

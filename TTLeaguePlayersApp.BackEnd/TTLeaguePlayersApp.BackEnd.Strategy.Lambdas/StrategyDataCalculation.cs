@@ -26,7 +26,7 @@ public static class StrategyDataCalculation
                 var totalSets = (decimal)standing.SetsFor + standing.SetsAgainst;
                 team.Played = standing.Played;
                 team.TotalPoints = standing.TotalPoints;
-                team.TeamWinPercentage = totalSets == 0 ? null : 100m * standing.SetsFor / totalSets;
+                team.WinPercentage = totalSets == 0 ? null : 100m * standing.SetsFor / totalSets;
             }
 
             var players = division.Teams.Values
@@ -49,7 +49,7 @@ public static class StrategyDataCalculation
                 entry.Team.Players[entry.Key] = entry.Player with
                 {
                     CurrentRanking = ranking,
-                    NormalisedCurrentRanking = normalized
+                    NormalisedRanking = normalized
                 };
             }
         }

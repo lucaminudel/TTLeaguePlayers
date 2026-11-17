@@ -54,11 +54,11 @@ public sealed class StrategyLambdasTests
 
         await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), context);
         processor.Calls.Should().Equal("divisions", "rankings", "tables", "fixtures");
-        team.Players["One"].NormalisedCurrentRanking.Should().Be(0m);
-        team.Players["Two"].NormalisedCurrentRanking.Should().Be(100m);
+        team.Players["One"].NormalisedRanking.Should().Be(0m);
+        team.Players["Two"].NormalisedRanking.Should().Be(100m);
         team.Played.Should().Be(4);
         team.TotalPoints.Should().Be(10);
-        team.TeamWinPercentage.Should().Be(75m);
+        team.WinPercentage.Should().Be(75m);
         division.TeamsLookbackPeriod.Should().Be(0);
         division.PlayersLookbackPeriod.Should().Be(0);
 

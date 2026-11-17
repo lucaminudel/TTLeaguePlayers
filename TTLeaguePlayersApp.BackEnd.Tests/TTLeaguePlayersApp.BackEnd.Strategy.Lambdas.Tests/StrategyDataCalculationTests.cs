@@ -23,16 +23,16 @@ public sealed class StrategyDataCalculationTests
         Assert.Equal(new[] { "First", "Second" }, result.Keys);
         Assert.Equal(new[] { "A", "B" }, first.Teams.Keys);
         Assert.Equal(new[] { "Low", "Middle" }, first.Teams["A"].Players.Keys);
-        Assert.Equal(0m, first.Teams["A"].Players["Low"].NormalisedCurrentRanking);
-        Assert.Equal(50m, first.Teams["A"].Players["Middle"].NormalisedCurrentRanking);
-        Assert.Equal(100m, first.Teams["B"].Players["High"].NormalisedCurrentRanking);
-        Assert.Equal(33m, first.Teams["B"].Players["Third"].NormalisedCurrentRanking);
-        Assert.Equal(100m, second.Teams["C"].Players["Middle"].NormalisedCurrentRanking);
+        Assert.Equal(0m, first.Teams["A"].Players["Low"].NormalisedRanking);
+        Assert.Equal(50m, first.Teams["A"].Players["Middle"].NormalisedRanking);
+        Assert.Equal(100m, first.Teams["B"].Players["High"].NormalisedRanking);
+        Assert.Equal(33m, first.Teams["B"].Players["Third"].NormalisedRanking);
+        Assert.Equal(100m, second.Teams["C"].Players["Middle"].NormalisedRanking);
         Assert.Equal(1, first.TeamsLookbackPeriod);
         Assert.Equal(0, first.Teams["A"].Played);
         Assert.Equal(2, tables.Count);
         Assert.Single(fixtures);
-        Assert.Null(ranked["middle"].NormalisedCurrentRanking);
+        Assert.Null(ranked["middle"].NormalisedRanking);
     }
 
     [Fact]
@@ -41,18 +41,18 @@ public sealed class StrategyDataCalculationTests
         var division = Division("One", ("A", new[] { "A", "B", "Zero", "Missing" }));
         var divisions = Divisions(division);
         Calculate(divisions, Rankings(("A", 100), ("B", 400), ("Zero", 0), ("Missing", 200)));
-        Assert.Equal(100m / 3m, division.Teams["A"].Players["Missing"].NormalisedCurrentRanking);
+        Assert.Equal(100m / 3m, division.Teams["A"].Players["Missing"].NormalisedRanking);
 
         Calculate(divisions, Rankings(("A", 200), ("B", 400), ("Zero", 0)));
 
         var players = division.Teams["A"].Players;
         Assert.Equal(200, players["A"].CurrentRanking);
-        Assert.Equal(0m, players["A"].NormalisedCurrentRanking);
-        Assert.Equal(100m, players["B"].NormalisedCurrentRanking);
+        Assert.Equal(0m, players["A"].NormalisedRanking);
+        Assert.Equal(100m, players["B"].NormalisedRanking);
         Assert.Equal(0, players["Zero"].CurrentRanking);
-        Assert.Null(players["Zero"].NormalisedCurrentRanking);
+        Assert.Null(players["Zero"].NormalisedRanking);
         Assert.Null(players["Missing"].CurrentRanking);
-        Assert.Null(players["Missing"].NormalisedCurrentRanking);
+        Assert.Null(players["Missing"].NormalisedRanking);
     }
 
     [Fact]
@@ -66,8 +66,8 @@ public sealed class StrategyDataCalculationTests
         Calculate(divisions, Rankings(("A", 100), ("B", 100), ("Zero", 0)));
 
         Assert.Empty(empty.Teams["Empty team"].Players);
-        Assert.All(same.Teams["A"].Players.Values, player => Assert.Null(player.NormalisedCurrentRanking));
-        Assert.Null(unknown.Teams["B"].Players["Missing"].NormalisedCurrentRanking);
+        Assert.All(same.Teams["A"].Players.Values, player => Assert.Null(player.NormalisedRanking));
+        Assert.Null(unknown.Teams["B"].Players["Missing"].NormalisedRanking);
         Calculate(new OrderedDictionary<string, Division>(), Rankings());
     }
 
@@ -76,8 +76,8 @@ public sealed class StrategyDataCalculationTests
     {
         var division = Division("One", ("A", new[] { "Low", "High" }));
         Calculate(Divisions(division), Rankings(("Low", int.MinValue), ("High", int.MaxValue)));
-        Assert.Equal(0m, division.Teams["A"].Players["Low"].NormalisedCurrentRanking);
-        Assert.Equal(100m, division.Teams["A"].Players["High"].NormalisedCurrentRanking);
+        Assert.Equal(0m, division.Teams["A"].Players["Low"].NormalisedRanking);
+        Assert.Equal(100m, division.Teams["A"].Players["High"].NormalisedRanking);
     }
 
     [Fact]
@@ -102,12 +102,12 @@ public sealed class StrategyDataCalculationTests
         Assert.Equal(1, second.PlayersLookbackPeriod);
         Assert.Equal(6, first.Teams["Team 1"].Played);
         Assert.Equal(73, first.Teams["Team 1"].TotalPoints);
-        Assert.Equal(100m * 55m / 60m, first.Teams["Team 1"].TeamWinPercentage);
-        Assert.Equal(100m / 3m, second.Teams["Other"].TeamWinPercentage);
-        Assert.Null(first.Teams["Team 2"].TeamWinPercentage);
+        Assert.Equal(100m * 55m / 60m, first.Teams["Team 1"].WinPercentage);
+        Assert.Equal(100m / 3m, second.Teams["Other"].WinPercentage);
+        Assert.Null(first.Teams["Team 2"].WinPercentage);
         tables["Premier"].TeamsStanding["Team 1"] = new TeamStanding(0, 0, 0, 0);
         StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), tables, new());
-        Assert.Null(first.Teams["Team 1"].TeamWinPercentage);
+        Assert.Null(first.Teams["Team 1"].WinPercentage);
         Assert.Equal(0, first.Teams["Team 1"].Played);
     }
 
@@ -118,7 +118,7 @@ public sealed class StrategyDataCalculationTests
         var tables = Tables(divisions);
         tables["One"].TeamsStanding["A"] = new TeamStanding(1, int.MaxValue, int.MaxValue, 0);
         StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), tables, new());
-        Assert.Equal(50m, divisions["One"].Teams["A"].TeamWinPercentage);
+        Assert.Equal(50m, divisions["One"].Teams["A"].WinPercentage);
         Assert.Equal(0, divisions["One"].TeamsLookbackPeriod);
         Assert.Equal(0, divisions["One"].PlayersLookbackPeriod);
     }
