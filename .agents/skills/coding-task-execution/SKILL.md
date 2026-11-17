@@ -496,7 +496,7 @@ than reaching for a second mutation that flatters the original guess.
 | Sub-task touched | Run |
 |---|---|
 | Frontend source | **1-A frontend** — lint+build, plus the Vitest specs covering the changed files |
-| Backend C# | **1-A backend** — `dotnet build` , `sam build --config-env dev`, then the filtered suite |
+| Backend C# | **1-A backend** — `dotnet build`, `sam build --config-env dev`, then the filtered suite |
 | `config/*.env.json` | **1-A backend** — `LoaderTest` is a Theory over dev/test/staging/prod and parses all four |
 | Test or fixture only | just that suite, at the lowest tier that runs it |
 | Either, once 1-A is green **and** the change touches a Cognito-dependent path | **1-B**, narrowed to the relevant tests — counts against the budget |
@@ -507,13 +507,13 @@ than reaching for a second mutation that flatters the original guess.
 
 ### Where the commands really live
 
-The commands below are reproduced for speed, not because this file owns them. **Three places in the
+The commands below are reproduced for speed, not because this file owns them. **Four places in the
 repo are the source of truth. When one of them disagrees with this skill, it wins — use it, and fix
 this skill.**
 
 | Source | Owns |
 |---|---|
-| `prompts/workflow/instructions/*`| Verification commands and output foolders |
+| `prompts/workflow/instructions/*`| Verification commands and output folders |
 | `TTLeaguePlayersApp.FrontEnd/package.json` | every frontend command — build, lint, Vitest, Playwright, and which of them set `EXECUTE_LIVE_COGNITO_TESTS` |
 | `.vscode/tasks.json` | `sam build` / `sam local start-api` / `sam deploy` per environment, and the labels the user knows them by |
 | `scripts/ci_tasks/` | what the pipelines actually run, in what order, and **the test filters** — `--filter Cognito!=Live`, `--filter "Environment=Staging"` |
@@ -577,7 +577,7 @@ do not check its process ID or restart it routinely. Restart only as the documen
 an acceptance check shows that the refreshed code is not being served. On the documented sandbox
 network or local-socket failures, follow the retry instructions in `BackEndVerificationCommands.md`.
 
-Then the suite with the Cognito tests **excluded**:
+For fast iteration, the suite with the Cognito tests **excluded** is:
 
 ```bash
 ENVIRONMENT=dev dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --filter "Cognito!=Live" --configuration Debug --logger "console;verbosity=normal"
@@ -728,6 +728,16 @@ explicitly preapproved. Record and reuse that approval.
 VS Code task: *C+ full-stack-builds-tests-pipeline test-env*. Runs frontend lint+build, a clean-room
 SAM build, the full C# suite and the e2e suite on the test environment, then cleans up the dynamically
 created `test_*` Cognito users and stops its own SAM.
+
+The pipeline clears its previous SAM and Vite logs, `playwright-report`, and `test-results` before
+starting. After a failure, inspect the logs and any report or results produced by that run; a failure
+before Playwright starts may leave no report or results. From the frontend directory, open the HTML
+report with `npx playwright show-report playwright-report` and traces with
+`npx playwright show-trace <path-to-trace.zip>`. Confirm the final `ALL TESTS PASSED SUCCESSFULLY!` message: an earlier failed
+stage or cleanup error means the run is not green. Preserve both stage and cleanup output when
+diagnosing sandbox failures. Follow the backend verification instructions for required network,
+loopback, and Docker access; ask for explicit approval before another full pipeline invocation if the
+authorized run has already been used.
 
 `COGNITO` governs all three: the Cognito user setup, the backend filter, and — via the exported
 `EXECUTE_LIVE_COGNITO_TESTS` that the non-`C+` e2e script inherits — the Playwright step. So this run

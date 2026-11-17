@@ -2,20 +2,19 @@
 List of commands to run the build and the tests for the TTLeaguePlayersApp.FrontEnd project.
 
 This is a general rule about the changes you make to the project files: do not make file changes, functional or UI, that have not been explicitly requested.
-This is another rule for when making changes to the frontend code and tests: use the following commands in this order to verify the changes made:
+For frontend changes, select verification based on the affected paths and plausible regressions, using the commands below and the applicable execution workflow.
 
-## Which commands to reach for: the fast dev loop vs the authoritative pipeline
+## Which commands to reach for: the fast dev loop and shared-environment checks
 
 The commands below are not equal alternatives. Use them in two tiers.
 
-**Tier 1 — the fast inner loop, on the dev environment.** Reuse the local web server and SAM that are already running, so nothing has to be started or rebuilt from scratch:
+**Tier 1 — the fast inner loop, on the dev environment.** Run applicable checks and narrow tests to the affected paths where appropriate:
 * `npm run "build-web:dev-env"` — lint + `tsc -b` + vite build
-* `npm run "unit-tests-web:run"` — Vitest
-* `npm run "C+ e2e-tests-web:run dev-env"` — Playwright, optionally narrowed to one spec by appending `-- test/e2e/<spec>.spec.ts`
+* `npm run "unit-tests-web:run"` — Vitest; use a focused spec for faster iteration when appropriate
 
-Run this loop after every change. Scope it to what the change touched: lint + build plus the specs covering the changed files is usually enough, with the full loop kept for milestones.
+In the execution workflow, Playwright is applicable when a backend change affects a browser flow exercised by the selected specs. Trace the affected path before running it; frontend-only changes use relevant frontend checks. For applicable e2e tests, use the test environment unless the user confirms the dev database is clean. Start with the relevant Cognito-free specs; include live Cognito only when the affected path requires it. Whole suites require broad impact and a concrete coverage gap. Follow the execution workflow's Cognito budget and prerequisites.
 
-**Tier 2 — the authoritative final check, on the test environment.** Run once, when the work is otherwise complete: `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`. It is long-running and touches the shared test environment, so agents should confirm before launching it.
+**Tier 2 — applicable final checks on the test environment.** After implementation and applicable Tier 1 checks, select shared-environment checks that close a concrete verification gap. If Tier 1 covers the affected paths and no shared-environment check is warranted, record Tier 2 as inapplicable. Use `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO` only when all bundled suites are applicable and live Cognito coverage is warranted; omit `COGNITO` when it is not. Prefer a narrower supported check when the pipeline would run unrelated suites. Confirm before launching the selected Tier 2 check unless it was explicitly preapproved.
 
 ### Notes that save time
 * **A dev-only frontend build is safe even when all four `config/*.env.json` files change.** The backend `LoaderTest` is an xUnit Theory over dev/test/staging/prod that reads and deserialises each file, so a malformed edit to any of them fails there. Vite injects the config JSON verbatim, so the frontend build does not type-check config contents in any environment.
@@ -32,7 +31,7 @@ They must be run directly from the FrontEnd project root.
 The end-to-end tests require:
 - the local SAM environment running on Docker: `sam-start dev-env` and `sam-start test-env` that will also run the build for SAM, as defined in as VS Code Terminal task json
 - the website running: `run-web:dev-env` and `run-web:test-env` or the deployment on staging 
-- the creation of the Cognito standard test users: `scripts/cognito/tests_helpers/register-test-users.sh dev | test | staging  force`
+- for live Cognito tests, the creation of the Cognito standard test users: `scripts/cognito/tests_helpers/register-test-users.sh dev | test | staging  force`
 
 
 ### Configuration
@@ -43,7 +42,7 @@ json so there is no need to set it manually.
 
 The end-to-end tests use 
 - the value of the variable ENVIRONMENT is defined statically during the build of the web app.
-- the value of the variable EXECUTE_LIVE_COGNITO_TESTS set via the command line defaults to false.
+- the value of `EXECUTE_LIVE_COGNITO_TESTS` inherited from the environment; live tests run when it is `true`. Non-`C+` scripts do not override an inherited value. Set it explicitly to `false` for Cognito-free runs.
 
 ### 1) Commands to lint and build the FrontEnd to check if it is ok or if some errors and warnings need fixing:
 For the dev environment:
@@ -126,17 +125,17 @@ exclusions. A decision recorded there does not itself suppress a mutation. Reeva
 decisions when the relevant code, tests or assumptions change.
 
 ### 4) Command to run FrontEnd end-to-end tests
-From the dev environment, use the IDE test explorer.
+Use these commands only when e2e is applicable under the execution workflow. Use the test environment unless the user confirms the dev database is clean. Run the relevant specs and include live Cognito only when warranted.
 
 The e2e tests for the dev environment:
-`npm run "e2e-tests-web:run dev-env"`
+`EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run dev-env"`
 and to run only those specific to the test and page files just changed
-`npm run "e2e-tests-web:run dev-env" -- test/e2e/<spec fiile .spec.ts>`
+`EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run dev-env" -- test/e2e/<spec>.spec.ts`
 
 The e2e tests for the test environment:
-`npm run "e2e-tests-web:run test-env"`
+`EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run test-env"`
 and to run only those specific to the test and page files just changed
-`npm run "e2e-tests-web:run test-env" -- test/e2e/<spec fiile .spec.ts>`
+`EXECUTE_LIVE_COGNITO_TESTS=false npm run "e2e-tests-web:run test-env" -- test/e2e/<spec>.spec.ts`
 
 The e2e tests for the dev environment, including the tests involving Cognito users:
 `npm run "C+ e2e-tests-web:run dev-env"`
@@ -163,9 +162,12 @@ All paths below are relative to `TTLeaguePlayersApp.FrontEnd/`.
 > [!NOTE]
 > **Server stops vs. Test outputs:** Stopping the Vite web server or the SAM Docker container does **not** delete or clear the test reports or artifacts. Playwright writes directly to the local project filesystem, so `playwright-report/` and `test-results/` remain intact and readable after server shutdown until a subsequent test run overwrites them.
 
+The full-stack pipeline also clears both directories before starting; they may not be recreated if it fails before Playwright runs. A run with `--reporter=list` replaces the configured reporters and does not write JSON results.
 
 
-###  5) Command to run the full pipeline lint and build and unit, integration, acceptance, e2e tests (before asking me about staging)
+
+###  5) Commands for the full pipeline
+Use the pipeline only when all bundled checks are applicable, with the appropriate approval. Include `COGNITO` only when live coverage is warranted. See the Tier 2 guidance above.
 This pipeline runs on the test environment:
 `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh`
 This is defined as VS Code Terminal task: full-stack-builds-tests-pipeline test-env

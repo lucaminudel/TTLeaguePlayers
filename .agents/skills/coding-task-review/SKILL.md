@@ -221,9 +221,10 @@ input, ordering, or environment makes this wrong?"** Try to produce a concrete f
 finding without one is a smell, not a finding.
 Re-read the standards before judging against them, rather than from memory:
 
-- `prompts/workflow/steps_guidelines/WriteTestsGuidelines.md`
-- `prompts/workflow/steps_guidelines/FixRedTestGuidelines.md`
 - `prompts/codebase_info/CodeDesignGuidelines.md`
+- `prompts/codebase_info/BackendLoggingAndExceptionGuidelines.md`
+- `prompts/codebase_info/FrontendCaching.md`
+- `prompts/workflow/steps_guidelines/WriteTestsGuidelines.md`
 - the `prompts/codebase_info/*DomainLogic.md` for the area touched
 
 ### The lenses

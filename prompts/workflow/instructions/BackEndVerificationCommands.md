@@ -3,22 +3,24 @@
 List of commands to run the build and the tests for the TTLeaguePlayersApp.BackEnd project.
 
 This is a general rule about the changes you make to the project files: do not make file changes, functional or UI, that have not been explicitly requested.
-This is another rule for when making changes to the C# backend code and tests: use the following commands in this order to verify the changes made:
+For C# backend changes, select verification based on the affected paths and plausible regressions, using the commands below and the applicable execution workflow.
 
-## Which commands to reach for: the fast dev loop vs the authoritative pipeline
+## Which commands to reach for: the fast dev loop and shared-environment checks
 
 The commands below are not equal alternatives. Use them in two tiers.
 
-**Tier 1 — the fast inner loop, on the dev environment.** Reuse the local SAM and DynamoDB that are already running:
+**Tier 1 — the fast inner loop, on the dev environment.** Reuse the local SAM and DynamoDB that are already running. Run applicable checks, narrowing tests to the affected paths when appropriate. This example excludes tests tagged as requiring live Cognito:
 ```
 sam build --config-env dev
 export ENVIRONMENT=dev
-dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
+dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --filter "Cognito!=Live" --configuration Debug --logger "console;verbosity=normal"
 ```
 
 **Run `sam-refresh-build dev-env` before the C# tests.** In the dev environment this refresh is sufficient for the running SAM server to use the newly built code. Do not check the SAM process ID or stop and restart the server routinely after a successful refresh. Only restart it as a recovery step if, after `sam-refresh-build dev-env`, the new code still appears not to be running—for example, a focused acceptance check returns behavior from before the change. The `sam-start dev-env` task is for starting SAM when no dev server is running; it also runs the build.
 
-**Tier 2 — the authoritative final check, on the test environment.** Run once, when the work is otherwise complete: `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO`. It is long-running and touches the shared test environment, so agents should confirm before launching it.
+**Tier 2 — applicable final checks on the test environment.** After implementation and applicable Tier 1 checks, select shared-environment checks that close a concrete verification gap. If Tier 1 covers the affected paths and no shared-environment check is warranted, record Tier 2 as inapplicable. Use `./scripts/ci_tasks/run_full_stack_builds_tests_pipeline.sh COGNITO` only when all bundled suites are applicable and live Cognito coverage is warranted; omit `COGNITO` when it is not. Prefer a narrower supported check when the pipeline would run unrelated suites. These checks are long-running or touch the shared test environment, so confirm before launching unless the selected run is already explicitly approved.
+
+Run live Cognito tests only when an affected path warrants them. Focus on relevant tests where possible; run a whole suite when broad impact and a concrete coverage gap justify it. Follow the execution workflow's Cognito budget and prerequisites.
 
 The pipeline runs eight stages: backend and frontend builds, a test-environment SAM build, local Docker/SAM API and tests, then frontend unit and Playwright tests. With `COGNITO`, it registers standard Cognito users before tests and its `EXIT` cleanup always tries to remove dynamic test users. Confirm the final `ALL TESTS PASSED SUCCESSFULLY!` message; a cleanup error or an earlier failed stage means the run is not green, even if some build or test stages passed.
 
@@ -84,7 +86,7 @@ This is defined as VS Code Terminal task: sam-refresh-build test-env
 All these commands are defined here: TTLeaguePlayers/.vscode/tasks.json
 
 ### 2) Commands to run backend tests 
-Via command line, after ensuring the prerequisites:
+Via command line, after ensuring the prerequisites. This unfiltered command includes live Cognito tests, so use it when the whole suite and live coverage are warranted; otherwise use the filter above or narrow the run to relevant tests:
 ```
 export ENVIRONMENT= dev | test | staging  (dev is the default if nothing is specified)
 dotnet test "TTLeaguePlayersApp.BackEnd.Tests/TTLeaguePlayersApp.BackEnd.Tests.csproj" --configuration Debug --logger "console;verbosity=normal"
