@@ -28,7 +28,7 @@ public sealed class TeamComparisonsLambda
         var (rankings, rankingAnomalies) = await processor.GetAllRankingPlayers();
         var (tables, fixtures, fixtureAnomalies) = await processor.GetAllTablesAndFixtures(divisions);
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, rankings, tables, fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( rankings, tables, fixtures);
 
 
         var parameters = new Dictionary<string, string>

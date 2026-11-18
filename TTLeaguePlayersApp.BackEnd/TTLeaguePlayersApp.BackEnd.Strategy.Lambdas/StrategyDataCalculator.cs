@@ -1,22 +1,28 @@
 namespace TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
-public static class StrategyDataCalculation
+public sealed class StrategyDataCalculator
 {
-    public static OrderedDictionary<string, Division> CalculateStrategyData(
-        OrderedDictionary<string, Division> divisions,
-        IReadOnlyDictionary<string, Player> rankedPlayers,
+    private readonly OrderedDictionary<string, Division> _divisions;
+
+    public StrategyDataCalculator(OrderedDictionary<string, Division> seasonRoster)
+    {
+        ArgumentNullException.ThrowIfNull(seasonRoster);
+        _divisions = seasonRoster;
+    }
+
+    public void UpdateStrategyDataWith(
+        IReadOnlyDictionary<string, Player> leagueRankedPlayers,
         OrderedDictionary<string, DivisionTable> tables,
         OrderedDictionary<string, List<Fixture>> fixtures)
     {
-        ArgumentNullException.ThrowIfNull(divisions);
-        ArgumentNullException.ThrowIfNull(rankedPlayers);
+        ArgumentNullException.ThrowIfNull(leagueRankedPlayers);
         ArgumentNullException.ThrowIfNull(tables);
         ArgumentNullException.ThrowIfNull(fixtures);
 
-        ValidateTables(divisions, tables);
-        ValidateFixtures(divisions, fixtures);
+        ValidateTables(_divisions, tables);
+        ValidateFixtures(_divisions, fixtures);
 
-        foreach (var (divisionName, division) in divisions)
+        foreach (var (divisionName, division) in _divisions)
         {
             var table = tables[divisionName];
             division.TeamsLookbackPeriod = division.Teams.Count - 1;
@@ -33,7 +39,7 @@ public static class StrategyDataCalculation
             var players = division.Teams.Values
                 .SelectMany(team => team.Players.Select(entry => (Team: team, Key: entry.Key, Player: entry.Value)))
                 .ToArray();
-            var rankings = players.Select(entry => rankedPlayers.TryGetValue(entry.Player.Name, out var ranked)
+            var rankings = players.Select(entry => leagueRankedPlayers.TryGetValue(entry.Player.Name, out var ranked)
                 ? ranked.CurrentRanking : null).ToArray();
             var eligible = rankings.Where(ranking => ranking.HasValue && ranking.Value != 0)
                 .Select(ranking => ranking!.Value).ToArray();
@@ -59,8 +65,6 @@ public static class StrategyDataCalculation
                 .SelectMany(entry => entry.Value);
             CalculateFixtureStatistics(division, divisionFixtures);
         }
-
-        return divisions;
     }
 
     private static void ValidateFixtures(

@@ -32,7 +32,7 @@ public sealed class FixturesParserTests
             .Replace("{{ROWS}}", rankingRow, StringComparison.Ordinal);
         var (rankings, _) = _parser.ParseRankingPlayers([ParserPageImpersonator.Fetch("Ranking", rankingPage)]);
         
-        StrategyDataCalculation.CalculateStrategyData(divisions, rankings, tables, fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( rankings, tables, fixtures);
 
         var player = Assert.Single(division.Teams["A"].Players.Values);
         Assert.Equal(1200, player.CurrentRanking);

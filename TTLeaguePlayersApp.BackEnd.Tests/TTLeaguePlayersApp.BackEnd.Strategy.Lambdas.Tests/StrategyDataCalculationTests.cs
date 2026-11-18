@@ -6,6 +6,12 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.Lambdas;
 public sealed class StrategyDataCalculationTests
 {
     [Fact]
+    public void ConstructorRejectsNullRoster()
+    {
+        Assert.Throws<ArgumentNullException>(() => new StrategyDataCalculator(null!));
+    }
+
+    [Fact]
     public void CalculatesEachDivisionUsingAllTeamsAndPreservesOrderAndOtherData()
     {
         var first = Division("First", ("A", new[] { "Low", "Middle" }), ("B", new[] { "High", "Third" }));
@@ -17,10 +23,9 @@ public sealed class StrategyDataCalculationTests
         var tables = Tables(divisions);
         var fixtures = new OrderedDictionary<string, List<Fixture>> { ["First"] = [] };
 
-        var result = StrategyDataCalculation.CalculateStrategyData(divisions, ranked, tables, fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( ranked, tables, fixtures);
 
-        Assert.Same(divisions, result);
-        Assert.Equal(new[] { "First", "Second" }, result.Keys);
+        Assert.Equal(new[] { "First", "Second" }, divisions.Keys);
         Assert.Equal(new[] { "A", "B" }, first.Teams.Keys);
         Assert.Equal(new[] { "Low", "Middle" }, first.Teams["A"].Players.Keys);
         Assert.Equal(0m, first.Teams["A"].Players["Low"].NormalisedRanking);
@@ -101,9 +106,8 @@ public sealed class StrategyDataCalculationTests
         tables["premier"].TeamsStanding["team 1"] = new TeamStanding(6, 55, 5, 73);
         tables["Second"].TeamsStanding["Other"] = new TeamStanding(3, 1, 2, 4);
 
-        var result = StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), tables, new());
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), tables, new());
 
-        Assert.Same(divisions, result);
         Assert.Equal(11, first.TeamsLookbackPeriod);
         Assert.Equal(7, first.PlayersLookbackPeriod);
         Assert.Equal(2, second.TeamsLookbackPeriod);
@@ -117,7 +121,7 @@ public sealed class StrategyDataCalculationTests
 
         
         
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), tables, new());
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), tables, new());
 
         Assert.Null(first.Teams["Team 1"].WinPercentage);
         Assert.Equal(0, first.Teams["Team 1"].Played);
@@ -130,7 +134,7 @@ public sealed class StrategyDataCalculationTests
         var tables = Tables(divisions);
         tables["One"].TeamsStanding["A"] = new TeamStanding(1, int.MaxValue, int.MaxValue, 0);
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), tables, new());
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), tables, new());
 
         Assert.Equal(50m, divisions["One"].Teams["A"].WinPercentage);
         Assert.Equal(0, divisions["One"].TeamsLookbackPeriod);
@@ -163,7 +167,7 @@ public sealed class StrategyDataCalculationTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(("Player", 123)), tables, new()));
+            new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(("Player", 123)), tables, new()));
             
         Assert.Contains(mismatch == "extra division" ? "Extra" : "Second", exception.Message);
         Assert.Equal(99, first.TeamsLookbackPeriod);
@@ -190,7 +194,7 @@ public sealed class StrategyDataCalculationTests
         var fixtures = Fixtures(("First", entries.Take(count).ToArray()),
             ("Second", new[] { Match("X", "Y", 1, 3, [new("Other", 1, 2)]) }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), Tables(divisions), fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), Tables(divisions), fixtures);
 
         Assert.Equal(2, first.PlayersLookbackPeriod);
         Assert.Equal(4, first.TeamsLookbackPeriod);
@@ -215,13 +219,13 @@ public sealed class StrategyDataCalculationTests
 
         var firstFour = Fixtures(("One", fixtures["One"].Take(4).ToArray()));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), Tables(divisions), firstFour);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), Tables(divisions), firstFour);
         
         Assert.Equal(27.5m, division.Teams["A"].RecentWinsPercentage);
 
         
         
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), Tables(divisions), fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), Tables(divisions), fixtures);
 
         Assert.Equal(47.5m, division.Teams["A"].RecentWinsPercentage);
         Assert.Equal(50m, division.Teams["A"].Players["Player"].RecentWinsPercentage);
@@ -238,7 +242,7 @@ public sealed class StrategyDataCalculationTests
         var fixtures = Fixtures(("One", new[] { Match("A", "B", 7, 3,
             [new("Eighty", 12, 15), new("Forty", 2, 5)]) }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions,
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith(
             Rankings(("Low", 100), ("High", 200), ("Eighty", 180), ("Forty", 140)), Tables(divisions), fixtures);
 
         var team = division.Teams["A"];
@@ -261,7 +265,7 @@ public sealed class StrategyDataCalculationTests
         var divisions = Divisions(division);
         var fixtures = Fixtures(("One", new[] { Match("A", "B", 1, 1, [new("Eighty", 1, 2)]) }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions,
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith(
             Rankings(("Low", 100), ("High", 200), ("Eighty", 180), ("Forty", 140), ("Sixty", 160)), Tables(divisions), fixtures);
 
         var team = division.Teams["A"];
@@ -281,7 +285,7 @@ public sealed class StrategyDataCalculationTests
             Match("A", "B", 1, 1, [new("Player", 1, 2)])
         }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions,
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith(
             Rankings(("Low", 100), ("High", 200), ("Player", 180)), Tables(divisions), fixtures);
 
         Assert.Equal(80m, division.Teams["A"].Players["Player"].NormalisedRanking);
@@ -298,7 +302,7 @@ public sealed class StrategyDataCalculationTests
             Match("A", "B", 7, 3, [new("Substitute", 3, 3)], [new("Away", 1, 3)])
         }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), Tables(divisions), fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), Tables(divisions), fixtures);
 
         Assert.Equal(70m, division.Teams["A"].RecentWinsPercentage);
         Assert.Equal(0, division.Teams["A"].Players["Home"].RecentSetsPlayed);
@@ -315,7 +319,7 @@ public sealed class StrategyDataCalculationTests
         var divisions = Divisions(division);
         var fixtures = Fixtures(("One", new[] { Match("B", "A", 1, 0, [new("Low", 0, 3)]) }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions,
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith(
             Rankings(("Low", 100), ("High", 200), ("Forty", 140), ("Sixty", 160)), Tables(divisions), fixtures);
 
         Assert.Equal(50m, division.Teams["A"].AverageNormalisedPlayersRanking);
@@ -337,7 +341,7 @@ public sealed class StrategyDataCalculationTests
         var tables = Tables(divisions);
         tables["One"].TeamsStanding["A"] = new TeamStanding(7, 1, 3, 12);
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), tables, fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), tables, fixtures);
 
         var home = division.Teams["A"];
         var away = division.Teams["B"];
@@ -364,7 +368,7 @@ public sealed class StrategyDataCalculationTests
             ("Single", new[] { Match("Only", "Only", 1, 0, [new("Solo", 1, 1)]) }));
         var rankings = Rankings(("Low", 100), ("High", 200), ("Ranked", 180), ("Zero", 100));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, rankings, Tables(divisions), fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( rankings, Tables(divisions), fixtures);
 
         var team = first.Teams["A"];
         Assert.Equal(80m, team.Players["Ranked"].RecentStrength);
@@ -375,7 +379,7 @@ public sealed class StrategyDataCalculationTests
         Assert.Equal(0, single.Teams["Only"].Players["Solo"].RecentSetsPlayed);
         Assert.Null(single.Teams["Only"].Players["Solo"].RecentStrength);
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(("Low", 100), ("High", 200), ("Zero", 100)), Tables(divisions), new());
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(("Low", 100), ("High", 200), ("Zero", 100)), Tables(divisions), new());
 
         team = first.Teams["A"];
         Assert.Equal(0, team.Players["Unranked"].RecentSetsPlayed);
@@ -398,7 +402,7 @@ public sealed class StrategyDataCalculationTests
         var fixtures = Fixtures(("One", new[] { Match("A", "B", int.MaxValue, int.MaxValue),
             Match("A", "B", int.MaxValue, int.MaxValue) }));
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(), Tables(divisions), fixtures);
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), Tables(divisions), fixtures);
 
         var team = division.Teams["A"];
         Assert.Equal(50m, team.RecentWinsPercentage);
@@ -424,7 +428,7 @@ public sealed class StrategyDataCalculationTests
             }));
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            StrategyDataCalculation.CalculateStrategyData(divisions, Rankings(("Player", 123)), Tables(divisions), fixtures));
+            new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(("Player", 123)), Tables(divisions), fixtures));
 
         Assert.Contains(mismatch == "division" ? "Extra" : mismatch == "home" ? "MissingHome" : "MissingAway", exception.Message);
         Assert.Equal(99, first.TeamsLookbackPeriod);
@@ -469,7 +473,7 @@ public sealed class StrategyDataCalculationTests
     }
 
     private static void Calculate(OrderedDictionary<string, Division> divisions, IReadOnlyDictionary<string, Player> ranked) =>
-        StrategyDataCalculation.CalculateStrategyData(divisions, ranked, Tables(divisions), new());
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( ranked, Tables(divisions), new());
 
     private static Dictionary<string, Player> Rankings(params (string Name, int Value)[] values) =>
         values.ToDictionary(value => value.Name, value => new Player(value.Name, value.Value), StringComparer.OrdinalIgnoreCase);
