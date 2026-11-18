@@ -9,6 +9,19 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 public sealed class TeamPlayersParserTests
 {
     [Fact]
+    public void ParseTeamPlayers_NormalizesNonBreakingSpacesForFixtureNameMatching()
+    {
+        var team = new Team("A");
+        var teams = new OrderedDictionary<string, Team>(StringComparer.OrdinalIgnoreCase) { [team.Name] = team };
+        const string json = "{\"teamPlayers\":[{\"name\":\"Alex\\u00a0Smith\"}],\"otherPlayers\":[]}";
+
+        new CLTTLStrategy2026Parser().ParseTeamPlayers(ParserPageImpersonator.FetchTeamPlayers(json, "1"), team, teams);
+
+        Assert.True(team.Players.ContainsKey("Alex Smith"));
+        Assert.Equal("Alex Smith", team.Players["Alex Smith"].Name);
+    }
+
+    [Fact]
     public void ParseTeamPlayers_ParsesEveryPlayerInCapturedResponse()
     {
         var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Eligibility", "CapturedMorpeth10.json"));

@@ -1,4 +1,5 @@
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
+using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -6,6 +7,30 @@ namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 public sealed class FixturesParserTests
 {
     private readonly CLTTLStrategy2026Parser _parser = new();
+
+    [Fact]
+    public void ParsedRosterAndFixture_MatchNamesAndCalculatePlayerResults()
+    {
+        var division = new Division("Premier");
+        foreach (var name in new[] { "A", "B", "C" }) division.Teams.Add(name, new Team(name));
+        const string roster = "{\"teamPlayers\":[{\"name\":\"Alex\\u00a0Smith\"}],\"otherPlayers\":[]}";
+        _parser.ParseTeamPlayers(ParserPageImpersonator.FetchTeamPlayers(roster, "1"), division.Teams["A"], division.Teams);
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
+            Scored("Mon 05 Oct", "A", "B", "6 - 4",
+                Players(("Alex&nbsp;Smith", 2), ("Two", 2), ("Three", 1)), DefaultAway))));
+        var fixtures = _parser.ParseDivisionFixtures(html);
+        var divisions = new OrderedDictionary<string, Division>(StringComparer.OrdinalIgnoreCase) { ["Premier"] = division };
+        var table = new DivisionTable("Premier");
+        foreach (var name in division.Teams.Keys) table.TeamsStanding.Add(name, new TeamStanding(0, 0, 0, 0));
+        var tables = new OrderedDictionary<string, DivisionTable>(StringComparer.OrdinalIgnoreCase) { ["Premier"] = table };
+
+        StrategyDataCalculation.CalculateStrategyData(divisions, new Dictionary<string, Player>(StringComparer.OrdinalIgnoreCase), tables, fixtures);
+
+        var player = Assert.Single(division.Teams["A"].Players.Values);
+        Assert.Equal(3, player.RecentSetsPlayed);
+        Assert.Equal(200m / 3m, player.RecentWinsPercentage);
+        Assert.Equal(200m / 3m, player.RecentStrength);
+    }
 
     [Fact]
     public void ParseDivisionFixtures_ReturnsScoresPlayersAndNormalizedNamesInSourceOrder()
@@ -173,6 +198,20 @@ public sealed class FixturesParserTests
             Scored("Mon 05 Oct", "A", "B", "6 - 4", DefaultHome, ""))));
 
         Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ParseDivisionFixtures_RejectsDuplicatePlayerNamesOnEitherTeam(bool duplicateAtHome)
+    {
+        var home = duplicateAtHome ? Players(("One", 2), ("one", 2), ("Three", 1)) : DefaultHome;
+        var away = duplicateAtHome ? DefaultAway : Players(("Four", 2), ("four", 1), ("Six", 1));
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
+            Scored("Mon 05 Oct", "A", "B", "6 - 4", home, away))));
+
+        var error = Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Contains("duplicate", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

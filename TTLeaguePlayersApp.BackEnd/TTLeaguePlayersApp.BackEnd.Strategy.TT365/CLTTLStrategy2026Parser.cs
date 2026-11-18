@@ -559,6 +559,7 @@ public sealed class CLTTLStrategy2026Parser
         if (rows is null || rows.Count == 0)
             throw new InvalidOperationException("A fixture player list is empty.");
         var players = new List<(string Name, int Won)>();
+        var playerNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var forfeits = 0;
         foreach (var player in rows)
         {
@@ -575,6 +576,8 @@ public sealed class CLTTLStrategy2026Parser
             }
             else if (name.Length == 0)
                 throw new InvalidOperationException("A fixture player has no name.");
+            else if (!playerNames.Add(name))
+                throw new InvalidOperationException($"A fixture player list contains the duplicate name '{name}'.");
             else
                 players.Add((name, won));
         }
@@ -657,6 +660,7 @@ public sealed class CLTTLStrategy2026Parser
                 continue;
             }
 
+            playerName = playerName.Replace('\u00a0', ' ');
             if (!players.TryAdd(playerName, new Player(playerName, null)))
                 anomalies.Add($"Skipped duplicate player '{playerName}' for {teamContext}.");
         }

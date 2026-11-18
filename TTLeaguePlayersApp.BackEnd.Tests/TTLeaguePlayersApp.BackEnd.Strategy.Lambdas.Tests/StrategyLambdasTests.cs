@@ -57,7 +57,7 @@ public sealed class StrategyLambdasTests
         team.Players["One"].NormalisedRanking.Should().Be(0m);
         team.Players["Two"].NormalisedRanking.Should().Be(100m);
         team.Played.Should().Be(4);
-        team.TotalPoints.Should().Be(10);
+        team.Points.Should().Be(10);
         team.WinPercentage.Should().Be(75m);
         division.TeamsLookbackPeriod.Should().Be(0);
         division.PlayersLookbackPeriod.Should().Be(0);
