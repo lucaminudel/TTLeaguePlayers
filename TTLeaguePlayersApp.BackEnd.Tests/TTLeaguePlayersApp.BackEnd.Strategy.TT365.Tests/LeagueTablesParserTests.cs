@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
@@ -103,6 +102,16 @@ public sealed class LeagueTablesParserTests
 
         Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateHeaders)));
         Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateTeams)));
+    }
+
+    [Fact]
+    public void ParseDivisionTables_RejectsUnequalDivisionSetsForAndAgainst()
+    {
+        var html = ReadScenario("PreservesZeroValuesAndNormalizesHtmlNames.html");
+        var changed = html.Replace("<td>0</td><td>0</td><td>0</td><td>0</td>", "<td>0</td><td>1</td><td>0</td><td>0</td>", StringComparison.Ordinal);
+        Assert.NotEqual(html, changed);
+        
+        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", changed)));
     }
 
     [Fact]

@@ -127,6 +127,29 @@ public sealed class CLTTLStrategy2026ProcessorTests
         Assert.Equal([DivisionsUri, alphaUri, betaUri, gammaUri], proxy.RequestedUrls);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProcessAsync_FetchesDirectRosterWhenReusableDataIsIncomplete(bool missingTeamName)
+    {
+        var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "11");
+        var betaUri = new Uri(PlayersUriPrefix.OriginalString + "12");
+        var gammaUri = new Uri(PlayersUriPrefix.OriginalString + "13");
+        var malformed = missingTeamName ? "{\"name\":\"Unknown\"}" : "{\"teamName\":\"Beta\"}";
+        var alpha = "{\"teamPlayers\":[{\"name\":\"Alpha Player\"}],\"otherPlayers\":[{\"teamName\":\"Beta\",\"name\":\"Partial\"}," + malformed + "]}";
+        var proxy = CreateProxy(
+            (DivisionsUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("ProcessorTeams.html"))),
+            (alphaUri, ScraperProxyImpersonatorResponse.FromContent(alpha)),
+            (betaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("SinglePlayerRoster.json"))),
+            (gammaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("EmptyRoster.json"))));
+
+        var (divisions, anomalies) = await new CLTTLStrategy2026Processor(proxy, StrategySources).GetAllDivisionsWithTeamsAndPlayers();
+        
+        Assert.Equal(["Beta Player"], divisions["Division 1"].Teams["Beta"].Players.Keys);
+        Assert.Contains(betaUri, proxy.RequestedUrls);
+        Assert.NotEmpty(anomalies);
+    }
+
     [Fact]
     public async Task ProcessAsync_PropagatesRequiredFetchFailureWithoutReturningPartialResult()
     {

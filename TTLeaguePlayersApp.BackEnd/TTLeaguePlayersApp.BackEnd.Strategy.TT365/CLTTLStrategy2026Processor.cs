@@ -40,16 +40,12 @@ public sealed class CLTTLStrategy2026Processor : IStrategyProcessor
         return (allDivisions, anomalies);
     }
 
-    public async Task<OrderedDictionary<string, DivisionTable>> GetAllTables()
+    public async Task<(OrderedDictionary<string, DivisionTable> Tables, OrderedDictionary<string, List<Fixture>> Fixtures, IReadOnlyList<string> Anomalies)> GetAllTablesAndFixtures(OrderedDictionary<string, Division> divisions)
     {
-        var html = await _fetcher.FetchLeagueTablesAsync();
-        return _parser.ParseDivisionTables(html);
-    }
-
-    public async Task<OrderedDictionary<string, List<Fixture>>> GetAllFixtures()
-    {
-        var html = await _fetcher.FetchFixturesAsync();
-        return _parser.ParseDivisionFixtures(html);
+        var tables = _parser.ParseDivisionTables(await _fetcher.FetchLeagueTablesAsync());
+        var fixtures = _parser.ParseDivisionFixtures(await _fetcher.FetchFixturesAsync());
+        _parser.ValidateFixtureDivisionCoverage(divisions, fixtures);
+        return (tables, fixtures, _parser.CheckTableFixtureIntegrity(tables, fixtures));
     }
 
     public async Task<(IReadOnlyDictionary<string, Player> AllRankedPlayers, IReadOnlyList<string> Anomalies)> GetAllRankingPlayers()

@@ -73,14 +73,14 @@ public sealed class StrategyLambdasTests
     public async Task TeamComparisons_LogsSourceAnomaliesWithTheOperationEventName()
     {
         var observer = new SpyLoggerObserver();
-        var processor = new StrategyProcessorFake { RosterAnomalies = ["incomplete roster", "duplicate player"], RankingAnomalies = ["missing ranking"] };
+        var processor = new StrategyProcessorFake { RosterAnomalies = ["incomplete roster", "duplicate player"], RankingAnomalies = ["missing ranking"], FixtureAnomalies = ["table fixture mismatch"] };
         var lambda = new TeamComparisonsLambda(observer, [Config()], _ => processor);
 
         await lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), new TestLambdaContext());
 
         var anomaly = observer.RuntimeIrregularEvents.Should().ContainSingle().Subject;
         anomaly.EventName.Should().Be("GET TEAM COMPARISONS COMPLETED WITH ANOMALIES");
-        anomaly.Parameters.Should().Contain("Detail", "incomplete roster\nduplicate player\nmissing ranking");
+        anomaly.Parameters.Should().Contain("Detail", "incomplete roster\nduplicate player\nmissing ranking\ntable fixture mismatch");
         anomaly.Parameters.Should().Contain("League", "CLTTL").And.Contain("Season", "2026-2027").And.Contain("Division", "Division 4");
         observer.RuntimeIrregularClaims.Should().ContainSingle().Which.Should().BeEquivalentTo(Claims());
         observer.RuntimeRegularEvents.Should().BeEmpty();

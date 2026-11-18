@@ -17,10 +17,11 @@ public sealed class FixturesProcessorTests
         var html = File.ReadAllText(Path.Combine(directory, "CLTTL-2026-fixtures.html"));
         var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
         {
-            [source] = [ScraperProxyImpersonatorResponse.FromContent(html)]
+            [source] = [ScraperProxyImpersonatorResponse.FromContent(html)],
+            [sources["League Tables"]] = [ScraperProxyImpersonatorResponse.FromContent(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "LeagueTables.html")))]
         });
 
-        var divisions = await new CLTTLStrategy2026Processor(proxy, sources).GetAllFixtures();
+        var (_, divisions, _) = await new CLTTLStrategy2026Processor(proxy, sources).GetAllTablesAndFixtures(new OrderedDictionary<string, Division>());
 
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "CLTTL-2026-fixtures.expected.json")));
         var expectedDivisions = expected.RootElement.EnumerateObject().ToArray();
@@ -44,7 +45,31 @@ public sealed class FixturesProcessorTests
                 AssertPlayers(item.GetProperty("awayTeamPlayersScore"), fixture.AwayTeamPlayersScore);
             }
         }
-        Assert.Equal([source], proxy.RequestedUrls);
+        Assert.Equal([sources["League Tables"], source], proxy.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetAllTablesAndFixtures_ReturnsReconciliationAnomaliesAndRequiresRosterCoverage()
+    {
+        var sources = Clttl2026TestConfig.Load().StrategySources;
+        var tables = "<div class='tt-table-section'><h3 class='tt-table-division-title'>Premier</h3><table class='tt-league-table'><thead><tr><th>Team</th><th>P</th><th>SF</th><th>SA</th><th>Pts</th></tr></thead><tbody><tr><td>A</td><td>1</td><td>6</td><td>4</td><td>0</td></tr><tr><td>B</td><td>1</td><td>4</td><td>6</td><td>0</td></tr></tbody></table></div>";
+        var fixtures = "<h3 class='tt-potm-division-title'>Premier</h3><div class='tt-fixture-week-header'><span class='tt-fixture-week-period'>05 Oct 2026 – 09 Oct 2026</span></div><table class='tt-fixture-table'><tbody><tr><td class='tt-fixture-date'>Mon 05 Oct</td><td class='tt-fixture-teamcell'><a class='tt-team-link'>A</a></td><td class='tt-fixture-score'>vs</td><td class='tt-fixture-teamcell'><a class='tt-team-link'>B</a></td></tr></tbody></table>";
+        var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
+        {
+            [sources["League Tables"]] = [ScraperProxyImpersonatorResponse.FromContent(tables), ScraperProxyImpersonatorResponse.FromContent(tables)],
+            [sources["Fixtures"]] = [ScraperProxyImpersonatorResponse.FromContent(fixtures), ScraperProxyImpersonatorResponse.FromContent(fixtures)]
+        });
+        var roster = new OrderedDictionary<string, Division> { ["premier"] = new Division("Premier") };
+        var processor = new CLTTLStrategy2026Processor(proxy, sources);
+
+        var (parsedTables, parsedFixtures, anomalies) = await processor.GetAllTablesAndFixtures(roster);
+        
+        Assert.Single(parsedTables);
+        Assert.Single(parsedFixtures);
+        Assert.Equal(2, anomalies.Count);
+        Assert.Equal(new[] { sources["League Tables"], sources["Fixtures"] }, proxy.RequestedUrls);
+        roster.Add("Missing", new Division("Missing"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllTablesAndFixtures(roster));
     }
 
     private static int? Score(JsonElement fixture, string name) =>

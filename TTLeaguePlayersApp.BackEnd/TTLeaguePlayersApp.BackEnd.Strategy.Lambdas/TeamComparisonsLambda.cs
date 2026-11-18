@@ -26,8 +26,7 @@ public sealed class TeamComparisonsLambda
 
         var (divisions, rosterAnomalies) = await processor.GetAllDivisionsWithTeamsAndPlayers();
         var (rankings, rankingAnomalies) = await processor.GetAllRankingPlayers();
-        var tables = await processor.GetAllTables();
-        var fixtures = await processor.GetAllFixtures();
+        var (tables, fixtures, fixtureAnomalies) = await processor.GetAllTablesAndFixtures(divisions);
 
         StrategyDataCalculation.CalculateStrategyData(divisions, rankings, tables, fixtures);
 
@@ -39,7 +38,7 @@ public sealed class TeamComparisonsLambda
             ["Division"] = request.TeamDivision!
         };
 
-        var anomalies = rosterAnomalies.Concat(rankingAnomalies).ToArray();
+        var anomalies = rosterAnomalies.Concat(rankingAnomalies).Concat(fixtureAnomalies).ToArray();
         if (anomalies.Length > 0)
             _observer.OnRuntimeIrregularEvent(
                 "GET TEAM COMPARISONS COMPLETED WITH ANOMALIES", 

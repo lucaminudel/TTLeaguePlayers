@@ -1,5 +1,6 @@
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
+using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -14,14 +15,15 @@ public sealed class LeagueTablesProcessorTests
         var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "LeagueTables.html"));
         var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
         {
-            [source] = [ScraperProxyImpersonatorResponse.FromContent(html)]
+            [source] = [ScraperProxyImpersonatorResponse.FromContent(html)],
+            [sources["Fixtures"]] = [ScraperProxyImpersonatorResponse.FromContent(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Fixtures", "CLTTL-2026-fixtures.html")))]
         });
         var processor = new CLTTLStrategy2026Processor(proxy, sources);
-
-        var tables = await processor.GetAllTables();
+        
+        var (tables, _, _) = await processor.GetAllTablesAndFixtures(new OrderedDictionary<string, Division>());
 
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LeagueTables", "ExpectedStandings.json")));
         LeagueTablesParserTests.CheckTables(expected.RootElement, tables);
-        Assert.Equal([source], proxy.RequestedUrls);
+        Assert.Equal([source, sources["Fixtures"]], proxy.RequestedUrls);
     }
 }

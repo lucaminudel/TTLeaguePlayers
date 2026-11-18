@@ -18,14 +18,16 @@ public class RankingPagesParserTests
     internal static void AssertCapturedPlayers(IReadOnlyDictionary<string, Player> players, IReadOnlyList<string> anomalies)
     {
         using var expected = JsonDocument.Parse(ReadFixture("ExpectedCapturedPlayers.json"));
-        Assert.Equal(expected.RootElement.GetArrayLength(), players.Count);
+        Assert.Equal(expected.RootElement.GetArrayLength() - 1, players.Count);
         foreach (var player in expected.RootElement.EnumerateArray())
         {
             var name = player.GetProperty("name").GetString()!;
+            if (name == "Olaolu  Awosika") continue;
+            name = string.Join(" ", name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
             Assert.Equal(name, players[name].Name);
             Assert.Equal(player.GetProperty("rating").GetInt32(), players[name].CurrentRanking);
         }
-        Assert.Equal(4, anomalies.Count);
+        Assert.Equal(5, anomalies.Count);
         Assert.All(anomalies, anomaly => Assert.Contains("Duplicate player", anomaly, StringComparison.Ordinal));
     }
 
@@ -78,6 +80,17 @@ public class RankingPagesParserTests
         Assert.Equal(retainedName, selected.Value.Name);
         Assert.Equal(retainedCurrent, selected.Value.CurrentRanking);
         Assert.Single(players.Anomalies);
+    }
+
+    [Fact]
+    public void ParseRankingPlayers_CollapsesWhitespaceBeforeResolvingDuplicateNames()
+    {
+        var html = RankingPage(Row("Alex   Example", 5, 100) + Row("alex example", 9, 200));
+
+        var result = new CLTTLStrategy2026Parser().ParseRankingPlayers([html]);
+        
+        Assert.Equal(200, Assert.Single(result.AllPlayers).Value.CurrentRanking);
+        Assert.Single(result.Anomalies);
     }
 
     [Fact]

@@ -13,20 +13,29 @@ public sealed class FixturesParserTests
     {
         var division = new Division("Premier");
         foreach (var name in new[] { "A", "B", "C" }) division.Teams.Add(name, new Team(name));
-        const string roster = "{\"teamPlayers\":[{\"name\":\"Alex\\u00a0Smith\"}],\"otherPlayers\":[]}";
+        const string roster = "{\"teamPlayers\":[{\"name\":\"Alex\\u00a0  Smith\"}],\"otherPlayers\":[]}";
         _parser.ParseTeamPlayers(ParserPageImpersonator.FetchTeamPlayers(roster, "1"), division.Teams["A"], division.Teams);
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "6 - 4",
-                Players(("Alex&nbsp;Smith", 2), ("Two", 2), ("Three", 1)), DefaultAway))));
+                Players(("aLEX&nbsp; Smith", 2), ("Two", 2), ("Three", 1)), DefaultAway))));
         var fixtures = _parser.ParseDivisionFixtures(html);
         var divisions = new OrderedDictionary<string, Division>(StringComparer.OrdinalIgnoreCase) { ["Premier"] = division };
         var table = new DivisionTable("Premier");
         foreach (var name in division.Teams.Keys) table.TeamsStanding.Add(name, new TeamStanding(0, 0, 0, 0));
         var tables = new OrderedDictionary<string, DivisionTable>(StringComparer.OrdinalIgnoreCase) { ["Premier"] = table };
 
-        StrategyDataCalculation.CalculateStrategyData(divisions, new Dictionary<string, Player>(StringComparer.OrdinalIgnoreCase), tables, fixtures);
+        var rankingDirectory = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Ranking");
+        var rankingRow = File.ReadAllText(Path.Combine(rankingDirectory, "ParserRow.html"))
+            .Replace("{{NAME}}", "alex&nbsp;  smith", StringComparison.Ordinal)
+            .Replace("{{CURRENT}}", "1200", StringComparison.Ordinal);
+        var rankingPage = File.ReadAllText(Path.Combine(rankingDirectory, "ParserPage.html"))
+            .Replace("{{ROWS}}", rankingRow, StringComparison.Ordinal);
+        var (rankings, _) = _parser.ParseRankingPlayers([ParserPageImpersonator.Fetch("Ranking", rankingPage)]);
+        
+        StrategyDataCalculation.CalculateStrategyData(divisions, rankings, tables, fixtures);
 
         var player = Assert.Single(division.Teams["A"].Players.Values);
+        Assert.Equal(1200, player.CurrentRanking);
         Assert.Equal(3, player.RecentSetsPlayed);
         Assert.Equal(200m / 3m, player.RecentWinsPercentage);
         Assert.Equal(200m / 3m, player.RecentStrength);
@@ -214,6 +223,17 @@ public sealed class FixturesParserTests
         Assert.Contains("duplicate", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ParseDivisionFixtures_RejectsAForfeitAdjustmentThatMakesWinsNegative(bool forfeitAtHome)
+    {
+        var forfeitSide = Players(("One", 2), ("Two", 1), ("Forfeit", 0));
+        var opponents = Players(("Three", 3), ("Four", 3), ("Five", 0));
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", forfeitAtHome ? "4 - 6" : "6 - 4", forfeitAtHome ? forfeitSide : opponents, forfeitAtHome ? opponents : forfeitSide))));
+        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
     [Fact]
     public void ParseDivisionFixtures_RejectsMultipleForfeitsWithoutInventingPlayerWins()
     {
@@ -284,6 +304,62 @@ public sealed class FixturesParserTests
             .Replace("05 Oct 2026 &#x2013; 09 Oct 2026", "unknown week");
 
         Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
+    [Fact]
+    public void ParseDivisionFixtures_RejectsSelfPlayIgnoringCase()
+    {
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Unplayed("Mon 05 Oct", "Team", "team"))));
+        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
+    [Theory]
+    [InlineData("4 - 6")]
+    [InlineData("7 - 3")]
+    public void ParseDivisionFixtures_RejectsTeamScoresInconsistentWithSingles(string score)
+    {
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", score, DefaultHome, DefaultAway))));
+        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ParseDivisionFixtures_RequiresThreeScorecardEntriesPerTeam(bool atHome)
+    {
+        var four = atHome ? Players(("One", 2), ("Two", 2), ("Three", 1), ("Extra", 0))
+            : Players(("Four", 2), ("Five", 1), ("Six", 1), ("Extra", 0));
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", "6 - 4", atHome ? four : DefaultHome, atHome ? DefaultAway : four))));
+        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
+    [Fact]
+    public void ParseDivisionFixtures_AcceptsDoublesPointForAwayTeam()
+    {
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", "5 - 5", DefaultHome, DefaultAway))));
+        var fixture = Assert.Single(_parser.ParseDivisionFixtures(html)["Premier"]);
+        Assert.Equal(5, fixture.AwayTeamScore);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ParseDivisionFixtures_RejectsTooFewPlayersEvenWhenSinglesTotalNine(bool atHome)
+    {
+        var two = Players(("One", 3), ("Two", 2));
+        var three = Players(("Four", 2), ("Five", 1), ("Six", 1));
+        var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", atHome ? "6 - 4" : "4 - 6", atHome ? two : three, atHome ? three : two))));
+        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+    }
+
+    [Fact]
+    public void ValidateFixtureDivisionCoverage_RequiresEveryRosterDivisionIgnoringCase()
+    {
+        var divisions = new OrderedDictionary<string, Division> { ["Premier"] = new Division("Premier") };
+        var fixtures = new OrderedDictionary<string, List<Fixture>> { ["premier"] = [] };
+        _parser.ValidateFixtureDivisionCoverage(divisions, fixtures);
+        divisions.Add("Division 1", new Division("Division 1"));
+        Assert.Throws<InvalidOperationException>(() => _parser.ValidateFixtureDivisionCoverage(divisions, fixtures));
     }
 
     private static string Page(params string[] divisions) => $"<html><body><div id='fixtures'>{string.Concat(divisions)}</div></body></html>";

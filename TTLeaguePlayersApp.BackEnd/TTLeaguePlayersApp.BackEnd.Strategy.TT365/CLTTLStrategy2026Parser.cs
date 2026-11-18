@@ -61,7 +61,7 @@ public sealed class CLTTLStrategy2026Parser
                     continue;
                 }
 
-                name = NormalizeSpecialSpacing(name);
+                name = NormalizeText(NormalizeSpecialSpacing(name));
                 if (name.Length == 0)
                 {
                     anomalies.Add($"Skipped {rowLabel}: name was empty after normalization.");
@@ -272,16 +272,18 @@ public sealed class CLTTLStrategy2026Parser
 
         var playerGroupsByTeam = new OrderedDictionary<string, List<JsonElement>>(StringComparer.OrdinalIgnoreCase);
         var otherPlayerIndex = 0;
+        var hasUnknownDestination = false;
         foreach (var otherPlayer in otherPlayers.EnumerateArray())
         {
             otherPlayerIndex++;
             if (!TryGetRequiredString(otherPlayer, "teamName", out var teamName))
             {
                 anomalies.Add($"Skipped otherPlayers entry {otherPlayerIndex}: missing team name.");
+                hasUnknownDestination = true;
                 continue;
             }
 
-            teamName = teamName.Replace('\u00a0', ' ');
+            teamName = NormalizeText(teamName);
 
             if (!playerGroupsByTeam.TryGetValue(teamName, out var teamGroup))
             {
@@ -292,17 +294,38 @@ public sealed class CLTTLStrategy2026Parser
             teamGroup.Add(otherPlayer);
         }
 
+        if (hasUnknownDestination)
+        {
+            AddPlayerGroups(pendingGroups);
+            return anomalies;
+        }
+
+        var teamsByNormalizedName = allTeams.Values.ToLookup(team => NormalizeText(team.Name), StringComparer.OrdinalIgnoreCase);
         foreach (var (teamName, entries) in playerGroupsByTeam)
         {
-            if (!allTeams.TryGetValue(teamName, out var team))
+            var matchingTeams = teamsByNormalizedName[teamName].ToArray();
+            if (matchingTeams.Length != 1)
             {
-                anomalies.Add($"Skipped otherPlayers group for unknown team '{teamName}'.");
+                anomalies.Add($"Skipped otherPlayers group for unknown or ambiguous team '{teamName}'.");
                 continue;
             }
 
-            pendingGroups.Add((
-                team,
-                ParsePlayerGroup(entries, $"team '{team.Name}'", anomalies)));
+            var team = matchingTeams[0];
+            if (ReferenceEquals(team, requestedTeam))
+                continue;
+            var groupAnomalies = new List<string>();
+            try
+            {
+                var players = ParsePlayerGroup(entries, $"team '{team.Name}'", groupAnomalies);
+                anomalies.AddRange(groupAnomalies);
+                if (groupAnomalies.Count == 0)
+                    pendingGroups.Add((team, players));
+            }
+            catch (InvalidOperationException error)
+            {
+                anomalies.AddRange(groupAnomalies);
+                anomalies.Add($"Skipped reusable roster for team '{team.Name}': {error.Message}");
+            }
         }
 
         AddPlayerGroups(pendingGroups);
@@ -374,10 +397,59 @@ public sealed class CLTTLStrategy2026Parser
                     ParseTableInteger(cells[columnIndexes["Pts"]], divisionName, rowNumber, "points")));
             }
 
+            if (divisionTable.TeamsStanding.Values.Sum(standing => (long)standing.SetsFor) !=
+                divisionTable.TeamsStanding.Values.Sum(standing => (long)standing.SetsAgainst))
+                throw new InvalidOperationException($"Division '{divisionName}' has unequal sets for and against.");
+
             divisionTables.Add(divisionName, divisionTable);
         }
 
         return divisionTables;
+    }
+
+    public void ValidateFixtureDivisionCoverage(OrderedDictionary<string, Division> divisions, OrderedDictionary<string, List<Fixture>> fixtures)
+    {
+        foreach (var name in divisions.Keys)
+            if (!fixtures.Keys.Any(key => string.Equals(key, name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Roster division '{name}' is missing from fixtures.");
+    }
+
+    public IReadOnlyList<string> CheckTableFixtureIntegrity(OrderedDictionary<string, DivisionTable> tables, OrderedDictionary<string, List<Fixture>> fixtures)
+    {
+        ArgumentNullException.ThrowIfNull(tables);
+        ArgumentNullException.ThrowIfNull(fixtures);
+
+        var anomalies = new List<string>();
+        foreach (var (divisionName, table) in tables)
+        {
+            if (!fixtures.Keys.Any(key => string.Equals(key, divisionName, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Table division '{divisionName}' is missing from fixtures.");
+            var matches = fixtures
+                .Where(entry => string.Equals(entry.Key, divisionName, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(entry => entry.Value)
+                .Where(fixture => fixture.Played)
+                .ToArray();
+
+            foreach (var (teamName, standing) in table.TeamsStanding)
+            {
+                long played = 0, setsFor = 0, setsAgainst = 0;
+                foreach (var fixture in matches)
+                {
+                    var home = string.Equals(fixture.HomeTeamName, teamName, StringComparison.OrdinalIgnoreCase);
+                    var away = string.Equals(fixture.AwayTeamName, teamName, StringComparison.OrdinalIgnoreCase);
+                    if (!home && !away) continue;
+                    if (!fixture.HomeTeamScore.HasValue || !fixture.AwayTeamScore.HasValue)
+                        throw new InvalidOperationException("A played fixture has a missing score.");
+                    played++;
+                    setsFor += home ? fixture.HomeTeamScore.Value : fixture.AwayTeamScore.Value;
+                    setsAgainst += home ? fixture.AwayTeamScore.Value : fixture.HomeTeamScore.Value;
+                }
+
+                if (standing.Played != played || standing.SetsFor != setsFor || standing.SetsAgainst != setsAgainst)
+                    anomalies.Add($"Division '{divisionName}', team '{teamName}': table P/SF/SA = {standing.Played}/{standing.SetsFor}/{standing.SetsAgainst}; fixtures = {played}/{setsFor}/{setsAgainst}.");
+            }
+        }
+        return anomalies;
     }
 
     public OrderedDictionary<string, List<Fixture>> ParseDivisionFixtures(string fixturesPageHtml)
@@ -515,6 +587,8 @@ public sealed class CLTTLStrategy2026Parser
             throw new InvalidOperationException("A fixture must contain exactly two team cells.");
         var homeName = FixtureTeamName(teams[0]);
         var awayName = FixtureTeamName(teams[1]);
+        if (string.Equals(homeName, awayName, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("A fixture cannot have the same team on both sides.");
         var scoreCell = row.SelectSingleNode("./td[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-score ')]")
             ?? throw new InvalidOperationException("A fixture is missing its score cell.");
         var scoreNode = scoreCell.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-result-score-text ')]");
@@ -539,6 +613,16 @@ public sealed class CLTTLStrategy2026Parser
             throw new InvalidOperationException("A fixture with multiple forfeits cannot be interpreted unambiguously.");
         if (homePlayers.Present && homePlayers.Players.Sum(player => player.Won) + awayPlayers.Players.Sum(player => player.Won) != 9)
             throw new InvalidOperationException("A scored fixture must account for nine singles wins.");
+        if (homePlayers.Present)
+        {
+            if (homePlayers.Players.Count + homePlayers.Forfeits != 3 || awayPlayers.Players.Count + awayPlayers.Forfeits != 3)
+                throw new InvalidOperationException("Each scorecard must contain three players including forfeits.");
+            var homeSingles = homePlayers.Players.Sum(player => player.Won);
+            var awaySingles = awayPlayers.Players.Sum(player => player.Won);
+            if (homeScore - homeSingles is < 0 or > 1 || awayScore - awaySingles is < 0 or > 1 ||
+                homeScore - homeSingles + awayScore - awaySingles != 1)
+                throw new InvalidOperationException("Player wins do not match the team scores and one doubles point.");
+        }
         var home = AdjustFixturePlayers(homePlayers.Players, awayPlayers.Players.Count, awayPlayers.Forfeits);
         var away = AdjustFixturePlayers(awayPlayers.Players, homePlayers.Players.Count, homePlayers.Forfeits);
         return new Fixture(dates[0], true, homeName, awayName, homeScore, awayScore, home, away);
@@ -567,7 +651,7 @@ public sealed class CLTTLStrategy2026Parser
             if (!int.TryParse(rawScore, NumberStyles.None, CultureInfo.InvariantCulture, out var won) || won is < 0 or > 3)
                 throw new InvalidOperationException("A fixture player has an invalid win count.");
             var forfeit = player.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' tt-fixture-scorecard-forfeit ')]");
-            var name = NormalizeHtmlName(player.SelectSingleNode(".//a[contains(concat(' ', normalize-space(@class), ' '), ' tt-player-link ')]")?.InnerText ?? string.Empty);
+            var name = NormalizeText(NormalizeHtmlName(player.SelectSingleNode(".//a[contains(concat(' ', normalize-space(@class), ' '), ' tt-player-link ')]")?.InnerText ?? string.Empty));
             if (forfeit is not null || string.Equals(name, "Forfeit", StringComparison.OrdinalIgnoreCase))
             {
                 if (won != 0)
@@ -586,7 +670,7 @@ public sealed class CLTTLStrategy2026Parser
 
     private static IReadOnlyList<PlayerScore> AdjustFixturePlayers(List<(string Name, int Won)> players, int opponentsPlayed, int opposingForfeits)
     {
-        if (players.Any(player => player.Won < opposingForfeits))
+        if (players.Any(player => player.Won < opposingForfeits || player.Won > opponentsPlayed + opposingForfeits || player.Won - opposingForfeits > opponentsPlayed))
             throw new InvalidOperationException("A forfeit adjustment would produce negative player wins.");
         return players.Select(player => new PlayerScore(player.Name, player.Won - opposingForfeits, opponentsPlayed)).ToArray();
     }
@@ -660,7 +744,7 @@ public sealed class CLTTLStrategy2026Parser
                 continue;
             }
 
-            playerName = playerName.Replace('\u00a0', ' ');
+            playerName = NormalizeText(playerName);
             if (!players.TryAdd(playerName, new Player(playerName, null)))
                 anomalies.Add($"Skipped duplicate player '{playerName}' for {teamContext}.");
         }
