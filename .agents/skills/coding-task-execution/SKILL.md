@@ -101,15 +101,27 @@ Reconcile it against reality before doing anything:
 Mirror the plan into the in-session task list if it helps you work, but the persisted file is what
 you update.
 
-**Establish where applicable e2e tests may run.** Use the planned changes to assess e2e applicability
-under Phase 6. If e2e applies, ask whether the local dev DB is clean enough for it. The e2e environment
-is **test** unless the user confirms that dev is clean. If e2e becomes applicable later, resolve the
-environment before running it.
+**Reuse Inception's verification and environment record.** Read the plan's user-reported full
+pipeline baseline and dev environment/database suitability, their scope, date and associated Git
+snapshot. Before changing code, compare the recorded branch and HEAD, local commits, staged and
+unstaged changes and untracked files, including content identity, with the current checkout using
+the same snapshot scope and exclusions. Preserve user changes. If the relevant Git state matches,
+reuse applicable recorded answers without asking again. A Git match alone does not establish that
+services or data could not have changed: if there is concrete contrary evidence, reassess the affected
+answer. If Git differs, assess whether the differences affect the applicable baseline or environment;
+resolve only the affected uncertainty, using evidence and asking the user if needed. Do not invalidate
+unrelated permissions or decisions, or treat changed task artifacts alone as source changes.
 
-**Establish the baseline before changing any code — by asking, not by running.** Ask the user to
-confirm a green baseline for the suites applicable to the planned changes. Use dev for C# and
-Vitest and the selected e2e environment for Playwright if applicable. Reuse confirmations already
-given. Do **not** run suites to establish the baseline yourself.
+**Establish where applicable e2e tests may run.** Use the planned changes to assess e2e applicability
+under Phase 6. Reuse a recorded applicable clean dev DB confirmation; otherwise ask if e2e applies.
+The e2e environment is **test** unless the user confirms dev is clean. Resolve a later applicability
+change before running e2e.
+
+**Establish the baseline before changing any code — by asking, not by running.** Reuse the recorded
+green pipeline or suite confirmation when it covers the applicable suites and remains valid under
+the comparison above. Ask only for missing or invalidated confirmations. Use dev for C# and Vitest
+and the selected e2e environment for Playwright if applicable. Do **not** run suites to establish
+the baseline yourself. Recording a green baseline does not authorize a new shared pipeline run.
 
 ## Phase 2 — Order the work
 

@@ -283,6 +283,28 @@ review or verification barrier blocks the appropriate successors. Check that the
 and that every task can eventually become ready. Explain any intentionally serial group. Resolve
 missing ownership or dependencies before presenting the plan.
 
+## Execution baseline and local environment — before final review
+
+Ask the user, in a consolidated upfront question where practical, whether the full pipeline is green
+and whether the local dev environment and its database are clean and suitable for the applicable
+fast dev tests, including any exceptions. Explain that Execution will reuse these answers. Reuse
+answers already given; record exact answers, date, scope and any unknowns in the plan's Verification
+section, without claiming independent verification or inferring authority to run a pipeline.
+
+At the time of the answers, record the branch, HEAD commit, relevant local commits (including ahead
+commits when an upstream exists), staged and unstaged changes, and untracked files. Capture enough
+content identity for meaningful comparison, including changes to file contents even when status
+labels stay the same; avoid copying sensitive contents into the report. Note the scope and any
+excluded task artifacts so their own updates do not invalidate the snapshot. Preserve user changes.
+Refresh the snapshot when a relevant answer or the working tree changes before handoff, and retain
+which snapshot each answer applies to. Do not assume Git state proves the database or services
+have remained unchanged; record contrary evidence if observed.
+
+**Continue until a real ask or completion.** A progress update, completed phase, tool result or
+interim draft is not a handoff. Continue all independent authorized work; pause only for an actual
+unresolved user question, explicit plan confirmation, required authority, or completion. Combine
+foreseeable questions where practical. Never infer confirmation from silence.
+
 ## Phase 7 — Persist, present, amend, confirm
 
 Before final plan confirmation, ask the user each of the following questions; they may answer or
@@ -307,7 +329,7 @@ decisions locked in, assumptions, and anything you would flag as accepted risk.
 For large or cross-component plans, present the suggested sequence of deployable units and its rationale, or explain
 why a split is not feasible. Fold the user's choice into the plan before confirmation.
 
-Invite the user to review the persisted draft, amend it, and **wait** for explicit confirmation. Expect several rounds; persist each amendment before re-presenting the updated plan. Mark the plan confirmed only after explicit user confirmation; a persisted draft does not authorize Execution. Apply the scope-impact rule in *Standing rules* to each scope refinement or change,
+Present the provisional Inception workflow retrospective described in Phase 8 alongside the draft. In the same review request ask the user both to confirm or amend the plan and to add/change anything about the Inception workflow or explicitly skip retrospective feedback. Invite the user to review the persisted draft, amend it, and **wait** for explicit confirmation and any still-unanswered retrospective response. Expect several rounds; persist each amendment before re-presenting the updated plan. Mark the plan confirmed only after explicit user confirmation; a persisted draft does not authorize Execution. Apply the scope-impact rule in *Standing rules* to each scope refinement or change,
 and highlight any resulting changes to blast radius, implementation effort, risk or impact before
 asking for confirmation. Repeat the simplicity review whenever an amendment adds mechanisms,
 shared-interface changes or context propagation, materially changes the risk/effort, or changes
@@ -352,20 +374,19 @@ Write the draft to `.codex/coding-tasks/<task-slug>/plan.md` before requesting r
 
 ## Phase 8 — Retrospect
 
-Retrospect (reflect on the work just completed with this coding-task-inception Skill, 
-list what worked well, what did not work well, what challenges were met, and suggest improvements 
-to the skill) on the **Inception workflow itself** after the plan is confirmed and persisted. Assess
-how research, questions, decisions, plan confirmation and hand-off worked. Technical design lessons
-alone do not satisfy this retrospective. Present supported improvements to this skill, or say
-explicitly that none were identified.
+Prepare a provisional retrospective for the combined plan-review request in Phase 7: what
+worked, what did not, challenges and supported workflow improvements (or explicitly none). Assess
+research, questions, decisions, confirmation and handoff; technical lessons alone do not suffice.
+Ask specifically, together with plan confirmation, whether the user wants to add or change anything
+about the **Coding Task Inception workflow**, or explicitly skip feedback. An answer to another
+phase or a generic earlier answer does not count. Retain an Inception-specific answer across plan
+amendment rounds; ask again only if that answer remains missing, or new feedback is needed for a
+material change. Do not introduce a second consecutive handoff solely for a question already answered.
 
-Ask the user specifically whether they want to add or change anything about the **Coding Task
-Inception workflow**, and wait for their answer. An answer to another phase's retrospective, or a
-generic earlier answer, does not count. Address the answer before closing; an explicit decision to
-skip the Inception retrospective also permits closure.
-
-Record a distinct `Inception retrospective` outcome in this task's `plan.md`: workflow lessons,
-skill changes made (or none), and the user's Inception-specific answer or explicit skip.
+After confirmation, complete the retrospective with any later workflow lessons, address the user's
+answer, and record a distinct `Inception retrospective` outcome in `plan.md`: lessons, skill changes
+made (or none), and the user's Inception-specific answer or explicit skip. Continue directly to
+closure when no actual question remains.
 
 ## Phase 9 — Close
 

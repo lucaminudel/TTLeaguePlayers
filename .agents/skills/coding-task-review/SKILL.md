@@ -630,8 +630,10 @@ changed — if the reviewer could get it from the diff alone, leave it out.
 
 ## Phase 6 — Suggest the commit message
 
-For remaining task changes, include the suggested commit message in the manual review report
-(`review.md`) before declaring the guide complete, and propose it in the handoff. **Do not commit
+For remaining task changes, include a ready-to-use suggested commit message with both a concise
+title and a substantive body in the manual review report (`review.md`) before declaring the guide
+complete. Present the title and body together in a single text block, separated by a blank line,
+so the user can copy them directly. Propose the same message in the handoff. **Do not commit
 and do not stage** during final Review. If all task changes are already committed, list those unit
 commits instead of inventing a pending commit message. List unrelated pending work separately; do not bundle it into a task
 commit message without the user's explicit request.
@@ -641,6 +643,15 @@ config-file structure changes, and anything a future bisect would want to find. 
 assistant signature unless the user asks.
 
 ## Phase 7 — Retrospect
+
+**Persist and present the review before asking for retrospective feedback.** Complete and write
+`review.md`, including the review guide, requirements assessment, findings and their dispositions,
+verification evidence and limits, and proposed commit message, before starting the retrospective.
+Use the host-specific task path in Phase 5, preserve prior unit review records, and send the user a
+link as a progress update. A pending retrospective must never prevent the user from accessing the
+completed review. Continue directly to the retrospective without waiting for a separate review
+acknowledgment. After the user answers or skips, append the retrospective outcome to the same file
+and update the review if subsequent decisions or evidence change it.
 
 Complete a retrospective (reflect on the work just completed with this coding-task-review Skill, 
 list what worked well, what did not work well, what challenges were met, and suggest improvements 
