@@ -159,10 +159,11 @@ do not satisfy the final Review retrospective or replace the final human review.
 
 ## Phase 0 — Start from green
 
-Establish that the reviewed state is green, including the full verification pipeline. Reuse
-recorded successful evidence from Execution when it covers this same code state; otherwise ask
-the user to confirm. Do not repeat an already satisfied confirmation. Unit review mode uses its
-explicit Tier 1 entry condition instead.
+Establish that the reviewed state is green using the applicable verification checks selected under
+Execution's rules. Reuse recorded successful evidence from Execution when it covers this same code
+state, including a recorded user confirmation for checks the user ran; otherwise ask the user to
+confirm. Do not repeat an already satisfied confirmation. Unit review mode uses its explicit Tier 1
+entry condition instead.
   
 ## Phase 1 — Read the diff and reconstruct intent
 
@@ -493,8 +494,8 @@ infer behaviour-change approval from the finding's priority or the automatic con
 
 Read that content from disk before relying on it, unless already loaded in this session.
 Resolve `../coding-task-execution/SKILL.md` relative to this skill. Do not reconstruct commands or tier gates
-from memory, and do not assume a tier is free — 1-B, 1-C and 2 all spend live Cognito and count
-against the budget defined there.
+from memory. Tier 1-B uses live Cognito; Tier 1-C and Tier 2 may use it. Count each invocation
+that touches live Cognito against the budget defined there.
 
 A fix that does not go green remains in progress. Diagnose, repair and re-verify autonomously
 within the approved outcome and authority. Record relevant adjustments without handing over.
@@ -568,7 +569,8 @@ The document carries:
   from what a brief might have said, the alternative that was rejected and its cost. Deferred
   scope (the plan's "left for later") goes here too, so the reviewer does not flag as missing what
   was deliberately not built.
-- **Verification status** — the tier-2 run and outcome, dated.
+- **Verification status** — the applicable verification checks and outcomes, dated, including
+  the Tier 2 run or the recorded reason Tier 2 was inapplicable.
 - **`Requirements, Specifications, Constraints and Outcomes Verification`** — the per-item
   assessment and verification evidence described in *Requirements and outcomes coverage*, with a
   short summary of failed or incomplete checks needing fixes or user input.

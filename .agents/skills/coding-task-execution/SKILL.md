@@ -208,7 +208,10 @@ retained stop, an exceeded limit, or authority outside the recorded scope.
   from final Tier 2 verification and its live Cognito effects. Tier 1-D runs automatically and
   requires no separate approval; record its unit scope and automatic continuation in
   `no-stop-policy.md`. Assess which Tier 2 checks apply under Phase 6 before discussing permission.
-  Resolve applicable permission questions upfront and record each permission and its limits.
+  Ask upfront whether the agent may run the final full pipeline automatically if it becomes
+  applicable, or whether the user will run it. Specify whether the proposed run includes Cognito;
+  record the choice, permission, scope and limits. Reuse an existing applicable decision.
+  Resolve other applicable permission questions upfront and record each permission and its limits.
   Approval establishes permission for a run. Recheck applicability before using it.
   Forced whole-codebase mutation testing is a rare,
   optional post-commit follow-up, not a prerequisite for completing the plan.
@@ -385,7 +388,7 @@ live coverage.
 |---|---|---|---|---|
 | **1-A** | applicable checks on dev | affected specs on the **e2e environment** | **none** — excluded by filter / flag | fast feedback after relevant changes |
 | **1-B** | relevant live C# tests on dev | affected live specs on the **e2e environment** | scoped to affected Cognito paths | counts against the budget |
-| **1-C** | whole affected suite on dev | whole e2e suite only for broad e2e impact and confirmed clean dev DB | live where warranted | counts against the budget |
+| **1-C** | whole affected suite on dev | whole e2e suite only for broad e2e impact and confirmed clean dev DB | live where warranted | counts against the budget only when the invocation touches live Cognito |
 | **1-D** | localized deterministic mutation testing of the deployable unit's source and covering Vitest specs | none | none | automatic after relevant build/unit checks pass; no approval required |
 | **2** | applicable checks on test (clean-room) | applicable specs on test | live where warranted, with cleanup for the full live pipeline | after Phase 4; ask unless already preapproved |
 
@@ -444,13 +447,15 @@ different requirement, such as a clean-room build or an affected live service pa
 
 ### The Cognito budget
 
-Tiers 1-B, 1-C and 2 all consume live Cognito, and Cognito rate-limits and then locks out.
+Tier 1-B uses live Cognito; Tier 1-C and Tier 2 may use it. Cognito rate-limits and then locks out.
 
 **Count every Cognito-touching test run in this session — cumulatively, across all tiers and all
 sub-tasks. At 10, stop and ask the user before running another.** When permission is granted the count
 **resets to zero** and starts again.
 
-- One command invocation is one unit, whether it ran one test or a hundred.
+- One Cognito-touching command invocation is one unit, whether it ran one test or a hundred. A
+  full pipeline with Cognito is one invocation. Count user-run invocations during this session
+  when reported or otherwise known, recording their source and any uncertainty; do not guess.
 - The count is per session and never decays on its own; only a granted permission resets it.
 - State the current count when you ask, so the user can see what they are approving.
 
@@ -662,9 +667,10 @@ Each invocation is one unit of the budget. At 10, stop and ask.
 
 ### Tier 1-C — whole-suite local verification (dev)
 
-These commands include live Cognito. Use them only for applicable whole suites when live coverage
-is warranted, and count each invocation. A whole Playwright run also requires a confirmed clean dev
-DB. For Cognito-free verification, use the exclusions shown in Tier 1-A.
+The commands shown below include live Cognito. Use them only for applicable whole suites when live
+coverage is warranted, and count each invocation. A whole Playwright run also requires a confirmed
+clean dev DB. For Cognito-free verification, use the exclusions shown in Tier 1-A; those
+Cognito-free invocations do not count against the budget.
 
 Backend, whole suite, no filter:
 
@@ -982,7 +988,7 @@ everything else passes.
   fetching and asserting on raw HTML.
 - **e2e specs sharing mutable records race under parallel workers.** A spec that fails in a full run
   but passes in isolation is flaky, not broken — check it against `WriteTestsGuidelines.md`. Confirm by
-  re-running **that spec alone**, not the whole suite: a full re-run costs a unit of the Cognito budget
+  re-running **that spec alone**, not the whole suite: a Cognito-touching full re-run costs a unit of the Cognito budget
   and tells you less than the trace already on disk.
 - Local DynamoDB tables, when a DataStore test misbehaves:
 

@@ -66,7 +66,7 @@ if recovery fails. Report only verified execution states.
 
 | Phase | Sub-agents |
 |---|---|
-| Discovery | Delegate substantial independent gathering when useful within the current agreed topic. Present it and wait before exploring the next topic; do not fan out across future topics. The main agent reviews returned material. |
+| Discovery | Delegate substantial independent gathering when useful within the current agreed topic; do not fan out across future topics. The main agent reviews returned material, presents findings when asking or answering a question, and continues without waiting for routine acknowledgement. If a material decision requires an answer, continue independent work while waiting. |
 | Inception | Delegate substantial independent gathering and source checks when useful for topics emerged during Inception or agreed during Discovery. Planning decisions and user-facing synthesis stay with the main agent. |
 | Execution | Delegate worthwhile independent exploration or implementation under file-partitioning, dependency and unit/checkpoint rules. Never delegate lint, build or test. |
 | Review | Delegate substantial independent evidence gathering when useful. The main adversarial pass and final judgement stay inline. Independent scoped read-only review passes may supplement it under the independence rules below, including automatic unit reviews. |

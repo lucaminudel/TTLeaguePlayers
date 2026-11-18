@@ -221,7 +221,8 @@ task order against them before presenting.
 
 Sequence verification in two stages, using Execution's Tier 1-A/B/C/D definitions for unit work:
 - a fast inner loop on the dev environment, reusing the already-running local web server and SAM
-- one authoritative final run of the full pipeline on the test environment
+- final verification selected under Execution's Tier 2 applicability rules, with the evidence and
+  any inapplicable checks recorded
 
 Include Tier 1-D localized deterministic mutation testing where applicable to each deployable
 unit, after relevant build and unit checks and before its review/commit. Localized runs, test-gap
@@ -285,7 +286,8 @@ missing ownership or dependencies before presenting the plan.
 
 ## Execution baseline and local environment — before final review
 
-Ask the user, in a consolidated upfront question where practical, whether the full pipeline is green
+Ask the user, in a consolidated upfront question where practical, whether the full pipeline including
+live Cognito was successful on the pre-execution state
 and whether the local dev environment and its database are clean and suitable for the applicable
 fast dev tests, including any exceptions. Explain that Execution will reuse these answers. Reuse
 answers already given; record exact answers, date, scope and any unknowns in the plan's Verification
