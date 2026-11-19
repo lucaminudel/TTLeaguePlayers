@@ -66,6 +66,32 @@ public sealed class StrategyDataCalculator
             CalculateFixtureStatistics(division, divisionFixtures);
             CalculateStrengthGroups(division);
             CalculatePayOffMatrix(division);
+            CalculateFinalPointsForecasts(division, divisionFixtures);
+        }
+    }
+
+    private static void CalculateFinalPointsForecasts(Division division, IEnumerable<Fixture> fixtures)
+    {
+        foreach (var team in division.Teams.Values)
+            team.FinalPointsForecast = team.Points;
+
+        foreach (var fixture in fixtures.Where(fixture => !fixture.Played))
+        {
+            var home = division.Teams[fixture.HomeTeamName];
+            var away = division.Teams[fixture.AwayTeamName];
+            if (division.PayOffMatrix is null)
+            {
+                home.FinalPointsForecast = null;
+                away.FinalPointsForecast = null;
+                continue;
+            }
+
+            var homeGroup = home.RecentStrengthGroup!.Value - 1;
+            var awayGroup = away.RecentStrengthGroup!.Value - 1;
+            if (home.FinalPointsForecast.HasValue)
+                home.FinalPointsForecast = checked(home.FinalPointsForecast.Value + division.PayOffMatrix[homeGroup][awayGroup] + division.BonusPointsPerMatchPlayed);
+            if (away.FinalPointsForecast.HasValue)
+                away.FinalPointsForecast = checked(away.FinalPointsForecast.Value + division.PayOffMatrix[awayGroup][homeGroup] + division.BonusPointsPerMatchPlayed);
         }
     }
 

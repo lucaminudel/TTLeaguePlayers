@@ -25,6 +25,8 @@ public sealed class CLTTLStrategy2026Processor : IStrategyProcessor
     {
         var eligibilityPageHtml = await _fetcher.FetchDivisionsAndTeamsAsync();
         var (allDivisions, allTeams) = _parser.ParseDivisionsAndTeams(eligibilityPageHtml);
+        foreach (var division in allDivisions.Values)
+            division.BonusPointsPerMatchPlayed = 3;
         var anomalies = new List<string>();
         var teamsByName = allTeams.ToDictionary(entry => entry.Key, entry => entry.Value.Team, StringComparer.OrdinalIgnoreCase);
 

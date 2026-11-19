@@ -644,6 +644,110 @@ public sealed class StrategyDataCalculationTests
         Assert.Null(division.Teams["Only"].RecentStrengthGroup);
     }
 
+    [Fact]
+    public void ForecastAddsBothOrientationsAndBonusForEachRemainingMatch()
+    {
+        var division = Division("First", Enumerable.Range(0, 4).Select(i => ($"Team {i}", Array.Empty<string>())).ToArray());
+        division.BonusPointsPerMatchPlayed = 3;
+        var divisions = Divisions(division);
+        var tables = Tables(divisions);
+        foreach (var name in division.Teams.Keys)
+            tables["First"].TeamsStanding[name] = new TeamStanding(1, 0, 0, 20);
+        var matches = new[] { Match("Team 0", "Team 1", 9, 1), Match("Team 2", "Team 3", 9, 1),
+            Match("Team 0", "Team 1", 0, 0, played: false), Match("Team 1", "Team 0", 0, 0, played: false),
+            Match("Team 0", "Team 2", 0, 0, played: false) };
+
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith(Rankings(), tables, Fixtures(("First", matches)));
+
+        Assert.Equal(48, division.Teams["Team 0"].FinalPointsForecast);
+        Assert.Equal(32, division.Teams["Team 1"].FinalPointsForecast);
+        Assert.Equal(28, division.Teams["Team 2"].FinalPointsForecast);
+        Assert.Equal(20, division.Teams["Team 3"].FinalPointsForecast);
+    }
+
+    [Fact]
+    public void MissingMatrixOnlyMakesTeamsWithRemainingFixturesUnavailableAndRecalculationResetsForecasts()
+    {
+        var first = Division("First", ("A", Array.Empty<string>()), ("B", Array.Empty<string>()), ("C", Array.Empty<string>()));
+        var second = Division("Second", ("D", Array.Empty<string>()), ("E", Array.Empty<string>()));
+        var divisions = Divisions(first, second);
+        var tables = Tables(divisions);
+        var calculator = new StrategyDataCalculator(divisions);
+        var remaining = Match("A", "B", 0, 0, played: false);
+        calculator.UpdateStrategyDataWith(Rankings(), tables, Fixtures(("First", [remaining]), ("Second", [Match("D", "E", 5, 5)])));
+
+        Assert.Null(first.PayOffMatrix);
+        Assert.Null(first.Teams["A"].FinalPointsForecast);
+        Assert.Null(first.Teams["B"].FinalPointsForecast);
+        Assert.Equal(0, first.Teams["C"].FinalPointsForecast);
+        Assert.Equal(0, second.Teams["D"].FinalPointsForecast);
+
+        calculator.UpdateStrategyDataWith(Rankings(), tables, Fixtures(("First", [Match("A", "B", 5, 5), Match("A", "C", 5, 5), remaining])));
+        Assert.Equal(5, first.Teams["A"].FinalPointsForecast);
+        Assert.Equal(5, first.Teams["B"].FinalPointsForecast);
+        Assert.Equal(0, first.Teams["C"].FinalPointsForecast);
+        Assert.Equal(0, second.Teams["D"].FinalPointsForecast);
+
+        calculator.UpdateStrategyDataWith(Rankings(), tables, new());
+        Assert.All(first.Teams.Values, team => Assert.Equal(0, team.FinalPointsForecast));
+    }
+
+    [Fact]
+    public void ForecastUsesCheckedArithmetic()
+    {
+        var division = Division("First", ("A", Array.Empty<string>()), ("B", Array.Empty<string>()));
+        var divisions = Divisions(division);
+        var tables = Tables(divisions);
+        tables["First"].TeamsStanding["A"] = new TeamStanding(1, 0, 0, int.MaxValue);
+        var matches = new[] { Match("A", "B", 5, 5), Match("A", "B", 0, 0, played: false) };
+
+        Assert.Throws<OverflowException>(() => new StrategyDataCalculator(divisions)
+            .UpdateStrategyDataWith(Rankings(), tables, Fixtures(("First", matches))));
+    }
+
+    [Fact]
+    public void AwayForecastUsesCheckedArithmetic()
+    {
+        var division = Division("First", ("A", Array.Empty<string>()), ("B", Array.Empty<string>()));
+        var divisions = Divisions(division);
+        var tables = Tables(divisions);
+        tables["First"].TeamsStanding["B"] = new TeamStanding(1, 0, 0, int.MaxValue);
+        var matches = new[] { Match("A", "B", 5, 5), Match("A", "B", 0, 0, played: false) };
+
+        Assert.Throws<OverflowException>(() => new StrategyDataCalculator(divisions)
+            .UpdateStrategyDataWith(Rankings(), tables, Fixtures(("First", matches))));
+    }
+
+    [Fact]
+    public void ForecastsUseEachDivisionsBonusAndLatestStandingsOnRecalculation()
+    {
+        var first = Division("First", ("A", Array.Empty<string>()), ("B", Array.Empty<string>()));
+        var second = Division("Second", ("C", Array.Empty<string>()), ("D", Array.Empty<string>()));
+        first.BonusPointsPerMatchPlayed = 3;
+        var divisions = Divisions(first, second);
+        var tables = Tables(divisions);
+        var fixtures = Fixtures(
+            ("First", [Match("A", "B", 5, 5), Match("A", "B", 0, 0, played: false)]),
+            ("Second", [Match("C", "D", 5, 5), Match("C", "D", 0, 0, played: false)]));
+        var calculator = new StrategyDataCalculator(divisions);
+
+        Assert.Equal(0, second.BonusPointsPerMatchPlayed);
+        calculator.UpdateStrategyDataWith(Rankings(), tables, fixtures);
+        Assert.Equal(8, first.Teams["A"].FinalPointsForecast);
+        Assert.Equal(8, first.Teams["B"].FinalPointsForecast);
+        Assert.Equal(5, second.Teams["C"].FinalPointsForecast);
+        Assert.Equal(5, second.Teams["D"].FinalPointsForecast);
+
+        tables["First"].TeamsStanding["A"] = new TeamStanding(1, 5, 5, 17);
+        tables["First"].TeamsStanding["B"] = new TeamStanding(1, 5, 5, 12);
+        tables["Second"].TeamsStanding["C"] = new TeamStanding(1, 5, 5, 9);
+        calculator.UpdateStrategyDataWith(Rankings(), tables, fixtures);
+        Assert.Equal(25, first.Teams["A"].FinalPointsForecast);
+        Assert.Equal(20, first.Teams["B"].FinalPointsForecast);
+        Assert.Equal(14, second.Teams["C"].FinalPointsForecast);
+        Assert.Equal(5, second.Teams["D"].FinalPointsForecast);
+    }
+
     private static void AssertClose(decimal expected, decimal? actual, decimal tolerance)
     {
         Assert.NotNull(actual);

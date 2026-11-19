@@ -23,4 +23,7 @@ public sealed class Division
 
     // Row and column indices are strength group numbers minus one.
     public int[][]? PayOffMatrix { get; set; }
+
+    public int BonusPointsPerMatchPlayed { get; set; }
+
 }

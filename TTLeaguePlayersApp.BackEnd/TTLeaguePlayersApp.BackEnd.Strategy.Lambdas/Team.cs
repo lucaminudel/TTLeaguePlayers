@@ -39,4 +39,6 @@ public sealed class Team
     public int? RecentStrengthGroup { get; set; }
 
     public int PlayersWithUnknownStrengthCount { get; set; }
+
+    public int? FinalPointsForecast { get; set; }
 }

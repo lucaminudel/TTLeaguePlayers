@@ -70,6 +70,7 @@ public sealed class CLTTLStrategy2026ProcessorTests
 
         Assert.Empty(anomalies);
         Assert.Equal(["Division 1", "Premier"], allDivisions.Keys);
+        Assert.All(allDivisions.Values, division => Assert.Equal(3, division.BonusPointsPerMatchPlayed));
         Assert.Equal(["Alpha", "Beta"], allDivisions["division 1"].Teams.Keys);
         Assert.Equal(["Alpha", "Beta", "Gamma"], allDivisions.Values.SelectMany(division => division.Teams.Keys));
         Assert.Equal(["Alpha One", "Alpha Two"], allDivisions["Division 1"].Teams["Alpha"].Players.Keys);
