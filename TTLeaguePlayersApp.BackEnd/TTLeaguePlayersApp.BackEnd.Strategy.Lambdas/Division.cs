@@ -20,4 +20,7 @@ public sealed class Division
     public int? StrengthGroupsNumber { get; set; }
 
     public decimal[]? StrengthGroupsGaps { get; set; }
+
+    // Row and column indices are strength group numbers minus one.
+    public int[][]? PayOffMatrix { get; set; }
 }

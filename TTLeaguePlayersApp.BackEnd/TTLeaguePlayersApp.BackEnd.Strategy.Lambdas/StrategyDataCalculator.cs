@@ -65,7 +65,36 @@ public sealed class StrategyDataCalculator
                 .SelectMany(entry => entry.Value);
             CalculateFixtureStatistics(division, divisionFixtures);
             CalculateStrengthGroups(division);
+            CalculatePayOffMatrix(division);
         }
+    }
+
+    private static void CalculatePayOffMatrix(Division division)
+    {
+        division.PayOffMatrix = null;
+        if (!division.StrengthGroupsNumber.HasValue)
+            return;
+
+        // Each entry is the stronger team's advantage over five by group distance.
+        int[] advantages = division.StrengthGroupsNumber.Value switch
+        {
+            1 => [0],
+            2 => [0, 2],
+            3 => [0, 2, 4],
+            4 => [0, 2, 3, 4],
+            5 => [0, 1, 2, 3, 4],
+            6 => [0, 1, 2, 3, 4, 5],
+            7 => [0, 1, 2, 3, 4, 5, 5],
+            8 => [0, 1, 1, 2, 3, 4, 5, 5],
+            _ => throw new InvalidOperationException(
+                $"Division '{division.Name}' has {division.StrengthGroupsNumber} strength groups; payoff matrices support at most 8.")
+        };
+
+        division.PayOffMatrix = Enumerable.Range(0, advantages.Length)
+            .Select(row => Enumerable.Range(0, advantages.Length)
+                .Select(column => 5 + Math.Sign(row - column) * advantages[Math.Abs(row - column)])
+                .ToArray())
+            .ToArray();
     }
 
     private static void CalculateStrengthGroups(Division division)
