@@ -64,6 +64,59 @@ public sealed class StrategyDataCalculator
                 .Where(entry => string.Equals(entry.Key, divisionName, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(entry => entry.Value);
             CalculateFixtureStatistics(division, divisionFixtures);
+            CalculateStrengthGroups(division);
+        }
+    }
+
+    private static void CalculateStrengthGroups(Division division)
+    {
+        division.StrengthGroupsNumber = null;
+        division.StrengthGroupsGaps = null;
+        var teams = division.Teams.Values.ToArray();
+        foreach (var team in teams)
+            team.RecentStrengthGroup = null;
+
+        if (teams.Length == 0 || teams.Any(team => !team.RecentStrength.HasValue))
+            return;
+
+        var ordered = teams.OrderByDescending(team => team.RecentStrength!.Value).ToArray();
+        if (ordered.Length == 1)
+        {
+            ordered[0].RecentStrengthGroup = 1;
+            division.StrengthGroupsNumber = 1;
+            division.StrengthGroupsGaps = [];
+            return;
+        }
+
+        int maxGroups = Math.Min(ordered.Length / 2, ordered.Select(team => team.RecentStrength!.Value).Distinct().Count());
+        var gaps = ordered.Zip(ordered.Skip(1), (stronger, weaker) =>
+            stronger.RecentStrength!.Value - weaker.RecentStrength!.Value).ToArray();
+        var rankedGaps = gaps.OrderByDescending(gap => gap).Take(maxGroups).ToArray();
+        var drops = rankedGaps.Zip(rankedGaps.Skip(1), (higher, lower) => higher - lower)
+            .Select((drop, index) => (Drop: drop, Index: index))
+            .Where(item => item.Drop > 0)
+            .OrderByDescending(item => item.Drop)
+            .ThenBy(item => item.Index)
+            .ToArray();
+
+        decimal? threshold = null;
+        if (drops.Length > 0)
+        {
+            var selected = drops[0].Index == 0 && drops.Length > 1 ? drops[1] : drops[0];
+            threshold = rankedGaps[selected.Index];
+        }
+
+        var groupGaps = threshold.HasValue
+            ? gaps.Where(gap => gap >= threshold.Value).Reverse().ToArray()
+            : [];
+        division.StrengthGroupsNumber = groupGaps.Length + 1;
+        division.StrengthGroupsGaps = groupGaps;
+        int group = division.StrengthGroupsNumber.Value;
+        for (int i = 0; i < ordered.Length; i++)
+        {
+            ordered[i].RecentStrengthGroup = group;
+            if (i < gaps.Length && threshold.HasValue && gaps[i] >= threshold.Value)
+                group--;
         }
     }
 

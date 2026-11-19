@@ -36,5 +36,7 @@ public sealed class Team
     // If either input is missing, uses the other; null if both are missing.
     public decimal? RecentStrength { get; set; }
 
+    public int? RecentStrengthGroup { get; set; }
+
     public int PlayersWithUnknownStrengthCount { get; set; }
 }
