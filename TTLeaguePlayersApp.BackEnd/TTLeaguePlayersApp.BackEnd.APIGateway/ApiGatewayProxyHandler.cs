@@ -431,11 +431,17 @@ public partial class ApiGatewayProxyHandler
         try
         {
             userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
-            await _teamComparisonsLambda.HandleAsync(comparisonRequest, userClaims, context);
 
-            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS" + " COMPLETED", source, context, parameters.With(HttpStatusCode.Accepted));
+            var divisions = await _teamComparisonsLambda.HandleAsync(comparisonRequest, userClaims, context);
+            
+            var response = CreateResponse(HttpStatusCode.OK, new { divisions });
 
-            return CreateResponse(HttpStatusCode.Accepted, new { message = "Strategy preparation is pending." }, new() { ["Retry-After"] = "16" });
+            // Remove this temporary diagnostic after capturing the calculated JSON in SAM.
+            context.Logger.LogLine($"TEAM COMPARISONS RESPONSE JSON [{context.AwsRequestId}] {response.Body}");
+
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS" + " COMPLETED", source, context, parameters.With(HttpStatusCode.OK));
+
+            return response;
         }
         catch (Exception failure) when (failure is not SecurityException)
         {

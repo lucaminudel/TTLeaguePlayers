@@ -81,16 +81,29 @@ public sealed class StrategyAcceptanceTests : IAsyncLifetime
 
     [Fact]
     [Trait("Cognito", "Live")]
-    public async Task GET_TeamComparisons_ReturnPendingWithRetryAfter()
+    public async Task GET_TeamComparisons_ReturnsFullSeasonTree()
     {
         await AuthenticateAsync();
 
-        var response = await _httpClient.GetAsync(ComparisonPath());
+        using var response = await _httpClient.GetAsync(ComparisonPath());
+        var requestId = response.Headers.TryGetValues("x-amzn-RequestId", out var requestIds)
+            ? requestIds.FirstOrDefault()
+            : null;
 
-        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
-        response.Headers.RetryAfter.Should().NotBeNull();
-        response.Headers.RetryAfter!.Delta.Should().Be(TimeSpan.FromSeconds(16));
-        response.Headers.GetValues("Access-Control-Expose-Headers").Single().Should().Contain("Retry-After");
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            $"the team comparisons request should succeed (request ID {requestId ?? "unavailable"})");
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        mediaType.Should().Be("application/json");
+
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var divisions = body.RootElement.GetProperty("divisions");
+        var teams = divisions.GetProperty("Division 4").GetProperty("teams");
+        divisions.EnumerateObject().Select(division => division.Name).Should().Contain(name => name != "Division 4");
+        teams.TryGetProperty("Morpeth 9", out _).Should().BeTrue();
+
+        var players = teams.GetProperty("Morpeth 10").GetProperty("players").EnumerateObject().ToArray();
+        players.Should().NotBeEmpty();
+        players[0].Value.GetProperty("currentRanking").ValueKind.Should().BeOneOf(JsonValueKind.Number, JsonValueKind.Null);
     }
 
     [Fact]

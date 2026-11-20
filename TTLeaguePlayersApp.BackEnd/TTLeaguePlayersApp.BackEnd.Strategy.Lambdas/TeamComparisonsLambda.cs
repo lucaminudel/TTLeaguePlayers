@@ -17,7 +17,7 @@ public sealed class TeamComparisonsLambda
         _processorFactory = processorFactory;
     }
 
-    public async Task HandleAsync(TeamComparisonsRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
+    public async Task<OrderedDictionary<string, Division>> HandleAsync(TeamComparisonsRequest request, Dictionary<string, string> userClaims, ILambdaContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -52,5 +52,7 @@ public sealed class TeamComparisonsLambda
                 context,
                 parameters,
                 userClaims);
+
+        return divisions;
     }
 }

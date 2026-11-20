@@ -87,17 +87,58 @@ public sealed class StrategyGatewayTests
     }
 
     [Fact]
-    public async Task TeamComparisons_ReturnsPendingWithRetryAfterAndExposedCorsHeader()
+    public async Task TeamComparisons_ReturnsFullSeasonTreeWithCalculatedStats()
     {
         var observer = new SpyLoggerObserver();
-        var handler = Handler(observer);
+        var processor = new StrategyProcessorFake
+        {
+            Rankings = new Dictionary<string, Player> { ["One"] = new("One", 100), ["Two"] = new("Two", 200) }
+        };
+        var comparisonDivision = new Division("Division 4");
+        var comparisonTable = new DivisionTable(comparisonDivision.Name);
+        foreach (var teamName in new[] { "Home", "Away", "Other" })
+        {
+            comparisonDivision.Teams.Add(teamName, new Team(teamName));
+            comparisonTable.TeamsStanding.Add(teamName, new TeamStanding(0, 0, 0, 0));
+        }
+        var home = comparisonDivision.Teams["Home"];
+        home.Players.Add("One", new Player("One", null));
+        home.Players.Add("Two", new Player("Two", null));
+        comparisonTable.TeamsStanding["Home"] = new TeamStanding(4, 6, 2, 10);
+        processor.Divisions.Add(comparisonDivision.Name, comparisonDivision);
+        processor.Tables.Add(comparisonTable.Name, comparisonTable);
+
+        var otherDivision = new Division("Division 5");
+        var otherTeam = new Team("Unrelated");
+        otherTeam.Players.Add("Three", new Player("Three", null));
+        otherDivision.Teams.Add(otherTeam.Name, otherTeam);
+        var otherTable = new DivisionTable(otherDivision.Name);
+        otherTable.TeamsStanding.Add(otherTeam.Name, new TeamStanding(0, 0, 0, 0));
+        processor.Divisions.Add(otherDivision.Name, otherDivision);
+        processor.Tables.Add(otherTable.Name, otherTable);
+
+        var handler = Handler(observer, processorFactory: _ => processor);
 
         var response = await handler.Dispatch(Request("GET", "/strategy/team-comparisons", ComparisonQuery()), new TestLambdaContext());
 
-        response.StatusCode.Should().Be((int)HttpStatusCode.Accepted);
-        response.Headers.Should().ContainKey("Retry-After").WhoseValue.Should().Be("16");
-        response.Headers.Should().ContainKey("Access-Control-Expose-Headers").WhoseValue.Should().Contain("Retry-After");
+        response.StatusCode.Should().Be((int)HttpStatusCode.OK);
+        response.Headers["Content-Type"].Should().Be("application/json; charset=utf-8");
+        response.Headers.Should().NotContainKey("Retry-After");
         observer.RuntimeRegularEvents.Should().Contain(e => e.EventName == "GET TEAM COMPARISONS COMPLETED");
+
+        using var body = JsonDocument.Parse(response.Body);
+        var divisions = body.RootElement.GetProperty("divisions");
+        var teams = divisions.GetProperty("Division 4").GetProperty("teams");
+        teams.TryGetProperty("Away", out _).Should().BeTrue();
+        teams.TryGetProperty("Other", out _).Should().BeTrue();
+        var homeTeam = teams.GetProperty("Home");
+        homeTeam.GetProperty("points").GetInt32().Should().Be(10);
+        var players = homeTeam.GetProperty("players");
+        players.GetProperty("One").GetProperty("currentRanking").GetInt32().Should().Be(100);
+        players.GetProperty("One").GetProperty("normalisedRanking").GetDecimal().Should().Be(0m);
+        players.GetProperty("Two").GetProperty("currentRanking").GetInt32().Should().Be(200);
+        var unrelatedPlayers = divisions.GetProperty("Division 5").GetProperty("teams").GetProperty("Unrelated").GetProperty("players");
+        unrelatedPlayers.GetProperty("Three").GetProperty("currentRanking").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Theory]
