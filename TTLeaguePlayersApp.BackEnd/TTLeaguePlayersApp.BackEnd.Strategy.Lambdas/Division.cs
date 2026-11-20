@@ -17,7 +17,7 @@ public sealed class Division
 
     public int? PlayersLookbackPeriod { get; set; }
 
-    public int? StrengthGroupsNumber { get; set; }
+    public int? StrengthGroupsCount { get; set; }
 
     public decimal[]? StrengthGroupsGaps { get; set; }
 

@@ -1,5 +1,7 @@
 namespace TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
+using LookbackFixtures = (Dictionary< Team, Queue<(decimal Own, decimal Total)>> forTeams, Dictionary<Team, Dictionary<string, Queue<PlayerScore>>> forPlayers);
+
 public sealed class StrategyDataCalculator
 {
     private readonly OrderedDictionary<string, Division> _divisions;
@@ -24,59 +26,110 @@ public sealed class StrategyDataCalculator
 
         foreach (var (divisionName, division) in _divisions)
         {
-            var table = tables[divisionName];
-            division.TeamsLookbackPeriod = division.Teams.Count - 1;
-            division.PlayersLookbackPeriod = (int)decimal.Floor(division.TeamsLookbackPeriod.Value * 0.7m);
-            foreach (var (teamName, team) in division.Teams)
-            {
-                var standing = table.TeamsStanding[teamName];
-                var totalSets = (decimal)standing.SetsFor + standing.SetsAgainst;
-                team.Played = standing.Played;
-                team.Points = standing.TotalPoints;
-                team.WinPercentage = totalSets == 0 ? null : 100m * standing.SetsFor / totalSets;
-            }
+            //
+            // Set Divisions, teams, and players stats data
+            //  
 
-            var players = division.Teams.Values
-                .SelectMany(team => team.Players.Select(entry => (Team: team, Key: entry.Key, Player: entry.Value)))
-                .ToArray();
-            var rankings = players.Select(entry => leagueRankedPlayers.TryGetValue(entry.Player.Name, out var ranked)
-                ? ranked.CurrentRanking : null).ToArray();
-            var eligible = rankings.Where(ranking => ranking.HasValue && ranking.Value != 0)
-                .Select(ranking => ranking!.Value).ToArray();
-            int? lower = eligible.Length == 0 ? null : eligible.Min();
-            int? higher = eligible.Length == 0 ? null : eligible.Max();
+            SetDivisionAndTeamsStatsDataFromTable(division, tables[divisionName]);
 
-            for (var i = 0; i < players.Length; i++)
-            {
-                var ranking = rankings[i];
-                decimal? normalized = ranking.HasValue && ranking.Value != 0 && lower != higher
-                    ? 100m * ((decimal)ranking.Value - lower!.Value) / ((decimal)higher!.Value - lower.Value)
-                    : null;
-                var entry = players[i];
-                entry.Team.Players[entry.Key] = entry.Player with
-                {
-                    CurrentRanking = ranking,
-                    NormalisedRanking = normalized
-                };
-            }
+            SetPlayersRankingsFromLeagueRankings(division, leagueRankedPlayers);
 
             var divisionFixtures = fixtures
                 .Where(entry => string.Equals(entry.Key, divisionName, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(entry => entry.Value);
-            CalculateFixtureStatistics(division, divisionFixtures);
-            CalculateStrengthGroups(division);
-            CalculatePayOffMatrix(division);
-            CalculateFinalPointsForecasts(division, divisionFixtures);
+                
+            SetTeamsAndPlayersStatsDataFromFixture(division, divisionFixtures);
+
+            //
+            // Calculate more Divison and teams stats data
+            //
+            
+            CalculateTeamsStrengthGroups(division);
+
+            CalculateDivisonsPayOffMatrix(division, division.StrengthGroupsCount);
+
+            ForecastTeamsFinalPointsWithPayOffMatrixAndStrengthGroup(division, divisionFixtures);
         }
     }
 
-    private static void CalculateFinalPointsForecasts(Division division, IEnumerable<Fixture> fixtures)
+    private static void SetDivisionAndTeamsStatsDataFromTable(Division division, DivisionTable table)
     {
+        //
+        // Set Divisions look back periods
+        //
+
+        division.TeamsLookbackPeriod = table.TeamsLookbackPeriod;
+        division.PlayersLookbackPeriod = table.PlayersLookbackPeriod;
+
+        foreach (var (teamName, team) in division.Teams)
+        {
+            var standing = table.TeamsStanding[teamName];
+            var totalSets = (decimal)standing.SetsFor + standing.SetsAgainst;
+
+            //
+            // Set Teams stats data
+            //
+            team.Played = standing.Played;
+            team.Points = standing.TotalPoints;
+            team.WinPercentage = totalSets == 0 ? null : 100m * standing.SetsFor / totalSets;
+        }
+    }
+
+    private static void SetPlayersRankingsFromLeagueRankings(Division division, IReadOnlyDictionary<string, Player> leagueRankedPlayers)
+    {
+        // 
+        // Select not null, not zero (elegilble) league ranking for division players
+        //
+
+        var divisionPlayers = division.Teams.Values
+            .SelectMany(team => team.Players.Select(entry => (Team: team, Key: entry.Key, Player: entry.Value)))
+            .ToArray();
+
+        var leagueRankingsForDivisonPlayers = divisionPlayers
+            .Select(entry => leagueRankedPlayers.TryGetValue(entry.Player.Name, out var ranked) ? ranked.CurrentRanking : null)
+            .ToArray();
+
+        var eligibleLeagueRankingsForDivisonPlayers = leagueRankingsForDivisonPlayers
+            .Where(ranking => ranking.HasValue && ranking.Value != 0)
+            .Select(ranking => ranking!.Value).ToArray();
+
+
+
+        //
+        // Normalise the rankings to a 0-100
+        //
+
+        int? lower = eligibleLeagueRankingsForDivisonPlayers.Length == 0 ? null : eligibleLeagueRankingsForDivisonPlayers.Min();
+        int? higher = eligibleLeagueRankingsForDivisonPlayers.Length == 0 ? null : eligibleLeagueRankingsForDivisonPlayers.Max();
+
+        for (var i = 0; i < divisionPlayers.Length; i++)
+        {
+            var ranking = leagueRankingsForDivisonPlayers[i];
+            decimal? normalized = ranking.HasValue && ranking.Value != 0 && lower != higher
+                ? 100m * ((decimal)ranking.Value - lower!.Value) / ((decimal)higher!.Value - lower.Value)
+                : null;
+            var entry = divisionPlayers[i];
+            entry.Team.Players[entry.Key] = entry.Player with
+            {
+                CurrentRanking = ranking,
+                NormalisedRanking = normalized
+            };
+        }
+    }
+
+    private static void ForecastTeamsFinalPointsWithPayOffMatrixAndStrengthGroup(Division division, IEnumerable<Fixture> fixtures)
+    {
+        // 
+        // Initialise the forecast with the points made from the fixtures already played
+        //
+
         foreach (var team in division.Teams.Values)
             team.FinalPointsForecast = team.Points;
 
         foreach (var fixture in fixtures.Where(fixture => !fixture.Played))
         {
+            // Cleanup in case UpdateStrategyDataWith() is called multiple times for the same division. 
+    
             var home = division.Teams[fixture.HomeTeamName];
             var away = division.Teams[fixture.AwayTeamName];
             if (division.PayOffMatrix is null)
@@ -86,23 +139,35 @@ public sealed class StrategyDataCalculator
                 continue;
             }
 
+
+            //
+            // Forecast the remaining fixtures result with the division's payoff matrix and the teams' strength groups
+            //
+
             var homeGroup = home.RecentStrengthGroup!.Value - 1;
             var awayGroup = away.RecentStrengthGroup!.Value - 1;
-            if (home.FinalPointsForecast.HasValue)
-                home.FinalPointsForecast = checked(home.FinalPointsForecast.Value + division.PayOffMatrix[homeGroup][awayGroup] + division.BonusPointsPerMatchPlayed);
-            if (away.FinalPointsForecast.HasValue)
-                away.FinalPointsForecast = checked(away.FinalPointsForecast.Value + division.PayOffMatrix[awayGroup][homeGroup] + division.BonusPointsPerMatchPlayed);
+
+            checked
+            {
+                if (home.FinalPointsForecast.HasValue)
+                    home.FinalPointsForecast += division.PayOffMatrix[homeGroup][awayGroup] + 
+                                                division.BonusPointsPerMatchPlayed;
+                if (away.FinalPointsForecast.HasValue)
+                    away.FinalPointsForecast += division.PayOffMatrix[awayGroup][homeGroup] + 
+                                                division.BonusPointsPerMatchPlayed;
+            }
         }
     }
 
-    private static void CalculatePayOffMatrix(Division division)
+    private static void CalculateDivisonsPayOffMatrix(Division division, int? matrixNumber)
     {
         division.PayOffMatrix = null;
-        if (!division.StrengthGroupsNumber.HasValue)
+        if (!matrixNumber.HasValue)
             return;
 
-        // Each entry is the stronger team's advantage over five by group distance.
-        int[] advantages = division.StrengthGroupsNumber.Value switch
+        // Compact pay off matrix representation: one line per matrix where
+        // each entry is the stronger team's advantage over five by group distance.
+        int[] advantages = matrixNumber.Value switch
         {
             1 => [0],
             2 => [0, 2],
@@ -113,7 +178,7 @@ public sealed class StrategyDataCalculator
             7 => [0, 1, 2, 3, 4, 5, 5],
             8 => [0, 1, 1, 2, 3, 4, 5, 5],
             _ => throw new InvalidOperationException(
-                $"Division '{division.Name}' has {division.StrengthGroupsNumber} strength groups; payoff matrices support at most 8.")
+                $"Division '{division.Name}' has {division.StrengthGroupsCount} strength groups; payoff matrices support at most 8.")
         };
 
         division.PayOffMatrix = Enumerable.Range(0, advantages.Length)
@@ -123,9 +188,11 @@ public sealed class StrategyDataCalculator
             .ToArray();
     }
 
-    private static void CalculateStrengthGroups(Division division)
+    #region CalculateTeamsStrengthGroups
+    private static void CalculateTeamsStrengthGroups(Division division)
     {
-        division.StrengthGroupsNumber = null;
+        // Cleanup in case UpdateStrategyDataWith() is called multiple times for the same division. 
+        division.StrengthGroupsCount = null;
         division.StrengthGroupsGaps = null;
         var teams = division.Teams.Values.ToArray();
         foreach (var team in teams)
@@ -134,116 +201,159 @@ public sealed class StrategyDataCalculator
         if (teams.Length == 0 || teams.Any(team => !team.RecentStrength.HasValue))
             return;
 
-        var ordered = teams.OrderByDescending(team => team.RecentStrength!.Value).ToArray();
-        if (ordered.Length == 1)
+        var teamsByDescendingStrength = teams.OrderByDescending(team => team.RecentStrength!.Value).ToArray();
+
+        // Special case: if there is only one team
+        if (teamsByDescendingStrength.Length == 1)
         {
-            ordered[0].RecentStrengthGroup = 1;
-            division.StrengthGroupsNumber = 1;
+            teamsByDescendingStrength[0].RecentStrengthGroup = 1;
+            division.StrengthGroupsCount = 1;
             division.StrengthGroupsGaps = [];
             return;
         }
 
-        int maxGroups = Math.Min(ordered.Length / 2, ordered.Select(team => team.RecentStrength!.Value).Distinct().Count());
-        var gaps = ordered.Zip(ordered.Skip(1), (stronger, weaker) =>
-            stronger.RecentStrength!.Value - weaker.RecentStrength!.Value).ToArray();
-        var rankedGaps = gaps.OrderByDescending(gap => gap).Take(maxGroups).ToArray();
-        var drops = rankedGaps.Zip(rankedGaps.Skip(1), (higher, lower) => higher - lower)
+        int gapsNumberCutOff = Math.Min(
+            teamsByDescendingStrength.Length / 2,
+            teamsByDescendingStrength.Select(team => team.RecentStrength!.Value).Distinct().Count());
+
+        var gapsBetweenDescendingStrengths = teamsByDescendingStrength
+            .Zip(teamsByDescendingStrength.Skip(1), (stronger, weaker) =>
+                stronger.RecentStrength!.Value - weaker.RecentStrength!.Value)
+            .ToArray();
+
+        var largestGaps = gapsBetweenDescendingStrengths.OrderByDescending(gap => gap).Take(gapsNumberCutOff).ToArray();
+
+        var lastGap = SelectGapBeforeLargestDropWithFirstGapAsFallback(largestGaps);
+        AssignTeamsToStrengthGroupsAndSetDivisionGroupsCount(division, teamsByDescendingStrength, gapsBetweenDescendingStrengths, lastGap);
+    }
+
+    private static decimal? SelectGapBeforeLargestDropWithFirstGapAsFallback(decimal[] largestGaps)
+    {
+        var dropsBySize = largestGaps.Zip(largestGaps.Skip(1), (larger, smaller) => larger - smaller)
             .Select((drop, index) => (Drop: drop, Index: index))
             .Where(item => item.Drop > 0)
             .OrderByDescending(item => item.Drop)
             .ThenBy(item => item.Index)
             .ToArray();
 
-        decimal? threshold = null;
-        if (drops.Length > 0)
-        {
-            var selected = drops[0].Index == 0 && drops.Length > 1 ? drops[1] : drops[0];
-            threshold = rankedGaps[selected.Index];
-        }
+        if (dropsBySize.Length == 0)
+            return null;
 
-        var groupGaps = threshold.HasValue
-            ? gaps.Where(gap => gap >= threshold.Value).Reverse().ToArray()
+        // If the largest drop follows the first gap, use the next largest positive drop when available.
+        var selectedDrop = dropsBySize[0].Index == 0 && dropsBySize.Length > 1 ? dropsBySize[1] : dropsBySize[0];
+        return largestGaps[selectedDrop.Index];
+    }
+
+    private static void AssignTeamsToStrengthGroupsAndSetDivisionGroupsCount(
+        Division division,
+        Team[] teamsByDescendingStrength,
+        decimal[] gapsBetweenDescendingStrengths,
+        decimal? lastGap)
+    {
+        // Select the gaps that are >= the last gap, and sort from strongest to weakest
+        var groupBoundaryGaps = lastGap.HasValue
+            ? gapsBetweenDescendingStrengths.Where(gap => gap >= lastGap.Value).Reverse().ToArray()
             : [];
-        division.StrengthGroupsNumber = groupGaps.Length + 1;
-        division.StrengthGroupsGaps = groupGaps;
-        int group = division.StrengthGroupsNumber.Value;
-        for (int i = 0; i < ordered.Length; i++)
+
+        division.StrengthGroupsCount = groupBoundaryGaps.Length + 1;
+        division.StrengthGroupsGaps = groupBoundaryGaps;
+
+        int strengthGroups = division.StrengthGroupsCount.Value;
+        for (int i = 0; i < teamsByDescendingStrength.Length; i++)
         {
-            ordered[i].RecentStrengthGroup = group;
-            if (i < gaps.Length && threshold.HasValue && gaps[i] >= threshold.Value)
-                group--;
+            teamsByDescendingStrength[i].RecentStrengthGroup = strengthGroups;
+            if (i < gapsBetweenDescendingStrengths.Length && lastGap.HasValue && gapsBetweenDescendingStrengths[i] >= lastGap.Value)
+                strengthGroups--;
         }
     }
 
-    private static void ValidateFixtures(
-        OrderedDictionary<string, Division> divisions,
-        OrderedDictionary<string, List<Fixture>> fixtures)
-    {
-        foreach (var (name, matches) in fixtures)
-        {
-            var division = divisions.FirstOrDefault(entry =>
-                string.Equals(entry.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
-            if (division is null)
-                throw new InvalidOperationException($"Fixture division '{name}' is missing from the Divisions Teams roster.");
+    #endregion
 
-            foreach (var match in matches)
-                foreach (var team in new[] { match.HomeTeamName, match.AwayTeamName })
-                    if (!division.Teams.ContainsKey(team))
-                        throw new InvalidOperationException($"Fixture team '{team}' in division '{name}' is missing from the Divisions Teams roster.");
+    #region 
+    private static void SetTeamsAndPlayersStatsDataFromFixture(Division division, IEnumerable<Fixture> fixtures)
+    {
+        int teamLookback = division.TeamsLookbackPeriod!.Value;
+        int playerLookback = division.PlayersLookbackPeriod!.Value;
+        var (teamResults, playerScores) = SelectPlayedFixturesInLoopbackPeriod(division, fixtures);
+
+        //
+        // Select Teams' and Players' played fixtures within their look back period 
+        //
+
+        foreach (var team in division.Teams.Values)
+        {
+            SetPlayerStatsFromLookbackFixtures(team, playerScores[team], playerLookback);
+            SetTeamStatsFromLookbackFixtures(team, teamResults[team], teamLookback);
         }
     }
 
-    private static void CalculateFixtureStatistics(Division division, IEnumerable<Fixture> fixtures)
+    private static LookbackFixtures SelectPlayedFixturesInLoopbackPeriod(Division division, IEnumerable<Fixture> fixtures)
     {
-        int teamLimit = division.TeamsLookbackPeriod!.Value;
-        int playerLimit = division.PlayersLookbackPeriod!.Value;
-        var teamHistory = division.Teams.Values.ToDictionary(team => team, _ => new Queue<(decimal Own, decimal Total)>());
-        var playerHistory = division.Teams.Values.ToDictionary(team => team,
+        int teamLookback = division.TeamsLookbackPeriod!.Value;
+        int playerLookback = division.PlayersLookbackPeriod!.Value;
+
+        var teamsResults = division.Teams.Values.ToDictionary(team => team, _ => new Queue<(decimal Own, decimal Total)>());
+        var playerScores = division.Teams.Values.ToDictionary(team => team,
             team => team.Players.Keys.ToDictionary(name => name, _ => new Queue<PlayerScore>(), StringComparer.OrdinalIgnoreCase));
 
+        // Each team and each rostered player has an independent lookback window in fixture order.
         foreach (var fixture in fixtures.Where(fixture => fixture.Played))
         {
             var home = division.Teams[fixture.HomeTeamName];
             var away = division.Teams[fixture.AwayTeamName];
             decimal homeScore = fixture.HomeTeamScore ?? throw new InvalidOperationException("A played fixture has no home score.");
             decimal awayScore = fixture.AwayTeamScore ?? throw new InvalidOperationException("A played fixture has no away score.");
-            AddBounded(teamHistory[home], (homeScore, homeScore + awayScore), teamLimit);
-            AddBounded(teamHistory[away], (awayScore, homeScore + awayScore), teamLimit);
-            AddPlayers(playerHistory[home], fixture.HomeTeamPlayersScore, playerLimit);
-            AddPlayers(playerHistory[away], fixture.AwayTeamPlayersScore, playerLimit);
+
+            AddBounded(teamsResults[home], (homeScore, homeScore + awayScore), teamLookback);
+            AddBounded(teamsResults[away], (awayScore, homeScore + awayScore), teamLookback);
+            AddRosteredPlayerScores(playerScores[home], fixture.HomeTeamPlayersScore, playerLookback);
+            AddRosteredPlayerScores(playerScores[away], fixture.AwayTeamPlayersScore, playerLookback);
         }
 
-        foreach (var team in division.Teams.Values)
-        {
-            foreach (var (name, history) in playerHistory[team])
-            {
-                var player = team.Players[name];
-                int sets = history.Aggregate(0, (sum, score) => checked(sum + score.Played));
-                decimal wins = history.Sum(score => (decimal)score.Won);
-                decimal? percentage = sets == 0 ? null : 100m * wins / sets;
-                team.Players[name] = player with
-                {
-                    RecentSetsPlayed = sets,
-                    RecentWinsPercentage = percentage,
-                    RecentStrength = Blend(player.NormalisedRanking, percentage, history.Count, playerLimit)
-                };
-            }
+        return (teamsResults, playerScores);
+    }
 
-            var teamMatches = teamHistory[team];
-            decimal total = teamMatches.Sum(item => item.Total);
-            team.RecentWinsPercentage = total == 0 ? null : 100m * teamMatches.Sum(item => item.Own) / total;
-            var strengths = team.Players.Values.Where(player => player.RecentStrength.HasValue && player.RecentSetsPlayed > 0)
-                .Select(player => (Value: player.RecentStrength!.Value, Weight: (decimal)player.RecentSetsPlayed)).ToArray();
-            (team.WeightedAveragePlayersRecentStrength, team.PlayersRecentStrengthCoefficientOfVariation) = Statistics(strengths);
-            team.RecentStrength = Blend(team.WeightedAveragePlayersRecentStrength, team.RecentWinsPercentage, teamMatches.Count, teamLimit);
-            var rankings = team.Players.Values.Where(player => player.NormalisedRanking.HasValue)
-                .Select(player => (Value: player.NormalisedRanking!.Value, Weight: 1m)).ToArray();
-            (team.AverageNormalisedPlayersRanking, team.AverageNormalisedPlayersRankingCoefficientOfVariation) = Statistics(rankings);
-            team.PlayersWithUnknownStrengthCount = team.Players.Values.Count(player => !player.RecentStrength.HasValue);
+    private static void SetPlayerStatsFromLookbackFixtures(Team team,Dictionary<string, Queue<PlayerScore>> playerScores, int playerLookback)
+    {
+        foreach (var (name, recentScores) in playerScores)
+        {
+            var player = team.Players[name];
+            int setsPlayed = recentScores.Aggregate(0, (sum, score) => checked(sum + score.Played));
+            decimal setsWon = recentScores.Sum(score => (decimal)score.Won);
+            decimal? winPercentage = setsPlayed == 0 ? null : 100m * setsWon / setsPlayed;
+            team.Players[name] = player with
+            {
+                RecentSetsPlayed = setsPlayed,
+                RecentWinsPercentage = winPercentage,
+                RecentStrength = BlendStrengthByLookbackCoverage(player.NormalisedRanking, winPercentage, recentScores.Count, playerLookback)
+            };
         }
     }
 
-    private static void AddPlayers(Dictionary<string, Queue<PlayerScore>> histories, IReadOnlyList<PlayerScore> scores, int limit)
+    private static void SetTeamStatsFromLookbackFixtures(Team team, Queue<(decimal Own, decimal Total)> recentTeamResults, int teamLookback)
+    {
+        decimal totalSets = recentTeamResults.Sum(result => result.Total);
+        team.RecentWinsPercentage = totalSets == 0 ? null : 100m * recentTeamResults.Sum(result => result.Own) / totalSets;
+
+        var playerStrengthsWeightedBySetsPlayed = team.Players.Values
+            .Where(player => player.RecentStrength.HasValue && player.RecentSetsPlayed > 0)
+            .Select(player => (Value: player.RecentStrength!.Value, Weight: (decimal)player.RecentSetsPlayed))
+            .ToArray();
+        (team.WeightedAveragePlayersRecentStrength, team.PlayersRecentStrengthCoefficientOfVariation) =
+            WeightedMeanAndCoefficientVariation(playerStrengthsWeightedBySetsPlayed);
+        team.RecentStrength = BlendStrengthByLookbackCoverage(
+            team.WeightedAveragePlayersRecentStrength, team.RecentWinsPercentage, recentTeamResults.Count, teamLookback);
+
+        var equallyWeightedPlayerRankings = team.Players.Values
+            .Where(player => player.NormalisedRanking.HasValue)
+            .Select(player => (Value: player.NormalisedRanking!.Value, Weight: 1m))
+            .ToArray();
+        (team.AverageNormalisedPlayersRanking, team.AverageNormalisedPlayersRankingCoefficientOfVariation) =
+            WeightedMeanAndCoefficientVariation(equallyWeightedPlayerRankings);
+        team.PlayersWithUnknownStrengthCount = team.Players.Values.Count(player => !player.RecentStrength.HasValue);
+    }
+
+    private static void AddRosteredPlayerScores(Dictionary<string, Queue<PlayerScore>> histories, IReadOnlyList<PlayerScore> scores, int limit)
     {
         foreach (var score in scores)
             if (histories.TryGetValue(score.Name, out var history))
@@ -257,7 +367,7 @@ public sealed class StrategyDataCalculator
         history.Enqueue(item);
     }
 
-    private static decimal? Blend(decimal? baseline, decimal? recent, int count, int limit)
+    private static decimal? BlendStrengthByLookbackCoverage(decimal? baseline, decimal? recent, int count, int limit)
     {
         if (!baseline.HasValue) return recent;
         if (!recent.HasValue) return baseline;
@@ -266,7 +376,7 @@ public sealed class StrategyDataCalculator
         return (1m - weight) * baseline.Value + weight * recent.Value;
     }
 
-    private static (decimal? Mean, decimal? Coefficient) Statistics((decimal Value, decimal Weight)[] values)
+    private static (decimal? Mean, decimal? Coefficient) WeightedMeanAndCoefficientVariation((decimal Value, decimal Weight)[] values)
     {
         decimal weight = values.Sum(item => item.Weight);
         if (weight == 0) return (null, null);
@@ -287,6 +397,26 @@ public sealed class StrategyDataCalculator
             estimate = next;
         }
         return estimate;
+    }
+    
+    #endregion
+
+    private static void ValidateFixtures(
+        OrderedDictionary<string, Division> divisions,
+        OrderedDictionary<string, List<Fixture>> fixtures)
+    {
+        foreach (var (name, matches) in fixtures)
+        {
+            var division = divisions.FirstOrDefault(entry =>
+                string.Equals(entry.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+            if (division is null)
+                throw new InvalidOperationException($"Fixture division '{name}' is missing from the Divisions Teams roster.");
+
+            foreach (var match in matches)
+                foreach (var team in new[] { match.HomeTeamName, match.AwayTeamName })
+                    if (!division.Teams.ContainsKey(team))
+                        throw new InvalidOperationException($"Fixture team '{team}' in division '{name}' is missing from the Divisions Teams roster.");
+        }
     }
 
     private static void ValidateTables(

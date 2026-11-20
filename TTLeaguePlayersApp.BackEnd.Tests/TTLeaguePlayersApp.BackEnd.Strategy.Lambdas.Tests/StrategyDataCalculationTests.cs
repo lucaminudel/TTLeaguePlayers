@@ -109,7 +109,7 @@ public sealed class StrategyDataCalculationTests
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(), tables, new());
 
         Assert.Equal(11, first.TeamsLookbackPeriod);
-        Assert.Equal(7, first.PlayersLookbackPeriod);
+        Assert.Equal(5, first.PlayersLookbackPeriod);
         Assert.Equal(2, second.TeamsLookbackPeriod);
         Assert.Equal(1, second.PlayersLookbackPeriod);
         Assert.Equal(6, first.Teams["Team 1"].Played);
@@ -455,7 +455,7 @@ public sealed class StrategyDataCalculationTests
         Assert.Equal(Enumerable.Range(0, expectedGroups.Length).Select(index => $"Team {index}"), division.Teams.Keys);
         Assert.Equal(expectedStrengths, division.Teams.Values.Select(team => team.RecentStrength));
         Assert.Equal(expectedGroups.Select(value => (int?)value), division.Teams.Values.Select(team => team.RecentStrengthGroup));
-        Assert.Equal(expectedGaps.Length + 1, division.StrengthGroupsNumber);
+        Assert.Equal(expectedGaps.Length + 1, division.StrengthGroupsCount);
         Assert.Equal(expectedGaps.Select(value => (decimal)value), division.StrengthGroupsGaps);
     }
 
@@ -472,7 +472,7 @@ public sealed class StrategyDataCalculationTests
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("One", matches)));
 
         Assert.Equal(expectedGroups.Select(value => (int?)value), division.Teams.Values.Select(team => team.RecentStrengthGroup));
-        Assert.Equal(expectedGaps.Length + 1, division.StrengthGroupsNumber);
+        Assert.Equal(expectedGaps.Length + 1, division.StrengthGroupsCount);
         Assert.Equal(expectedGaps.Select(value => (decimal)value), division.StrengthGroupsGaps);
     }
 
@@ -486,7 +486,7 @@ public sealed class StrategyDataCalculationTests
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("Equal", matches)));
 
         Assert.All(division.Teams.Values, team => { Assert.Equal(50m, team.RecentStrength); Assert.Equal(1, team.RecentStrengthGroup); });
-        Assert.Equal(1, division.StrengthGroupsNumber);
+        Assert.Equal(1, division.StrengthGroupsCount);
         Assert.Empty(division.StrengthGroupsGaps!);
     }
 
@@ -504,7 +504,7 @@ public sealed class StrategyDataCalculationTests
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("Small", matches)));
 
         Assert.All(division.Teams.Values, team => { Assert.NotNull(team.RecentStrength); Assert.Equal(1, team.RecentStrengthGroup); });
-        Assert.Equal(1, division.StrengthGroupsNumber);
+        Assert.Equal(1, division.StrengthGroupsCount);
         Assert.Empty(division.StrengthGroupsGaps!);
     }
 
@@ -520,7 +520,7 @@ public sealed class StrategyDataCalculationTests
 
         Assert.Equal(300m / 7m, division.Teams["Team 7"].RecentStrength);
         Assert.Equal(new int?[] { 3, 2, 3, 1, 1, 2, 1, 1 }, division.Teams.Values.Select(team => team.RecentStrengthGroup));
-        Assert.Equal(3, division.StrengthGroupsNumber);
+        Assert.Equal(3, division.StrengthGroupsCount);
         Assert.Equal(new[] { 60m - 300m / 7m, 20m }, division.StrengthGroupsGaps);
     }
 
@@ -535,7 +535,7 @@ public sealed class StrategyDataCalculationTests
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("Large", matches)));
 
         Assert.Equal(new int?[] { 1, 5, 2, 4, 1, 3, 4, 5, 5, 3, 6, 1 }, division.Teams.Values.Select(team => team.RecentStrengthGroup));
-        Assert.Equal(6, division.StrengthGroupsNumber);
+        Assert.Equal(6, division.StrengthGroupsCount);
         Assert.Equal(new decimal[] { 10, 10, 10, 10, 20 }, division.StrengthGroupsGaps);
     }
 
@@ -559,7 +559,7 @@ public sealed class StrategyDataCalculationTests
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("Matrix", matches)));
 
         var expectedRows = expected.Split(';').Select(row => row.Split(',').Select(int.Parse).ToArray()).ToArray();
-        Assert.Equal(expectedRows.Length, division.StrengthGroupsNumber);
+        Assert.Equal(expectedRows.Length, division.StrengthGroupsCount);
         Assert.NotNull(division.PayOffMatrix);
         Assert.Equal(expectedRows.Length, division.PayOffMatrix.Length);
         for (var row = 0; row < expectedRows.Length; row++)
@@ -587,17 +587,22 @@ public sealed class StrategyDataCalculationTests
     public void GroupsUseStrengthBlendedFromRankingAndPlayerResults()
     {
         var division = Division("Blended", ("A", new[] { "Eighty" }), ("B", new[] { "Low", "High" }),
-            ("C", Array.Empty<string>()), ("D", Array.Empty<string>()));
+            ("C", Array.Empty<string>()), ("D", Array.Empty<string>()), ("E", Array.Empty<string>()));
         var divisions = Divisions(division);
-        var matches = new[] { Match("A", "B", 1, 9, [new("Eighty", 1, 2)]), Match("C", "D", 9, 1) };
+        var matches = new[]
+        {
+            Match("A", "B", 1, 9, [new("Eighty", 1, 2)]),
+            Match("C", "D", 9, 1),
+            Match("C", "E", 9, 1)
+        };
 
         new StrategyDataCalculator(divisions).UpdateStrategyDataWith(
             Rankings(("Low", 100), ("High", 200), ("Eighty", 180)), Tables(divisions), Fixtures(("Blended", matches)));
 
         var team = division.Teams["A"];
         Assert.Equal(62m, team.Players["Eighty"].RecentStrength);
-        AssertClose(1802m / 45m, team.RecentStrength, 0.000000000001m);
-        Assert.Equal(new int?[] { 1, 2, 2, 1 }, division.Teams.Values.Select(item => item.RecentStrengthGroup));
+        Assert.Equal(45.1m, team.RecentStrength);
+        Assert.Equal(new int?[] { 1, 2, 2, 1, 1 }, division.Teams.Values.Select(item => item.RecentStrengthGroup));
         Assert.Equal(new[] { 90m - team.RecentStrength!.Value }, division.StrengthGroupsGaps);
     }
 
@@ -613,22 +618,22 @@ public sealed class StrategyDataCalculationTests
 
         calculator.UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("First", firstMatches), ("Second", secondMatches)));
         Assert.Equal(new int?[] { 2, 1, 2, 1 }, first.Teams.Values.Select(team => team.RecentStrengthGroup));
-        Assert.Equal(2, first.StrengthGroupsNumber);
+        Assert.Equal(2, first.StrengthGroupsCount);
         Assert.Equal(new decimal[] { 80 }, first.StrengthGroupsGaps);
         Assert.Equal(new[] { 5, 3 }, first.PayOffMatrix![0]);
 
         calculator.UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("First", firstMatches.Take(1).ToArray()), ("Second", secondMatches)));
         Assert.All(first.Teams.Values, team => Assert.Null(team.RecentStrengthGroup));
-        Assert.Null(first.StrengthGroupsNumber);
+        Assert.Null(first.StrengthGroupsCount);
         Assert.Null(first.StrengthGroupsGaps);
         Assert.Null(first.PayOffMatrix);
         Assert.All(second.Teams.Values, team => Assert.Equal(1, team.RecentStrengthGroup));
-        Assert.Equal(1, second.StrengthGroupsNumber);
+        Assert.Equal(1, second.StrengthGroupsCount);
         Assert.Empty(second.StrengthGroupsGaps!);
 
         calculator.UpdateStrategyDataWith(Rankings(), Tables(divisions), Fixtures(("First", firstMatches), ("Second", secondMatches)));
         Assert.Equal(new int?[] { 2, 1, 2, 1 }, first.Teams.Values.Select(team => team.RecentStrengthGroup));
-        Assert.Equal(2, first.StrengthGroupsNumber);
+        Assert.Equal(2, first.StrengthGroupsCount);
         Assert.Equal(new decimal[] { 80 }, first.StrengthGroupsGaps);
         Assert.Equal(new[] { 5, 3 }, first.PayOffMatrix![0]);
     }
