@@ -9,9 +9,9 @@ allowed-tools: Bash(cat:*), Bash(ls:*), Bash(head:*), Bash(tail:*), Bash(wc:*), 
 
 ## Codex-specific model and delegation
 
-Use **Sol 6.1**, Medium for this phase. Select the host's available Sol model; this instruction does not
-itself change the running session's model. If model selection is unavailable, report the
-limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
+Tell the user to use **Sol 6.2**, High and continue without waiting for a user comment or a request. Do not hand over to the user after this.
+The frontmatter `model` is for Claude Code.
+
 Follow [the shared orchestration rules](../shared/orchestration.md).
 
 ### Suggested model — at phase start
@@ -406,14 +406,15 @@ supporting evidence and the authoritative continuation record without relying on
 temporary files. Identify and correct missing or contradictory information, reconcile any material
 change with the confirmed scope, and record the check and remaining uncertainties in `plan.md`.
 
-**Tell the user** — you cannot run this yourself; `/compact` is a command they type:
+**Tell the user** — share the following message and continue with the next step without handing over to the user to comment or make a request:
 
-> The plan is persisted at `<path>`. Before starting the Execution you may want to compact this
-> session:
-> `/compact keep all the relevant info related to the inception findings and plan before moving to the Execution`
+> Discovery is complete and the report is at `<path>`.
+> The report is what `coding-task-execution` reads. 
+> 
+> Before starting the Inception you may want to compact this session:
+> `/compact keep all the relevant findings from this discovery before moving to the Inception`
 
-Say also that compacting is optional and the hand-off does not depend on it: the plan is on disk,
-and that file — not this conversation — is what `coding-task-execution` reads.
+If there is nothing else to do here, continue to Coding Task Execution.
 ---
 
 ## Anti-patterns

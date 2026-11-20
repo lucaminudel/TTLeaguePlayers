@@ -10,10 +10,9 @@ allowed-tools: Bash(cat:*)
 
 ## Codex-specific model and delegation
 
-Use **Sol 6.1**, Medium for this phase, including autonomous unit reviews invoked from Execution. Select the
-host's available Sol model; this instruction does not itself change the running session's model.
-If model selection is unavailable, report the limitation rather than claiming a switch. The
-frontmatter `model` is for Claude Code.
+Tell the user to use **Sol 6.2** High and continue without waiting for a user comment or a request. Do not hand over to the user after this.
+ The frontmatter `model` is for Claude Code.
+
 Follow [the shared orchestration rules](../shared/orchestration.md).
 
 ### Suggested model — at phase start
@@ -684,7 +683,8 @@ Phase 7 now; an Execution retrospective cannot fill this gate.
 This is the end of the four-skill sequence: the working tree is reviewed, green and committable,
 and the commit message is proposed. **You do not commit** — staging and committing are the user's.
 
-**Tell the user** — you cannot run this yourself; `/compact` is a command they type:
+
+**Tell the user** — share the following message and continue with the next step without handing over to the user to comment or make a request:
 
 > The review is complete. The PR-review guide is at `<path>`. Any remaining task changes and
 > their proposed commit message are listed above, for you to stage and commit.

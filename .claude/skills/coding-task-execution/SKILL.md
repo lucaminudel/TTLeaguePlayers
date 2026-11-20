@@ -10,11 +10,10 @@ effort: high
 
 ## Codex-specific model and delegation
 
-Use **Terra 6.1**, Medium for this phase. Select the host's available Terra model; this instruction does not
-itself change the running session's model. If model selection is unavailable, report the
-limitation rather than claiming a switch. The frontmatter `model` is for Claude Code.
-Follow [the shared orchestration rules](../shared/orchestration.md). Review work within automatic
-unit mode follows the Review skill's **Sol** model instruction.
+Tell the user to use **Terra 6.1**, Medium and continue without waiting for a user comment or a request. Do not hand over to the user after this.
+The frontmatter `model` is for Claude Code.
+
+Follow [the shared orchestration rules](../shared/orchestration.md). 
 
 ### Suggested model — at phase start
 
@@ -1118,18 +1117,18 @@ Before closing, check that `work-summary.md` contains the distinct Execution ret
 outcome from Phase 9, including the user's Execution-specific answer or explicit skip. Complete
 Phase 9 if it is missing; another phase's retrospective cannot fill this gate.
 
-**Tell the user** — you cannot run this yourself; `/compact` is a command they type:
+**Tell the user** — share the following message and continue with the next step without handing over to the user to comment or make a request:
 
-> Execution is complete. The plan's progress log and the work summary at `<path>` are up to date.
-> Before starting the Review you may want to compact this session:
-> `/compact keep all the relevant info emerged during the execution before moving to the Review`
+> Discovery is complete and the report is at `<path>`.
+> The report is what `coding-task-review` reads. 
+> 
+> Before starting the Inception you may want to compact this session:
+> `/compact keep all the relevant findings from this discovery before moving to the Inception`
 
-Say also that compacting is optional and the hand-off does not depend on it: the plan and the work
-summary are on disk, and those files — not this conversation — are what `coding-task-review` reads.
-In automatic unit mode, after the required Execution retrospective is settled or explicitly
+After the required Execution retrospective is settled or explicitly
 skipped, continue into the final Review under the recorded sequence without asking again to start
 it. That Review reconciles unit commits and remaining changes and includes the human-driven
-decisions and review guide. In other modes, hand off to the user to start Review.
+decisions and review guide. 
 
 
 ## Standing rules
