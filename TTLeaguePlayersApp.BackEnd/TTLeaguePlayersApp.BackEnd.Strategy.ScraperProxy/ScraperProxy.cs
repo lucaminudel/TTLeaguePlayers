@@ -64,7 +64,15 @@ public sealed class ScraperProxy : IScraperProxy, IDisposable
                 request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
                 using var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStringAsync();
+                try
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                catch (InvalidOperationException exception) when (
+                    response.Content.Headers.ContentType?.CharSet is not null && exception.InnerException is ArgumentException)
+                {
+                    throw new InvalidDataException("The source response declared an invalid character encoding.", exception);
+                }
             }
             catch (Exception exception) when (IsTransientFailure(exception))
             {

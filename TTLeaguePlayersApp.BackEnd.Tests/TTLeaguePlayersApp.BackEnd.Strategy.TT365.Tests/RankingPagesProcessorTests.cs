@@ -1,3 +1,4 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -155,8 +156,9 @@ public class RankingPagesProcessorTests
         var proxy = CreateRetryingProxy((Page1Url, firstPage), (Page2Url, inconsistentSecondPage));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
+        var exception = await Assert.ThrowsAsync<StrategySourceCheckException>(() => processor.GetAllRankingPlayers());
 
+        Assert.Equal("Ranking", exception.SourceName);
         Assert.Contains("inconsistent after three attempts", exception.Message, StringComparison.Ordinal);
         Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
     }
@@ -169,7 +171,7 @@ public class RankingPagesProcessorTests
         var proxy = CreateRetryingProxy((Page1Url, firstPage), (Page2Url, repeatedPage));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
+        await Assert.ThrowsAsync<StrategySourceCheckException>(() => processor.GetAllRankingPlayers());
 
         Assert.Equal([Page1Url, Page2Url, Page1Url, Page2Url, Page1Url, Page2Url], proxy.RequestedUrls);
     }
@@ -183,7 +185,7 @@ public class RankingPagesProcessorTests
         var proxy = CreateRetryingProxy((Page1Url, malformedPage));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
+        var exception = await Assert.ThrowsAsync<StrategySourceCheckException>(() => processor.GetAllRankingPlayers());
 
         Assert.Contains("inconsistent after three attempts", exception.Message, StringComparison.Ordinal);
         Assert.Equal([Page1Url, Page1Url, Page1Url], proxy.RequestedUrls);
@@ -196,13 +198,13 @@ public class RankingPagesProcessorTests
         var proxy = CreateRetryingProxy((Page1Url, pageWithConflictingSignals));
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllRankingPlayers());
+        await Assert.ThrowsAsync<StrategySourceCheckException>(() => processor.GetAllRankingPlayers());
 
         Assert.Equal([Page1Url, Page1Url, Page1Url], proxy.RequestedUrls);
     }
 
     [Fact]
-    public async Task GetAllRankingPlayers_PropagatesProxyFailureWithoutRestartingCoverage()
+    public async Task GetAllRankingPlayers_PreservesNamedProxyFailureWithoutRestartingCoverage()
     {
         var fetchFailure = new HttpRequestException("configured network failure");
         var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
@@ -211,9 +213,11 @@ public class RankingPagesProcessorTests
         });
         var processor = new CLTTLStrategy2026Processor(proxy, StrategySources);
 
-        var thrownException = await Assert.ThrowsAsync<HttpRequestException>(() => processor.GetAllRankingPlayers());
+        var thrownException = await Assert.ThrowsAsync<StrategySourceCheckException>(() => processor.GetAllRankingPlayers());
 
-        Assert.Same(fetchFailure, thrownException);
+        Assert.Equal("Ranking", thrownException.SourceName);
+        Assert.Equal("fetch", thrownException.Stage);
+        Assert.Same(fetchFailure, thrownException.InnerException);
         Assert.Equal([Page1Url], proxy.RequestedUrls);
     }
 

@@ -2,11 +2,16 @@ using System.Net;
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
+using CurlImpersonate.Enums;
+using CurlImpersonate.Http;
 using FluentAssertions;
 using TTLeaguePlayersApp.BackEnd.APIGateway;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using ScraperProxyClient = TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy.ScraperProxy;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.APIGateway;
@@ -16,11 +21,13 @@ public sealed class StrategyGatewayTests
     private static ActiveSeasonStrategyConfig SeasonConfig() => Clttl2026TestConfig.Load();
 
     private static ApiGatewayProxyHandler Handler(
-        SpyLoggerObserver observer,
-        Func<Uri, Task<string>>? fetch = null)
+        ILoggerObserver observer,
+        Func<Uri, Task<string>>? fetch = null,
+        Func<ActiveSeasonStrategyConfig, IStrategyProcessor>? processorFactory = null,
+        ActiveSeasonStrategyConfig? configuration = null)
     {
-        var season = SeasonConfig();
-        var teams = new TeamComparisonsLambda(observer, [season], _ => new StrategyProcessorFake());
+        var season = configuration ?? SeasonConfig();
+        var teams = new TeamComparisonsLambda(observer, [season], processorFactory ?? (_ => new StrategyProcessorFake()));
         var projections = new TableProjectionsLambda(
             observer,
             [season],
@@ -93,17 +100,19 @@ public sealed class StrategyGatewayTests
         observer.RuntimeRegularEvents.Should().Contain(e => e.EventName == "GET TEAM COMPARISONS COMPLETED");
     }
 
-    [Fact]
-    public async Task TeamComparisons_RejectsUnknownSeason()
+    [Theory]
+    [InlineData("/strategy/team-comparisons", "GET TEAM COMPARISONS COMPLETED")]
+    [InlineData("/strategy/table-projections", "GET TABLE PROJECTIONS COMPLETED")]
+    public async Task StrategyRoutes_RejectUnknownSeason(string path, string completionEvent)
     {
         var observer = new SpyLoggerObserver();
         var handler = Handler(observer);
-        var unknown = ComparisonQuery();
+        var unknown = StrategyQuery(path);
         unknown["season"] = "1900-1901";
-        var notFound = await handler.Dispatch(Request("GET", "/strategy/team-comparisons", unknown), new TestLambdaContext());
+        var notFound = await handler.Dispatch(Request("GET", path, unknown), new TestLambdaContext());
 
         notFound.StatusCode.Should().Be((int)HttpStatusCode.NotFound);
-        observer.RuntimeRegularEvents.Count(e => e.EventName == "GET TEAM COMPARISONS COMPLETED").Should().Be(1);
+        observer.RuntimeRegularEvents.Count(e => e.EventName == completionEvent).Should().Be(1);
     }
 
     [Theory]
@@ -117,7 +126,7 @@ public sealed class StrategyGatewayTests
     [InlineData("/strategy/table-projections", "team_division")]
     public async Task StrategyRoutes_RejectEachMissingRequiredInput(string path, string missingParameter)
     {
-        var query = path == "/strategy/team-comparisons" ? ComparisonQuery() : ProjectionQuery();
+        var query = StrategyQuery(path);
         query.Remove(missingParameter);
 
         var response = await Handler(new SpyLoggerObserver()).Dispatch(
@@ -169,16 +178,177 @@ public sealed class StrategyGatewayTests
         observer.RuntimeRegularEvents.Should().Contain(e => e.EventName == "GET TABLE PROJECTIONS COMPLETED");
     }
 
-    [Fact]
-    public async Task TableProjections_Returns503WithSourceOnFailure()
+    [Theory]
+    [InlineData("/strategy/team-comparisons", "GET TEAM COMPARISONS", "The divisions and teams page has no team selector.")]
+    [InlineData("/strategy/table-projections", "GET TABLE PROJECTIONS", "The HTML response did not contain the required page markers and size.")]
+    public async Task StrategyRoutes_Return502ForMalformedSourceAndLogItsCause(string path, string operation, string causeMessage)
     {
-        var failingObserver = new SpyLoggerObserver();
-        var failing = await Handler(failingObserver, _ => Task.FromResult("<html><body>challenge</body></html>"))
-            .Dispatch(Request("GET", "/strategy/table-projections", ProjectionQuery()), new TestLambdaContext());
+        var (response, context) = await DispatchWithFirstSource(
+            path, ScraperProxyImpersonatorResponse.FromContent("<html><body>challenge</body></html>"));
 
-        failing.StatusCode.Should().Be((int)HttpStatusCode.ServiceUnavailable);
-        failing.Body.Should().Contain("Divisions Teams List");
-        failing.Body.Should().NotContain("challenge");
-        failingObserver.RuntimeRegularEvents.Should().Contain(e => e.EventName == "GET TABLE PROJECTIONS COMPLETED");
+        AssertStrategyError(response, context, HttpStatusCode.BadGateway, "strategy_source_error", "League data could not be loaded.");
+        var diagnostic = FailureLog(context, "ERROR", nameof(StrategySourceCheckException), causeMessage, expectedSubject: "claim-user");
+        diagnostic.GetProperty("Operation").GetString().Should().Be(operation);
+        diagnostic.GetProperty("League").GetString().Should().Be("CLTTL");
+        diagnostic.GetProperty("Season").GetString().Should().Be("2026-2027");
+        diagnostic.GetProperty("Division").GetString().Should().Be("Division 4");
+        diagnostic.GetProperty("Source").GetString().Should().Be("Divisions Teams List");
+        diagnostic.GetProperty("Stage").GetString().Should().Be("parse");
+    }
+
+    [Theory]
+    [InlineData("/strategy/team-comparisons")]
+    [InlineData("/strategy/table-projections")]
+    public async Task StrategyRoutes_Return502AndLogTheOriginalInvalidCharsetException(string path)
+    {
+        using var proxy = new ScraperProxyClient(
+            new InvalidCharsetHandler(), disposeHandler: true, _ => Task.CompletedTask, () => DateTimeOffset.UtcNow);
+        var handler = Handler(new LoggerObserver(), proxy.FetchAsync, config => StrategyProcessorFactory.Create(config, proxy));
+        var context = new TestLambdaContext { AwsRequestId = "strategy-invalid-charset-request" };
+
+        var response = await handler.Dispatch(Request("GET", path, StrategyQuery(path)), context);
+
+        AssertStrategyError(response, context, HttpStatusCode.BadGateway, "strategy_source_error", "League data could not be loaded.");
+        var diagnostic = FailureLog(context, "ERROR", nameof(InvalidOperationException),
+            "The character set provided in ContentType is invalid.", exactMessage: false);
+        diagnostic.GetProperty("Source").GetString().Should().Be("Divisions Teams List");
+        diagnostic.GetProperty("Stage").GetString().Should().Be("fetch");
+    }
+
+    [Theory]
+    [InlineData("/strategy/team-comparisons", HttpStatusCode.Forbidden)]
+    [InlineData("/strategy/team-comparisons", HttpStatusCode.GatewayTimeout)]
+    [InlineData("/strategy/table-projections", HttpStatusCode.Forbidden)]
+    [InlineData("/strategy/table-projections", HttpStatusCode.GatewayTimeout)]
+    public async Task StrategyRoutes_Return502ForAnUpstreamHttpErrorResponse(string path, HttpStatusCode upstreamStatus)
+    {
+        const string causeMessage = "Upstream response failure with diagnostic detail";
+        var cause = new HttpRequestException(causeMessage, null, upstreamStatus);
+        var (response, context) = await DispatchWithFirstSource(path, ScraperProxyImpersonatorResponse.FromException(cause));
+
+        AssertStrategyError(response, context, HttpStatusCode.BadGateway, "strategy_source_error", "League data could not be loaded.");
+        var diagnostic = FailureLog(context, "ERROR", nameof(HttpRequestException), causeMessage);
+        diagnostic.GetProperty("Source").GetString().Should().Be("Divisions Teams List");
+        diagnostic.GetProperty("Stage").GetString().Should().Be("fetch");
+        diagnostic.GetProperty("UpstreamStatus").GetString().Should().Be(((int)upstreamStatus).ToString());
+    }
+
+    [Theory]
+    [InlineData("/strategy/team-comparisons")]
+    [InlineData("/strategy/table-projections")]
+    public async Task StrategyRoutes_Return504ForAConfirmedFetchTimeout(string path)
+    {
+        const string causeMessage = "Curl request did not complete";
+        var cause = new HttpRequestException(causeMessage, new CurlException(CurlCode.OperationTimedOut));
+        var (response, context) = await DispatchWithFirstSource(path, ScraperProxyImpersonatorResponse.FromException(cause));
+
+        AssertStrategyError(response, context, HttpStatusCode.GatewayTimeout, "strategy_source_timeout", "League data did not arrive in time.");
+        var diagnostic = FailureLog(context, "ERROR", nameof(HttpRequestException), causeMessage);
+        diagnostic.GetProperty("Source").GetString().Should().Be("Divisions Teams List");
+        diagnostic.GetProperty("CurlCode").GetString().Should().Be(nameof(CurlCode.OperationTimedOut));
+    }
+
+    [Theory]
+    [InlineData("/strategy/team-comparisons", nameof(InvalidOperationException))]
+    [InlineData("/strategy/team-comparisons", nameof(TaskCanceledException))]
+    [InlineData("/strategy/team-comparisons", nameof(KeyNotFoundException))]
+    [InlineData("/strategy/table-projections", nameof(InvalidOperationException))]
+    [InlineData("/strategy/table-projections", nameof(TaskCanceledException))]
+    [InlineData("/strategy/table-projections", nameof(KeyNotFoundException))]
+    public async Task StrategyRoutes_ReturnSafe500ForUnexpectedExecutionFailures(string path, string exceptionType)
+    {
+        const string causeMessage = "Internal diagnostic detail";
+        Exception cause = exceptionType switch
+        {
+            nameof(TaskCanceledException) => new TaskCanceledException(causeMessage),
+            nameof(KeyNotFoundException) => new KeyNotFoundException(causeMessage),
+            _ => new InvalidOperationException(causeMessage)
+        };
+        var (response, context) = await DispatchWithFirstSource(path, ScraperProxyImpersonatorResponse.FromException(cause));
+
+        AssertStrategyError(response, context, HttpStatusCode.InternalServerError, "strategy_internal_error", "Strategy data could not be prepared.");
+        FailureLog(context, "CRITICAL", exceptionType, causeMessage);
+    }
+
+    [Theory]
+    [InlineData("/strategy/team-comparisons", nameof(ArgumentException), "The strategy source 'Ranking' is required.")]
+    [InlineData("/strategy/table-projections", nameof(InvalidOperationException), "The configured strategy source 'Divisions Teams List' is missing.")]
+    public async Task StrategyRoutes_ReturnSafe500ForMissingSourceConfiguration(string path, string exceptionType, string causeMessage)
+    {
+        var season = SeasonConfig() with { StrategySources = new Dictionary<string, Uri>() };
+        var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>());
+        var context = new TestLambdaContext { AwsRequestId = "strategy-missing-source-request" };
+        var handler = Handler(new LoggerObserver(), proxy.FetchAsync, config => StrategyProcessorFactory.Create(config, proxy), season);
+
+        var response = await handler.Dispatch(Request("GET", path, StrategyQuery(path)), context);
+
+        AssertStrategyError(response, context, HttpStatusCode.InternalServerError, "strategy_internal_error", "Strategy data could not be prepared.");
+        FailureLog(context, "CRITICAL", exceptionType, causeMessage, exactMessage: false);
+        proxy.RequestedUrls.Should().BeEmpty();
+    }
+
+    private static Dictionary<string, string> StrategyQuery(string path) =>
+        path == "/strategy/team-comparisons" ? ComparisonQuery() : ProjectionQuery();
+
+    private static async Task<(APIGatewayProxyResponse Response, TestLambdaContext Context)> DispatchWithFirstSource(
+        string path, ScraperProxyImpersonatorResponse firstSourceResponse)
+    {
+        var season = SeasonConfig();
+        var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
+        {
+            [season.StrategySources["Divisions Teams List"]] = [firstSourceResponse]
+        });
+        var handler = Handler(new LoggerObserver(), proxy.FetchAsync, config => StrategyProcessorFactory.Create(config, proxy), season);
+        var context = new TestLambdaContext { AwsRequestId = "strategy-source-request" };
+        var request = Request("GET", path, StrategyQuery(path));
+        request.RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
+        {
+            Authorizer = new APIGatewayCustomAuthorizerContext { Claims = new Dictionary<string, string> { ["sub"] = "claim-user" } }
+        };
+
+        return (await handler.Dispatch(request, context), context);
+    }
+
+    private static void AssertStrategyError(
+        APIGatewayProxyResponse response, TestLambdaContext context, HttpStatusCode status, string code, string message)
+    {
+        response.StatusCode.Should().Be((int)status);
+        response.Headers.Should().NotContainKey("Retry-After");
+        using var body = JsonDocument.Parse(response.Body);
+        body.RootElement.EnumerateObject().Select(property => property.Name)
+            .Should().BeEquivalentTo(new[] { "message", "code", "request_id" });
+        body.RootElement.GetProperty("message").GetString().Should().Be(message);
+        body.RootElement.GetProperty("code").GetString().Should().Be(code);
+        body.RootElement.GetProperty("request_id").GetString().Should().Be(context.AwsRequestId);
+    }
+
+    private static JsonElement FailureLog(
+        TestLambdaContext context, string level, string exceptionType, string message, bool exactMessage = true, string? expectedSubject = null)
+    {
+        var lines = ((TestLambdaLogger)context.Logger).Buffer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var diagnostic = lines.Select(line => JsonSerializer.Deserialize<JsonElement>(line))
+            .Where(entry => entry.GetProperty("log_level").GetString() is "ERROR" or "CRITICAL")
+            .Should().ContainSingle().Which;
+        diagnostic.GetProperty("log_level").GetString().Should().Be(level);
+        diagnostic.GetProperty("requestId").GetString().Should().Be(context.AwsRequestId);
+        var exception = diagnostic.GetProperty("exception");
+        exception.GetProperty("name").GetString().Should().Be(exceptionType);
+        if (exactMessage)
+            exception.GetProperty("message").GetString().Should().Be(message);
+        else
+            exception.GetProperty("message").GetString().Should().StartWith(message);
+        if (expectedSubject is not null)
+            diagnostic.GetProperty("user_claims").GetProperty("sub").GetString().Should().Be(expectedSubject);
+        return diagnostic.GetProperty("parameters");
+    }
+
+    private sealed class InvalidCharsetHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var content = new StringContent("<html></html>");
+            content.Headers.ContentType!.CharSet = "invalid-source-charset";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        }
     }
 }

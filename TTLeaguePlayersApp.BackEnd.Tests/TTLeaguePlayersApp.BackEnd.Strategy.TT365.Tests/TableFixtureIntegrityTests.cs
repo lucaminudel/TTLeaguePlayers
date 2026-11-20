@@ -1,5 +1,6 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -62,6 +63,8 @@ public sealed class TableFixtureIntegrityTests
         table.TeamsStanding.Add("Absent", new TeamStanding(0, 0, 0, 0));
         var tables = new OrderedDictionary<string, DivisionTable> { ["Missing"] = table };
         
-        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().CheckTableFixtureIntegrity(tables, new()));
+        var error = Assert.Throws<StrategySourceCheckException>(() => new CLTTLStrategy2026Parser().CheckTableFixtureIntegrity(tables, new()));
+        Assert.Equal("League Tables, Fixtures", error.SourceName);
+        Assert.Equal("integrate", error.Stage);
     }
 }

@@ -28,6 +28,23 @@ public class ScraperProxyTest
     }
 
     [Fact]
+    public async Task FetchAsync_PreservesTheDecodingFailureForAnInvalidCharset()
+    {
+        var content = new StringContent("<html>content</html>");
+        content.Headers.ContentType!.CharSet = "invalid-source-charset";
+        var handler = new SequenceHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content
+        }));
+        using var proxy = CreateProxy(handler);
+
+        var failure = await Assert.ThrowsAsync<InvalidDataException>(() => proxy.FetchAsync(new Uri("https://example.test/source")));
+
+        Assert.IsType<InvalidOperationException>(failure.InnerException);
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
     public async Task FetchAsync_RequestsCacheRevalidationOnEveryAttemptAndRepeatedFetch()
     {
         var noCacheHeaders = new List<bool>();

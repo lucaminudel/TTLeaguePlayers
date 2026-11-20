@@ -5,7 +5,7 @@ using FluentAssertions;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
 using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.Lambdas;
@@ -87,7 +87,7 @@ public sealed class StrategyLambdasTests
     }
 
     [Fact]
-    public async Task TeamComparisons_PropagatesSourceFailureWithoutLoggingCompletion()
+    public async Task TeamComparisons_PropagatesUnexpectedFailureWithoutLoggingCompletion()
     {
         var observer = new SpyLoggerObserver();
         var processor = new StrategyProcessorFake { FixtureFailure = new InvalidOperationException("fixture failure") };
@@ -96,6 +96,23 @@ public sealed class StrategyLambdasTests
         var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), new TestLambdaContext());
 
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("fixture failure");
+        observer.RuntimeErrors.Should().BeEmpty();
+        observer.RuntimeRegularEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task TeamComparisons_PropagatesSourceFailureWithoutLoggingCompletion()
+    {
+        var cause = new HttpRequestException("fixture request failed", null, HttpStatusCode.Forbidden);
+        var failure = new StrategySourceCheckException("Fixtures", cause.Message, cause, stage: "fetch");
+        var processor = new StrategyProcessorFake { FixtureFailure = failure };
+        var observer = new SpyLoggerObserver();
+        var lambda = new TeamComparisonsLambda(observer, [Config()], _ => processor);
+
+        var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4", "Home", "Away"), Claims(), new TestLambdaContext());
+
+        (await act.Should().ThrowAsync<StrategySourceCheckException>()).Which.Should().BeSameAs(failure);
+        observer.RuntimeErrors.Should().BeEmpty();
         observer.RuntimeRegularEvents.Should().BeEmpty();
     }
 
@@ -165,7 +182,7 @@ public sealed class StrategyLambdasTests
     }
 
     [Fact]
-    public async Task TableProjections_FailureLogsSourceAndDoesNotLogSuccessfulCompletion()
+    public async Task TableProjections_PropagatesSourceValidationFailureWithoutLoggingCompletion()
     {
         var observer = new SpyLoggerObserver();
         var lambda = Projection(_ => Task.FromResult("<html><body>short</body></html>"), observer);
@@ -174,9 +191,8 @@ public sealed class StrategyLambdasTests
 
         var failure = await act.Should().ThrowAsync<StrategySourceCheckException>();
         failure.Which.SourceName.Should().Be("Divisions Teams List");
-        observer.RuntimeErrors.Should().ContainSingle();
-        observer.RuntimeErrorClaims.Should().ContainSingle().Which.Should().BeEquivalentTo(Claims());
-        observer.RuntimeErrors[0].Message.Should().Contain("Divisions Teams List");
+        observer.RuntimeErrors.Should().BeEmpty();
+        failure.Which.Message.Should().Be("The HTML response did not contain the required page markers and size.");
         observer.RuntimeRegularEvents.Should().BeEmpty();
     }
 
@@ -184,13 +200,15 @@ public sealed class StrategyLambdasTests
     public async Task TableProjections_ReportsTheConfiguredSourceWhenFetchThrows()
     {
         var observer = new SpyLoggerObserver();
-        var lambda = Projection(_ => throw new HttpRequestException("upstream unavailable", null, HttpStatusCode.Forbidden), observer);
+        var cause = new HttpRequestException("upstream unavailable", null, HttpStatusCode.Forbidden);
+        var lambda = Projection(_ => throw cause, observer);
 
         var act = () => lambda.HandleAsync(new("CLTTL", "2026-2027", "Division 4"), Claims(), new TestLambdaContext());
 
         var failure = await act.Should().ThrowAsync<StrategySourceCheckException>();
         failure.Which.SourceName.Should().Be("Divisions Teams List");
-        observer.RuntimeErrors.Should().ContainSingle();
+        failure.Which.InnerException.Should().BeSameAs(cause);
+        observer.RuntimeErrors.Should().BeEmpty();
         observer.RuntimeRegularEvents.Should().BeEmpty();
     }
 }

@@ -1,6 +1,6 @@
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
@@ -21,16 +21,8 @@ public sealed class TeamComparisonsLambda
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var season = StrategyRequestValidation.GetConfiguredSeason(_activeSeasons, request.League, request.Season);    
+        var season = StrategyRequestValidation.GetConfiguredSeason(_activeSeasons, request.League, request.Season);
         var processor = _processorFactory(season);
-
-        var (divisions, rosterAnomalies) = await processor.GetAllDivisionsWithTeamsAndPlayers();
-        var (rankings, rankingAnomalies) = await processor.GetAllRankingPlayers();
-        var (tables, fixtures, fixtureAnomalies) = await processor.GetAllTablesAndFixtures(divisions);
-
-        new StrategyDataCalculator(divisions).UpdateStrategyDataWith( rankings, tables, fixtures);
-
-
         var parameters = new Dictionary<string, string>
         {
             ["League"] = request.League!,
@@ -38,7 +30,13 @@ public sealed class TeamComparisonsLambda
             ["Division"] = request.TeamDivision!
         };
 
+        var (divisions, rosterAnomalies) = await processor.GetAllDivisionsWithTeamsAndPlayers();
+        var (rankings, rankingAnomalies) = await processor.GetAllRankingPlayers();
+        var (tables, fixtures, fixtureAnomalies) = await processor.GetAllTablesAndFixtures(divisions);
+
+        new StrategyDataCalculator(divisions).UpdateStrategyDataWith(rankings, tables, fixtures);
         var anomalies = rosterAnomalies.Concat(rankingAnomalies).Concat(fixtureAnomalies).ToArray();
+
         if (anomalies.Length > 0)
             _observer.OnRuntimeIrregularEvent(
                 "GET TEAM COMPARISONS COMPLETED WITH ANOMALIES", 

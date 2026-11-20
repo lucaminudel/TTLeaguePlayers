@@ -1,4 +1,4 @@
-namespace TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+namespace TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 public sealed class Team
 {

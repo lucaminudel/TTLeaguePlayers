@@ -129,14 +129,14 @@ public sealed class CLTTLStrategy2026ProcessorTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ProcessAsync_FetchesDirectRosterWhenReusableDataIsIncomplete(bool missingTeamName)
+    [InlineData("""{"teamName":"Beta"}""", "missing player name")]
+    [InlineData("""{"name":"Unknown"}""", "missing team name")]
+    [InlineData("""{"teamName":"Beta","name":"Player\uD83D"}""", "Skipped reusable roster for team 'Beta'")]
+    public async Task ProcessAsync_FetchesDirectRosterWhenReusableDataIsIncomplete(string malformed, string expectedAnomaly)
     {
         var alphaUri = new Uri(PlayersUriPrefix.OriginalString + "11");
         var betaUri = new Uri(PlayersUriPrefix.OriginalString + "12");
         var gammaUri = new Uri(PlayersUriPrefix.OriginalString + "13");
-        var malformed = missingTeamName ? "{\"name\":\"Unknown\"}" : "{\"teamName\":\"Beta\"}";
         var alpha = "{\"teamPlayers\":[{\"name\":\"Alpha Player\"}],\"otherPlayers\":[{\"teamName\":\"Beta\",\"name\":\"Partial\"}," + malformed + "]}";
         var proxy = CreateProxy(
             (DivisionsUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("ProcessorTeams.html"))),
@@ -145,10 +145,11 @@ public sealed class CLTTLStrategy2026ProcessorTests
             (gammaUri, ScraperProxyImpersonatorResponse.FromContent(ReadFixture("EmptyRoster.json"))));
 
         var (divisions, anomalies) = await new CLTTLStrategy2026Processor(proxy, StrategySources).GetAllDivisionsWithTeamsAndPlayers();
-        
+
+        Assert.Equal(["Alpha Player"], divisions["Division 1"].Teams["Alpha"].Players.Keys);
         Assert.Equal(["Beta Player"], divisions["Division 1"].Teams["Beta"].Players.Keys);
         Assert.Contains(betaUri, proxy.RequestedUrls);
-        Assert.NotEmpty(anomalies);
+        Assert.Contains(anomalies, anomaly => anomaly.Contains(expectedAnomaly, StringComparison.Ordinal));
     }
 
     [Fact]

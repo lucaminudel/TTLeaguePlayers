@@ -1,4 +1,4 @@
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests;
 

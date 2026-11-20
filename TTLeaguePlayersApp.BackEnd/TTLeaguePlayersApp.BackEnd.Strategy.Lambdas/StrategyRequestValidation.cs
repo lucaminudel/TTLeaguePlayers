@@ -13,7 +13,7 @@ internal static class StrategyRequestValidation
                    string.Equals(config.League, league, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(config.Season, season, StringComparison.OrdinalIgnoreCase) &&
                    !string.IsNullOrWhiteSpace(config.CustomStrategyProcessor))
-               ?? throw new KeyNotFoundException($"No strategy is configured for league '{league}' and season '{season}'.");
+               ?? throw new StrategySeasonNotFoundException($"No strategy is configured for league '{league}' and season '{season}'.");
     }
 
 }

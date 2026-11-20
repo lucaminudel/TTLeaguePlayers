@@ -1,7 +1,8 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using System.Globalization;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -69,7 +70,7 @@ public sealed class FixturesProcessorTests
         Assert.Equal(2, anomalies.Count);
         Assert.Equal(new[] { sources["League Tables"], sources["Fixtures"] }, proxy.RequestedUrls);
         roster.Add("Missing", new Division("Missing"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.GetAllTablesAndFixtures(roster));
+        await Assert.ThrowsAsync<StrategySourceCheckException>(() => processor.GetAllTablesAndFixtures(roster));
     }
 
     private static int? Score(JsonElement fixture, string name) =>

@@ -1,4 +1,4 @@
-namespace TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+namespace TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 using LookbackFixtures = (Dictionary< Team, Queue<(decimal Own, decimal Total)>> forTeams, Dictionary<Team, Dictionary<string, Queue<PlayerScore>>> forPlayers);
 
@@ -301,8 +301,8 @@ public sealed class StrategyDataCalculator
         {
             var home = division.Teams[fixture.HomeTeamName];
             var away = division.Teams[fixture.AwayTeamName];
-            decimal homeScore = fixture.HomeTeamScore ?? throw new InvalidOperationException("A played fixture has no home score.");
-            decimal awayScore = fixture.AwayTeamScore ?? throw new InvalidOperationException("A played fixture has no away score.");
+            decimal homeScore = fixture.HomeTeamScore ?? throw new StrategySourceCheckException("Fixtures", "A played fixture has no home score.", stage: "integrate");
+            decimal awayScore = fixture.AwayTeamScore ?? throw new StrategySourceCheckException("Fixtures", "A played fixture has no away score.", stage: "integrate");
 
             AddBounded(teamsResults[home], (homeScore, homeScore + awayScore), teamLookback);
             AddBounded(teamsResults[away], (awayScore, homeScore + awayScore), teamLookback);
@@ -410,12 +410,12 @@ public sealed class StrategyDataCalculator
             var division = divisions.FirstOrDefault(entry =>
                 string.Equals(entry.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
             if (division is null)
-                throw new InvalidOperationException($"Fixture division '{name}' is missing from the Divisions Teams roster.");
+                throw new StrategySourceCheckException("Divisions Teams List, Fixtures", $"Fixture division '{name}' is missing from the Divisions Teams roster.", stage: "integrate");
 
             foreach (var match in matches)
                 foreach (var team in new[] { match.HomeTeamName, match.AwayTeamName })
                     if (!division.Teams.ContainsKey(team))
-                        throw new InvalidOperationException($"Fixture team '{team}' in division '{name}' is missing from the Divisions Teams roster.");
+                        throw new StrategySourceCheckException("Divisions Teams List, Fixtures", $"Fixture team '{team}' in division '{name}' is missing from the Divisions Teams roster.", stage: "integrate");
         }
     }
 
@@ -426,19 +426,19 @@ public sealed class StrategyDataCalculator
         foreach (var (name, division) in divisions)
         {
             if (!tables.TryGetValue(name, out var table))
-                throw new InvalidOperationException($"Division '{name}' is missing from the tables.");
+                throw new StrategySourceCheckException("Divisions Teams List, League Tables", $"Division '{name}' is missing from the tables.", stage: "integrate");
             if (division.Teams.Count == 0)
-                throw new InvalidOperationException($"Division '{name}' has no teams.");
+                throw new StrategySourceCheckException("Divisions Teams List", $"Division '{name}' has no teams.", stage: "integrate");
             foreach (var team in division.Teams.Keys)
                 if (!table.TeamsStanding.ContainsKey(team))
-                    throw new InvalidOperationException($"Team '{team}' in division '{name}' is missing from the League Table.");
+                    throw new StrategySourceCheckException("Divisions Teams List, League Tables", $"Team '{team}' in division '{name}' is missing from the League Table.", stage: "integrate");
             foreach (var team in table.TeamsStanding.Keys)
                 if (!division.Teams.ContainsKey(team))
-                    throw new InvalidOperationException($"Team '{team}' in division '{name}' is missing from the Divisions Teams roster.");
+                    throw new StrategySourceCheckException("Divisions Teams List, League Tables", $"Team '{team}' in division '{name}' is missing from the Divisions Teams roster.", stage: "integrate");
         }
 
         foreach (var name in tables.Keys)
             if (!divisions.ContainsKey(name))
-                throw new InvalidOperationException($"Division '{name}' is missing from the Divisions Teams roster.");
+                throw new StrategySourceCheckException("Divisions Teams List, League Tables", $"Division '{name}' is missing from the Divisions Teams roster.", stage: "integrate");
     }
 }

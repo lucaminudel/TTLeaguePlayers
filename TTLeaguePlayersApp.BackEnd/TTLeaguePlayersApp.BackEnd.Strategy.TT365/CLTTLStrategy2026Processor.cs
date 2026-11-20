@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.ScraperProxy;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 
@@ -70,7 +71,8 @@ public sealed class CLTTLStrategy2026Processor : IStrategyProcessor
                 return completePass;
         }
 
-        throw new InvalidOperationException("Ranking page coverage remained inconsistent after three attempts starting from page 1.");
+        throw new StrategySourceCheckException(
+            "Ranking", "Ranking page coverage remained inconsistent after three attempts starting from page 1.");
     }
 
     private async Task<IReadOnlyList<string>?> TryFetchCompletePassAsync()

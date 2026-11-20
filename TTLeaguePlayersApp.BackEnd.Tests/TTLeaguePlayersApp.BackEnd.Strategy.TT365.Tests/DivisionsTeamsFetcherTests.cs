@@ -1,3 +1,4 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -38,7 +39,7 @@ public sealed class DivisionsTeamsFetcherTests
     }
 
     [Fact]
-    public async Task FetchTeamPlayersAsync_PropagatesProxyFailure()
+    public async Task FetchTeamPlayersAsync_PreservesNamedProxyFailure()
     {
         var teamId = "75697";
         var expectedUri = new Uri(TeamPlayersUriPrefix.OriginalString + teamId);
@@ -49,9 +50,11 @@ public sealed class DivisionsTeamsFetcherTests
         });
         var fetcher = new CLTTLStrategy2026Fetcher(proxy, StrategySources);
 
-        var thrownException = await Assert.ThrowsAsync<HttpRequestException>(() => fetcher.FetchTeamPlayersAsync(teamId));
+        var thrownException = await Assert.ThrowsAsync<StrategySourceCheckException>(() => fetcher.FetchTeamPlayersAsync(teamId));
 
-        Assert.Same(failure, thrownException);
+        Assert.Equal("Divisions Teams Players List", thrownException.SourceName);
+        Assert.Equal("fetch", thrownException.Stage);
+        Assert.Same(failure, thrownException.InnerException);
         Assert.Equal([expectedUri], proxy.RequestedUrls);
     }
 

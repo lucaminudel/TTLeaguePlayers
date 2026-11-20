@@ -1,3 +1,4 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
@@ -85,7 +86,7 @@ public sealed class DivisionsTeamsParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseDivisionsAndTeams(
             Page(Group("Premier", teamId, "Team"))));
     }
 
@@ -110,7 +111,7 @@ public sealed class DivisionsTeamsParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(ParserPageImpersonator.Fetch("Divisions Teams List", ReadScenario(fixtureName))));
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseDivisionsAndTeams(ParserPageImpersonator.Fetch("Divisions Teams List", ReadScenario(fixtureName))));
     }
 
     [Fact]
@@ -118,7 +119,7 @@ public sealed class DivisionsTeamsParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(Page(
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseDivisionsAndTeams(Page(
             Group("Division One", "1", "First") + Group("division 1", "2", "Second"))));
     }
 
@@ -129,7 +130,7 @@ public sealed class DivisionsTeamsParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionsAndTeams(Page(
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseDivisionsAndTeams(Page(
             Group(firstDivision, "1", "Same Team") + Group(secondDivision, "2", "same team"))));
     }
 

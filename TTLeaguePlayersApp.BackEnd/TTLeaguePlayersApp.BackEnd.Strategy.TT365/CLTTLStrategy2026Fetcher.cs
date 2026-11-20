@@ -35,22 +35,25 @@ public sealed class CLTTLStrategy2026Fetcher
     public Task<string> FetchRankingPageAsync(int pageNumber)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
-        return _scraperProxy.FetchAsync(new Uri(
+        return FetchAsync(RankingSourceName, new Uri(
             _rankingPageUriPrefix.OriginalString + pageNumber.ToString(CultureInfo.InvariantCulture)));
     }
 
-    public Task<string> FetchDivisionsAndTeamsAsync() => _scraperProxy.FetchAsync(_divisionsTeamsListUri);
+    public Task<string> FetchDivisionsAndTeamsAsync() => FetchAsync(DivisionsTeamsListSourceName, _divisionsTeamsListUri);
 
-    public Task<string> FetchLeagueTablesAsync() => _scraperProxy.FetchAsync(_leagueTablesUri);
+    public Task<string> FetchLeagueTablesAsync() => FetchAsync(LeagueTablesSourceName, _leagueTablesUri);
 
-    public Task<string> FetchFixturesAsync() => _scraperProxy.FetchAsync(_fixturesUri);
+    public Task<string> FetchFixturesAsync() => FetchAsync(FixturesSourceName, _fixturesUri);
 
     public Task<string> FetchTeamPlayersAsync(string teamId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(teamId);
-        return _scraperProxy.FetchAsync(new Uri(
+        return FetchAsync(DivisionsTeamsPlayersListSourceName, new Uri(
             _divisionsTeamsPlayersListUriPrefix.OriginalString + Uri.EscapeDataString(teamId)));
     }
+
+    private Task<string> FetchAsync(string sourceName, Uri uri) =>
+        StrategySourceFetch.FetchAsync(sourceName, uri, _scraperProxy.FetchAsync);
 
     private static Uri GetRequiredSource(
         IReadOnlyDictionary<string, Uri> strategySources,

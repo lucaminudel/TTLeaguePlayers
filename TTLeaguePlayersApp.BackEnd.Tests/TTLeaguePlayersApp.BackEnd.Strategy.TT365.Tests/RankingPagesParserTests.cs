@@ -1,6 +1,7 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -131,7 +132,7 @@ public class RankingPagesParserTests
         Assert.Equal(2, players.Anomalies.Count);
         Assert.Contains(players.Anomalies, anomaly => anomaly.Contains("missing name", StringComparison.Ordinal));
         Assert.Contains(players.Anomalies, anomaly => anomaly.Contains("numeric Current ranking", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => parser.ParseRankingPlayers([RankingPage(Row("", 1, 100))]));
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseRankingPlayers([RankingPage(Row("", 1, 100))]));
     }
 
     [Fact]
@@ -152,7 +153,7 @@ public class RankingPagesParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseRankingPlayers([ParserPageImpersonator.Fetch("Ranking", ReadFixture("MissingTable.html"))]));
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseRankingPlayers([ParserPageImpersonator.Fetch("Ranking", ReadFixture("MissingTable.html"))]));
     }
 
     private static string ReadFixture(string fixtureName) =>

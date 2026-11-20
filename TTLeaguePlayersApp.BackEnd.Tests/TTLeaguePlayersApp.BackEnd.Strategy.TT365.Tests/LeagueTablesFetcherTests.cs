@@ -1,3 +1,4 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -23,7 +24,7 @@ public sealed class LeagueTablesFetcherTests
     }
 
     [Fact]
-    public async Task FetchLeagueTablesAsync_PropagatesProxyFailure()
+    public async Task FetchLeagueTablesAsync_PreservesNamedProxyFailure()
     {
         var sources = Clttl2026TestConfig.Load().StrategySources;
         var source = sources["League Tables"];
@@ -34,9 +35,11 @@ public sealed class LeagueTablesFetcherTests
         });
         var fetcher = new CLTTLStrategy2026Fetcher(proxy, sources);
 
-        var thrownException = await Assert.ThrowsAsync<HttpRequestException>(() => fetcher.FetchLeagueTablesAsync());
+        var thrownException = await Assert.ThrowsAsync<StrategySourceCheckException>(() => fetcher.FetchLeagueTablesAsync());
 
-        Assert.Same(failure, thrownException);
+        Assert.Equal("League Tables", thrownException.SourceName);
+        Assert.Equal("fetch", thrownException.Stage);
+        Assert.Same(failure, thrownException.InnerException);
         Assert.Equal([source], proxy.RequestedUrls);
     }
 }

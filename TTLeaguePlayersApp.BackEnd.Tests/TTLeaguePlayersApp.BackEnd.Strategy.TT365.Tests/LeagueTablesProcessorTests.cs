@@ -1,6 +1,6 @@
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;

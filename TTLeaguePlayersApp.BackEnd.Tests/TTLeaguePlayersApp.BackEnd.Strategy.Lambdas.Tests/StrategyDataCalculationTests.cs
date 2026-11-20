@@ -1,4 +1,5 @@
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.Lambdas;
@@ -166,9 +167,11 @@ public sealed class StrategyDataCalculationTests
             case "empty division": second.Teams.Clear(); tables["Second"].TeamsStanding.Clear(); break;
         }
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<StrategySourceCheckException>(() =>
             new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(("Player", 123)), tables, new()));
             
+        Assert.Equal(mismatch == "empty division" ? "Divisions Teams List" : "Divisions Teams List, League Tables", exception.SourceName);
+        Assert.Equal("integrate", exception.Stage);
         Assert.Contains(mismatch == "extra division" ? "Extra" : "Second", exception.Message);
         Assert.Equal(99, first.TeamsLookbackPeriod);
         Assert.Equal(88, first.Teams["A"].Played);
@@ -427,9 +430,11 @@ public sealed class StrategyDataCalculationTests
                 Match(mismatch == "home" ? "MissingHome" : "C", mismatch == "away" ? "MissingAway" : "D", 0, 0, played: false)
             }));
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<StrategySourceCheckException>(() =>
             new StrategyDataCalculator(divisions).UpdateStrategyDataWith( Rankings(("Player", 123)), Tables(divisions), fixtures));
 
+        Assert.Equal("Divisions Teams List, Fixtures", exception.SourceName);
+        Assert.Equal("integrate", exception.Stage);
         Assert.Contains(mismatch == "division" ? "Extra" : mismatch == "home" ? "MissingHome" : "MissingAway", exception.Message);
         Assert.Equal(99, first.TeamsLookbackPeriod);
         Assert.Equal(88, first.Teams["A"].Played);

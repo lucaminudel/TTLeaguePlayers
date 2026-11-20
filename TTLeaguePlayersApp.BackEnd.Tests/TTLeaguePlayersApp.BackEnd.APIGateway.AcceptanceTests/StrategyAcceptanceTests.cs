@@ -114,7 +114,7 @@ public sealed class StrategyAcceptanceTests : IAsyncLifetime
             var body = await response.Content.ReadAsStringAsync();
             response.StatusCode.Should().Be(
                 HttpStatusCode.OK,
-                $"staging source validation must succeed; status={(int)response.StatusCode}, body={body}. If this is 503, inspect the strategy Lambda logs for the failing source.");
+                $"staging source validation must succeed; status={(int)response.StatusCode}, body={body}. For 502 or 504, use request_id to find the source failure in the Strategy Lambda logs.");
             using var json = JsonDocument.Parse(body);
             json.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
             json.RootElement.EnumerateObject().Should().BeEmpty();

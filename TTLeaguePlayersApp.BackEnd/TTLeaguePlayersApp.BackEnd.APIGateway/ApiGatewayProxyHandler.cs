@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using TTLeaguePlayersApp.BackEnd.FrontendEvents;
 using System.Web;
@@ -8,6 +10,7 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.CognitoIdentityProvider;
 using Amazon.CognitoIdentityProvider.Model;
+using CurlImpersonate.Http;
 using TTLeaguePlayersApp.BackEnd.Cognito;
 using TTLeaguePlayersApp.BackEnd.Invites.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Invites.DataStore;
@@ -419,44 +422,25 @@ public partial class ApiGatewayProxyHandler
         {
             const string message = "Validation failed";
 
-            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(HttpStatusCode.BadRequest, message));
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS" + " COMPLETED", source, context, parameters.With(HttpStatusCode.BadRequest, message));
             
             return CreateResponse(HttpStatusCode.BadRequest, new { message, errors = validationErrors });
         }
 
+        Dictionary<string, string>? userClaims = null;
         try
         {
-            var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+            userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
             await _teamComparisonsLambda.HandleAsync(comparisonRequest, userClaims, context);
 
-            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(HttpStatusCode.Accepted));
+            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS" + " COMPLETED", source, context, parameters.With(HttpStatusCode.Accepted));
 
             return CreateResponse(HttpStatusCode.Accepted, new { message = "Strategy preparation is pending." }, new() { ["Retry-After"] = "16" });
         }
-        catch (ArgumentException ex)
+        catch (Exception failure) when (failure is not SecurityException)
         {
-            var status = HttpStatusCode.BadRequest;
-            
-            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(status, ex.Message));
-            
-            return CreateResponse(status, new { message = ex.Message, errors = new[] { ex.Message } });
-        }
-        catch (ValidationException ex)
-        {
-            var status = HttpStatusCode.BadRequest;
-            
-            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(status, ex.Message));
-            
-            return CreateResponse(status, new { message = ex.Message, errors = ex.Errors });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            
-            var status = HttpStatusCode.NotFound;
-            
-            _observer.OnRuntimeRegularEvent("GET TEAM COMPARISONS COMPLETED", source, context, parameters.With(status, ex.Message));
-            
-            return CreateResponse(status, new { message = ex.Message });
+            return CreateStrategyFailureResponse(failure, "GET TEAM COMPARISONS", source, context, parameters,
+                (comparisonRequest.League, comparisonRequest.Season, comparisonRequest.TeamDivision), userClaims);
         }
     }
 
@@ -483,53 +467,87 @@ public partial class ApiGatewayProxyHandler
             var status = HttpStatusCode.BadRequest;
             const string message = "Validation failed";
 
-            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, message));
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS" + " COMPLETED", source, context, parameters.With(status, message));
 
             return CreateResponse(status, new { message, errors = validationErrors });
         }
 
+        Dictionary<string, string>? userClaims = null;
         try
         {
-            var userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
+            userClaims = CognitoUsers.ExtractUserClaims(request.RequestContext?.Authorizer?.Claims, request.Headers);
             await _tableProjectionsLambda.HandleAsync(projectionRequest, userClaims, context);
 
-            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(HttpStatusCode.OK));
+            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS" + " COMPLETED", source, context, parameters.With(HttpStatusCode.OK));
             
             return CreateResponse(HttpStatusCode.OK, new { });
         }
-        catch (ArgumentException ex)
+        catch (Exception failure) when (failure is not SecurityException)
         {
-            var status = HttpStatusCode.BadRequest;
-            
-            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.Message));
-            
-            return CreateResponse(status, new { message = ex.Message, errors = new[] { ex.Message } });
+            return CreateStrategyFailureResponse(failure, "GET TABLE PROJECTIONS", source, context, parameters,
+                (projectionRequest.League, projectionRequest.Season, projectionRequest.TeamDivision), userClaims);
         }
-        catch (ValidationException ex)
-        {
-            var status = HttpStatusCode.BadRequest;
+    }
 
-            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.Message));
-            
-            return CreateResponse(status, new { message = ex.Message, errors = ex.Errors });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            var status = HttpStatusCode.NotFound;
+    private APIGatewayProxyResponse CreateStrategyFailureResponse(
+        Exception failure, string operation, Dictionary<string, string> source, ILambdaContext context,
+        Dictionary<string, string> parameters, (string? League, string? Season, string? Division) selection,
+        Dictionary<string, string>? userClaims)
+    {
+        var completionEvent = operation + " COMPLETED";
 
-            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.Message));
-            
-            return CreateResponse(status, new { message = ex.Message });
-        }
-        catch (StrategySourceCheckException ex)
+        if (failure is ValidationException validationFailure)
         {
-            var status = HttpStatusCode.ServiceUnavailable;
-            var message = $"Data source '{ex.SourceName}' is temporarily unavailable. Please try again later.";
-            
-            _observer.OnRuntimeRegularEvent("GET TABLE PROJECTIONS COMPLETED", source, context, parameters.With(status, ex.SourceName));
-            
-            return CreateResponse(status, new { message, errors = new[] { ex.SourceName } });
+            _observer.OnRuntimeRegularEvent(completionEvent, source, context,
+                parameters.With(HttpStatusCode.BadRequest, validationFailure.Message));
+            return CreateResponse(HttpStatusCode.BadRequest, new { message = validationFailure.Message, errors = validationFailure.Errors });
         }
+
+        if (failure is StrategySeasonNotFoundException missingSeason)
+        {
+            _observer.OnRuntimeRegularEvent(completionEvent, source, context,
+                parameters.With(HttpStatusCode.NotFound, missingSeason.Message));
+            return CreateResponse(HttpStatusCode.NotFound, new { message = missingSeason.Message });
+        }
+
+        if (failure is StrategySourceCheckException sourceFailure)
+        {
+            var (status, message, code) = sourceFailure.IsTimeout
+                ? (HttpStatusCode.GatewayTimeout, "League data did not arrive in time.", "strategy_source_timeout")
+                : (HttpStatusCode.BadGateway, "League data could not be loaded.", "strategy_source_error");
+
+            var diagnostic = new Dictionary<string, string>
+            {
+                ["League"] = selection.League!,
+                ["Season"] = selection.Season!,
+                ["Division"] = selection.Division!,
+                ["Operation"] = operation,
+                ["Source"] = sourceFailure.SourceName,
+                ["Stage"] = sourceFailure.Stage
+            };
+            var originalSourceError = sourceFailure.InnerException ?? sourceFailure;
+            for (Exception? cause = originalSourceError; cause is not null; cause = cause.InnerException)
+            {
+                if (cause is HttpRequestException { StatusCode: { } upstreamStatus })
+                    diagnostic.TryAdd("UpstreamStatus", ((int)upstreamStatus).ToString(CultureInfo.InvariantCulture));
+                if (cause is CurlException curlFailure)
+                    diagnostic.TryAdd("CurlCode", curlFailure.ErrorCode.ToString());
+            }
+
+            _observer.OnRuntimeError(originalSourceError, context, diagnostic, userClaims);
+            _observer.OnRuntimeRegularEvent(completionEvent, source, context, parameters.With(status));
+            return CreateResponse(status, new { message, code, request_id = context.AwsRequestId });
+        }
+
+        var original = failure is TargetInvocationException { InnerException: { } constructorError } ? constructorError : failure;
+        _observer.OnRuntimeCriticalError(original, context,
+            parameters.With(HttpStatusCode.InternalServerError).With("Operation", completionEvent));
+        return CreateResponse(HttpStatusCode.InternalServerError, new
+        {
+            message = "Strategy data could not be prepared.",
+            code = "strategy_internal_error",
+            request_id = context.AwsRequestId
+        });
     }
 
     private async Task<APIGatewayProxyResponse> HandleFrontendEvent(APIGatewayProxyRequest request, ILambdaContext context)

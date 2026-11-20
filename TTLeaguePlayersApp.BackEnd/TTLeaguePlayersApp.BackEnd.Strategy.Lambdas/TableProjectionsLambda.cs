@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Amazon.Lambda.Core;
 using TTLeaguePlayersApp.BackEnd.Configuration.DataStore;
+using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 
 namespace TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
@@ -43,10 +44,11 @@ public sealed class TableProjectionsLambda
     {
         ArgumentNullException.ThrowIfNull(request);
         var season = StrategyRequestValidation.GetConfiguredSeason(_activeSeasons, request.League, request.Season);
+        var parameters = new Dictionary<string, string> { ["League"] = request.League!, ["Season"] = request.Season! };
         foreach (var sourceName in RequiredSourceNames)
         {
             if (!season.StrategySources.TryGetValue(sourceName, out var sourceUri))
-                throw new KeyNotFoundException($"The configured strategy source '{sourceName}' is missing.");
+                throw new InvalidOperationException($"The configured strategy source '{sourceName}' is missing.");
 
             if (sourceName == PlayersSourceName)
                 sourceUri = AppendTeamId(sourceUri, TeamId);
@@ -54,55 +56,48 @@ public sealed class TableProjectionsLambda
             if (sourceName == Ranking)
                 sourceUri = AppendTeamId(sourceUri, "1");
 
-
-            string content;
-            try
-            {
-                content = await _fetchAsync(sourceUri);
-                if (sourceName == PlayersSourceName)
-                    ValidateNonEmptyJson(content);
-                else
-                    ValidateHtml(content);
-            }
-            catch (Exception exception) when (exception is not StrategySourceCheckException)
-            {
-                var failure = new StrategySourceCheckException(
-                    sourceName,
-                    $"The configured strategy source '{sourceName}' could not be validated.",
-                    exception);
-                _observer.OnRuntimeError(failure, context, new() { ["Source"] = sourceName }, userClaims);
-                throw failure;
-            }
+            var content = await StrategySourceFetch.FetchAsync(sourceName, sourceUri, _fetchAsync);
+            if (sourceName == PlayersSourceName)
+                ValidateNonEmptyJson(content);
+            else
+                ValidateHtml(sourceName, content);
         }
 
         _observer.OnRuntimeRegularEvent(
             "TABLE PROJECTIONS SOURCES VALIDATED",
             Source(),
             context,
-            new() { ["League"] = request.League!, ["Season"] = request.Season! },
+            parameters,
             userClaims);
     }
 
     private static Uri AppendTeamId(Uri prefix, string teamId)
         => new(prefix.ToString() + Uri.EscapeDataString(teamId), UriKind.Absolute);
 
-    private static void ValidateHtml(string content)
+    private static void ValidateHtml(string sourceName, string content)
     {
         if (Encoding.UTF8.GetByteCount(content) <= MinimumHtmlBytes ||
             !TitlePattern.IsMatch(content) ||
             !BodyPattern.IsMatch(content))
         {
-            throw new InvalidDataException("The HTML response did not contain the required page markers and size.");
+            throw new StrategySourceCheckException(sourceName, "The HTML response did not contain the required page markers and size.");
         }
     }
 
     private static void ValidateNonEmptyJson(string content)
     {
-        using var document = JsonDocument.Parse(content);
-        var isNonEmptyObject = document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.EnumerateObject().Any();
-        var isNonEmptyArray = document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.GetArrayLength() > 0;
-        if (!isNonEmptyObject && !isNonEmptyArray)
-            throw new InvalidDataException("The JSON response must be a non-empty object or array.");
+        try
+        {
+            using var document = JsonDocument.Parse(content);
+            var isNonEmptyObject = document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.EnumerateObject().Any();
+            var isNonEmptyArray = document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.GetArrayLength() > 0;
+            if (!isNonEmptyObject && !isNonEmptyArray)
+                throw new StrategySourceCheckException(PlayersSourceName, "The JSON response must be a non-empty object or array.");
+        }
+        catch (JsonException failure)
+        {
+            throw new StrategySourceCheckException(PlayersSourceName, failure.Message, failure);
+        }
     }
 
     private static Dictionary<string, string> Source()

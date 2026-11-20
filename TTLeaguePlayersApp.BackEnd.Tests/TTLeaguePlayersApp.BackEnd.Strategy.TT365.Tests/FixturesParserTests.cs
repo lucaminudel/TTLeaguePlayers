@@ -1,5 +1,6 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -166,7 +167,7 @@ public sealed class FixturesParserTests
             .Append(Scored("Tue 06 Oct", "C", "D", "6 - 4", DefaultHome, DefaultAway)).ToArray();
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", matches)));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -178,7 +179,7 @@ public sealed class FixturesParserTests
             Week("12 Oct 2026", "16 Oct 2026", nextWeekMissing)),
             Division("Division One", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "E", "F", "6 - 4", DefaultHome, DefaultAway))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -187,7 +188,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "6 - 4", Players(("One", 2)), Players(("Two", 1))))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -197,7 +198,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Unplayed("Mon 05 Oct", "A", "B")), unfinishedWeek),
             Division("Division One", Week("05 Oct 2026", "09 Oct 2026", Unplayed("Mon 05 Oct", "C", "D"))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -206,7 +207,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "6 - 4", DefaultHome, ""))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Theory]
@@ -219,7 +220,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "6 - 4", home, away))));
 
-        var error = Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        var error = Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
         Assert.Contains("duplicate", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -231,7 +232,7 @@ public sealed class FixturesParserTests
         var forfeitSide = Players(("One", 2), ("Two", 1), ("Forfeit", 0));
         var opponents = Players(("Three", 3), ("Four", 3), ("Five", 0));
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", forfeitAtHome ? "4 - 6" : "6 - 4", forfeitAtHome ? forfeitSide : opponents, forfeitAtHome ? opponents : forfeitSide))));
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -240,7 +241,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "8 - 2", DefaultHome, Players(("Forfeit", 0), ("Forfeit", 0), ("One", 1))))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -249,7 +250,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "10 - 0", "", ""), Unplayed("Tue 06 Oct", "C", "D"))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -269,7 +270,7 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", score, DefaultHome, DefaultAway))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Theory]
@@ -280,13 +281,13 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026",
             Scored("Mon 05 Oct", "A", "B", "6 - 4", Players(("One", won)), DefaultAway))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
     public void ParseDivisionFixtures_RejectsMissingDivisionStructure()
     {
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures("<html><body>No fixtures</body></html>"));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures("<html><body>No fixtures</body></html>"));
     }
 
     [Fact]
@@ -294,7 +295,7 @@ public sealed class FixturesParserTests
     {
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Unplayed("Mon 05 Oct", "", "B"))));
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -303,14 +304,14 @@ public sealed class FixturesParserTests
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Unplayed("Tue 06 Oct", "A", "B"))))
             .Replace("05 Oct 2026 &#x2013; 09 Oct 2026", "unknown week");
 
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
     public void ParseDivisionFixtures_RejectsSelfPlayIgnoringCase()
     {
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Unplayed("Mon 05 Oct", "Team", "team"))));
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Theory]
@@ -319,7 +320,7 @@ public sealed class FixturesParserTests
     public void ParseDivisionFixtures_RejectsTeamScoresInconsistentWithSingles(string score)
     {
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", score, DefaultHome, DefaultAway))));
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Theory]
@@ -330,7 +331,7 @@ public sealed class FixturesParserTests
         var four = atHome ? Players(("One", 2), ("Two", 2), ("Three", 1), ("Extra", 0))
             : Players(("Four", 2), ("Five", 1), ("Six", 1), ("Extra", 0));
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", "6 - 4", atHome ? four : DefaultHome, atHome ? DefaultAway : four))));
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -349,7 +350,7 @@ public sealed class FixturesParserTests
         var two = Players(("One", 3), ("Two", 2));
         var three = Players(("Four", 2), ("Five", 1), ("Six", 1));
         var html = Page(Division("Premier", Week("05 Oct 2026", "09 Oct 2026", Scored("Mon 05 Oct", "A", "B", atHome ? "6 - 4" : "4 - 6", atHome ? two : three, atHome ? three : two))));
-        Assert.Throws<InvalidOperationException>(() => _parser.ParseDivisionFixtures(html));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ParseDivisionFixtures(html));
     }
 
     [Fact]
@@ -359,7 +360,7 @@ public sealed class FixturesParserTests
         var fixtures = new OrderedDictionary<string, List<Fixture>> { ["premier"] = [] };
         _parser.ValidateFixtureDivisionCoverage(divisions, fixtures);
         divisions.Add("Division 1", new Division("Division 1"));
-        Assert.Throws<InvalidOperationException>(() => _parser.ValidateFixtureDivisionCoverage(divisions, fixtures));
+        Assert.Throws<StrategySourceCheckException>(() => _parser.ValidateFixtureDivisionCoverage(divisions, fixtures));
     }
 
     private static string Page(params string[] divisions) => $"<html><body><div id='fixtures'>{string.Concat(divisions)}</div></body></html>";

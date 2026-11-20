@@ -1,8 +1,9 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using System.Text.Json;
 using System.Collections.Generic;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
 
@@ -107,7 +108,7 @@ public sealed class TeamPlayersParserTests
     {
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseTeamPlayers(
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseTeamPlayers(
             FetchFixture(fixtureName),
             CreateTeam("Requested Team"),
             CreateTeams(CreateTeam("Requested Team"))));
@@ -121,10 +122,13 @@ public sealed class TeamPlayersParserTests
         var requestedTeam = CreateTeam("Requested Team");
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.ThrowsAny<JsonException>(() => parser.ParseTeamPlayers(
+        var error = Assert.Throws<StrategySourceCheckException>(() => parser.ParseTeamPlayers(
             FetchFixture(fixtureName),
             requestedTeam,
             CreateTeams(requestedTeam)));
+        Assert.IsAssignableFrom<JsonException>(error.InnerException);
+        Assert.Equal("Divisions Teams Players List", error.SourceName);
+        Assert.Equal("parse", error.Stage);
     }
 
     [Theory]
@@ -136,7 +140,7 @@ public sealed class TeamPlayersParserTests
         var requestedTeam = CreateTeam("Requested Team");
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseTeamPlayers(
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseTeamPlayers(
             FetchFixture(fixtureName),
             requestedTeam,
             CreateTeams(requestedTeam)));
@@ -277,6 +281,22 @@ public sealed class TeamPlayersParserTests
         Assert.Equal(["Old Player"], requestedTeam.Players.Keys);
         Assert.Empty(reusableTeam.Players);
         Assert.NotEmpty(anomalies);
+    }
+
+    [Fact]
+    public void ParseTeamPlayers_ClassifiesAnUnreadableRequestedPlayerNameAsASourceFailure()
+    {
+        const string json = """{"teamPlayers":[{"name":"Valid Player"},{"name":"Player\uD83D"}],"otherPlayers":[]}""";
+        var requestedTeam = CreateTeam("Requested Team");
+        var parser = new CLTTLStrategy2026Parser();
+
+        var failure = Assert.Throws<StrategySourceCheckException>(() =>
+            parser.ParseTeamPlayers(json, requestedTeam, CreateTeams(requestedTeam)));
+
+        Assert.Equal("Divisions Teams Players List", failure.SourceName);
+        Assert.Equal("parse", failure.Stage);
+        Assert.IsType<InvalidOperationException>(failure.InnerException);
+        Assert.Empty(requestedTeam.Players);
     }
 
     [Fact]

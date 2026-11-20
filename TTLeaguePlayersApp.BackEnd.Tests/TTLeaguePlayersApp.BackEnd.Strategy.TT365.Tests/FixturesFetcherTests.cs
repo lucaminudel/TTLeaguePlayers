@@ -1,3 +1,7 @@
+using System.Net;
+using CurlImpersonate.Enums;
+using CurlImpersonate.Http;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
 using Xunit;
 
@@ -23,22 +27,65 @@ public sealed class FixturesFetcherTests
         Assert.Equal([source], proxy.RequestedUrls);
     }
 
-    [Fact]
-    public async Task FetchFixturesAsync_PropagatesProxyFailure()
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    public async Task FetchFixturesAsync_PreservesHttpErrorResponsesAsSourceFailures(HttpStatusCode status)
     {
         var sources = Clttl2026TestConfig.Load().StrategySources;
         var source = sources["Fixtures"];
-        var failure = new HttpRequestException("configured fixtures fetch failure");
+        var failure = new HttpRequestException("configured fixtures fetch failure", null, status);
         var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
         {
             [source] = [ScraperProxyImpersonatorResponse.FromException(failure)]
         });
         var fetcher = new CLTTLStrategy2026Fetcher(proxy, sources);
 
-        var thrown = await Assert.ThrowsAsync<HttpRequestException>(() => fetcher.FetchFixturesAsync());
+        var thrown = await Assert.ThrowsAsync<StrategySourceCheckException>(() => fetcher.FetchFixturesAsync());
+
+        Assert.Equal("Fixtures", thrown.SourceName);
+        Assert.Equal("fetch", thrown.Stage);
+        Assert.False(thrown.IsTimeout);
+        Assert.Same(failure, thrown.InnerException);
+        Assert.Equal([source], proxy.RequestedUrls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FetchFixturesAsync_TypesConfirmedTimeoutAndPreservesItsCause(bool curlTimeout)
+    {
+        var sources = Clttl2026TestConfig.Load().StrategySources;
+        Exception failure = curlTimeout
+            ? new HttpRequestException("curl failed", new CurlException(CurlCode.OperationTimedOut))
+            : new TaskCanceledException("HTTP deadline elapsed", new TimeoutException());
+        var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
+        {
+            [sources["Fixtures"]] = [ScraperProxyImpersonatorResponse.FromException(failure)]
+        });
+        var fetcher = new CLTTLStrategy2026Fetcher(proxy, sources);
+
+        var thrown = await Assert.ThrowsAsync<StrategySourceCheckException>(() => fetcher.FetchFixturesAsync());
+
+        Assert.Equal("Fixtures", thrown.SourceName);
+        Assert.True(thrown.IsTimeout);
+        Assert.Same(failure, thrown.InnerException);
+    }
+
+    [Fact]
+    public async Task FetchFixturesAsync_LeavesUnexplainedCancellationUntyped()
+    {
+        var sources = Clttl2026TestConfig.Load().StrategySources;
+        var failure = new TaskCanceledException("Unknown cancellation");
+        var proxy = new ScraperProxyImpersonator(new Dictionary<Uri, IReadOnlyList<ScraperProxyImpersonatorResponse>>
+        {
+            [sources["Fixtures"]] = [ScraperProxyImpersonatorResponse.FromException(failure)]
+        });
+        var fetcher = new CLTTLStrategy2026Fetcher(proxy, sources);
+
+        var thrown = await Assert.ThrowsAsync<TaskCanceledException>(() => fetcher.FetchFixturesAsync());
 
         Assert.Same(failure, thrown);
-        Assert.Equal([source], proxy.RequestedUrls);
     }
 
     [Fact]

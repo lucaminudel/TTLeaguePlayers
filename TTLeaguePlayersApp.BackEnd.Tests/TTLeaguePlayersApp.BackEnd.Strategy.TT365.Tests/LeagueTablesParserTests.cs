@@ -1,6 +1,7 @@
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using System.Text.Json;
 using TTLeaguePlayersApp.BackEnd.Strategy.TT365;
-using TTLeaguePlayersApp.BackEnd.TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
+using TTLeaguePlayersApp.BackEnd.Strategy.Lambdas;
 using Xunit;
 
 namespace TTLeaguePlayersApp.BackEnd.Tests.Strategy.TT365;
@@ -70,7 +71,7 @@ public sealed class LeagueTablesParserTests
     [InlineData("MalformedStructure3.html")]
     public void ParseDivisionTables_ThrowsForMissingOrMalformedRequiredStructure(string fixtureName)
     {
-        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", ReadScenario(fixtureName))));
+        Assert.Throws<StrategySourceCheckException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", ReadScenario(fixtureName))));
     }
 
     [Fact]
@@ -89,7 +90,7 @@ public sealed class LeagueTablesParserTests
     {
         var html = ReadScenario("ThrowsWhenMalformedRowFollowsValidTeam.html");
 
-        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", html)));
+        Assert.Throws<StrategySourceCheckException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", html)));
     }
 
     [Fact]
@@ -100,8 +101,8 @@ public sealed class LeagueTablesParserTests
 
         var parser = new CLTTLStrategy2026Parser();
 
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateHeaders)));
-        Assert.Throws<InvalidOperationException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateTeams)));
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateHeaders)));
+        Assert.Throws<StrategySourceCheckException>(() => parser.ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", duplicateTeams)));
     }
 
     [Fact]
@@ -111,7 +112,7 @@ public sealed class LeagueTablesParserTests
         var changed = html.Replace("<td>0</td><td>0</td><td>0</td><td>0</td>", "<td>0</td><td>1</td><td>0</td><td>0</td>", StringComparison.Ordinal);
         Assert.NotEqual(html, changed);
         
-        Assert.Throws<InvalidOperationException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", changed)));
+        Assert.Throws<StrategySourceCheckException>(() => new CLTTLStrategy2026Parser().ParseDivisionTables(ParserPageImpersonator.Fetch("League Tables", changed)));
     }
 
     [Fact]
